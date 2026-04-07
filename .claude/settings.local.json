@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm)",
+      "Bash(npx create-next-app@latest caio-internal --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm)",
+      "Bash(shopt -s dotglob)",
+      "Bash(mv caio-internal/* .)",
+      "Bash(mv caio-internal/.* .)",
+      "Bash(rmdir caio-internal:*)",
+      "Bash(npm install:*)",
+      "Bash(npx shadcn@latest init -d --yes)"
+    ]
+  }
+}
