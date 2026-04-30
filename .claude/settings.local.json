@@ -16,7 +16,13 @@
       "Bash(where npm:*)",
       "Bash(node -e \"console.log\\(process.platform, process.arch\\)\")",
       "mcp__Desktop_Commander__read_file",
-      "Bash(npx next:*)"
+      "Bash(npx next:*)",
+      "Bash(DATABASE_URL=\"postgres://placeholder:placeholder@localhost:5432/placeholder\" npx drizzle-kit generate --name complete_schema)",
+      "Bash(curl -sI https://motherboard.chiefaiofficer.com)",
+      "Bash(where python *)",
+      "Bash(python -c \"from PIL import Image; print\\('Pillow', Image.__version__\\)\")",
+      "Bash(python scripts/generate-favicon.py)",
+      "Bash(DATABASE_URL=\"postgresql://placeholder:placeholder@localhost:5432/placeholder\" NEXTAUTH_URL=\"http://localhost\" NEXTAUTH_SECRET=\"test\" GOOGLE_CLIENT_ID=\"x\" GOOGLE_CLIENT_SECRET=\"x\" npx next build)"
     ]
   }
 }
