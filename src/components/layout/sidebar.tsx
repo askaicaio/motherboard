@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -30,11 +31,24 @@ export function Sidebar() {
     <aside className="fixed left-0 top-0 z-30 flex h-screen w-60 flex-col border-r bg-white">
       <div className="flex h-14 items-center border-b px-4">
         <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-900 text-white text-sm font-bold">
-            C
-          </div>
+          <Image
+            src="/icon-light.png"
+            alt="Motherboard"
+            width={28}
+            height={28}
+            className="dark:hidden"
+            priority
+          />
+          <Image
+            src="/icon-dark.png"
+            alt="Motherboard"
+            width={28}
+            height={28}
+            className="hidden dark:block"
+            priority
+          />
           <span className="text-sm font-semibold tracking-tight">
-            CAIO Internal
+            Motherboard
           </span>
         </Link>
       </div>
