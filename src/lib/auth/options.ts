@@ -21,7 +21,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         params: {
           // Restrict the Google consent screen to the organization domain
           hd: ALLOWED_EMAIL_DOMAIN,
-          prompt: "consent",
+          // Always show the account picker so users can choose between
+          // multiple Google accounts (work vs personal)
+          prompt: "select_account",
           access_type: "offline",
           response_type: "code",
         },
