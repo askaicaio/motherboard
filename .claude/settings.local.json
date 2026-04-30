@@ -8,7 +8,15 @@
       "Bash(mv caio-internal/.* .)",
       "Bash(rmdir caio-internal:*)",
       "Bash(npm install:*)",
-      "Bash(npx shadcn@latest init -d --yes)"
+      "Bash(npx shadcn@latest init -d --yes)",
+      "Bash(npx shadcn@latest add badge card input label select table dialog sheet tabs separator alert dropdown-menu popover tooltip switch radio-group textarea form avatar sonner skeleton command scroll-area checkbox)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run:*)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(where npm:*)",
+      "Bash(node -e \"console.log\\(process.platform, process.arch\\)\")",
+      "mcp__Desktop_Commander__read_file",
+      "Bash(npx next:*)"
     ]
   }
 }
