@@ -142,7 +142,7 @@ export function ReportDetailClient({
 
   async function runResearch() {
     setResearchLoading(true);
-    setReport({ ...report, researchStatus: "running" });
+    setReport({ ...report, researchStatus: "running", researchPhase: "researching" });
     try {
       const res = await fetch(`/api/reports/${report.id}/research`, {
         method: "POST",
@@ -151,9 +151,19 @@ export function ReportDetailClient({
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || `HTTP ${res.status}`);
       }
-      const { report: updated } = await res.json();
-      setReport(updated);
-      toast.success("Research complete");
+      const data = await res.json();
+      // Live mode (Inngest): API returns immediately with no report.
+      // Polling will pick up status updates as the background job runs.
+      if (data.mode === "live") {
+        toast.success("Research started — running in the background");
+        await refresh();
+      } else if (data.report) {
+        // Mock mode: synchronous, returns full report
+        setReport(data.report);
+        toast.success("Research complete");
+      } else {
+        await refresh();
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Research failed");
       await refresh();
@@ -173,9 +183,16 @@ export function ReportDetailClient({
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || `HTTP ${res.status}`);
       }
-      const { report: updated } = await res.json();
-      setReport(updated);
-      toast.success("Gamma deck generated");
+      const data = await res.json();
+      if (data.mode === "live") {
+        toast.success("Gamma generation started — running in the background");
+        await refresh();
+      } else if (data.report) {
+        setReport(data.report);
+        toast.success("Gamma deck generated");
+      } else {
+        await refresh();
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Gamma generation failed");
       await refresh();
