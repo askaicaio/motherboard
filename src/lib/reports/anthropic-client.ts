@@ -449,6 +449,7 @@ interface CallResult {
 async function callAnthropic(params: {
   apiKey: string;
   model: string;
+  effort: string;
   systemPrompt: string;
   userMessage: string;
   enableWebSearch: boolean;
@@ -478,7 +479,7 @@ async function callAnthropic(params: {
     system: systemBlocks,
     messages: [{ role: "user", content: params.userMessage }],
     thinking: { type: "adaptive", display: "summarized" },
-    output_config: { effort: "xhigh" },
+    output_config: { effort: params.effort },
   };
   if (tools.length > 0) requestBody.tools = tools;
 
@@ -593,6 +594,7 @@ async function liveResearch(
 ): Promise<ResearchOutcome> {
   const apiKey = process.env.ANTHROPIC_API_KEY!;
   const model = process.env.ANTHROPIC_MODEL || "claude-opus-4-7";
+  const effort = process.env.ANTHROPIC_EFFORT || "xhigh";
   const maxSearches = Number(process.env.ANTHROPIC_MAX_SEARCHES || "20");
 
   let totalUsage: ResearchTokenUsage = emptyUsage();
@@ -607,6 +609,7 @@ async function liveResearch(
   const stage1 = await callAnthropic({
     apiKey,
     model,
+    effort,
     systemPrompt: buildResearchPrompt(options),
     userMessage: buildUserMessage(options),
     enableWebSearch: true,
@@ -639,6 +642,7 @@ async function liveResearch(
   const stage2 = await callAnthropic({
     apiKey,
     model,
+    effort,
     systemPrompt: buildSlideDeckPrompt(options, dossier),
     userMessage: `Distill the dossier above into the 10-slide markdown for ${options.companyName}. Output ONLY the markdown, no preamble.`,
     enableWebSearch: false,

@@ -21,8 +21,12 @@ import { inngest } from "@/lib/inngest/client";
 import { researchReportFn } from "@/lib/inngest/functions/research-report";
 import { generateGammaFn } from "@/lib/inngest/functions/generate-gamma";
 
-// 800 seconds = 13.3 minutes — Vercel Pro + Fluid Compute maximum
-export const maxDuration = 800;
+// Vercel plan limits:
+//   - Hobby: 300s max
+//   - Pro: 800s max with Fluid Compute enabled
+// Currently set to 300 for Hobby. Bump to 800 if upgraded to Pro.
+// (Must be a build-time literal — Vercel reads it at deploy time.)
+export const maxDuration = 300;
 
 export const { GET, POST, PUT } = serve({
   client: inngest,

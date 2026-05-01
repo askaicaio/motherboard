@@ -91,14 +91,22 @@ async function callAnthropicStage(params: {
 }): Promise<CallStageResult> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error("ANTHROPIC_API_KEY not set");
+  // Default model: Opus 4.7 for best quality.
+  // For Vercel Hobby (300s timeout), Sonnet 4.6 is faster and may be required.
+  // Override with ANTHROPIC_MODEL env var.
   const model = process.env.ANTHROPIC_MODEL || "claude-opus-4-7";
+
+  // Default thinking effort: "xhigh" (Opus 4.7) for deepest reasoning.
+  // Lower values: "high", "medium", "low" — trade reasoning depth for speed.
+  // Sonnet 4.6 supports up to "high".
+  const effort = process.env.ANTHROPIC_EFFORT || "xhigh";
 
   const tools: Array<Record<string, unknown>> = [];
   if (params.enableWebSearch) {
     tools.push({
       type: "web_search_20260209",
       name: "web_search",
-      max_uses: params.maxSearches ?? 30,
+      max_uses: params.maxSearches ?? 20,
     });
   }
 
@@ -114,7 +122,7 @@ async function callAnthropicStage(params: {
     ],
     messages: [{ role: "user", content: params.userMessage }],
     thinking: { type: "adaptive", display: "summarized" },
-    output_config: { effort: "xhigh" },
+    output_config: { effort },
   };
   if (tools.length > 0) requestBody.tools = tools;
 
