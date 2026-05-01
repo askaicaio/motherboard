@@ -595,8 +595,8 @@ async function liveResearch(
 ): Promise<ResearchOutcome> {
   const apiKey = process.env.ANTHROPIC_API_KEY!;
   const model = process.env.ANTHROPIC_MODEL || "claude-opus-4-7";
-  const effort = process.env.ANTHROPIC_EFFORT || "xhigh";
-  const maxSearches = Number(process.env.ANTHROPIC_MAX_SEARCHES || "20");
+  const effort = process.env.ANTHROPIC_EFFORT || "high";
+  const maxSearches = Number(process.env.ANTHROPIC_MAX_SEARCHES || "15");
 
   let totalUsage: ResearchTokenUsage = emptyUsage();
   const allSources = new Map<string, ResearchSource>();

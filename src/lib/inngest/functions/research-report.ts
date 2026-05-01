@@ -93,14 +93,12 @@ async function callAnthropicStage(params: {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error("ANTHROPIC_API_KEY not set");
   // Default model: Opus 4.7 for best quality.
-  // For Vercel Hobby (300s timeout), Sonnet 4.6 is faster and may be required.
-  // Override with ANTHROPIC_MODEL env var.
   const model = process.env.ANTHROPIC_MODEL || "claude-opus-4-7";
 
-  // Default thinking effort: "xhigh" (Opus 4.7) for deepest reasoning.
-  // Lower values: "high", "medium", "low" — trade reasoning depth for speed.
-  // Sonnet 4.6 supports up to "high".
-  const effort = process.env.ANTHROPIC_EFFORT || "xhigh";
+  // "high" effort fits comfortably in Vercel's 800s function limit
+  // for typical research even on data-rich public companies.
+  // Use "xhigh" only if you've split Stage 1 into multiple calls.
+  const effort = process.env.ANTHROPIC_EFFORT || "high";
 
   const tools: Array<Record<string, unknown>> = [];
   if (params.enableWebSearch) {
@@ -266,14 +264,16 @@ export const researchReportFn = inngest.createFunction(
     // ============================================================
     // STAGE 1: Deep research
     // ============================================================
-    // 20 searches is plenty for thorough research and fits comfortably
-    // in Vercel's 800s function limit. Configurable via env if needed.
+    // 15 searches with "high" effort fits comfortably within Vercel's
+    // 800s function limit even for data-rich public companies. For
+    // truly exhaustive research, refactor into 3 smaller Inngest
+    // steps (see roadmap).
     const stage1 = await step.run("stage-1-deep-research", async () => {
       return await callAnthropicStage({
         systemPrompt: buildResearchPrompt(promptOptions),
         userMessage: buildUserMessage(promptOptions),
         enableWebSearch: true,
-        maxSearches: Number(process.env.ANTHROPIC_MAX_SEARCHES || "20"),
+        maxSearches: Number(process.env.ANTHROPIC_MAX_SEARCHES || "15"),
       });
     });
 
