@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ResearchProgress } from "@/components/reports/research-progress";
+import { DossierViewer } from "@/components/reports/dossier-viewer";
 import {
   Card,
   CardContent,
@@ -45,6 +47,7 @@ interface CompanyReport {
   knownDetails: string | null;
   titleFormat: string;
   researchStatus: "pending" | "running" | "complete" | "failed";
+  researchPhase?: string | null; // "researching" | "distilling" | null
   researchStartedAt: Date | string | null;
   researchCompletedAt: Date | string | null;
   researchDossier?: string | null; // Long-form research (stage 1)
@@ -81,6 +84,7 @@ export function ReportDetailClient({
   const [report, setReport] = useState(initialReport);
   const [researchLoading, setResearchLoading] = useState(false);
   const [gammaLoading, setGammaLoading] = useState(false);
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const research = REPORT_STAGE_STATUS_CONFIG[report.researchStatus];
   const gamma = REPORT_STAGE_STATUS_CONFIG[report.gammaStatus];
@@ -90,6 +94,49 @@ export function ReportDetailClient({
     if (res.ok) {
       const { report: fresh } = await res.json();
       setReport(fresh);
+    }
+  }
+
+  // Poll for status updates while research or Gamma is running
+  useEffect(() => {
+    const isPolling =
+      report.researchStatus === "running" || report.gammaStatus === "running";
+
+    if (!isPolling) {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+      return;
+    }
+
+    if (pollIntervalRef.current) return; // already polling
+
+    pollIntervalRef.current = setInterval(refresh, 5000);
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [report.researchStatus, report.gammaStatus]);
+
+  async function resetStuckResearch() {
+    if (!confirm("Reset this stuck job? It will be marked as failed and you can retry.")) {
+      return;
+    }
+    try {
+      const res = await fetch(`/api/reports/${report.id}/reset`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stage: "research" }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      toast.success("Job reset — you can now retry");
+      await refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to reset");
     }
   }
 
@@ -266,12 +313,19 @@ export function ReportDetailClient({
                 <Sparkles className="h-4 w-4 text-purple-500" />
                 <CardTitle className="text-base">1. Deep Research</CardTitle>
               </div>
-              <Badge className={research.color}>
-                {report.researchStatus === "running" && (
-                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+              <div className="flex items-center gap-1.5">
+                {report.researchCostUsd && parseFloat(report.researchCostUsd) > 0 && (
+                  <Badge className="bg-zinc-100 text-zinc-700 font-mono">
+                    ${parseFloat(report.researchCostUsd).toFixed(2)}
+                  </Badge>
                 )}
-                {research.label}
-              </Badge>
+                <Badge className={research.color}>
+                  {report.researchStatus === "running" && (
+                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                  )}
+                  {research.label}
+                </Badge>
+              </div>
             </div>
             <CardDescription>
               Two-stage workflow: Claude builds a comprehensive research
@@ -295,15 +349,33 @@ export function ReportDetailClient({
               </Button>
             )}
 
-            {report.researchStatus === "running" && (
-              <div className="rounded-md bg-blue-50 p-3 text-sm text-blue-800 flex items-start gap-2">
-                <Loader2 className="h-4 w-4 mt-0.5 animate-spin flex-shrink-0" />
-                <div>
-                  <strong>Research in progress.</strong> Stage 1: Claude is
-                  searching the web and assembling the dossier (3-5 min).
-                  Stage 2: distilling the dossier into the 10-slide deck (~1 min).
-                  Total ~5-7 min in live mode; ~5 seconds in mock mode.
-                </div>
+            {report.researchStatus === "running" && report.researchStartedAt && (
+              <div className="space-y-3">
+                <ResearchProgress
+                  startedAt={report.researchStartedAt}
+                  phase={
+                    (report.researchPhase as "researching" | "distilling" | null) ?? null
+                  }
+                  status={report.researchStatus}
+                  onReset={resetStuckResearch}
+                />
+                {report.researchDossier && report.researchPhase === "distilling" && (
+                  <div className="rounded-md bg-purple-50 border border-purple-100 p-3 text-xs text-purple-900 flex items-start gap-2">
+                    <Sparkles className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                    <div className="flex-1">
+                      Stage 1 complete — dossier ready ({(report.researchDossier.length / 1000).toFixed(1)}K chars).
+                    </div>
+                    <DossierViewer
+                      dossier={report.researchDossier}
+                      companyName={report.companyName}
+                      trigger={
+                        <Button size="sm" variant="ghost" className="h-6 text-xs px-2">
+                          View dossier
+                        </Button>
+                      }
+                    />
+                  </div>
+                )}
               </div>
             )}
 
@@ -457,28 +529,41 @@ export function ReportDetailClient({
         </Card>
       </div>
 
-      {/* ---- Research output: dossier + slide markdown tabs ---- */}
+      {/* ---- Research output: dossier viewer + slide markdown ---- */}
       {(report.researchDossier || report.researchMarkdown) && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Research output</CardTitle>
-            <CardDescription>
-              Two-stage output: the comprehensive dossier (intelligence) and the 10-slide markdown (sent to Gamma).
-            </CardDescription>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <CardTitle className="text-base">Research output</CardTitle>
+                <CardDescription>
+                  Two-stage output: comprehensive dossier (intelligence) and 10-slide markdown (sent to Gamma).
+                </CardDescription>
+              </div>
+              {report.researchDossier && (
+                <DossierViewer
+                  dossier={report.researchDossier}
+                  companyName={report.companyName}
+                />
+              )}
+            </div>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue={report.researchMarkdown ? "slides" : "dossier"} className="w-full">
-              <TabsList>
-                {report.researchDossier && (
-                  <TabsTrigger value="dossier" className="gap-2">
-                    <Sparkles className="h-3.5 w-3.5" />
-                    Research Dossier
-                    <Badge className="ml-1 bg-zinc-100 text-zinc-600 font-normal">
-                      {(report.researchDossier.length / 1000).toFixed(1)}K
-                    </Badge>
-                  </TabsTrigger>
-                )}
-                {report.researchMarkdown && (
+            {report.researchMarkdown ? (
+              <Tabs
+                defaultValue={report.researchMarkdown ? "slides" : "dossier"}
+                className="w-full"
+              >
+                <TabsList>
+                  {report.researchDossier && (
+                    <TabsTrigger value="dossier" className="gap-2">
+                      <Sparkles className="h-3.5 w-3.5" />
+                      Research Dossier
+                      <Badge className="ml-1 bg-zinc-100 text-zinc-600 font-normal">
+                        {(report.researchDossier.length / 1000).toFixed(1)}K
+                      </Badge>
+                    </TabsTrigger>
+                  )}
                   <TabsTrigger value="slides" className="gap-2">
                     <Presentation className="h-3.5 w-3.5" />
                     10-Slide Markdown
@@ -486,24 +571,21 @@ export function ReportDetailClient({
                       For Gamma
                     </Badge>
                   </TabsTrigger>
+                </TabsList>
+
+                {report.researchDossier && (
+                  <TabsContent value="dossier" className="mt-3">
+                    <div className="text-xs text-zinc-500 mb-2 flex items-center justify-between">
+                      <span>Quick markdown preview. Click <strong>View Research Dossier</strong> above for the rendered version.</span>
+                    </div>
+                    <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4 max-h-[400px] overflow-y-auto">
+                      <pre className="text-xs font-mono whitespace-pre-wrap text-zinc-700 leading-relaxed">
+                        {report.researchDossier}
+                      </pre>
+                    </div>
+                  </TabsContent>
                 )}
-              </TabsList>
 
-              {report.researchDossier && (
-                <TabsContent value="dossier" className="mt-3">
-                  <div className="text-xs text-zinc-500 mb-2">
-                    Comprehensive intelligence dossier — internal research artifact.
-                    Use this to fact-check the slide deck before sending.
-                  </div>
-                  <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4 max-h-[600px] overflow-y-auto">
-                    <pre className="text-xs font-mono whitespace-pre-wrap text-zinc-700 leading-relaxed">
-                      {report.researchDossier}
-                    </pre>
-                  </div>
-                </TabsContent>
-              )}
-
-              {report.researchMarkdown && (
                 <TabsContent value="slides" className="mt-3">
                   <div className="text-xs text-zinc-500 mb-2">
                     The 10-slide markdown distilled from the dossier — this is what goes to Gamma.
@@ -514,8 +596,16 @@ export function ReportDetailClient({
                     </pre>
                   </div>
                 </TabsContent>
-              )}
-            </Tabs>
+              </Tabs>
+            ) : (
+              <div className="text-sm text-zinc-500 flex items-start gap-2 rounded-md bg-purple-50 p-3 border border-purple-100">
+                <Sparkles className="h-4 w-4 mt-0.5 text-purple-600 shrink-0" />
+                <div>
+                  <strong>Dossier saved.</strong> Stage 2 (slide distillation) hasn&apos;t completed yet.
+                  Click <strong>View Research Dossier</strong> above to read the rendered intelligence.
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

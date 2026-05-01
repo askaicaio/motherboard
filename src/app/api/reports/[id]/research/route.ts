@@ -36,11 +36,12 @@ export async function POST(
     );
   }
 
-  // Mark as running
+  // Mark as running, clear any old dossier/markdown from a previous failed run
   await db
     .update(companyReports)
     .set({
       researchStatus: "running",
+      researchPhase: "researching",
       researchStartedAt: new Date(),
       researchError: null,
       updatedAt: new Date(),
@@ -54,12 +55,25 @@ export async function POST(
     details: { reportId: id, companyName: report.companyName },
   });
 
-  // Run research (in mock mode this is fast; live mode can take 4-6 min)
+  // Run research with phase + dossier callbacks so the UI can poll for progress
   const result = await generateResearch({
     companyName: report.companyName,
     industry: report.industry || undefined,
     knownDetails: report.knownDetails || undefined,
     titleFormat: report.titleFormat,
+    onPhaseChange: async (phase) => {
+      await db
+        .update(companyReports)
+        .set({ researchPhase: phase, updatedAt: new Date() })
+        .where(eq(companyReports.id, id));
+    },
+    onDossierReady: async (dossier) => {
+      // Persist dossier the moment Stage 1 finishes — survives Stage 2 failures
+      await db
+        .update(companyReports)
+        .set({ researchDossier: dossier, updatedAt: new Date() })
+        .where(eq(companyReports.id, id));
+    },
   });
 
   if (result.success) {
@@ -67,6 +81,7 @@ export async function POST(
       .update(companyReports)
       .set({
         researchStatus: "complete",
+        researchPhase: null,
         researchCompletedAt: new Date(),
         researchDossier: result.dossier,
         researchMarkdown: result.slideMarkdown,
@@ -106,6 +121,7 @@ export async function POST(
       .update(companyReports)
       .set({
         researchStatus: "failed",
+        researchPhase: null,
         researchError: result.error,
         ...(result.partialDossier
           ? { researchDossier: result.partialDossier }

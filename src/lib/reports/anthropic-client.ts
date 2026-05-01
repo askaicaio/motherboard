@@ -72,8 +72,15 @@ function isMockMode(): boolean {
   );
 }
 
+export interface GenerateResearchOptions extends BuildPromptOptions {
+  /** Called when transitioning between stages so the UI can update */
+  onPhaseChange?: (phase: "researching" | "distilling") => Promise<void> | void;
+  /** Called when stage 1 completes so partial dossier can be persisted early */
+  onDossierReady?: (dossier: string) => Promise<void> | void;
+}
+
 export async function generateResearch(
-  options: BuildPromptOptions,
+  options: GenerateResearchOptions,
 ): Promise<ResearchOutcome> {
   if (isMockMode()) {
     return mockResearch(options);
@@ -85,8 +92,9 @@ export async function generateResearch(
 // Mock research
 // ---------------------------------------------------------------------------
 async function mockResearch(
-  options: BuildPromptOptions,
+  options: GenerateResearchOptions,
 ): Promise<ResearchOutcome> {
+  await options.onPhaseChange?.("researching");
   await new Promise((r) => setTimeout(r, MOCK_DELAY_MS));
 
   const titleText =
@@ -581,7 +589,7 @@ async function callAnthropic(params: {
 }
 
 async function liveResearch(
-  options: BuildPromptOptions,
+  options: GenerateResearchOptions,
 ): Promise<ResearchOutcome> {
   const apiKey = process.env.ANTHROPIC_API_KEY!;
   const model = process.env.ANTHROPIC_MODEL || "claude-opus-4-7";
@@ -594,6 +602,8 @@ async function liveResearch(
   // ===========================================================
   // STAGE 1 — Deep research dossier (with web search)
   // ===========================================================
+  await options.onPhaseChange?.("researching");
+
   const stage1 = await callAnthropic({
     apiKey,
     model,
@@ -617,9 +627,15 @@ async function liveResearch(
   for (const [k, v] of stage1.sources) allSources.set(k, v);
   allThinking.push(...stage1.thinking);
 
+  // Persist the dossier immediately so it's accessible even if
+  // stage 2 fails or the function times out
+  await options.onDossierReady?.(dossier);
+
   // ===========================================================
   // STAGE 2 — Slide distillation (no web search)
   // ===========================================================
+  await options.onPhaseChange?.("distilling");
+
   const stage2 = await callAnthropic({
     apiKey,
     model,

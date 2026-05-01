@@ -644,6 +644,8 @@ export const companyReports = pgTable(
     researchStatus: reportStageStatusEnum("research_status")
       .notNull()
       .default("pending"),
+    /** Sub-stage when researchStatus is "running": "researching" | "distilling" */
+    researchPhase: text("research_phase"),
     researchStartedAt: timestamp("research_started_at", { withTimezone: true }),
     researchCompletedAt: timestamp("research_completed_at", {
       withTimezone: true,

@@ -36,6 +36,13 @@
       "when": 1777654407325,
       "tag": "0004_add_report_archive",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1777655030978,
+      "tag": "0005_add_research_phase",
+      "breakpoints": true
     }
   ]
 }
