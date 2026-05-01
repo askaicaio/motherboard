@@ -73,6 +73,27 @@ export const auditActionEnum = pgEnum("audit_action", [
   "offboarding_completed",
   "access_profile_created",
   "access_profile_updated",
+  // Company reports
+  "report_created",
+  "report_research_started",
+  "report_research_completed",
+  "report_research_failed",
+  "report_gamma_started",
+  "report_gamma_completed",
+  "report_gamma_failed",
+  "report_deleted",
+]);
+
+export const reportStageStatusEnum = pgEnum("report_stage_status", [
+  "pending",
+  "running",
+  "complete",
+  "failed",
+]);
+
+export const reportTitleFormatEnum = pgEnum("report_title_format", [
+  "strategic_growth", // "Strategic Growth Through AI"
+  "ebitda_expansion", // "Leveraging Generative AI for Operational Excellence & EBITDA Expansion"
 ]);
 
 export const jobTypeEnum = pgEnum("job_type", [
@@ -596,6 +617,71 @@ export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
   }),
   actor: one(adminUsers, {
     fields: [auditLogs.actorId],
+    references: [adminUsers.id],
+  }),
+}));
+
+// ========================================================================
+// Company Reports — Strategic Growth Reports for prospects
+// Two-stage workflow: deep research → Gamma deck generation
+// ========================================================================
+export const companyReports = pgTable(
+  "company_reports",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+
+    // Input — what the operator entered
+    companyName: text("company_name").notNull(),
+    industry: text("industry"), // optional — research can fill it
+    knownDetails: text("known_details"), // free-form context box (revenue, headcount, etc.)
+    titleFormat: reportTitleFormatEnum("title_format")
+      .notNull()
+      .default("strategic_growth"),
+
+    // Stage 1: Deep Research
+    researchStatus: reportStageStatusEnum("research_status")
+      .notNull()
+      .default("pending"),
+    researchStartedAt: timestamp("research_started_at", { withTimezone: true }),
+    researchCompletedAt: timestamp("research_completed_at", {
+      withTimezone: true,
+    }),
+    researchMarkdown: text("research_markdown"), // The full 10-slide markdown output
+    researchError: text("research_error"),
+    researchProvider: text("research_provider").default("anthropic"), // 'anthropic' | 'mock'
+    researchModel: text("research_model"), // e.g. claude-sonnet-4-5
+    researchSources: jsonb("research_sources").$type<string[]>().default([]),
+
+    // Stage 2: Gamma Generation
+    gammaStatus: reportStageStatusEnum("gamma_status")
+      .notNull()
+      .default("pending"),
+    gammaStartedAt: timestamp("gamma_started_at", { withTimezone: true }),
+    gammaCompletedAt: timestamp("gamma_completed_at", { withTimezone: true }),
+    gammaGenerationId: text("gamma_generation_id"), // Gamma's API ID
+    gammaUrl: text("gamma_url"), // Final shareable Gamma URL
+    gammaError: text("gamma_error"),
+
+    // Audit / ownership
+    createdBy: uuid("created_by").references(() => adminUsers.id),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("idx_reports_created_at").on(table.createdAt),
+    index("idx_reports_research_status").on(table.researchStatus),
+    index("idx_reports_gamma_status").on(table.gammaStatus),
+    index("idx_reports_company").on(table.companyName),
+  ],
+);
+
+export const companyReportsRelations = relations(companyReports, ({ one }) => ({
+  creator: one(adminUsers, {
+    fields: [companyReports.createdBy],
     references: [adminUsers.id],
   }),
 }));

@@ -22,7 +22,14 @@
       "Bash(where python *)",
       "Bash(python -c \"from PIL import Image; print\\('Pillow', Image.__version__\\)\")",
       "Bash(python scripts/generate-favicon.py)",
-      "Bash(DATABASE_URL=\"postgresql://placeholder:placeholder@localhost:5432/placeholder\" NEXTAUTH_URL=\"http://localhost\" NEXTAUTH_SECRET=\"test\" GOOGLE_CLIENT_ID=\"x\" GOOGLE_CLIENT_SECRET=\"x\" npx next build)"
+      "Bash(DATABASE_URL=\"postgresql://placeholder:placeholder@localhost:5432/placeholder\" NEXTAUTH_URL=\"http://localhost\" NEXTAUTH_SECRET=\"test\" GOOGLE_CLIENT_ID=\"x\" GOOGLE_CLIENT_SECRET=\"x\" npx next build)",
+      "Bash(curl -sI https://motherboard.chiefaiofficer.com/caio-logo-white.png)",
+      "Bash(curl -sI https://motherboard.chiefaiofficer.com/icon-light.png)",
+      "Bash(python -c ' *)",
+      "Bash(pip install *)",
+      "Bash(python)",
+      "Bash(python scripts/extract-references.py)",
+      "Bash(DATABASE_URL=\"postgres://placeholder:placeholder@localhost:5432/placeholder\" npx drizzle-kit generate --name add_company_reports)"
     ]
   }
 }

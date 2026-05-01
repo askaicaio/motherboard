@@ -1,0 +1,121 @@
+import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { companyReports } from "@/lib/db/schema";
+import { audit } from "@/lib/audit/logger";
+import { getOptionalAuth } from "@/lib/auth/guard";
+import { generateResearch } from "@/lib/reports/anthropic-client";
+import { eq } from "drizzle-orm";
+
+// Allow up to 5 minutes for the research call (Vercel Pro max)
+export const maxDuration = 300;
+
+export async function POST(
+  _: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
+  const user = await getOptionalAuth();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  // Load the report
+  const [report] = await db
+    .select()
+    .from(companyReports)
+    .where(eq(companyReports.id, id))
+    .limit(1);
+
+  if (!report) {
+    return NextResponse.json({ error: "Report not found" }, { status: 404 });
+  }
+
+  // Don't double-run if already completed (require explicit re-run)
+  if (report.researchStatus === "complete") {
+    return NextResponse.json(
+      { error: "Research already complete. Delete and re-create the report to re-run." },
+      { status: 409 },
+    );
+  }
+
+  // Mark as running
+  await db
+    .update(companyReports)
+    .set({
+      researchStatus: "running",
+      researchStartedAt: new Date(),
+      researchError: null,
+      updatedAt: new Date(),
+    })
+    .where(eq(companyReports.id, id));
+
+  await audit({
+    action: "report_research_started",
+    actorId: user.id,
+    actorEmail: user.email!,
+    details: { reportId: id, companyName: report.companyName },
+  });
+
+  // Run research (in mock mode this is fast; live mode can take 4-6 min)
+  const result = await generateResearch({
+    companyName: report.companyName,
+    industry: report.industry || undefined,
+    knownDetails: report.knownDetails || undefined,
+    titleFormat: report.titleFormat,
+  });
+
+  if (result.success) {
+    await db
+      .update(companyReports)
+      .set({
+        researchStatus: "complete",
+        researchCompletedAt: new Date(),
+        researchMarkdown: result.markdown,
+        researchModel: result.model,
+        researchProvider: result.provider,
+        researchSources: result.sources,
+        updatedAt: new Date(),
+      })
+      .where(eq(companyReports.id, id));
+
+    await audit({
+      action: "report_research_completed",
+      actorId: user.id,
+      actorEmail: user.email!,
+      details: {
+        reportId: id,
+        provider: result.provider,
+        model: result.model,
+        markdownLength: result.markdown.length,
+      },
+    });
+  } else {
+    await db
+      .update(companyReports)
+      .set({
+        researchStatus: "failed",
+        researchError: result.error,
+        updatedAt: new Date(),
+      })
+      .where(eq(companyReports.id, id));
+
+    await audit({
+      action: "report_research_failed",
+      actorId: user.id,
+      actorEmail: user.email!,
+      details: { reportId: id, error: result.error },
+    });
+
+    return NextResponse.json(
+      { error: result.error, success: false },
+      { status: 500 },
+    );
+  }
+
+  // Return the updated report
+  const [updated] = await db
+    .select()
+    .from(companyReports)
+    .where(eq(companyReports.id, id))
+    .limit(1);
+
+  return NextResponse.json({ report: updated, success: true });
+}

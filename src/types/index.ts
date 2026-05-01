@@ -52,7 +52,16 @@ export type AuditAction =
   | "offboarding_started"
   | "offboarding_completed"
   | "access_profile_created"
-  | "access_profile_updated";
+  | "access_profile_updated"
+  // Company reports
+  | "report_created"
+  | "report_research_started"
+  | "report_research_completed"
+  | "report_research_failed"
+  | "report_gamma_started"
+  | "report_gamma_completed"
+  | "report_gamma_failed"
+  | "report_deleted";
 
 export type JobType = "onboarding" | "offboarding" | "retry";
 
@@ -66,6 +75,31 @@ export type NotificationType =
   | "manual_task_assigned"
   | "approval_needed"
   | "step_retry_needed";
+
+// ---- Company Reports ----
+export type ReportStageStatus = "pending" | "running" | "complete" | "failed";
+
+export type ReportTitleFormat = "strategic_growth" | "ebitda_expansion";
+
+export const REPORT_TITLE_FORMATS: { value: ReportTitleFormat; label: string; description: string }[] = [
+  {
+    value: "strategic_growth",
+    label: "Strategic Growth Through AI",
+    description: "Growth-stage companies",
+  },
+  {
+    value: "ebitda_expansion",
+    label: "Leveraging Generative AI for Operational Excellence & EBITDA Expansion",
+    description: "PE-backed or margin-focused companies",
+  },
+];
+
+export const REPORT_STAGE_STATUS_CONFIG: Record<ReportStageStatus, { label: string; color: string }> = {
+  pending: { label: "Pending", color: "bg-zinc-100 text-zinc-700" },
+  running: { label: "Running", color: "bg-blue-100 text-blue-800" },
+  complete: { label: "Complete", color: "bg-emerald-100 text-emerald-800" },
+  failed: { label: "Failed", color: "bg-red-100 text-red-800" },
+};
 
 export const TOOL_KEYS = [
   "google_workspace",

@@ -11,6 +11,7 @@ import {
   ScrollText,
   Shield,
   Plug,
+  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +19,7 @@ const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/onboarding", label: "Onboarding", icon: List },
   { href: "/onboarding/new", label: "New Request", icon: UserPlus },
+  { href: "/reports", label: "Company Reports", icon: FileText },
   { href: "/integrations", label: "Integrations", icon: Plug },
   { href: "/audit-log", label: "Audit Log", icon: ScrollText },
   { href: "/settings/rules", label: "Rules", icon: Shield },
