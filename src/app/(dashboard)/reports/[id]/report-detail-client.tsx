@@ -25,6 +25,8 @@ import {
   RefreshCw,
   Trash2,
   Clock,
+  Archive,
+  ArchiveRestore,
 } from "lucide-react";
 import { REPORT_STAGE_STATUS_CONFIG } from "@/types";
 import { format, formatDistanceToNow } from "date-fns";
@@ -65,6 +67,8 @@ interface CompanyReport {
   gammaError: string | null;
   gammaCreditsDeducted?: number | null;
   gammaCreditsRemaining?: number | null;
+  archivedAt?: Date | string | null;
+  archivedBy?: string | null;
   createdAt: Date | string;
 }
 
@@ -139,19 +143,58 @@ export function ReportDetailClient({
     toast.success("Markdown copied to clipboard");
   }
 
-  async function deleteReport() {
-    if (!confirm(`Delete the report for "${report.companyName}"? This cannot be undone.`)) {
+  async function archiveReport() {
+    if (!confirm(`Archive "${report.companyName}"?\n\nIt will be moved to the Archived list. You can restore it later.`)) {
+      return;
+    }
+    try {
+      const res = await fetch(`/api/reports/${report.id}/archive`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ unarchive: false }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      toast.success("Report archived");
+      router.push("/reports");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to archive");
+    }
+  }
+
+  async function unarchiveReport() {
+    try {
+      const res = await fetch(`/api/reports/${report.id}/archive`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ unarchive: true }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      toast.success("Report restored");
+      router.push("/reports");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to restore");
+    }
+  }
+
+  async function deletePermanently() {
+    if (
+      !confirm(
+        `PERMANENTLY DELETE "${report.companyName}"?\n\nThis removes the database record entirely. This cannot be undone.`,
+      )
+    ) {
       return;
     }
     try {
       const res = await fetch(`/api/reports/${report.id}`, { method: "DELETE" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      toast.success("Report deleted");
-      router.push("/reports");
+      toast.success("Report permanently deleted");
+      router.push("/reports?archived=1");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to delete");
     }
   }
+
+  const isArchived = !!(report as { archivedAt?: Date | string | null }).archivedAt;
 
   const canRunResearch =
     report.researchStatus === "pending" || report.researchStatus === "failed";
@@ -161,13 +204,22 @@ export function ReportDetailClient({
 
   return (
     <div className="space-y-6">
+      {isArchived && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 flex items-center gap-2">
+          <Archive className="h-4 w-4" />
+          <div className="flex-1">
+            <strong>Archived.</strong> This report is hidden from the main list.
+            Restore it to bring it back, or delete it permanently.
+          </div>
+        </div>
+      )}
       <div>
         <Link
-          href="/reports"
+          href={isArchived ? "/reports?archived=1" : "/reports"}
           className="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-900 mb-3"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
-          Back to reports
+          Back to {isArchived ? "archive" : "reports"}
         </Link>
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -177,10 +229,30 @@ export function ReportDetailClient({
               Created {format(new Date(report.createdAt), "MMM d, yyyy 'at' h:mm a")}
             </p>
           </div>
-          <Button variant="ghost" size="sm" onClick={deleteReport} className="text-red-600 hover:text-red-700">
-            <Trash2 className="h-4 w-4 mr-1.5" />
-            Delete
-          </Button>
+          <div className="flex items-center gap-1">
+            {isArchived ? (
+              <>
+                <Button variant="outline" size="sm" onClick={unarchiveReport}>
+                  <ArchiveRestore className="h-4 w-4 mr-1.5" />
+                  Restore
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={deletePermanently}
+                  className="text-red-600 hover:text-red-700"
+                >
+                  <Trash2 className="h-4 w-4 mr-1.5" />
+                  Delete permanently
+                </Button>
+              </>
+            ) : (
+              <Button variant="ghost" size="sm" onClick={archiveReport}>
+                <Archive className="h-4 w-4 mr-1.5" />
+                Archive
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 

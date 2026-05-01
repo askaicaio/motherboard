@@ -35,7 +35,8 @@
       "Bash(DATABASE_URL=\"postgres://placeholder:placeholder@localhost:5432/placeholder\" npx drizzle-kit generate --name add_report_usage_tracking)",
       "Bash(mv \"#files/Company Reports/Claude Research/\"*.md references/sample-research/)",
       "Bash(mv \"#files/Company Reports/\"*.pdf references/sample-decks/)",
-      "Bash(DATABASE_URL=\"postgres://placeholder:placeholder@localhost:5432/placeholder\" npx drizzle-kit generate --name add_research_dossier)"
+      "Bash(DATABASE_URL=\"postgres://placeholder:placeholder@localhost:5432/placeholder\" npx drizzle-kit generate --name add_research_dossier)",
+      "Bash(DATABASE_URL=\"postgres://placeholder:placeholder@localhost:5432/placeholder\" npx drizzle-kit generate --name add_report_archive)"
     ]
   }
 }

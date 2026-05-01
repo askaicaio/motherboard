@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { companyReports } from "@/lib/db/schema";
 import { audit } from "@/lib/audit/logger";
 import { getOptionalAuth } from "@/lib/auth/guard";
-import { desc } from "drizzle-orm";
+import { desc, isNull, isNotNull } from "drizzle-orm";
 
 const createReportSchema = z.object({
   companyName: z.string().min(1).max(200),
@@ -13,15 +13,24 @@ const createReportSchema = z.object({
   titleFormat: z.enum(["strategic_growth", "ebitda_expansion"]),
 });
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const user = await getOptionalAuth();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  // ?archived=1 → only archived reports
+  // default → only active (non-archived) reports
+  const archived = request.nextUrl.searchParams.get("archived") === "1";
 
   const reports = await db
     .select()
     .from(companyReports)
+    .where(
+      archived
+        ? isNotNull(companyReports.archivedAt)
+        : isNull(companyReports.archivedAt),
+    )
     .orderBy(desc(companyReports.createdAt))
-    .limit(200);
+    .limit(500);
 
   return NextResponse.json({ reports });
 }

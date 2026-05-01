@@ -82,6 +82,8 @@ export const auditActionEnum = pgEnum("audit_action", [
   "report_gamma_completed",
   "report_gamma_failed",
   "report_deleted",
+  "report_archived",
+  "report_unarchived",
 ]);
 
 export const reportStageStatusEnum = pgEnum("report_stage_status", [
@@ -674,6 +676,10 @@ export const companyReports = pgTable(
     gammaCreditsDeducted: integer("gamma_credits_deducted"),
     gammaCreditsRemaining: integer("gamma_credits_remaining"),
 
+    // Archive (soft delete)
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    archivedBy: uuid("archived_by").references(() => adminUsers.id),
+
     // Audit / ownership
     createdBy: uuid("created_by").references(() => adminUsers.id),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -688,6 +694,7 @@ export const companyReports = pgTable(
     index("idx_reports_research_status").on(table.researchStatus),
     index("idx_reports_gamma_status").on(table.gammaStatus),
     index("idx_reports_company").on(table.companyName),
+    index("idx_reports_archived_at").on(table.archivedAt),
   ],
 );
 

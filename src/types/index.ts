@@ -61,7 +61,9 @@ export type AuditAction =
   | "report_gamma_started"
   | "report_gamma_completed"
   | "report_gamma_failed"
-  | "report_deleted";
+  | "report_deleted"
+  | "report_archived"
+  | "report_unarchived";
 
 export type JobType = "onboarding" | "offboarding" | "retry";
 

@@ -29,6 +29,13 @@
       "when": 1777653655369,
       "tag": "0003_add_research_dossier",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1777654407325,
+      "tag": "0004_add_report_archive",
+      "breakpoints": true
     }
   ]
 }
