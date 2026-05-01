@@ -415,16 +415,13 @@ async function liveResearch(
   ];
 
   // Use the latest web search tool with dynamic filtering.
-  // web_search_20260209 needs code execution to filter results.
+  // web_search_20260209 auto-injects code_execution when needed —
+  // do NOT define code_execution explicitly or it will 400.
   const tools: Array<Record<string, unknown>> = [
     {
       type: "web_search_20260209",
       name: "web_search",
       max_uses: maxSearches,
-    },
-    {
-      type: "code_execution_20250825",
-      name: "code_execution",
     },
   ];
 
