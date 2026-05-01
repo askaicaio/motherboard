@@ -8,13 +8,16 @@ interface Props {
   startedAt: Date | string;
   phase: "researching" | "distilling" | null;
   status: "pending" | "running" | "complete" | "failed";
-  /** Called when the operator clicks "Reset stuck job" — only visible after 10 min */
+  /** Called when the operator clicks "Reset stuck job" — only visible after 45 min */
   onReset?: () => void;
 }
 
-const STUCK_THRESHOLD_MS = 10 * 60 * 1000; // 10 minutes
-const ESTIMATED_STAGE_1_MS = 4 * 60 * 1000; // 4 minutes typical
-const ESTIMATED_STAGE_2_MS = 60 * 1000; // 1 minute typical
+// Background jobs run on Inngest with up to 2 hours per step.
+// Long runs (15-30 min) are common for thorough research on
+// data-rich public companies. Only flag truly stuck jobs (45+ min).
+const STUCK_THRESHOLD_MS = 45 * 60 * 1000; // 45 minutes
+const ESTIMATED_STAGE_1_MS = 8 * 60 * 1000; // 8 minutes typical
+const ESTIMATED_STAGE_2_MS = 90 * 1000; // 1.5 minutes typical
 const ESTIMATED_TOTAL_MS = ESTIMATED_STAGE_1_MS + ESTIMATED_STAGE_2_MS;
 
 function formatElapsed(ms: number): string {
@@ -107,14 +110,23 @@ export function ResearchProgress({ startedAt, phase, status, onReset }: Props) {
         </div>
       </div>
 
-      {/* Stuck job recovery */}
+      {/* Long-running job notice (only after 45+ min) */}
       {isStuck && onReset && (
         <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
           <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
           <div className="flex-1">
-            <strong>This job has been running for {elapsedLabel}.</strong>{" "}
-            Vercel functions time out after 5 minutes — the server-side process
-            may have died. You can reset and retry.
+            <strong>Running for {elapsedLabel}.</strong> This is unusually long
+            even for thorough research. Check the{" "}
+            <a
+              href="https://app.inngest.com/env/production/runs"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline font-medium"
+            >
+              Inngest dashboard
+            </a>{" "}
+            to see if the job is genuinely stuck. Only reset if you confirm
+            the run has failed there.
           </div>
           <button
             onClick={onReset}
