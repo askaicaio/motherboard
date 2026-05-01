@@ -22,6 +22,13 @@
       "when": 1777652778218,
       "tag": "0002_add_report_usage_tracking",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1777653655369,
+      "tag": "0003_add_research_dossier",
+      "breakpoints": true
     }
   ]
 }

@@ -68,7 +68,8 @@ export async function POST(
       .set({
         researchStatus: "complete",
         researchCompletedAt: new Date(),
-        researchMarkdown: result.markdown,
+        researchDossier: result.dossier,
+        researchMarkdown: result.slideMarkdown,
         researchModel: result.model,
         researchProvider: result.provider,
         researchSources: result.sources,
@@ -91,18 +92,24 @@ export async function POST(
         reportId: id,
         provider: result.provider,
         model: result.model,
-        markdownLength: result.markdown.length,
+        dossierLength: result.dossier.length,
+        slideMarkdownLength: result.slideMarkdown.length,
         sourceCount: result.sources.length,
         webSearches: result.usage.webSearchRequests,
         costUsd: result.usage.estimatedCostUsd,
       },
     });
   } else {
+    // If stage 1 succeeded but stage 2 failed, preserve the dossier so
+    // the operator can re-run just the distillation later.
     await db
       .update(companyReports)
       .set({
         researchStatus: "failed",
         researchError: result.error,
+        ...(result.partialDossier
+          ? { researchDossier: result.partialDossier }
+          : {}),
         updatedAt: new Date(),
       })
       .where(eq(companyReports.id, id));
@@ -111,7 +118,11 @@ export async function POST(
       action: "report_research_failed",
       actorId: user.id,
       actorEmail: user.email!,
-      details: { reportId: id, error: result.error },
+      details: {
+        reportId: id,
+        error: result.error,
+        partialDossierSaved: !!result.partialDossier,
+      },
     });
 
     return NextResponse.json(

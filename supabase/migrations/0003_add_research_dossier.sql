@@ -1,0 +1,1 @@
+ALTER TABLE "company_reports" ADD COLUMN "research_dossier" text;

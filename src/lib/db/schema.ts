@@ -646,7 +646,8 @@ export const companyReports = pgTable(
     researchCompletedAt: timestamp("research_completed_at", {
       withTimezone: true,
     }),
-    researchMarkdown: text("research_markdown"), // The full 10-slide markdown output
+    researchDossier: text("research_dossier"), // Long-form research intelligence (5-25K chars)
+    researchMarkdown: text("research_markdown"), // 10-slide markdown distilled from the dossier (sent to Gamma)
     researchError: text("research_error"),
     researchProvider: text("research_provider").default("anthropic"), // 'anthropic' | 'mock'
     researchModel: text("research_model"), // e.g. claude-opus-4-7

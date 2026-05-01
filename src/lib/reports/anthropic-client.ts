@@ -1,21 +1,26 @@
 // =============================================================
-// Anthropic API client for top-quality deep research
+// Anthropic API client — two-stage research workflow
 // =============================================================
-// Uses Claude Opus 4.7 (the flagship model) with:
-//   - Adaptive thinking at xhigh effort (deepest reasoning)
-//   - Web search 20260209 with dynamic filtering (latest)
-//   - Code execution tool (required for dynamic filtering)
-//   - Up to 30 web searches per report
-//   - Prompt caching on the system prompt (save $ on repeat runs)
-//   - Source + citation extraction
-//   - Token usage tracking
+// Stage 1: Deep Research → produces a comprehensive 5-25K char
+//          intelligence dossier matching the style of the proven
+//          reference dossiers. Uses:
+//            - Claude Opus 4.7 (flagship model)
+//            - Adaptive thinking with effort: xhigh
+//            - web_search_20260209 with dynamic filtering
+//            - Up to 30 web searches
 //
-// Mock mode (REPORTS_MODE=mock or no API key) returns a sample
-// report after a 5-second delay.
+// Stage 2: Slide Distillation → takes the dossier and produces the
+//          10-slide markdown ready for Gamma. Uses:
+//            - Claude Opus 4.7 with adaptive thinking
+//            - NO web search (just synthesis)
+//            - Embeds the 3 reference deck PDFs as calibration
+//
+// Mock mode (REPORTS_MODE=mock or no API key) returns sample data.
 // =============================================================
 
 import {
-  buildSystemPrompt,
+  buildResearchPrompt,
+  buildSlideDeckPrompt,
   buildUserMessage,
   type BuildPromptOptions,
 } from "./system-prompt";
@@ -37,9 +42,13 @@ export interface ResearchTokenUsage {
 
 export interface ResearchResult {
   success: true;
-  markdown: string;
+  /** Long-form research dossier (5-25K chars) — comprehensive intelligence */
+  dossier: string;
+  /** 10-slide markdown ready for Gamma */
+  slideMarkdown: string;
   model: string;
   sources: ResearchSource[];
+  /** Combined usage across both Claude calls */
   usage: ResearchTokenUsage;
   thinkingSummary?: string;
   provider: "anthropic" | "mock";
@@ -49,6 +58,8 @@ export interface ResearchError {
   success: false;
   error: string;
   provider: "anthropic" | "mock";
+  /** If stage 1 succeeded but stage 2 failed, we keep the dossier */
+  partialDossier?: string;
 }
 
 export type ResearchOutcome = ResearchResult | ResearchError;
@@ -57,8 +68,7 @@ const MOCK_DELAY_MS = 5000;
 
 function isMockMode(): boolean {
   return (
-    process.env.REPORTS_MODE === "mock" ||
-    !process.env.ANTHROPIC_API_KEY
+    process.env.REPORTS_MODE === "mock" || !process.env.ANTHROPIC_API_KEY
   );
 }
 
@@ -72,7 +82,7 @@ export async function generateResearch(
 }
 
 // ---------------------------------------------------------------------------
-// Mock research — returns a sample 10-slide report after a delay
+// Mock research
 // ---------------------------------------------------------------------------
 async function mockResearch(
   options: BuildPromptOptions,
@@ -84,29 +94,48 @@ async function mockResearch(
       ? "Leveraging Generative AI for Operational Excellence & EBITDA Expansion"
       : "Strategic Growth Through AI";
 
-  return {
-    success: true,
-    provider: "mock",
-    model: "mock-claude-opus-4-7",
-    sources: [
-      { url: "https://example.com/mock-source-1", title: "Mock Source: Industry Outlook" },
-      { url: "https://example.com/mock-source-2", title: "Mock Source: Competitive Landscape" },
-      { url: "https://example.com/mock-source-3", title: "Mock Source: Financial Filings" },
-    ],
-    usage: {
-      inputTokens: 12000,
-      outputTokens: 8000,
-      cacheReadTokens: 0,
-      cacheCreationTokens: 12000,
-      webSearchRequests: 0,
-      estimatedCostUsd: 0,
-    },
-    thinkingSummary:
-      "Mock thinking: would normally analyze company size, industry benchmarks, SG&A structure, then map AI applications to specific cost lines.",
-    markdown: `# ${titleText}
+  const dossier = `# ${options.companyName}: AI strategic growth profile
+
+**${options.companyName} is a [MOCK] company in the [industry] sector with an estimated $XX-$XX M in annual revenue and ~XXX employees. AI could unlock $X.X-$X.X M in annual SG&A savings — a XX-XX% reduction — with a XX-month payback. The company has no visible AI strategy as of early 2026, creating both competitive risk and a greenfield ROI opportunity.**
+
+---
+
+## Company overview
+
+[Mock company background — would normally describe founding, HQ, current operations, business segments based on web research.]
+
+## Confirmed financials and sizing
+
+⚠️ All financial figures are estimates from third-party databases.
+
+| Metric | Estimate | Source |
+|---|---|---|
+| Annual revenue | ~$XXX M | D&B / ZoomInfo |
+| Employee count | ~XXX | LinkedIn / D&B |
+| EBITDA margin (est.) | XX% | Industry benchmark |
+
+## Leadership and ownership
+
+[Mock leadership context — founders, current execs, any recent transitions.]
+
+## Industry pressures that frame the AI opportunity
+
+[Mock industry analysis — margin pressure, labor scarcity, regulatory shifts.]
+
+## Current AI/technology baseline
+
+No public AI initiatives identified. Tech stack appears to be standard enterprise tools.
+
+## Conclusion
+
+The combination of [specific company traits] makes ${options.companyName} a strong candidate for AI-driven SG&A transformation, with the highest-impact opportunities concentrated in [function] and [function].
+
+*[This is a MOCK research dossier. Set ANTHROPIC_API_KEY and unset REPORTS_MODE=mock for real research.]*`;
+
+  const slideMarkdown = `# ${titleText}
 
 **${options.companyName}**
-Leveraging Generative AI to drive Operational Excellence and EBITDA Expansion
+Leveraging Generative AI for Operational Excellence at ${options.companyName}
 
 PREPARED BY CHIEF AI OFFICER · CONFIDENTIAL
 
@@ -114,79 +143,58 @@ PREPARED BY CHIEF AI OFFICER · CONFIDENTIAL
 
 # Company at a Glance
 
-**~$XXX M Revenue** · *Midpoint estimate · Privately held*
-**XXX Employees** · Approximate headcount
-**XX Years Operating** · Established market presence
-**XX Locations** · Geographic footprint
-
-${options.companyName} is a [industry description based on research]. The company is led by [leadership context] and recently [notable milestone].
+[Mock 4-5 stat blocks would go here — revenue, employees, locations, years operating, differentiator.]
 
 ---
 
 # The Opportunity
 
 ## First-Mover Advantage
-${options.companyName} is positioned to capture significant operational efficiency by deploying AI ahead of slower-moving peers in the industry.
+${options.companyName} has the chance to set the AI standard in its category before competitors close the gap.
 
 ## Efficiency Gap
-Manual processes across SG&A functions present a 25-40% efficiency improvement opportunity through targeted AI deployment.
+Manual SG&A processes present a 25-40% efficiency improvement opportunity.
 
 ## Margin Expansion
-Operational AI can expand EBITDA margins by 200-400 basis points within 24 months without revenue growth.
+AI can expand EBITDA margins by 200-400 bps within 24 months.
 
 ---
 
 # Why Act Now
 
 ## Margin Pressure
-- Industry margins compressing 100-200 bps annually
-- Labor costs rising 4-6% per year
-
-## Labor Escalation
-- Talent shortages in skilled SG&A roles
-- Turnover costs averaging 30-50% of annual salary
+- Industry margins compressing
+- Labor costs rising
 
 ## Operational Complexity
 - Multi-system data fragmentation
 - Manual reconciliation overhead
-
-## Scale Disadvantage
-- Larger competitors deploying AI at scale
-- Window for first-mover advantage closing rapidly
 
 ---
 
 # AI Applications Across SG&A Functions
 
 ## Finance & Accounting
-- Automated invoice processing & AP automation
-- AI-powered financial close acceleration
-- Cash flow forecasting
-- **Impact: 25-35% labor reduction · $XXX K-XXX K savings**
+- Automated invoice processing
+- Financial close acceleration
+- **Impact: 25-35% labor reduction · $XXX K-XXX K**
 
 ## Sales & Marketing
-- AI proposal generation
-- Lead scoring & CRM intelligence
-- Content automation
-- **Impact: 30-40% productivity gain · $XXX K-XXX K savings**
+- Proposal automation
+- Lead scoring
+- **Impact: 30-40% productivity · $XXX K-XXX K**
 
 ## Customer Service
-- 24/7 AI chatbot support
-- Inquiry deflection (60-70%)
-- Automated responses
-- **Impact: 40-50% cost reduction · $XXX K-XXX K savings**
+- AI chatbot
+- **Impact: 40-50% cost reduction · $XXX K-XXX K**
 
 ## HR & Talent
-- Recruiting chatbot
-- Onboarding automation
-- Retention analytics
-- **Impact: 20-30% efficiency gain · $XXX K-XXX K savings**
+- Recruiting automation
+- **Impact: 20-30% efficiency · $XXX K-XXX K**
 
 ## Legal & Compliance
-- Contract review automation
-- Regulatory monitoring
-- Document classification
-- **Impact: 35-45% time savings · $XXX K-XXX K savings**
+- Contract review AI
+- **Impact: 35-45% time savings · $XXX K-XXX K**
 
 ---
 
@@ -211,103 +219,108 @@ Operational AI can expand EBITDA margins by 200-400 basis points within 24 month
 
 ## Phase 1 · Days 1-90 · Fast Wins
 - Executive AI immersion workshop
-- AP/invoice processing automation
+- AP/invoice automation
 - Customer service chatbot
 - Sales proposal AI
 - AI Governance Framework
-- **Investment: $XXX K - $XXX K · Value: $XXX K - $XXX K run-rate**
+- **Investment: $XXX K-$XXX K · Value: $XXX K-$XXX K run-rate**
 
 ## Phase 2 · Months 4-12 · Scale & Integrate
-- Enterprise AI platform deployment
-- Advanced analytics across departments
-- HR automation rollout
-- Legal contract AI
-- **Investment: $X.X M - $X.X M · Value: $X.X M - $X.X M run-rate**
+- Enterprise AI platform
+- Department-wide rollouts
+- **Investment: $X.X M-$X.X M · Value: $X.X M-$X.X M run-rate**
 
 ## Phase 3 · Months 13-36 · Optimize & Lead
 - AI Center of Excellence
-- Predictive operational models
-- Full automation of routine workflows
-- Customer-facing AI products
-- **Investment: $X.X M - $X.X M · Value: $X.X M - $X.X M run-rate**
+- Predictive models
+- **Investment: $X.X M-$X.X M · Value: $X.X M-$X.X M run-rate**
 
 ---
 
 # Risk Management
 
-1. **Fragmented Adoption** · Prob: HIGH · Impact: HIGH
-   Mitigation: Governance framework, Steering Committee, single enterprise platform.
-
-2. **Data Quality Gaps** · Prob: MEDIUM · Impact: HIGH
-   Mitigation: Phase 1 data readiness assessment; prioritize high-quality data use cases first.
-
-3. **Change Resistance** · Prob: MEDIUM · Impact: MEDIUM
-   Mitigation: "AI augments, not replaces" messaging; no-layoffs commitment; tiered training.
-
-4. **Cybersecurity** · Prob: MEDIUM · Impact: HIGH
-   Mitigation: SOC 2/ISO 27001 vendor requirements; private cloud for sensitive data.
-
-5. **Vendor Lock-In** · Prob: MEDIUM · Impact: MEDIUM
-   Mitigation: Open APIs, multi-vendor strategy, data portability in contracts.
-
-6. **Industry-Specific Risk** · Prob: MEDIUM · Impact: HIGH
-   Mitigation: [tailored to industry — placeholder].
+1. **Fragmented Adoption** · Prob: HIGH · Mitigation: Governance + Steering Committee
+2. **Data Quality Gaps** · Prob: MEDIUM · Mitigation: Phase 1 readiness assessment
+3. **Change Resistance** · Prob: MEDIUM · Mitigation: "Augments not replaces" messaging
+4. **Cybersecurity** · Prob: MEDIUM · Mitigation: SOC 2/ISO 27001 vendor requirements
+5. **Vendor Lock-In** · Prob: MEDIUM · Mitigation: Open APIs, multi-vendor strategy
+6. **Industry-Specific Risk** · Prob: MEDIUM · Mitigation: [tailored placeholder]
 
 ---
 
-# Enterprise Value Transformation
+# The Valuation Transformation
 
 ## Today
 - **EBITDA: $X.X M** (Revenue × industry margin)
-- **Multiple: X.Xx - X.Xx** (industry standard)
-- **Enterprise Value: $XX M - $XX M**
+- **Multiple: X.X-X.Xx**
+- **Enterprise Value: $XX-$XX M**
 
 ## Year 3 (Post-AI)
 - **EBITDA: $X.X M** (current + AI value)
-- **Multiple: X.Xx - X.Xx** (premium for AI-enabled operations)
-- **Enterprise Value: $XX M - $XX M**
+- **Multiple: X.X-X.Xx** (premium)
+- **Enterprise Value: $XX-$XX M**
 
-## Enterprise Value Created: $XX M - $XX M
+## 💰 Enterprise Value Created: $XX-$XX M
 
 ### Strategic Optionality
-- Remain independent with materially improved margins
-- Attract strategic/financial buyers at premium multiples
+- Remain independent with improved margins
+- Attract buyers at premium multiples
 - Scale revenue without proportional SG&A growth
 
 ---
 
-# Call to Action
+# The Choice Is Clear
 
-## ❌ Status Quo
-- Margins continue to erode
+## ❌ Option A: Status Quo
+- Margins erode
 - Talent attrition accelerates
-- Valuation stagnates while AI-enabled peers command premiums
-- Competitive disadvantage compounds quarterly
+- Valuation stagnates
+- Competitive disadvantage compounds
 
-## ✅ AI Transformation
-- $X.X M - $X.X M annual EBITDA uplift
+## ✅ Option B: AI Transformation
+- $X.X M-$X.X M annual EBITDA uplift
 - 200-400 bps margin improvement
-- $XX M - $XX M enterprise value created
-- Industry leadership position
+- $XX-$XX M enterprise value created
+- Industry leadership
 
 ## Immediate Next Steps — Week 1
 - **Day 1-3:** CEO convenes leadership; secure board endorsement
-- **Week 1:** Engage AI consulting partner; assign Phase 1 lead; allocate Phase 1 budget
-- **Week 1-2:** CEO-wide communication on AI vision; invite employee input
-- **Week 2-4:** Select Phase 1 pilots; begin Executive Immersion training
-
-> *${options.companyName} has the opportunity to set the AI standard for its industry — and a closing window in which to do it.*
+- **Week 1:** Engage AI partner; assign Phase 1 lead; allocate budget
+- **Week 1-2:** Communicate AI vision company-wide
+- **Week 2-4:** Select pilots; begin Executive Immersion training
 
 **Contact:** Dani@ChiefAIOfficer.com · 858-463-1130
 
 ---
 
-*[This is a MOCK report. Set ANTHROPIC_API_KEY and unset REPORTS_MODE=mock to enable live deep research with Claude Opus 4.7 + web search.]*`,
+*[MOCK output. Set ANTHROPIC_API_KEY for live deep research.]*`;
+
+  return {
+    success: true,
+    provider: "mock",
+    model: "mock-claude-opus-4-7",
+    dossier,
+    slideMarkdown,
+    sources: [
+      { url: "https://example.com/mock-1", title: "Mock Source: Industry Outlook" },
+      { url: "https://example.com/mock-2", title: "Mock Source: Competitive Landscape" },
+      { url: "https://example.com/mock-3", title: "Mock Source: Financial Filings" },
+    ],
+    usage: {
+      inputTokens: 18000,
+      outputTokens: 12000,
+      cacheReadTokens: 0,
+      cacheCreationTokens: 18000,
+      webSearchRequests: 0,
+      estimatedCostUsd: 0,
+    },
+    thinkingSummary:
+      "Mock thinking: would research company financials, leadership, AI baseline, then synthesize ROI thesis.",
   };
 }
 
 // ---------------------------------------------------------------------------
-// Live research — calls Claude Opus 4.7 with adaptive thinking + web search
+// Live research — two-stage Anthropic API calls
 // ---------------------------------------------------------------------------
 
 interface AnthropicTextBlock {
@@ -327,13 +340,6 @@ interface AnthropicThinkingBlock {
   signature?: string;
 }
 
-interface AnthropicServerToolUse {
-  type: "server_tool_use";
-  id: string;
-  name: string;
-  input: Record<string, unknown>;
-}
-
 interface AnthropicWebSearchToolResult {
   type: "web_search_tool_result";
   tool_use_id: string;
@@ -351,7 +357,6 @@ interface AnthropicWebSearchToolResult {
 type AnthropicContentBlock =
   | AnthropicTextBlock
   | AnthropicThinkingBlock
-  | AnthropicServerToolUse
   | AnthropicWebSearchToolResult
   | { type: string; [key: string]: unknown };
 
@@ -372,13 +377,12 @@ interface AnthropicResponse {
   error?: { type: string; message: string };
 }
 
-// Pricing for Claude Opus 4.7 (per 1M tokens) — used for cost estimation only.
-// Update if Anthropic pricing changes.
+// Pricing for Claude Opus 4.7 (per 1M tokens)
 const PRICE_INPUT_PER_M = 15.0;
 const PRICE_OUTPUT_PER_M = 75.0;
 const PRICE_CACHE_READ_PER_M = 1.5;
 const PRICE_CACHE_WRITE_PER_M = 18.75;
-const PRICE_PER_WEB_SEARCH = 0.01; // $10 per 1,000 searches
+const PRICE_PER_WEB_SEARCH = 0.01;
 
 function estimateCost(usage: NonNullable<AnthropicResponse["usage"]>): number {
   const input = (usage.input_tokens ?? 0) * (PRICE_INPUT_PER_M / 1_000_000);
@@ -394,6 +398,188 @@ function estimateCost(usage: NonNullable<AnthropicResponse["usage"]>): number {
   return input + output + cacheRead + cacheWrite + search;
 }
 
+function emptyUsage(): ResearchTokenUsage {
+  return {
+    inputTokens: 0,
+    outputTokens: 0,
+    cacheReadTokens: 0,
+    cacheCreationTokens: 0,
+    webSearchRequests: 0,
+    estimatedCostUsd: 0,
+  };
+}
+
+function addUsage(
+  acc: ResearchTokenUsage,
+  resp: AnthropicResponse,
+): ResearchTokenUsage {
+  const u = resp.usage ?? {};
+  return {
+    inputTokens: acc.inputTokens + (u.input_tokens ?? 0),
+    outputTokens: acc.outputTokens + (u.output_tokens ?? 0),
+    cacheReadTokens: acc.cacheReadTokens + (u.cache_read_input_tokens ?? 0),
+    cacheCreationTokens:
+      acc.cacheCreationTokens + (u.cache_creation_input_tokens ?? 0),
+    webSearchRequests:
+      acc.webSearchRequests + (u.server_tool_use?.web_search_requests ?? 0),
+    estimatedCostUsd: acc.estimatedCostUsd + estimateCost(u),
+  };
+}
+
+interface CallResult {
+  success: boolean;
+  text: string;
+  thinking: string[];
+  sources: Map<string, ResearchSource>;
+  response?: AnthropicResponse;
+  error?: string;
+}
+
+/**
+ * Make a single Anthropic API call. Used by both stages.
+ */
+async function callAnthropic(params: {
+  apiKey: string;
+  model: string;
+  systemPrompt: string;
+  userMessage: string;
+  enableWebSearch: boolean;
+  maxSearches?: number;
+}): Promise<CallResult> {
+  // Cache the (very large) system prompt
+  const systemBlocks = [
+    {
+      type: "text",
+      text: params.systemPrompt,
+      cache_control: { type: "ephemeral" },
+    },
+  ];
+
+  const tools: Array<Record<string, unknown>> = [];
+  if (params.enableWebSearch) {
+    tools.push({
+      type: "web_search_20260209",
+      name: "web_search",
+      max_uses: params.maxSearches ?? 30,
+    });
+  }
+
+  const requestBody: Record<string, unknown> = {
+    model: params.model,
+    max_tokens: 32_000,
+    system: systemBlocks,
+    messages: [{ role: "user", content: params.userMessage }],
+    thinking: { type: "adaptive", display: "summarized" },
+    output_config: { effort: "xhigh" },
+  };
+  if (tools.length > 0) requestBody.tools = tools;
+
+  let response: Response;
+  try {
+    response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": params.apiKey,
+        "anthropic-version": "2023-06-01",
+        "anthropic-beta": "prompt-caching-2024-07-31",
+      },
+      body: JSON.stringify(requestBody),
+    });
+  } catch (err) {
+    return {
+      success: false,
+      text: "",
+      thinking: [],
+      sources: new Map(),
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
+
+  const responseText = await response.text();
+
+  if (!response.ok) {
+    let errorMessage = `Anthropic API ${response.status}`;
+    try {
+      const parsed = JSON.parse(responseText) as AnthropicResponse;
+      if (parsed.error?.message) errorMessage += `: ${parsed.error.message}`;
+    } catch {
+      errorMessage += `: ${responseText.slice(0, 500)}`;
+    }
+    return {
+      success: false,
+      text: "",
+      thinking: [],
+      sources: new Map(),
+      error: errorMessage,
+    };
+  }
+
+  let data: AnthropicResponse;
+  try {
+    data = JSON.parse(responseText);
+  } catch (err) {
+    return {
+      success: false,
+      text: "",
+      thinking: [],
+      sources: new Map(),
+      error: `Failed to parse Anthropic response: ${err instanceof Error ? err.message : String(err)}`,
+    };
+  }
+
+  // Extract text
+  const text = data.content
+    .filter((b): b is AnthropicTextBlock => b.type === "text")
+    .map((b) => b.text)
+    .join("\n\n")
+    .trim();
+
+  // Extract thinking
+  const thinking = data.content
+    .filter((b): b is AnthropicThinkingBlock => b.type === "thinking")
+    .map((b) => b.thinking)
+    .filter(Boolean);
+
+  // Extract sources from web_search_tool_result + citations
+  const sources = new Map<string, ResearchSource>();
+  for (const block of data.content) {
+    if (block.type === "web_search_tool_result") {
+      const r = block as AnthropicWebSearchToolResult;
+      if (Array.isArray(r.content)) {
+        for (const result of r.content) {
+          if (result.url && !sources.has(result.url)) {
+            sources.set(result.url, {
+              url: result.url,
+              title: result.title || result.url,
+              pageAge: result.page_age,
+            });
+          }
+        }
+      }
+    }
+    if (block.type === "text") {
+      const tb = block as AnthropicTextBlock;
+      for (const c of tb.citations || []) {
+        if (c.url && !sources.has(c.url)) {
+          sources.set(c.url, {
+            url: c.url,
+            title: c.title || c.url,
+          });
+        }
+      }
+    }
+  }
+
+  return {
+    success: true,
+    text,
+    thinking,
+    sources,
+    response: data,
+  };
+}
+
 async function liveResearch(
   options: BuildPromptOptions,
 ): Promise<ResearchOutcome> {
@@ -401,162 +587,68 @@ async function liveResearch(
   const model = process.env.ANTHROPIC_MODEL || "claude-opus-4-7";
   const maxSearches = Number(process.env.ANTHROPIC_MAX_SEARCHES || "30");
 
-  const systemPrompt = buildSystemPrompt(options);
-  const userMessage = buildUserMessage(options);
+  let totalUsage: ResearchTokenUsage = emptyUsage();
+  const allSources = new Map<string, ResearchSource>();
+  const allThinking: string[] = [];
 
-  // Cache the (very large) system prompt — reference reports rarely change.
-  // Saves ~90% on input cost for repeat runs within 5 minutes.
-  const systemBlocks = [
-    {
-      type: "text",
-      text: systemPrompt,
-      cache_control: { type: "ephemeral" },
-    },
-  ];
-
-  // Use the latest web search tool with dynamic filtering.
-  // web_search_20260209 auto-injects code_execution when needed —
-  // do NOT define code_execution explicitly or it will 400.
-  const tools: Array<Record<string, unknown>> = [
-    {
-      type: "web_search_20260209",
-      name: "web_search",
-      max_uses: maxSearches,
-    },
-  ];
-
-  // Adaptive thinking with maximum effort — Opus 4.7's deepest reasoning mode.
-  const thinking = {
-    type: "adaptive",
-    display: "summarized" as const,
-  };
-
-  const requestBody = {
+  // ===========================================================
+  // STAGE 1 — Deep research dossier (with web search)
+  // ===========================================================
+  const stage1 = await callAnthropic({
+    apiKey,
     model,
-    max_tokens: 32_000,
-    system: systemBlocks,
-    messages: [{ role: "user", content: userMessage }],
-    tools,
-    thinking,
-    output_config: { effort: "xhigh" }, // Opus 4.7 only — deepest reasoning
-  };
+    systemPrompt: buildResearchPrompt(options),
+    userMessage: buildUserMessage(options),
+    enableWebSearch: true,
+    maxSearches,
+  });
 
-  try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-        // Required for prompt caching to work on Claude 4 models
-        "anthropic-beta": "prompt-caching-2024-07-31",
-      },
-      body: JSON.stringify(requestBody),
-    });
-
-    const responseText = await response.text();
-
-    if (!response.ok) {
-      let errorMessage = `Anthropic API ${response.status}`;
-      try {
-        const parsed = JSON.parse(responseText) as AnthropicResponse;
-        if (parsed.error?.message) {
-          errorMessage += `: ${parsed.error.message}`;
-        }
-      } catch {
-        errorMessage += `: ${responseText.slice(0, 500)}`;
-      }
-      return {
-        success: false,
-        provider: "anthropic",
-        error: errorMessage,
-      };
-    }
-
-    const data = JSON.parse(responseText) as AnthropicResponse;
-
-    // ----- Extract markdown text from content blocks -----
-    const markdown = data.content
-      .filter((block): block is AnthropicTextBlock => block.type === "text")
-      .map((block) => block.text)
-      .join("\n\n")
-      .trim();
-
-    if (!markdown) {
-      return {
-        success: false,
-        provider: "anthropic",
-        error: "Claude returned no markdown content. Stop reason: " + data.stop_reason,
-      };
-    }
-
-    // ----- Extract sources from web search tool results + citations -----
-    const sourceMap = new Map<string, ResearchSource>();
-
-    for (const block of data.content) {
-      if (block.type === "web_search_tool_result") {
-        const result = block as AnthropicWebSearchToolResult;
-        if (Array.isArray(result.content)) {
-          for (const r of result.content) {
-            if (r.url && !sourceMap.has(r.url)) {
-              sourceMap.set(r.url, {
-                url: r.url,
-                title: r.title || r.url,
-                pageAge: r.page_age,
-              });
-            }
-          }
-        }
-      }
-      if (block.type === "text") {
-        const tb = block as AnthropicTextBlock;
-        for (const c of tb.citations || []) {
-          if (c.url && !sourceMap.has(c.url)) {
-            sourceMap.set(c.url, {
-              url: c.url,
-              title: c.title || c.url,
-            });
-          }
-        }
-      }
-    }
-
-    // ----- Extract thinking summary (if any) -----
-    const thinkingBlocks = data.content
-      .filter(
-        (block): block is AnthropicThinkingBlock => block.type === "thinking",
-      )
-      .map((block) => block.thinking)
-      .filter(Boolean);
-    const thinkingSummary = thinkingBlocks.length
-      ? thinkingBlocks.join("\n---\n")
-      : undefined;
-
-    // ----- Token usage + cost -----
-    const usage: ResearchTokenUsage = {
-      inputTokens: data.usage?.input_tokens ?? 0,
-      outputTokens: data.usage?.output_tokens ?? 0,
-      cacheReadTokens: data.usage?.cache_read_input_tokens ?? 0,
-      cacheCreationTokens: data.usage?.cache_creation_input_tokens ?? 0,
-      webSearchRequests:
-        data.usage?.server_tool_use?.web_search_requests ?? 0,
-      estimatedCostUsd: data.usage ? estimateCost(data.usage) : 0,
-    };
-
-    return {
-      success: true,
-      provider: "anthropic",
-      model: data.model,
-      sources: Array.from(sourceMap.values()),
-      usage,
-      thinkingSummary,
-      markdown,
-    };
-  } catch (err) {
+  if (!stage1.success || !stage1.text) {
     return {
       success: false,
       provider: "anthropic",
-      error: err instanceof Error ? err.message : String(err),
+      error: `Stage 1 (research) failed: ${stage1.error || "no content returned"}`,
     };
   }
+
+  const dossier = stage1.text;
+
+  if (stage1.response) totalUsage = addUsage(totalUsage, stage1.response);
+  for (const [k, v] of stage1.sources) allSources.set(k, v);
+  allThinking.push(...stage1.thinking);
+
+  // ===========================================================
+  // STAGE 2 — Slide distillation (no web search)
+  // ===========================================================
+  const stage2 = await callAnthropic({
+    apiKey,
+    model,
+    systemPrompt: buildSlideDeckPrompt(options, dossier),
+    userMessage: `Distill the dossier above into the 10-slide markdown for ${options.companyName}. Output ONLY the markdown, no preamble.`,
+    enableWebSearch: false,
+  });
+
+  if (!stage2.success || !stage2.text) {
+    // Stage 1 succeeded — return partial result so the dossier isn't lost
+    return {
+      success: false,
+      provider: "anthropic",
+      error: `Stage 2 (slide distillation) failed: ${stage2.error || "no content returned"}`,
+      partialDossier: dossier,
+    };
+  }
+
+  if (stage2.response) totalUsage = addUsage(totalUsage, stage2.response);
+  allThinking.push(...stage2.thinking);
+
+  return {
+    success: true,
+    provider: "anthropic",
+    model: stage2.response?.model || model,
+    dossier,
+    slideMarkdown: stage2.text,
+    sources: Array.from(allSources.values()),
+    usage: totalUsage,
+    thinkingSummary: allThinking.length ? allThinking.join("\n---\n") : undefined,
+  };
 }

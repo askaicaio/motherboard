@@ -12,6 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ArrowLeft,
   Sparkles,
@@ -44,7 +45,8 @@ interface CompanyReport {
   researchStatus: "pending" | "running" | "complete" | "failed";
   researchStartedAt: Date | string | null;
   researchCompletedAt: Date | string | null;
-  researchMarkdown: string | null;
+  researchDossier?: string | null; // Long-form research (stage 1)
+  researchMarkdown: string | null; // 10-slide markdown (stage 2 — sent to Gamma)
   researchError: string | null;
   researchProvider: string | null;
   researchModel: string | null;
@@ -200,7 +202,8 @@ export function ReportDetailClient({
               </Badge>
             </div>
             <CardDescription>
-              Claude researches the company and generates a 10-slide markdown report.
+              Two-stage workflow: Claude builds a comprehensive research
+              dossier, then distills it into a 10-slide deck markdown.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -224,9 +227,10 @@ export function ReportDetailClient({
               <div className="rounded-md bg-blue-50 p-3 text-sm text-blue-800 flex items-start gap-2">
                 <Loader2 className="h-4 w-4 mt-0.5 animate-spin flex-shrink-0" />
                 <div>
-                  <strong>Research in progress.</strong> Claude is searching the
-                  web and assembling the report. In live mode this takes 4-6 minutes;
-                  in mock mode ~5 seconds.
+                  <strong>Research in progress.</strong> Stage 1: Claude is
+                  searching the web and assembling the dossier (3-5 min).
+                  Stage 2: distilling the dossier into the 10-slide deck (~1 min).
+                  Total ~5-7 min in live mode; ~5 seconds in mock mode.
                 </div>
               </div>
             )}
@@ -381,21 +385,65 @@ export function ReportDetailClient({
         </Card>
       </div>
 
-      {/* ---- Research output preview ---- */}
-      {report.researchMarkdown && (
+      {/* ---- Research output: dossier + slide markdown tabs ---- */}
+      {(report.researchDossier || report.researchMarkdown) && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Research output</CardTitle>
             <CardDescription>
-              The 10-slide markdown that will be (or was) sent to Gamma.
+              Two-stage output: the comprehensive dossier (intelligence) and the 10-slide markdown (sent to Gamma).
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4 max-h-[600px] overflow-y-auto">
-              <pre className="text-xs font-mono whitespace-pre-wrap text-zinc-700 leading-relaxed">
-                {report.researchMarkdown}
-              </pre>
-            </div>
+            <Tabs defaultValue={report.researchMarkdown ? "slides" : "dossier"} className="w-full">
+              <TabsList>
+                {report.researchDossier && (
+                  <TabsTrigger value="dossier" className="gap-2">
+                    <Sparkles className="h-3.5 w-3.5" />
+                    Research Dossier
+                    <Badge className="ml-1 bg-zinc-100 text-zinc-600 font-normal">
+                      {(report.researchDossier.length / 1000).toFixed(1)}K
+                    </Badge>
+                  </TabsTrigger>
+                )}
+                {report.researchMarkdown && (
+                  <TabsTrigger value="slides" className="gap-2">
+                    <Presentation className="h-3.5 w-3.5" />
+                    10-Slide Markdown
+                    <Badge className="ml-1 bg-zinc-100 text-zinc-600 font-normal">
+                      For Gamma
+                    </Badge>
+                  </TabsTrigger>
+                )}
+              </TabsList>
+
+              {report.researchDossier && (
+                <TabsContent value="dossier" className="mt-3">
+                  <div className="text-xs text-zinc-500 mb-2">
+                    Comprehensive intelligence dossier — internal research artifact.
+                    Use this to fact-check the slide deck before sending.
+                  </div>
+                  <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4 max-h-[600px] overflow-y-auto">
+                    <pre className="text-xs font-mono whitespace-pre-wrap text-zinc-700 leading-relaxed">
+                      {report.researchDossier}
+                    </pre>
+                  </div>
+                </TabsContent>
+              )}
+
+              {report.researchMarkdown && (
+                <TabsContent value="slides" className="mt-3">
+                  <div className="text-xs text-zinc-500 mb-2">
+                    The 10-slide markdown distilled from the dossier — this is what goes to Gamma.
+                  </div>
+                  <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4 max-h-[600px] overflow-y-auto">
+                    <pre className="text-xs font-mono whitespace-pre-wrap text-zinc-700 leading-relaxed">
+                      {report.researchMarkdown}
+                    </pre>
+                  </div>
+                </TabsContent>
+              )}
+            </Tabs>
           </CardContent>
         </Card>
       )}

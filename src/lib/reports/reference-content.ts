@@ -593,8 +593,265 @@ steady-state value. The cost of delay is measured in millions
 annually.
 Need more info? Contact Dani@ChiefAIOfficer.com`;
 
+export const REFERENCE_SAMPLE_RESEARCH_WIDEL = `# Widel, Inc.: Company profile for AI ROI positioning
+
+**Widel, Inc. is a small, family-owned heavy construction firm in rural Missouri specializing in bridge replacement and excavation work, with an estimated ~$3.9 million in annual revenue and roughly 20 employees.** No publicly verifiable corporate connection to any entity called "MillerGroup" was found despite exhaustive search. This profile compiles what is publicly available, flags all estimated data points, and provides the industry context needed for an AI ROI conversation.
+
+---
+
+## A ~20-person bridge builder in central Missouri
+
+Widel, Inc. operates in the **highway, street, and bridge construction** sector (NAICS 237310), with secondary classifications in excavating contracting and waterway/marine construction. The company was founded around **1980** by Alan Robert "Bob" Widel, who started doing dozing and dirt work for customers, and was formally incorporated in Missouri in **2001**. Headquartered at **5700 M Highway, Blackwater, MO 65322** (Cooper County), Widel operates from a single location.
+
+The company's core services include **bridge construction** (its primary specialty), excavation and earthwork, heavy civil subcontracting, waterway and marine construction, and interstate transport of heavy machinery (holding active USDOT number 3450551 with 2 power units and 10 trailers). The firm holds an **Iowa contractor's license** for bridges, pipelaying, and heavy construction in addition to its Missouri operations, indicating a regional footprint spanning at least central Missouri and neighboring states.
+
+**Key financials and sizing (⚠️ all estimated from third-party databases):**
+
+| Metric | Estimate | Source |
+|---|---|---|
+| Annual revenue | **~$3.9 million** | Buzzfile / Manta |
+| Employee count | **~18–23** | Directories (18); PPP application (23) |
+| Estimated annual payroll | ~$1.6 million | Derived from PPP loan amount |
+| PPP loan received (2020) | $334,738 | SBA records (fully forgiven by Feb 2021) |
+| Typical contract value | $750K–$850K | MoDOT bid data |
+
+None of these financial figures are confirmed by Widel directly. The company is too small for Bloomberg, Crunchbase, or similar databases.
+
+## Leadership passed from founder to family
+
+Founder **Alan "Bob" Widel** passed away on February 6, 2018, at age 57. His wife, **Elizabeth (Boyd) Widel**, now serves as **President** and appears to be the current owner-operator. The company self-reported as a **female-owned business** on its 2020 PPP application, consistent with Elizabeth's leadership role. Other identified personnel include **Courtney Renner** (business office manager), **Roger Dietz** (estimator and project manager, also listed as corporate secretary; previously at Halverson Construction), and **Phoebe Bergeson** (contact, role unspecified). The company has a very lean organizational structure typical of a small family construction firm, with **50% of staff having 11+ years of tenure**.
+
+## Active MoDOT bridge contractor with competitive low bids
+
+Widel's competitive positioning centers on **cost-efficient bidding for Missouri Department of Transportation (MoDOT) bridge replacement projects** in the ~$500K–$1M range. Two recent confirmed contracts illustrate their standing:
+
+- **December 2024:** Apparent low bidder at **$821,459** for a Route D bridge replacement over Coldwater Creek in Cass County, beating three competitors (Cale Seymour Construction at $855K, Dondlinger & Sons at $937K, Mera Excavating at $975K).
+- **January 2023:** Awarded a **$774,244 contract** for a Route 163 bridge replacement over Bonne Femme Creek in Boone County (project now complete), part of MoDOT's "Focus on Bridges" program.
+
+Regional competitors include **Twehous Excavating**, **Bloomsdale Excavating**, **Cale Seymour Construction**, **Mera Excavating**, and **Dondlinger & Sons** (a larger Kansas-based firm). Missouri has approximately **758 excavating contractor locations**, making this a highly fragmented, competitive-bid market with thin margins. Widel's advantage appears to be cost discipline and specialization in rural bridge work.
+
+## The MillerGroup connection could not be publicly verified
+
+**⚠️ Critical gap: Despite searching across business databases (ZoomInfo, D&B, Buzzfile, Manta, PrivCo), contractor directories (Blue Book, BuildZoom), DOT/FMCSA records, LinkedIn, state records portals, news archives, and general web search, no publicly documented corporate relationship between Widel, Inc. and any entity called "MillerGroup" was found.** Over a dozen distinct "Miller Group" entities were investigated, including:
+
+- **The Miller Group (Canada/Colas)** — Large Canadian transportation construction company (~$912M revenue, subsidiary of Colas Group). Does bridge construction but operates in Ontario, not Missouri. No link to Widel.
+- **The Miller Group (Kansas City insurance broker, millercares.com)** — Family-owned insurance brokerage specializing in surety, P&C, and benefits for Midwest construction firms. Founded 1961 by Robert E. Miller; now third-generation. This entity is the most geographically and industry-plausible candidate for a Widel connection (they serve Missouri construction companies for bonding and insurance), but no direct relationship was confirmed.
+- **The Miller Group (St. Louis IT, themillergroup.com)** — Managed IT services provider. No construction connection to Widel.
+- **MillerGroup Construction (Austin, TX)** — General contractor in Texas. No connection found.
+- **MILLER Group (D.C. real estate, miller.group)** — Boutique real estate developer. No connection.
+
+The relationship may exist in state corporate filings (Missouri Secretary of State), internal/private documents, or informal arrangements not reflected in public sources. For an AI ROI presentation, the presenter should confirm this relationship directly with the client.
+
+## No public AI or technology initiatives exist
+
+Widel, Inc. has **no discernible public technology initiatives, AI adoption, digital transformation programs, or tech partnerships**. The company has only **6 LinkedIn followers**, no accessible website (widelinc.com exists but could not be loaded), no press releases, and no social media presence. This digital absence is itself a meaningful data point for an AI ROI conversation—it suggests the company is at the very earliest stage of digital maturity.
+
+**Industry context makes the AI case interesting, however.** The broader construction sector faces a convergence of pressures that AI can address. Only **~1.5%** of construction organizations report AI use across multiple processes (per a 2025 RICS survey), and **45% have no AI implementation at all**. Yet the technology is advancing rapidly for exactly the type of work Widel does:
+
+- **GPS-guided excavation and autonomous equipment** (Built Robotics, Bedrock Robotics) — some firms report **30% productivity gains** in excavation
+- **AI-powered cost estimation and bid optimization** — directly relevant to Widel's competitive-bid model
+- **Drone surveying and site assessment** — reducing manual survey time for bridge and earthwork projects
+- **Digital project scheduling and resource management** — critical with a lean 20-person crew
+- **Safety monitoring and compliance** — FMCSA and DOT compliance management
+
+## Industry pressures that frame the AI opportunity
+
+Widel faces several structural pressures where AI could deliver measurable ROI. The U.S. construction industry confronts a **~500,000-worker labor shortage**, making productivity-per-worker a critical metric for firms this small. Rising material costs and supply chain volatility squeeze already-thin public infrastructure margins. Larger competitors are beginning to adopt GPS-controlled equipment and digital bidding tools, which could erode Widel's cost advantage over time.
+
+On the positive side, **aging U.S. infrastructure drives sustained public investment** in exactly the bridge and highway work Widel specializes in, and Missouri's "Focus on Bridges" program provides a steady pipeline. For a firm of this size, the most practical AI ROI opportunities likely center on **bid estimation accuracy** (reducing over/under-bidding), **equipment scheduling and utilization** (optimizing their 2-tractor, 10-trailer fleet), **project timeline management**, and **compliance documentation automation** rather than large-scale autonomous equipment deployment.
+
+## Conclusion
+
+Widel, Inc. is a profitable, stable, family-owned Missouri bridge contractor operating at a scale where even modest AI-driven efficiency gains—**5–10% improvement in bid accuracy or equipment utilization**—could translate to meaningful dollar impact on ~$3.9M revenue. The company has zero existing digital sophistication, meaning the AI ROI conversation starts at ground level but also faces lower implementation complexity than a larger firm with legacy systems. The MillerGroup relationship remains unverified through public sources and should be confirmed directly with the client before the presentation. All revenue, employee, and financial figures cited are third-party estimates, not company-disclosed data.`;
+
+export const REFERENCE_SAMPLE_RESEARCH_ANDREWS_MCMEEL = `# Strategic AI ROI briefing: Andrews McMeel Universal
+
+**Andrews McMeel Universal is a $115–125M privately held publishing and syndication company where AI could unlock $9–15M in annual SG&A savings — a 15–28% reduction — with a 12–18 month payback.** AMU operates the world's largest independently owned content syndicate, a major book/calendar publishing division, and GoComics (the largest digital comics platform, with ~1 billion annual page views). The company has no visible AI strategy as of early 2026, which creates both competitive risk and a greenfield ROI opportunity. With ~320 employees, family ownership, a new CEO, and structural headwinds in print syndication, AMU is at an inflection point where targeted AI investments could materially reshape its cost structure and competitive position.
+
+---
+
+## What AMU does and why it matters
+
+Andrews McMeel Universal was founded in 1970 in Kansas City, Missouri, by Jim Andrews and John McMeel as Universal Press Syndicate. Over 55 years it has grown into a diversified content company operating across **five business lines**: syndication, book publishing, puzzles/games, licensing, and digital media, with a nascent entertainment division (AMUSE) developing film and TV adaptations.
+
+**Andrews McMeel Syndication** distributes 125+ comic strips, editorial cartoons, and columns to thousands of newspapers and digital outlets worldwide, including marquee properties like *Garfield*, *Peanuts* (syndication rights since 2011), *Doonesbury*, *Calvin and Hobbes* (reruns), *Pearls Before Swine*, *Big Nate*, *Dear Abby*, and *The Far Side* (reruns). Despite newspaper industry contraction, AMS has actually grown — adding 8 features from rival syndicates in the past two years.
+
+**Andrews McMeel Publishing (AMP)** is the largest division (~125 of ~320 employees), publishing ~150 frontlist books and ~200 calendars annually with 3,000+ titles in print. AMP is America's premier calendar publisher (11.5+ million units annually) and has produced major bestsellers including Rupi Kaur's *milk and honey* (11M+ copies) and the complete collections of *The Far Side* and *Calvin and Hobbes*. Distribution is handled by Simon & Schuster (trade) and Penguin Random House Publisher Services (Quirk imprint).
+
+**GoComics** is the flagship digital asset — the world's largest online comics platform with **400+ titles and ~1 billion annual page views**. A major April 2025 redesign introduced a tiered subscription model ($4.99/month or $34.99/year for premium), puzzles integration, and enhanced mobile experience, signaling a deliberate shift from ad-supported to hybrid subscription revenue. **The Puzzle Society** and related puzzle/game products (crosswords, Sudoku, Jumble) are distributed in print and digital, competing in a market now dominated by NYT Games (11.2 billion plays in 2025).
+
+Two clarifications worth noting: **ArcaMax is not an AMU property** — it is an independent email publisher (acquired by Zeta Global in 2022) that licenses AMU content. And AMU **does not own Peanuts IP** — it holds syndication rights, while Peanuts Worldwide (Sony 41%, Schulz family 39%, WildBrain 20%) controls the $2.5B annual retail licensing business.
+
+---
+
+## Financials, leadership, and ownership structure
+
+AMU is **privately held and family-owned**, with no private equity involvement and no known outside institutional investment in its 55-year history. Ownership is shared between the Andrews and McMeel families. **Hugh T. Andrews** (son of co-founder Jim Andrews, who died in 1980) serves as Chairman. The McMeel family is represented by board member Maureen McMeel Carroll (daughter of co-founder John McMeel, who died in July 2021).
+
+| Metric | Estimate | Source & Confidence |
+|--------|----------|-------------------|
+| **Annual revenue** | **~$115–125M** | $115M per Kansas City Business Journal (2018); $120–122M per Growjo/RocketReach algorithmic estimates. Flagged as estimated. |
+| **Employees** | **~250–320** | 196 reported in 2020 (Publishers Weekly); ~320 per LeadIQ (Feb 2026), likely reflecting Amber Lotus and Quirk acquisitions |
+| **Operating margin** | **~10–18% blended** | Industry benchmark: 5–12% trade publishing, 15–25% syndication, 20–35% licensing |
+| **Founded** | **1970** | Kansas City, MO |
+
+**CEO Kirsty Melville** was appointed February 6, 2024 — only the third CEO in company history, succeeding Andy Sareyan (2014–2024). She previously led AMP as president/publisher since 2009. Key C-suite includes CFO Les Hinmon, Chief Digital Officer Chris Waldron, Chief Development Officer Fred Nelson, and CHRO Nancy Miller (hired January 2024).
+
+Recent strategic milestones that signal the company's direction:
+
+- **Quirk Books acquisition** (October 2025) — Philadelphia publisher of 20–25 titles/year became an AMP imprint
+- **Amber Lotus Publishing acquisition** (2023) — Portland inspirational calendar publisher, expanding into books in 2025
+- **GoComics major redesign** (April 2025) — subscription paywall, puzzles integration, mobile optimization
+- **Nelvana partnership** (January 2024) — CG animated films from *Trapped in a Video Game* book series
+- **CEO transition** (February 2024) — Kirsty Melville brings publishing-first leadership after Sareyan's media background
+
+---
+
+## Industry pressures creating urgency for transformation
+
+AMU faces a convergence of structural headwinds that make operational efficiency — and AI — strategically urgent.
+
+**Print syndication's client base is eroding.** U.S. newspaper publishing revenue has declined at **2.7% annually** to ~$30.1 billion in 2025. Over 3,500 newspapers have closed in two decades, with 136 closures in the year ending October 2025 alone. Newspaper employment has dropped 75%+ since 2005. AMU's traditional syndication model — selling comic strips and columns to newspapers — faces a structurally shrinking addressable market, even as the global news syndication market is forecast to reach $12 billion by 2033 with digital as the fastest-growing segment.
+
+**Digital disruption is intensifying.** Google AI Overviews are driving a **25% drop in publisher referral traffic**, with some outlets reporting 50–90% lower click-through rates. Reuters Institute projects publisher traffic from search engines will decline over 40% in three years. For GoComics, which relies on page views for ad revenue, this is an existential threat that accelerates the subscription pivot.
+
+**The NYT Games juggernaut is redefining competition.** NYT Games recorded **11.2 billion plays in 2025** across 11 games, with Wordle alone driving 14.5 million daily players. NYT's total subscriber base hit 12.78 million. GoComics' addition of puzzles in the April 2025 redesign is a nascent response, but the scale gap is enormous — NYT's games app alone generates ~$1.3 million/week in peak revenue.
+
+**Character licensing is a bright spot.** The global character licensing market grew to **$19.8 billion in 2024** and is projected to reach $33.6 billion by 2033 (6.1% CAGR). AMU's IP portfolio (*Calvin and Hobbes*, *Big Nate*, *The Far Side*, *Doonesbury*, *Garfield* syndication) has significant untapped licensing potential, though the most valuable property AMU touches — Peanuts — is owned externally.
+
+**Competitors are moving on AI.** The New York Times has a dedicated 8-person AI team, trained 1,700 of 2,000 newsroom staff on AI tools, and built internal tools like Echo (summarization) and Cheat Sheet (investigative analysis). HarperCollins completed an AI licensing deal (believed to be with Microsoft) in late 2024. Oliver Wyman projects AI can reduce publishing production costs **20–30%** and labor costs up to **40%**. AMU has **no public AI strategy** — a gap that is both a risk and an opportunity.
+
+---
+
+## SG&A cost structure and where the dollars sit
+
+For a company of AMU's profile (~$120M revenue, ~300 employees, blended publishing/syndication/licensing model), total SG&A is estimated at **30–40% of revenue, or $36–48M annually**. The following breakdown identifies where labor cost and operational complexity concentrate:
+
+| Function | Est. % of Revenue | Est. Annual Cost | Labor Intensity |
+|----------|------------------|-----------------|----------------|
+| Editorial & content production | 8–12% | $10–14M | Very high — editors, designers, production, creator management |
+| Finance & royalty management | 4–6% | $5–7M | Very high — complex multi-format, multi-creator, multi-currency royalty calculations |
+| Rights & licensing management | 4–6% | $5–7M | Very high — contract tracking, territory management, compliance across 125+ features and thousands of clients |
+| Sales & marketing | 5–8% | $6–10M | High — client acquisition, trade marketing, digital advertising |
+| IT & platform operations | 4–6% | $5–7M | Moderate-high — GoComics platform, content management, digital delivery |
+| Customer service & client relations | 2–4% | $2–5M | High — newspaper/digital client support, creator relations |
+| HR & administration | 3–4% | $4–5M | Moderate |
+| **Total SG&A** | **30–40%** | **$36–48M** | |
+
+The three most labor-intensive and AI-addressable functions are **royalty management** (hundreds of creators, tiered rates, multiple formats, industry data shows 20–50% of digital royalties are paid incorrectly with manual processes), **rights/licensing management** (tracking permissions across thousands of outlets in 120 countries), and **editorial/content operations** (metadata tagging, format conversion, multi-platform delivery for 400+ titles).
+
+---
+
+## Where AI creates the most value for AMU
+
+Based on AMU's specific business model and cost structure, AI value levers cluster into seven areas. The total opportunity ranges from **$9M (conservative) to $15M (base case) in annual SG&A savings**, against a 2-year implementation investment of $5–8M.
+
+**Finance and royalty automation is the highest-ROI quick win.** AMU manages royalty calculations for hundreds of creators across print syndication, digital licensing, book publishing, and calendar sales — each with different rate structures, advance schedules, and currencies. Industry benchmarks show AI-powered royalty engines can reduce processing time by **80–90%** (MetaComet Systems data). Estimated savings: **$2–4M annually** with a 25–40% cost reduction in the finance function. A creator self-service royalty portal would further reduce inquiry volume.
+
+**Rights and licensing management offers structural efficiency gains.** With 125+ syndicated features distributed across thousands of outlets in 120 countries, AMU's rights tracking is massively complex. AI-powered contract analysis (NLP for clause extraction, key terms, renewal alerts), automated rights availability checking, and compliance monitoring could reduce rights management costs by **20–35%**, saving **$1.5–3M annually**. This also reduces revenue leakage from missed renewals or unauthorized usage.
+
+**Customer service automation delivers fast payback.** AI chatbots for Tier 1 support (billing, content delivery status, technical access) and self-service portals for newspaper/digital clients can reduce cost-per-interaction from ~$4.60 to ~$1.45 — a **68% reduction**. McKinsey benchmarks show 30–45% productivity improvement in customer operations from generative AI. Estimated savings: **$1–2.5M annually**, deployable in 3–9 months.
+
+**Content workflow automation scales GoComics and publishing operations.** Automated metadata tagging, multi-platform format conversion, content recommendation engines, and AI-assisted editorial tools could reduce editorial/production labor costs by 15–25%. For GoComics specifically, AI-driven personalization and content discovery could improve engagement metrics and subscription conversion. Estimated savings: **$2–4M annually**.
+
+**Puzzle and game generation is a differentiated growth lever.** AI can dramatically scale puzzle production (crossword generation, difficulty calibration, variant creation, localization) while maintaining quality. This is both a cost play (~**$0.5–1.5M savings**) and a revenue play — enabling AMU to compete more seriously with NYT Games by rapidly expanding its puzzle library.
+
+**Sales, marketing, and HR round out the opportunity.** AI-powered lead scoring for licensing prospects, personalized client outreach, predictive demand analytics for book/calendar print runs, and recruiting automation collectively add **$1.7–4M in savings**.
+
+### Three-scenario summary
+
+| Scenario | Annual Savings | % of SG&A | 2-Year Investment | Payback |
+|----------|---------------|-----------|-------------------|---------|
+| **Conservative** | **$9–10M** | 15–20% | $3–5M | 12 months |
+| **Base case** | **$12–15M** | 22–28% | $5–8M | 12–18 months |
+| **Aggressive** | **$17–20M** | 30–38% | $8–12M | 18–24 months |
+
+### Recommended phased roadmap
+
+**Phase 1 (Months 0–6): Quick wins → $2–4M annual run-rate.** Deploy AI customer service chatbot, implement gen AI marketing tools, begin royalty management platform evaluation, and roll out AI-assisted HR recruiting.
+
+**Phase 2 (Months 6–18): Core transformation → $4–8M additional.** Launch automated royalty engine with creator self-service portal, deploy AI contract analysis for rights management, automate content metadata tagging and multi-platform delivery, and pilot AI puzzle generation.
+
+**Phase 3 (Months 12–30): Strategic differentiation → $3–6M additional.** Full AI-powered rights management platform, predictive content analytics for GoComics, AI-driven sales intelligence, scaled puzzle/game generation, and AI content recommendation engine.
+
+---
+
+## Conclusion: a compelling case at an inflection point
+
+AMU sits at a rare intersection of **high AI addressability and low current adoption**. Its core operations — royalty management across hundreds of creators, rights tracking across thousands of outlets in 120 countries, content formatting for multi-platform delivery, and customer service for a fragmented client base — are precisely the complex, rules-based, high-volume workflows where AI delivers the strongest ROI. The base-case **$12–15M annual savings** against a $5–8M two-year investment represents a transformative efficiency gain for a ~$120M company — effectively adding **8–10 percentage points to operating margin**. With a new CEO, recent acquisitions expanding operational complexity, and competitors like NYT already deploying AI teams, the strategic window for AMU to act is open but narrowing. The company's independence and family ownership, while a strength in preserving editorial culture, also means it lacks the capital reserves of public competitors — making efficient, phased AI deployment not optional but essential to long-term competitiveness.`;
+
+export const REFERENCE_SAMPLE_RESEARCH_ALPHAPOINTE = `# Alphapointe: AI strategic growth profile
+
+**Alphapointe is a 114-year-old Kansas City nonprofit that manufactures over 150 million products annually — from VA prescription bottles to SKILCRAFT pen components — while employing one of the largest blind and visually impaired workforces in the United States.** With **$66.5 million in FY2024 revenue** and razor-thin margins typical of mission-driven AbilityOne manufacturers, the organization sits at a critical inflection point. Revenue has plateaued at ~$65–66M since FY2020, headcount is declining modestly, and federal spending uncertainty from DOGE and AbilityOne program reforms creates both risk and an urgent case for operational transformation. For AI-driven SG&A cost reduction and EBITDA expansion, Alphapointe presents a classic social-enterprise optimization opportunity: a manufacturing-heavy, government-contract-dependent nonprofit with significant labor intensity and thin margins where even modest efficiency gains compound dramatically.
+
+---
+
+## A century-old mission-driven manufacturer at scale
+
+Alphapointe was founded in 1911 as the Kansas City Association for the Blind by Catherine Hale, who sought employment opportunities for her blind brother. What began as a small broom-making workshop has grown into a **multi-site manufacturing and professional services operation across four states** — Missouri, New York, Kansas, and Arkansas — with nine locations including military Base Supply Centers at Fort Leonard Wood and Little Rock Air Force Base.
+
+The organization operates as a **501(c)(3) public charity** (EIN: 44-0552486) and is an associated nonprofit agency of National Industries for the Blind (NIB), participating in the federal AbilityOne Program since 1938. AbilityOne provides mandatory-source government contracts — federal agencies must purchase listed products from qualifying nonprofits before going to commercial vendors. This statutory protection is the backbone of Alphapointe's revenue model, with **program services generating $48.7M (73.2% of revenue)** and contributions adding $17.0M (25.5%).
+
+Manufacturing capabilities span **plastic injection molding and micro-molding** (800M+ prescription bottles produced historically), office products, janitorial supplies, textile/sewing, and a patented tactical/medical product line with 8+ patents. Professional services include call centers, contract management, Section 508 digital accessibility compliance, and kitting/clean room operations. Alphapointe also operates Missouri's only comprehensive rehabilitation and education center for people with vision loss, serving **3,690 individuals in FY2024**.
+
+---
+
+## Financial picture shows stability but margin pressure
+
+All financial data below is confirmed from IRS Form 990 filings via ProPublica Nonprofit Explorer — not estimated.
+
+| Fiscal year (ending Sept.) | Revenue | Expenses | Net income | Net assets |
+|---|---|---|---|---|
+| **FY2024** | **$66.5M** | **$65.0M** | **$1.5M** | **$36.9M** |
+| FY2023 | $65.1M | $65.3M | −$154K | $34.5M |
+| FY2022 | $66.0M | $59.6M | $6.4M | $34.4M |
+| FY2021 | $62.8M | $64.0M | −$1.2M | $28.4M |
+| FY2020 | $65.9M | $64.0M | $1.9M | $28.6M |
+| FY2018 | $57.4M | $56.1M | $1.3M | $28.3M |
+| FY2017 | $50.3M | $48.5M | $1.8M | $26.3M |
+
+**Revenue grew 32% from FY2017 to FY2024** but has been effectively flat since FY2020. Net margins oscillate between slightly negative and ~2.3%, consistent with mission-driven nonprofits reinvesting surpluses. Total assets reached **$76.3M** against **$39.4M in liabilities**, reflecting bond-financed facility investments including an $18.8M NYC facility acquisition in 2017. Total salary and wage burden sits at **~$14.2M (21.9% of total expenses)** — a figure that signals meaningful SG&A optimization potential through AI-enabled process automation without displacing the mission-critical blind/VI production workforce.
+
+By business line (from FY2020 breakdown): Queens manufacturing contributes ~39%, Kansas City manufacturing ~34%, Base Stores/retail ~16%, contracted services ~6%, and rehabilitation/fundraising ~4%. The **Express Scripts contract** (7-year term for 13M prescription bottles annually) and the ongoing VA relationship (60M+ bottles/year) represent anchor revenue streams.
+
+---
+
+## Leadership is stable, with a notable CFO transition
+
+**CEO Reinhard Mabry** has led Alphapointe since 2006, transforming it from a ~$20M operation to its current $66.5M scale. He holds an MBA from Florida State and previously served as VP at Winston-Salem Industries for the Blind (now IFB Solutions). His compensation was **$373,222** in FY2024. Mabry also serves as president of the National Association for the Employment of People Who Are Blind (NAEPB) and sits on the NIB board, giving Alphapointe significant industry voice.
+
+The most notable recent leadership change: **CFO Jeffrey McHenry departed April 2, 2024**, with **Jim Vanwinkle** stepping into the role. Other key leaders include COO **Ryan Williams** ($168,557), VP of Operations **Rob Cowan III** ($149,829), Chief Development & Program Officer **Gina Gowin** ($142,438), and NY General Manager **Carroll Foreman Jr.** ($137,387). The **17-member board is 100% independent** and includes executives from Morgan Stanley, Deutsche Bank, and healthcare organizations — a sophisticated governance structure for a nonprofit of this size.
+
+---
+
+## Industry headwinds create urgency for operational transformation
+
+Alphapointe operates within the **AbilityOne ecosystem**, a ~$4.1–6 billion federal program employing approximately 37,000 people with disabilities. The Department of Defense is the largest customer (0.59% of DoD procurement, with advocates pushing for a 1% target). Several converging pressures define the current landscape:
+
+- **DOGE and federal spending compression**: The Department of Government Efficiency initiative (est. January 2025) has created broad uncertainty across federal contracting. While AbilityOne's statutory mandatory-source protections insulate it somewhat, the overall environment of procurement scrutiny is real. Alphapointe's 2025 Impact Report explicitly themes around "turning challenges into opportunities."
+- **Program erosion**: Federal agencies increasingly use commercial e-commerce platforms (Amazon Business, etc.) that bypass AbilityOne mandatory sourcing requirements — a "pivotal concern" identified by the AbilityOne OIG.
+- **Regulatory reform**: The AbilityOne Commission's April 2024 rule introduces competitive distribution among NPAs and new pricing methodologies, plus a September 2025 directive on domestic sourcing compliance following criticism about imported products.
+- **Thin margins sector-wide**: Net margins across AbilityOne NPAs are structurally thin (0–3%), driven by fair-market pricing set by the Commission combined with higher labor costs from workforce accommodations. This makes AI-driven cost reduction particularly impactful — even 200–300 basis points of margin improvement would be transformational.
+
+Key peer organizations include **Envision** (Wichita, KS), **Lighthouse for the Blind** (Seattle), **IFB Solutions** (Greensboro, NC), **Bosma Enterprises** (Indianapolis), and **Austin Lighthouse** (Austin, TX). These are collaborative peers within the NIB network rather than direct competitors, though the new competitive distribution rules introduce some intra-network competition.
+
+---
+
+## Recent milestones signal operational investment
+
+In the last two years, Alphapointe has made several notable moves. The organization completed an **18,000–23,000 sq. ft. warehouse and production expansion** at its Kansas City headquarters (completed under budget with energy-efficient upgrades). Despite a modest headcount decline from **362 employees in FY2024 to 349 in FY2025**, production volume actually increased from **151 million to 172+ million products** — suggesting meaningful productivity gains already underway. The organization maintains **ISO 9001:2015 certification** (passed its most recent surveillance audit) and earned a **Charity Navigator four-star rating (96%)**. Employee Terrie Collins won NIB's prestigious **2024 Milton J. Samuelson Career Achievement Award**. Alphapointe also installed BlindSquare wayfinding technology across its 140,000 sq. ft. campus to aid employee navigation — an example of technology adoption aligned with its workforce mission.
+
+---
+
+## Conclusion: where AI creates value
+
+Alphapointe's profile — **$66.5M revenue, ~350 employees, 73% government-contract revenue, sub-3% margins, significant manufacturing and administrative overhead** — presents a textbook case for AI-enabled strategic growth. The highest-impact AI levers likely sit in SG&A functions: procurement optimization, contract management automation, quality inspection (computer vision for molded products), demand forecasting for government order cycles, and administrative process automation across HR, finance, and compliance. The critical constraint is that any AI implementation must *enhance* rather than displace the blind/VI workforce — this is both a mission imperative and a regulatory requirement under AbilityOne's direct labor ratio rules. The combination of production volume growth (+14% YoY) with headcount contraction (−3.6%) already demonstrates an efficiency trajectory. AI can accelerate this while protecting the social mission — expanding EBITDA from near-zero to a sustainable surplus that funds growth, facility investment, and program expansion in an increasingly uncertain federal contracting environment.`;
+
 export const REFERENCES = {
   cii_foods: REFERENCE_CII_FOODS,
   planitroi: REFERENCE_PLANITROI,
   cable_dahmer: REFERENCE_CABLE_DAHMER,
+  sample_research_widel: REFERENCE_SAMPLE_RESEARCH_WIDEL,
+  sample_research_andrews_mcmeel: REFERENCE_SAMPLE_RESEARCH_ANDREWS_MCMEEL,
+  sample_research_alphapointe: REFERENCE_SAMPLE_RESEARCH_ALPHAPOINTE,
 } as const;
