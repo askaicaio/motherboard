@@ -30,12 +30,12 @@ export function ReportsListView({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Company</TableHead>
+            <TableHead className="pl-6">Company</TableHead>
             <TableHead>Industry</TableHead>
             <TableHead>Research</TableHead>
             <TableHead>Gamma</TableHead>
             <TableHead>Created</TableHead>
-            <TableHead className="text-right pr-4">Actions</TableHead>
+            <TableHead className="text-right pr-6">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -44,7 +44,7 @@ export function ReportsListView({
             const gamma = REPORT_STAGE_STATUS_CONFIG[report.gammaStatus];
             return (
               <TableRow key={report.id}>
-                <TableCell>
+                <TableCell className="pl-6 py-3">
                   <Link
                     href={`/reports/${report.id}`}
                     className="font-medium hover:underline"
@@ -52,19 +52,19 @@ export function ReportsListView({
                     {report.companyName}
                   </Link>
                 </TableCell>
-                <TableCell className="text-zinc-500 text-sm">
+                <TableCell className="text-zinc-500 text-sm py-3">
                   {report.industry || <span className="italic">—</span>}
                 </TableCell>
-                <TableCell>
+                <TableCell className="py-3">
                   <Badge className={research.color}>{research.label}</Badge>
                 </TableCell>
-                <TableCell>
+                <TableCell className="py-3">
                   <Badge className={gamma.color}>{gamma.label}</Badge>
                 </TableCell>
-                <TableCell className="text-zinc-500 text-sm">
+                <TableCell className="text-zinc-500 text-sm py-3">
                   {format(new Date(report.createdAt), "MMM d, yyyy")}
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell className="text-right pr-6 py-3">
                   <div className="flex items-center justify-end gap-1">
                     {report.gammaUrl ? (
                       <a
