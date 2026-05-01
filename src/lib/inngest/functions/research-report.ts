@@ -252,14 +252,16 @@ export const researchReportFn = inngest.createFunction(
     });
 
     // ============================================================
-    // STAGE 1: Deep research (durable step — runs up to 2 hours)
+    // STAGE 1: Deep research
     // ============================================================
+    // 20 searches is plenty for thorough research and fits comfortably
+    // in Vercel's 800s function limit. Configurable via env if needed.
     const stage1 = await step.run("stage-1-deep-research", async () => {
       return await callAnthropicStage({
         systemPrompt: buildResearchPrompt(promptOptions),
         userMessage: buildUserMessage(promptOptions),
         enableWebSearch: true,
-        maxSearches: Number(process.env.ANTHROPIC_MAX_SEARCHES || "30"),
+        maxSearches: Number(process.env.ANTHROPIC_MAX_SEARCHES || "20"),
       });
     });
 
