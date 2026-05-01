@@ -4,11 +4,18 @@ import { companyReports } from "@/lib/db/schema";
 import { audit } from "@/lib/audit/logger";
 import { getOptionalAuth } from "@/lib/auth/guard";
 import { generateResearch } from "@/lib/reports/anthropic-client";
+import { inngest } from "@/lib/inngest/client";
 import { eq } from "drizzle-orm";
 
-// Allow up to 5 minutes for the research call (Vercel Pro max)
-export const maxDuration = 300;
-
+/**
+ * POST /api/reports/[id]/research
+ *
+ * In live mode: enqueues an Inngest event and returns immediately.
+ *   The durable Inngest function (researchReportFn) handles the
+ *   long-running two-stage Claude calls in the background.
+ *
+ * In mock mode: runs synchronously since there's nothing to defer.
+ */
 export async function POST(
   _: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -17,7 +24,6 @@ export async function POST(
   const user = await getOptionalAuth();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  // Load the report
   const [report] = await db
     .select()
     .from(companyReports)
@@ -28,7 +34,6 @@ export async function POST(
     return NextResponse.json({ error: "Report not found" }, { status: 404 });
   }
 
-  // Don't double-run if already completed (require explicit re-run)
   if (report.researchStatus === "complete") {
     return NextResponse.json(
       { error: "Research already complete. Delete and re-create the report to re-run." },
@@ -36,7 +41,18 @@ export async function POST(
     );
   }
 
-  // Mark as running, clear any old dossier/markdown from a previous failed run
+  if (report.researchStatus === "running") {
+    return NextResponse.json(
+      { error: "Research is already running. Wait for it to complete or reset it from the UI." },
+      { status: 409 },
+    );
+  }
+
+  const isMockMode =
+    process.env.REPORTS_MODE === "mock" || !process.env.ANTHROPIC_API_KEY;
+
+  // Audit + mark as running BEFORE enqueueing/running so the UI shows
+  // "Running" status immediately
   await db
     .update(companyReports)
     .set({
@@ -52,107 +68,78 @@ export async function POST(
     action: "report_research_started",
     actorId: user.id,
     actorEmail: user.email!,
-    details: { reportId: id, companyName: report.companyName },
+    details: { reportId: id, companyName: report.companyName, mode: isMockMode ? "mock" : "live" },
   });
 
-  // Run research with phase + dossier callbacks so the UI can poll for progress
-  const result = await generateResearch({
-    companyName: report.companyName,
-    industry: report.industry || undefined,
-    knownDetails: report.knownDetails || undefined,
-    titleFormat: report.titleFormat,
-    onPhaseChange: async (phase) => {
-      await db
-        .update(companyReports)
-        .set({ researchPhase: phase, updatedAt: new Date() })
-        .where(eq(companyReports.id, id));
-    },
-    onDossierReady: async (dossier) => {
-      // Persist dossier the moment Stage 1 finishes — survives Stage 2 failures
-      await db
-        .update(companyReports)
-        .set({ researchDossier: dossier, updatedAt: new Date() })
-        .where(eq(companyReports.id, id));
-    },
-  });
-
-  if (result.success) {
-    await db
-      .update(companyReports)
-      .set({
-        researchStatus: "complete",
-        researchPhase: null,
-        researchCompletedAt: new Date(),
-        researchDossier: result.dossier,
-        researchMarkdown: result.slideMarkdown,
-        researchModel: result.model,
-        researchProvider: result.provider,
-        researchSources: result.sources,
-        researchInputTokens: result.usage.inputTokens,
-        researchOutputTokens: result.usage.outputTokens,
-        researchCacheReadTokens: result.usage.cacheReadTokens,
-        researchCacheCreationTokens: result.usage.cacheCreationTokens,
-        researchWebSearchCount: result.usage.webSearchRequests,
-        researchCostUsd: result.usage.estimatedCostUsd.toFixed(4),
-        researchThinkingSummary: result.thinkingSummary || null,
-        updatedAt: new Date(),
-      })
-      .where(eq(companyReports.id, id));
-
-    await audit({
-      action: "report_research_completed",
-      actorId: user.id,
-      actorEmail: user.email!,
-      details: {
-        reportId: id,
-        provider: result.provider,
-        model: result.model,
-        dossierLength: result.dossier.length,
-        slideMarkdownLength: result.slideMarkdown.length,
-        sourceCount: result.sources.length,
-        webSearches: result.usage.webSearchRequests,
-        costUsd: result.usage.estimatedCostUsd,
-      },
-    });
-  } else {
-    // If stage 1 succeeded but stage 2 failed, preserve the dossier so
-    // the operator can re-run just the distillation later.
-    await db
-      .update(companyReports)
-      .set({
-        researchStatus: "failed",
-        researchPhase: null,
-        researchError: result.error,
-        ...(result.partialDossier
-          ? { researchDossier: result.partialDossier }
-          : {}),
-        updatedAt: new Date(),
-      })
-      .where(eq(companyReports.id, id));
-
-    await audit({
-      action: "report_research_failed",
-      actorId: user.id,
-      actorEmail: user.email!,
-      details: {
-        reportId: id,
-        error: result.error,
-        partialDossierSaved: !!result.partialDossier,
-      },
+  // ============================================================
+  // Mock mode: run synchronously (no Inngest needed)
+  // ============================================================
+  if (isMockMode) {
+    const result = await generateResearch({
+      companyName: report.companyName,
+      industry: report.industry || undefined,
+      knownDetails: report.knownDetails || undefined,
+      titleFormat: report.titleFormat,
     });
 
-    return NextResponse.json(
-      { error: result.error, success: false },
-      { status: 500 },
-    );
+    if (result.success) {
+      await db
+        .update(companyReports)
+        .set({
+          researchStatus: "complete",
+          researchPhase: null,
+          researchCompletedAt: new Date(),
+          researchDossier: result.dossier,
+          researchMarkdown: result.slideMarkdown,
+          researchModel: result.model,
+          researchProvider: result.provider,
+          researchSources: result.sources,
+          researchInputTokens: result.usage.inputTokens,
+          researchOutputTokens: result.usage.outputTokens,
+          researchCacheReadTokens: result.usage.cacheReadTokens,
+          researchCacheCreationTokens: result.usage.cacheCreationTokens,
+          researchWebSearchCount: result.usage.webSearchRequests,
+          researchCostUsd: result.usage.estimatedCostUsd.toFixed(4),
+          researchThinkingSummary: result.thinkingSummary || null,
+          updatedAt: new Date(),
+        })
+        .where(eq(companyReports.id, id));
+    } else {
+      await db
+        .update(companyReports)
+        .set({
+          researchStatus: "failed",
+          researchPhase: null,
+          researchError: result.error,
+          updatedAt: new Date(),
+        })
+        .where(eq(companyReports.id, id));
+      return NextResponse.json({ error: result.error }, { status: 500 });
+    }
+
+    const [updated] = await db
+      .select()
+      .from(companyReports)
+      .where(eq(companyReports.id, id))
+      .limit(1);
+    return NextResponse.json({ report: updated, success: true, mode: "mock" });
   }
 
-  // Return the updated report
-  const [updated] = await db
-    .select()
-    .from(companyReports)
-    .where(eq(companyReports.id, id))
-    .limit(1);
+  // ============================================================
+  // Live mode: enqueue Inngest event and return immediately
+  // ============================================================
+  await inngest.send({
+    name: "report/research.requested",
+    data: {
+      reportId: id,
+      actorId: user.id,
+      actorEmail: user.email!,
+    },
+  });
 
-  return NextResponse.json({ report: updated, success: true });
+  return NextResponse.json({
+    success: true,
+    mode: "live",
+    message: "Research enqueued — running in background",
+  });
 }

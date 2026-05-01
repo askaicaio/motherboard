@@ -21,6 +21,7 @@
     "drizzle-orm": "^0.45.2",
     "handlebars": "^4.7.9",
     "html-to-text": "^9.0.5",
+    "inngest": "^4.2.6",
     "lucide-react": "^1.7.0",
     "nanoid": "^5.1.7",
     "next": "16.2.2",

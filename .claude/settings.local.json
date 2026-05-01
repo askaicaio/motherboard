@@ -37,7 +37,9 @@
       "Bash(mv \"#files/Company Reports/\"*.pdf references/sample-decks/)",
       "Bash(DATABASE_URL=\"postgres://placeholder:placeholder@localhost:5432/placeholder\" npx drizzle-kit generate --name add_research_dossier)",
       "Bash(DATABASE_URL=\"postgres://placeholder:placeholder@localhost:5432/placeholder\" npx drizzle-kit generate --name add_report_archive)",
-      "Bash(DATABASE_URL=\"postgres://placeholder:placeholder@localhost:5432/placeholder\" npx drizzle-kit generate --name add_research_phase)"
+      "Bash(DATABASE_URL=\"postgres://placeholder:placeholder@localhost:5432/placeholder\" npx drizzle-kit generate --name add_research_phase)",
+      "WebFetch(domain:www.inngest.com)",
+      "Bash(DATABASE_URL=\"postgresql://placeholder:placeholder@localhost:5432/placeholder\" NEXTAUTH_URL=\"http://localhost\" NEXTAUTH_SECRET=\"test\" GOOGLE_CLIENT_ID=\"x\" GOOGLE_CLIENT_SECRET=\"x\" INNGEST_EVENT_KEY=\"test\" INNGEST_SIGNING_KEY=\"signkey-test-x\" npx next build)"
     ]
   }
 }

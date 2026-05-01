@@ -4,10 +4,15 @@ import { companyReports } from "@/lib/db/schema";
 import { audit } from "@/lib/audit/logger";
 import { getOptionalAuth } from "@/lib/auth/guard";
 import { generateGammaDeck } from "@/lib/reports/gamma-client";
+import { inngest } from "@/lib/inngest/client";
 import { eq } from "drizzle-orm";
 
-export const maxDuration = 300;
-
+/**
+ * POST /api/reports/[id]/gamma
+ *
+ * Live mode: enqueues Inngest event for durable Gamma generation
+ * Mock mode: runs synchronously
+ */
 export async function POST(
   _: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -40,6 +45,16 @@ export async function POST(
     );
   }
 
+  if (report.gammaStatus === "running") {
+    return NextResponse.json(
+      { error: "Gamma generation is already running." },
+      { status: 409 },
+    );
+  }
+
+  const isMockMode =
+    process.env.REPORTS_MODE === "mock" || !process.env.GAMMA_API_KEY;
+
   // Mark as running
   await db
     .update(companyReports)
@@ -55,67 +70,66 @@ export async function POST(
     action: "report_gamma_started",
     actorId: user.id,
     actorEmail: user.email!,
-    details: { reportId: id, companyName: report.companyName },
+    details: { reportId: id, companyName: report.companyName, mode: isMockMode ? "mock" : "live" },
   });
 
-  const result = await generateGammaDeck({
-    markdown: report.researchMarkdown,
-    companyName: report.companyName,
-  });
-
-  if (result.success) {
-    await db
-      .update(companyReports)
-      .set({
-        gammaStatus: "complete",
-        gammaCompletedAt: new Date(),
-        gammaGenerationId: result.generationId,
-        gammaUrl: result.url,
-        gammaCreditsDeducted: result.creditsDeducted ?? null,
-        gammaCreditsRemaining: result.creditsRemaining ?? null,
-        updatedAt: new Date(),
-      })
-      .where(eq(companyReports.id, id));
-
-    await audit({
-      action: "report_gamma_completed",
-      actorId: user.id,
-      actorEmail: user.email!,
-      details: {
-        reportId: id,
-        generationId: result.generationId,
-        url: result.url,
-        provider: result.provider,
-      },
-    });
-  } else {
-    await db
-      .update(companyReports)
-      .set({
-        gammaStatus: "failed",
-        gammaError: result.error,
-        updatedAt: new Date(),
-      })
-      .where(eq(companyReports.id, id));
-
-    await audit({
-      action: "report_gamma_failed",
-      actorId: user.id,
-      actorEmail: user.email!,
-      details: { reportId: id, error: result.error },
+  // ============================================================
+  // Mock mode: run synchronously
+  // ============================================================
+  if (isMockMode) {
+    const result = await generateGammaDeck({
+      markdown: report.researchMarkdown,
+      companyName: report.companyName,
     });
 
-    return NextResponse.json(
-      { error: result.error, success: false },
-      { status: 500 },
-    );
+    if (result.success) {
+      await db
+        .update(companyReports)
+        .set({
+          gammaStatus: "complete",
+          gammaCompletedAt: new Date(),
+          gammaGenerationId: result.generationId,
+          gammaUrl: result.url,
+          gammaCreditsDeducted: result.creditsDeducted ?? null,
+          gammaCreditsRemaining: result.creditsRemaining ?? null,
+          updatedAt: new Date(),
+        })
+        .where(eq(companyReports.id, id));
+    } else {
+      await db
+        .update(companyReports)
+        .set({
+          gammaStatus: "failed",
+          gammaError: result.error,
+          updatedAt: new Date(),
+        })
+        .where(eq(companyReports.id, id));
+      return NextResponse.json({ error: result.error }, { status: 500 });
+    }
+
+    const [updated] = await db
+      .select()
+      .from(companyReports)
+      .where(eq(companyReports.id, id))
+      .limit(1);
+    return NextResponse.json({ report: updated, success: true, mode: "mock" });
   }
 
-  const [updated] = await db
-    .select()
-    .from(companyReports)
-    .where(eq(companyReports.id, id))
-    .limit(1);
+  // ============================================================
+  // Live mode: enqueue Inngest event
+  // ============================================================
+  await inngest.send({
+    name: "report/gamma.requested",
+    data: {
+      reportId: id,
+      actorId: user.id,
+      actorEmail: user.email!,
+    },
+  });
 
-  return NextResponse.json({ report: updated, success: true });
+  return NextResponse.json({
+    success: true,
+    mode: "live",
+    message: "Gamma generation enqueued — running in background",
+  });
 }
