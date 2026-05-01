@@ -1,22 +1,47 @@
 // =============================================================
-// Anthropic API client for deep research + report generation
+// Anthropic API client for top-quality deep research
 // =============================================================
-// Calls Claude with the web_search tool enabled, runs the
-// McKinsey-caliber prompt, and returns the structured 10-slide
-// markdown ready to paste into Gamma.
+// Uses Claude Opus 4.7 (the flagship model) with:
+//   - Adaptive thinking at xhigh effort (deepest reasoning)
+//   - Web search 20260209 with dynamic filtering (latest)
+//   - Code execution tool (required for dynamic filtering)
+//   - Up to 30 web searches per report
+//   - Prompt caching on the system prompt (save $ on repeat runs)
+//   - Source + citation extraction
+//   - Token usage tracking
 //
 // Mock mode (REPORTS_MODE=mock or no API key) returns a sample
-// report after a 5-second delay so the UI can be tested without
-// burning API credits or waiting 5 minutes for real research.
+// report after a 5-second delay.
 // =============================================================
 
-import { buildSystemPrompt, buildUserMessage, type BuildPromptOptions } from "./system-prompt";
+import {
+  buildSystemPrompt,
+  buildUserMessage,
+  type BuildPromptOptions,
+} from "./system-prompt";
+
+export interface ResearchSource {
+  url: string;
+  title: string;
+  pageAge?: string;
+}
+
+export interface ResearchTokenUsage {
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheCreationTokens: number;
+  webSearchRequests: number;
+  estimatedCostUsd: number;
+}
 
 export interface ResearchResult {
   success: true;
   markdown: string;
   model: string;
-  sources: string[];
+  sources: ResearchSource[];
+  usage: ResearchTokenUsage;
+  thinkingSummary?: string;
   provider: "anthropic" | "mock";
 }
 
@@ -43,7 +68,6 @@ export async function generateResearch(
   if (isMockMode()) {
     return mockResearch(options);
   }
-
   return liveResearch(options);
 }
 
@@ -63,11 +87,22 @@ async function mockResearch(
   return {
     success: true,
     provider: "mock",
-    model: "mock-claude-sonnet-4-5",
+    model: "mock-claude-opus-4-7",
     sources: [
-      "https://example.com/mock-source-1",
-      "https://example.com/mock-source-2",
+      { url: "https://example.com/mock-source-1", title: "Mock Source: Industry Outlook" },
+      { url: "https://example.com/mock-source-2", title: "Mock Source: Competitive Landscape" },
+      { url: "https://example.com/mock-source-3", title: "Mock Source: Financial Filings" },
     ],
+    usage: {
+      inputTokens: 12000,
+      outputTokens: 8000,
+      cacheReadTokens: 0,
+      cacheCreationTokens: 12000,
+      webSearchRequests: 0,
+      estimatedCostUsd: 0,
+    },
+    thinkingSummary:
+      "Mock thinking: would normally analyze company size, industry benchmarks, SG&A structure, then map AI applications to specific cost lines.",
     markdown: `# ${titleText}
 
 **${options.companyName}**
@@ -267,46 +302,147 @@ Operational AI can expand EBITDA margins by 200-400 basis points within 24 month
 
 ---
 
-*[This is a MOCK report generated without real research. Set ANTHROPIC_API_KEY in environment variables and unset REPORTS_MODE=mock to enable live deep research.]*`,
+*[This is a MOCK report. Set ANTHROPIC_API_KEY and unset REPORTS_MODE=mock to enable live deep research with Claude Opus 4.7 + web search.]*`,
   };
 }
 
 // ---------------------------------------------------------------------------
-// Live research — calls the real Anthropic API
+// Live research — calls Claude Opus 4.7 with adaptive thinking + web search
 // ---------------------------------------------------------------------------
-interface AnthropicMessage {
-  role: "user" | "assistant";
-  content: string | Array<{ type: string; [key: string]: unknown }>;
+
+interface AnthropicTextBlock {
+  type: "text";
+  text: string;
+  citations?: Array<{
+    type: string;
+    url?: string;
+    title?: string;
+    cited_text?: string;
+  }>;
 }
 
+interface AnthropicThinkingBlock {
+  type: "thinking";
+  thinking: string;
+  signature?: string;
+}
+
+interface AnthropicServerToolUse {
+  type: "server_tool_use";
+  id: string;
+  name: string;
+  input: Record<string, unknown>;
+}
+
+interface AnthropicWebSearchToolResult {
+  type: "web_search_tool_result";
+  tool_use_id: string;
+  content:
+    | Array<{
+        type: "web_search_result";
+        url: string;
+        title: string;
+        page_age?: string;
+        encrypted_content?: string;
+      }>
+    | { type: "web_search_tool_result_error"; error_code: string };
+}
+
+type AnthropicContentBlock =
+  | AnthropicTextBlock
+  | AnthropicThinkingBlock
+  | AnthropicServerToolUse
+  | AnthropicWebSearchToolResult
+  | { type: string; [key: string]: unknown };
+
 interface AnthropicResponse {
-  content: Array<{ type: string; text?: string }>;
+  id?: string;
+  content: AnthropicContentBlock[];
   model: string;
   stop_reason?: string;
+  usage?: {
+    input_tokens?: number;
+    output_tokens?: number;
+    cache_read_input_tokens?: number;
+    cache_creation_input_tokens?: number;
+    server_tool_use?: {
+      web_search_requests?: number;
+    };
+  };
+  error?: { type: string; message: string };
+}
+
+// Pricing for Claude Opus 4.7 (per 1M tokens) — used for cost estimation only.
+// Update if Anthropic pricing changes.
+const PRICE_INPUT_PER_M = 15.0;
+const PRICE_OUTPUT_PER_M = 75.0;
+const PRICE_CACHE_READ_PER_M = 1.5;
+const PRICE_CACHE_WRITE_PER_M = 18.75;
+const PRICE_PER_WEB_SEARCH = 0.01; // $10 per 1,000 searches
+
+function estimateCost(usage: NonNullable<AnthropicResponse["usage"]>): number {
+  const input = (usage.input_tokens ?? 0) * (PRICE_INPUT_PER_M / 1_000_000);
+  const output = (usage.output_tokens ?? 0) * (PRICE_OUTPUT_PER_M / 1_000_000);
+  const cacheRead =
+    (usage.cache_read_input_tokens ?? 0) *
+    (PRICE_CACHE_READ_PER_M / 1_000_000);
+  const cacheWrite =
+    (usage.cache_creation_input_tokens ?? 0) *
+    (PRICE_CACHE_WRITE_PER_M / 1_000_000);
+  const search =
+    (usage.server_tool_use?.web_search_requests ?? 0) * PRICE_PER_WEB_SEARCH;
+  return input + output + cacheRead + cacheWrite + search;
 }
 
 async function liveResearch(
   options: BuildPromptOptions,
 ): Promise<ResearchOutcome> {
   const apiKey = process.env.ANTHROPIC_API_KEY!;
-  const model = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-5";
+  const model = process.env.ANTHROPIC_MODEL || "claude-opus-4-7";
+  const maxSearches = Number(process.env.ANTHROPIC_MAX_SEARCHES || "30");
 
   const systemPrompt = buildSystemPrompt(options);
   const userMessage = buildUserMessage(options);
 
-  const messages: AnthropicMessage[] = [
-    { role: "user", content: userMessage },
-  ];
-
-  // Use Anthropic's web_search tool for the deep research portion.
-  // Spec: https://docs.anthropic.com/en/docs/build-with-claude/tool-use/web-search-tool
-  const tools = [
+  // Cache the (very large) system prompt — reference reports rarely change.
+  // Saves ~90% on input cost for repeat runs within 5 minutes.
+  const systemBlocks = [
     {
-      type: "web_search_20250305",
-      name: "web_search",
-      max_uses: 8,
+      type: "text",
+      text: systemPrompt,
+      cache_control: { type: "ephemeral" },
     },
   ];
+
+  // Use the latest web search tool with dynamic filtering.
+  // web_search_20260209 needs code execution to filter results.
+  const tools: Array<Record<string, unknown>> = [
+    {
+      type: "web_search_20260209",
+      name: "web_search",
+      max_uses: maxSearches,
+    },
+    {
+      type: "code_execution_20250825",
+      name: "code_execution",
+    },
+  ];
+
+  // Adaptive thinking with maximum effort — Opus 4.7's deepest reasoning mode.
+  const thinking = {
+    type: "adaptive",
+    display: "summarized" as const,
+  };
+
+  const requestBody = {
+    model,
+    max_tokens: 32_000,
+    system: systemBlocks,
+    messages: [{ role: "user", content: userMessage }],
+    tools,
+    thinking,
+    output_config: { effort: "xhigh" }, // Opus 4.7 only — deepest reasoning
+  };
 
   try {
     const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -315,41 +451,108 @@ async function liveResearch(
         "Content-Type": "application/json",
         "x-api-key": apiKey,
         "anthropic-version": "2023-06-01",
+        // Required for prompt caching to work on Claude 4 models
+        "anthropic-beta": "prompt-caching-2024-07-31",
       },
-      body: JSON.stringify({
-        model,
-        max_tokens: 16000,
-        system: systemPrompt,
-        messages,
-        tools,
-      }),
+      body: JSON.stringify(requestBody),
     });
 
+    const responseText = await response.text();
+
     if (!response.ok) {
-      const errorText = await response.text();
+      let errorMessage = `Anthropic API ${response.status}`;
+      try {
+        const parsed = JSON.parse(responseText) as AnthropicResponse;
+        if (parsed.error?.message) {
+          errorMessage += `: ${parsed.error.message}`;
+        }
+      } catch {
+        errorMessage += `: ${responseText.slice(0, 500)}`;
+      }
       return {
         success: false,
         provider: "anthropic",
-        error: `Anthropic API ${response.status}: ${errorText.slice(0, 500)}`,
+        error: errorMessage,
       };
     }
 
-    const data = (await response.json()) as AnthropicResponse;
+    const data = JSON.parse(responseText) as AnthropicResponse;
 
-    // Extract markdown text from the final message blocks
+    // ----- Extract markdown text from content blocks -----
     const markdown = data.content
-      .filter((block) => block.type === "text")
-      .map((block) => block.text || "")
-      .join("\n\n");
+      .filter((block): block is AnthropicTextBlock => block.type === "text")
+      .map((block) => block.text)
+      .join("\n\n")
+      .trim();
 
-    // Extract any source URLs from web_search tool calls (simplified)
-    const sources: string[] = [];
+    if (!markdown) {
+      return {
+        success: false,
+        provider: "anthropic",
+        error: "Claude returned no markdown content. Stop reason: " + data.stop_reason,
+      };
+    }
+
+    // ----- Extract sources from web search tool results + citations -----
+    const sourceMap = new Map<string, ResearchSource>();
+
+    for (const block of data.content) {
+      if (block.type === "web_search_tool_result") {
+        const result = block as AnthropicWebSearchToolResult;
+        if (Array.isArray(result.content)) {
+          for (const r of result.content) {
+            if (r.url && !sourceMap.has(r.url)) {
+              sourceMap.set(r.url, {
+                url: r.url,
+                title: r.title || r.url,
+                pageAge: r.page_age,
+              });
+            }
+          }
+        }
+      }
+      if (block.type === "text") {
+        const tb = block as AnthropicTextBlock;
+        for (const c of tb.citations || []) {
+          if (c.url && !sourceMap.has(c.url)) {
+            sourceMap.set(c.url, {
+              url: c.url,
+              title: c.title || c.url,
+            });
+          }
+        }
+      }
+    }
+
+    // ----- Extract thinking summary (if any) -----
+    const thinkingBlocks = data.content
+      .filter(
+        (block): block is AnthropicThinkingBlock => block.type === "thinking",
+      )
+      .map((block) => block.thinking)
+      .filter(Boolean);
+    const thinkingSummary = thinkingBlocks.length
+      ? thinkingBlocks.join("\n---\n")
+      : undefined;
+
+    // ----- Token usage + cost -----
+    const usage: ResearchTokenUsage = {
+      inputTokens: data.usage?.input_tokens ?? 0,
+      outputTokens: data.usage?.output_tokens ?? 0,
+      cacheReadTokens: data.usage?.cache_read_input_tokens ?? 0,
+      cacheCreationTokens: data.usage?.cache_creation_input_tokens ?? 0,
+      webSearchRequests:
+        data.usage?.server_tool_use?.web_search_requests ?? 0,
+      estimatedCostUsd: data.usage ? estimateCost(data.usage) : 0,
+    };
 
     return {
       success: true,
       provider: "anthropic",
       model: data.model,
-      sources,
+      sources: Array.from(sourceMap.values()),
+      usage,
+      thinkingSummary,
       markdown,
     };
   } catch (err) {

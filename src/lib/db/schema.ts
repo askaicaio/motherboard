@@ -649,8 +649,17 @@ export const companyReports = pgTable(
     researchMarkdown: text("research_markdown"), // The full 10-slide markdown output
     researchError: text("research_error"),
     researchProvider: text("research_provider").default("anthropic"), // 'anthropic' | 'mock'
-    researchModel: text("research_model"), // e.g. claude-sonnet-4-5
-    researchSources: jsonb("research_sources").$type<string[]>().default([]),
+    researchModel: text("research_model"), // e.g. claude-opus-4-7
+    researchSources: jsonb("research_sources")
+      .$type<Array<{ url: string; title: string; pageAge?: string }>>()
+      .default([]),
+    researchInputTokens: integer("research_input_tokens"),
+    researchOutputTokens: integer("research_output_tokens"),
+    researchCacheReadTokens: integer("research_cache_read_tokens"),
+    researchCacheCreationTokens: integer("research_cache_creation_tokens"),
+    researchWebSearchCount: integer("research_web_search_count"),
+    researchCostUsd: text("research_cost_usd"), // stored as string to preserve precision
+    researchThinkingSummary: text("research_thinking_summary"),
 
     // Stage 2: Gamma Generation
     gammaStatus: reportStageStatusEnum("gamma_status")
@@ -661,6 +670,8 @@ export const companyReports = pgTable(
     gammaGenerationId: text("gamma_generation_id"), // Gamma's API ID
     gammaUrl: text("gamma_url"), // Final shareable Gamma URL
     gammaError: text("gamma_error"),
+    gammaCreditsDeducted: integer("gamma_credits_deducted"),
+    gammaCreditsRemaining: integer("gamma_credits_remaining"),
 
     // Audit / ownership
     createdBy: uuid("created_by").references(() => adminUsers.id),

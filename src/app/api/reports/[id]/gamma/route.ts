@@ -71,6 +71,8 @@ export async function POST(
         gammaCompletedAt: new Date(),
         gammaGenerationId: result.generationId,
         gammaUrl: result.url,
+        gammaCreditsDeducted: result.creditsDeducted ?? null,
+        gammaCreditsRemaining: result.creditsRemaining ?? null,
         updatedAt: new Date(),
       })
       .where(eq(companyReports.id, id));

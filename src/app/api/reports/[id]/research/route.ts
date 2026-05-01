@@ -72,6 +72,13 @@ export async function POST(
         researchModel: result.model,
         researchProvider: result.provider,
         researchSources: result.sources,
+        researchInputTokens: result.usage.inputTokens,
+        researchOutputTokens: result.usage.outputTokens,
+        researchCacheReadTokens: result.usage.cacheReadTokens,
+        researchCacheCreationTokens: result.usage.cacheCreationTokens,
+        researchWebSearchCount: result.usage.webSearchRequests,
+        researchCostUsd: result.usage.estimatedCostUsd.toFixed(4),
+        researchThinkingSummary: result.thinkingSummary || null,
         updatedAt: new Date(),
       })
       .where(eq(companyReports.id, id));
@@ -85,6 +92,9 @@ export async function POST(
         provider: result.provider,
         model: result.model,
         markdownLength: result.markdown.length,
+        sourceCount: result.sources.length,
+        webSearches: result.usage.webSearchRequests,
+        costUsd: result.usage.estimatedCostUsd,
       },
     });
   } else {

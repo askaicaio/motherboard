@@ -29,7 +29,10 @@
       "Bash(pip install *)",
       "Bash(python)",
       "Bash(python scripts/extract-references.py)",
-      "Bash(DATABASE_URL=\"postgres://placeholder:placeholder@localhost:5432/placeholder\" npx drizzle-kit generate --name add_company_reports)"
+      "Bash(DATABASE_URL=\"postgres://placeholder:placeholder@localhost:5432/placeholder\" npx drizzle-kit generate --name add_company_reports)",
+      "WebFetch(domain:docs.anthropic.com)",
+      "WebFetch(domain:developers.gamma.app)",
+      "Bash(DATABASE_URL=\"postgres://placeholder:placeholder@localhost:5432/placeholder\" npx drizzle-kit generate --name add_report_usage_tracking)"
     ]
   }
 }

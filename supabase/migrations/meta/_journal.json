@@ -15,6 +15,13 @@
       "when": 1777646554008,
       "tag": "0001_add_company_reports",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1777652778218,
+      "tag": "0002_add_report_usage_tracking",
+      "breakpoints": true
     }
   ]
 }

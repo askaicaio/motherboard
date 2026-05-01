@@ -1,20 +1,29 @@
 // =============================================================
-// Gamma Generate API client
+// Gamma Generate API client — top-quality McKinsey-style decks
 // =============================================================
-// Submits the markdown research output to Gamma's Generate API,
-// polls until the deck is ready, and returns the share URL.
+// Sends the markdown research output to Gamma's Generate API,
+// polls until ready, returns the share URL.
+//
+// Optimized for board-level prospect decks:
+//   - 16x9 dimensions (professional presentation aspect)
+//   - "preserve" text mode (keeps our exact 10-slide structure)
+//   - Free-to-use commercial images (legitimate, royalty-free)
+//   - Detailed additionalInstructions enforcing McKinsey style
 //
 // Mock mode (REPORTS_MODE=mock or no GAMMA_API_KEY) returns a
 // fake share URL after a 3-second delay.
 //
-// Gamma Generate API docs: https://developers.gamma.app/
-// (Currently in closed beta — request access via Gamma support.)
+// API base: https://public-api.gamma.app/v1.0
+// Auth header: X-API-KEY
+// Docs: https://developers.gamma.app
 // =============================================================
 
 export interface GammaResult {
   success: true;
   generationId: string;
   url: string;
+  creditsDeducted?: number;
+  creditsRemaining?: number;
   provider: "gamma" | "mock";
 }
 
@@ -27,8 +36,8 @@ export interface GammaError {
 export type GammaOutcome = GammaResult | GammaError;
 
 const MOCK_DELAY_MS = 3000;
-const POLL_INTERVAL_MS = 4000;
-const MAX_POLL_ATTEMPTS = 60; // 4 minutes total
+const POLL_INTERVAL_MS = 5000; // Gamma recommends every 5 seconds
+const MAX_POLL_ATTEMPTS = 48; // 4 minutes total — generations typically take 1-3 min
 
 function isMockMode(): boolean {
   return (
@@ -73,94 +82,166 @@ async function mockGenerate(
 // ---------------------------------------------------------------------------
 // Live — call the real Gamma Generate API
 // ---------------------------------------------------------------------------
+
 interface GammaCreateResponse {
   generationId: string;
-  status?: string;
-  url?: string;
+  warnings?: string;
 }
 
 interface GammaStatusResponse {
   generationId: string;
-  status: "pending" | "processing" | "completed" | "failed";
-  url?: string;
-  error?: string;
+  status: "pending" | "completed" | "failed";
+  gammaId?: string;
+  gammaUrl?: string;
+  exportUrl?: string;
+  error?: { message?: string; statusCode?: number };
+  credits?: { deducted?: number; remaining?: number };
 }
+
+/**
+ * Detailed instructions to push Gamma toward McKinsey/BCG/Bain-quality output.
+ * These supplement the markdown content and shape the visual layout.
+ */
+const MCKINSEY_INSTRUCTIONS = [
+  "Generate a board-level executive presentation matching the visual standard of top consulting firms (McKinsey, BCG, Bain).",
+  "Use a clean, restrained, professional aesthetic. Heavy whitespace. Crisp typography. Minimal color — black/dark grey for text, one accent color (deep navy or muted purple) used sparingly.",
+  "Convert markdown tables into clean, well-structured slide tables (NOT screenshots of code).",
+  "Convert bulleted lists into visual cards or grids when more than 3 items — these are KPI cards / pillar cards, not text lists.",
+  "Render dollar figures and percentages as large, prominent stat blocks where they appear (e.g., '$X.X M', '25-35%', '6-9 months').",
+  "Charts: render the financial impact tables and roadmap as proper data visualizations — never just plain tables when a chart fits.",
+  "Use icons sparingly — only where they clarify (a checkmark for the AI Transformation column, an X for Status Quo, etc.).",
+  "Slide 1 (Title) should be cinematic and minimal — large title, single subtitle, footer.",
+  "Slide 2 (Company at a Glance) — render the 4-5 metrics as large stat cards in a horizontal row.",
+  "Slide 5 (AI Applications by SG&A) — render as a 2x3 or 3x2 grid of function cards. Each card has the function name, 2-3 bullet applications, and the dollar impact range as a footer.",
+  "Slide 6 (Consolidated Financial Impact) — clean table with the bottom row visually emphasized (different background color, larger text).",
+  "Slide 7 (Three-Phase Roadmap) — render as three horizontal phase blocks side-by-side, each with its initiatives, investment, and value range.",
+  "Slide 9 (Valuation) — two large boxes side-by-side (Today vs Year 3) with EBITDA and multiple stacked, then the delta in a prominent third box.",
+  "Slide 10 (Call to Action) — two columns: red-tinted Status Quo on the left, green-tinted AI Transformation on the right, then the Week 1 actions below.",
+  "Match the density of the reference reports — no slide is overcrowded; every element has breathing room.",
+  "Color palette: backgrounds white/very-light-grey; primary text near-black (#18181B); accent for emphasis only; no rainbow effects, no gradients except subtle.",
+].join(" ");
 
 async function liveGenerate(
   options: GenerateGammaOptions,
 ): Promise<GammaOutcome> {
   const apiKey = process.env.GAMMA_API_KEY!;
-  const baseUrl = process.env.GAMMA_API_BASE_URL || "https://public-api.gamma.app/v0.2";
+  const baseUrl = process.env.GAMMA_API_BASE_URL || "https://public-api.gamma.app";
+  const themeId = process.env.GAMMA_THEME_ID || undefined;
+
+  // Image source: prefer free-to-use-commercially stock for legitimate
+  // royalty-free imagery. Operators can override via env var.
+  // Options: aiGenerated | pictographic | pexels | webFreeToUseCommercially | themeAccent | placeholder | noImages
+  const imageSource = (process.env.GAMMA_IMAGE_SOURCE ||
+    "webFreeToUseCommercially") as
+    | "aiGenerated"
+    | "pictographic"
+    | "pexels"
+    | "webFreeToUseCommercially"
+    | "themeAccent"
+    | "placeholder"
+    | "noImages";
 
   try {
-    // Step 1: Create the generation
-    const createRes = await fetch(`${baseUrl}/generations`, {
+    // ---- Step 1: Create the generation ----
+    const createBody: Record<string, unknown> = {
+      inputText: options.markdown,
+      // "preserve" — don't let Gamma rewrite our carefully-crafted slides
+      textMode: "preserve",
+      format: "presentation",
+      numCards: 10,
+      cardSplit: "inputTextBreaks", // We use --- between slides
+      additionalInstructions: MCKINSEY_INSTRUCTIONS,
+      cardOptions: {
+        dimensions: "16x9", // Professional presentation aspect
+      },
+      textOptions: {
+        amount: "medium",
+        tone:
+          "Professional executive consulting voice. Direct, declarative, McKinsey-style. No filler. No qualifiers like 'rapidly evolving' or 'in today's world'.",
+        audience: "C-suite executives and PE board members",
+        language: "en",
+      },
+      imageOptions: {
+        source: imageSource,
+        // If using AI-generated, prefer a clean editorial style
+        ...(imageSource === "aiGenerated"
+          ? {
+              model: "flux-1-pro",
+              stylePreset: "photorealistic",
+              style:
+                "Editorial business photography, muted tones, depth of field, professional, McKinsey-style — no stock-photo cliches.",
+            }
+          : {}),
+      },
+      sharingOptions: {
+        workspaceAccess: "fullAccess", // Anyone in CAIO workspace can edit
+        externalAccess: "view", // External viewers (prospects) can view via link
+      },
+    };
+
+    if (themeId) {
+      createBody.themeId = themeId;
+    }
+
+    const createRes = await fetch(`${baseUrl}/v1.0/generations`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "X-API-KEY": apiKey,
       },
-      body: JSON.stringify({
-        inputText: options.markdown,
-        format: "presentation",
-        textMode: "preserve",
-        themeName: process.env.GAMMA_THEME_NAME || "Default",
-        numCards: 10,
-        textOptions: {
-          amount: "detailed",
-          language: "en",
-        },
-        cardOptions: {
-          dimensions: "fluid",
-        },
-      }),
+      body: JSON.stringify(createBody),
     });
 
+    const createText = await createRes.text();
+
     if (!createRes.ok) {
-      const text = await createRes.text();
+      let msg = `Gamma create ${createRes.status}`;
+      try {
+        const j = JSON.parse(createText) as { message?: string; error?: { message?: string } };
+        msg += `: ${j.error?.message || j.message || createText.slice(0, 300)}`;
+      } catch {
+        msg += `: ${createText.slice(0, 300)}`;
+      }
+      return { success: false, provider: "gamma", error: msg };
+    }
+
+    const createData = JSON.parse(createText) as GammaCreateResponse;
+    const generationId = createData.generationId;
+
+    if (!generationId) {
       return {
         success: false,
         provider: "gamma",
-        error: `Gamma API ${createRes.status}: ${text.slice(0, 500)}`,
+        error: "Gamma did not return a generationId",
       };
     }
 
-    const createData = (await createRes.json()) as GammaCreateResponse;
-    const generationId = createData.generationId;
-
-    // If Gamma already returned a URL synchronously, we're done
-    if (createData.url && createData.status === "completed") {
-      return {
-        success: true,
-        provider: "gamma",
-        generationId,
-        url: createData.url,
-      };
-    }
-
-    // Step 2: Poll until ready
+    // ---- Step 2: Poll until completed ----
     for (let attempt = 0; attempt < MAX_POLL_ATTEMPTS; attempt++) {
       await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
 
       const statusRes = await fetch(
-        `${baseUrl}/generations/${generationId}`,
+        `${baseUrl}/v1.0/generations/${generationId}`,
         {
           headers: { "X-API-KEY": apiKey },
         },
       );
 
       if (!statusRes.ok) {
-        continue; // Try again next poll
+        // Transient failures — keep polling
+        continue;
       }
 
       const status = (await statusRes.json()) as GammaStatusResponse;
 
-      if (status.status === "completed" && status.url) {
+      if (status.status === "completed" && status.gammaUrl) {
         return {
           success: true,
           provider: "gamma",
           generationId,
-          url: status.url,
+          url: status.gammaUrl,
+          creditsDeducted: status.credits?.deducted,
+          creditsRemaining: status.credits?.remaining,
         };
       }
 
@@ -168,15 +249,19 @@ async function liveGenerate(
         return {
           success: false,
           provider: "gamma",
-          error: status.error || "Gamma generation failed",
+          error:
+            status.error?.message ||
+            `Gamma generation failed with status code ${status.error?.statusCode || "unknown"}`,
         };
       }
+
+      // status === "pending" → keep polling
     }
 
     return {
       success: false,
       provider: "gamma",
-      error: "Gamma generation timed out (4 minutes)",
+      error: `Gamma generation timed out after ${(POLL_INTERVAL_MS * MAX_POLL_ATTEMPTS) / 1000}s`,
     };
   } catch (err) {
     return {

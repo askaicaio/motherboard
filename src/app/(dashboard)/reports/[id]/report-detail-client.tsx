@@ -29,6 +29,12 @@ import { REPORT_STAGE_STATUS_CONFIG } from "@/types";
 import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 
+interface ResearchSource {
+  url: string;
+  title: string;
+  pageAge?: string;
+}
+
 interface CompanyReport {
   id: string;
   companyName: string;
@@ -42,11 +48,21 @@ interface CompanyReport {
   researchError: string | null;
   researchProvider: string | null;
   researchModel: string | null;
+  researchSources?: ResearchSource[] | null;
+  researchInputTokens?: number | null;
+  researchOutputTokens?: number | null;
+  researchCacheReadTokens?: number | null;
+  researchCacheCreationTokens?: number | null;
+  researchWebSearchCount?: number | null;
+  researchCostUsd?: string | null;
+  researchThinkingSummary?: string | null;
   gammaStatus: "pending" | "running" | "complete" | "failed";
   gammaStartedAt: Date | string | null;
   gammaCompletedAt: Date | string | null;
   gammaUrl: string | null;
   gammaError: string | null;
+  gammaCreditsDeducted?: number | null;
+  gammaCreditsRemaining?: number | null;
   createdAt: Date | string;
 }
 
@@ -228,19 +244,30 @@ export function ReportDetailClient({
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-zinc-500">
-                  <span>Provider: {report.researchProvider || "—"}</span>
+                <div className="grid grid-cols-2 gap-2 text-xs">
                   {report.researchModel && (
-                    <>
-                      <span>·</span>
-                      <span>Model: {report.researchModel}</span>
-                    </>
+                    <div>
+                      <span className="text-zinc-500">Model:</span>{" "}
+                      <span className="font-mono text-zinc-700">{report.researchModel}</span>
+                    </div>
                   )}
-                  {report.researchMarkdown && (
-                    <>
-                      <span>·</span>
-                      <span>{report.researchMarkdown.length.toLocaleString()} chars</span>
-                    </>
+                  {report.researchWebSearchCount !== null && report.researchWebSearchCount !== undefined && (
+                    <div>
+                      <span className="text-zinc-500">Web searches:</span>{" "}
+                      <span className="font-medium text-zinc-700">{report.researchWebSearchCount}</span>
+                    </div>
+                  )}
+                  {report.researchSources && report.researchSources.length > 0 && (
+                    <div>
+                      <span className="text-zinc-500">Sources:</span>{" "}
+                      <span className="font-medium text-zinc-700">{report.researchSources.length}</span>
+                    </div>
+                  )}
+                  {report.researchCostUsd && (
+                    <div>
+                      <span className="text-zinc-500">Cost:</span>{" "}
+                      <span className="font-medium text-zinc-700">${parseFloat(report.researchCostUsd).toFixed(2)}</span>
+                    </div>
                   )}
                 </div>
               </div>
@@ -368,6 +395,106 @@ export function ReportDetailClient({
               <pre className="text-xs font-mono whitespace-pre-wrap text-zinc-700 leading-relaxed">
                 {report.researchMarkdown}
               </pre>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ---- Sources used in research ---- */}
+      {report.researchSources && report.researchSources.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              Sources
+              <Badge className="bg-zinc-100 text-zinc-600 font-normal">
+                {report.researchSources.length}
+              </Badge>
+            </CardTitle>
+            <CardDescription>
+              URLs Claude consulted while researching.
+              Use these to fact-check the report before sending.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-1.5 max-h-[400px] overflow-y-auto">
+              {report.researchSources.map((source, i) => (
+                <a
+                  key={i}
+                  href={source.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-start gap-2 rounded-md p-2 text-sm hover:bg-zinc-50 transition-colors group"
+                >
+                  <span className="text-xs font-mono text-zinc-400 mt-0.5 w-6 flex-shrink-0">
+                    {(i + 1).toString().padStart(2, "0")}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-zinc-900 group-hover:underline truncate">
+                      {source.title}
+                    </div>
+                    <div className="text-xs text-zinc-500 truncate">{source.url}</div>
+                  </div>
+                  <ExternalLink className="h-3.5 w-3.5 text-zinc-400 mt-1 flex-shrink-0" />
+                </a>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ---- Token usage / cost details ---- */}
+      {report.researchInputTokens !== null && report.researchInputTokens !== undefined && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Usage details</CardTitle>
+            <CardDescription>Token consumption and cost for this report.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div>
+                <div className="text-xs text-zinc-500 mb-1">Input tokens</div>
+                <div className="font-mono font-medium">
+                  {(report.researchInputTokens || 0).toLocaleString()}
+                </div>
+              </div>
+              <div>
+                <div className="text-xs text-zinc-500 mb-1">Output tokens</div>
+                <div className="font-mono font-medium">
+                  {(report.researchOutputTokens || 0).toLocaleString()}
+                </div>
+              </div>
+              <div>
+                <div className="text-xs text-zinc-500 mb-1">Cache hits</div>
+                <div className="font-mono font-medium">
+                  {(report.researchCacheReadTokens || 0).toLocaleString()}
+                </div>
+              </div>
+              <div>
+                <div className="text-xs text-zinc-500 mb-1">Web searches</div>
+                <div className="font-mono font-medium">
+                  {report.researchWebSearchCount || 0}
+                </div>
+              </div>
+              <div>
+                <div className="text-xs text-zinc-500 mb-1">Research cost</div>
+                <div className="font-mono font-medium">
+                  ${parseFloat(report.researchCostUsd || "0").toFixed(4)}
+                </div>
+              </div>
+              {report.gammaCreditsDeducted !== null &&
+                report.gammaCreditsDeducted !== undefined && (
+                  <div>
+                    <div className="text-xs text-zinc-500 mb-1">Gamma credits used</div>
+                    <div className="font-mono font-medium">{report.gammaCreditsDeducted}</div>
+                  </div>
+                )}
+              {report.gammaCreditsRemaining !== null &&
+                report.gammaCreditsRemaining !== undefined && (
+                  <div>
+                    <div className="text-xs text-zinc-500 mb-1">Gamma credits left</div>
+                    <div className="font-mono font-medium">{report.gammaCreditsRemaining}</div>
+                  </div>
+                )}
             </div>
           </CardContent>
         </Card>
