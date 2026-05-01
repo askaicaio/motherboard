@@ -18,6 +18,7 @@
 // Mock mode (REPORTS_MODE=mock or no API key) returns sample data.
 // =============================================================
 
+import { longFetch } from "./long-fetch";
 import {
   buildResearchPrompt,
   buildSlideDeckPrompt,
@@ -485,7 +486,7 @@ async function callAnthropic(params: {
 
   let response: Response;
   try {
-    response = await fetch("https://api.anthropic.com/v1/messages", {
+    response = await longFetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

@@ -18,6 +18,7 @@ import {
   buildSlideDeckPrompt,
   buildUserMessage,
 } from "@/lib/reports/system-prompt";
+import { longFetch } from "@/lib/reports/long-fetch";
 
 // We re-implement the Anthropic call here directly so each stage
 // can be its own durable step. This is a copy of the logic in
@@ -126,7 +127,10 @@ async function callAnthropicStage(params: {
   };
   if (tools.length > 0) requestBody.tools = tools;
 
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
+  // Use longFetch (custom undici dispatcher) to allow the connection
+  // to stay open longer than Node's default 5-minute headers timeout.
+  // Anthropic with web search + adaptive thinking can take 8-12+ min.
+  const response = await longFetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

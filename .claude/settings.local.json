@@ -41,7 +41,8 @@
       "WebFetch(domain:www.inngest.com)",
       "Bash(DATABASE_URL=\"postgresql://placeholder:placeholder@localhost:5432/placeholder\" NEXTAUTH_URL=\"http://localhost\" NEXTAUTH_SECRET=\"test\" GOOGLE_CLIENT_ID=\"x\" GOOGLE_CLIENT_SECRET=\"x\" INNGEST_EVENT_KEY=\"test\" INNGEST_SIGNING_KEY=\"signkey-test-x\" npx next build)",
       "Bash(curl -sI https://motherboard.chiefaiofficer.com/api/inngest)",
-      "Bash(curl -s https://motherboard.chiefaiofficer.com/login)"
+      "Bash(curl -s https://motherboard.chiefaiofficer.com/login)",
+      "Bash(npm list *)"
     ]
   }
 }
