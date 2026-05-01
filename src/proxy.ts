@@ -8,16 +8,28 @@ import type { NextRequest } from "next/server";
  * In development without NEXTAUTH_SECRET, redirects are disabled
  * to allow local UI development.
  */
+// Static asset extensions that should never be auth-gated
+const STATIC_EXTENSIONS = [
+  ".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".avif",
+  ".ico", ".woff", ".woff2", ".ttf", ".otf", ".eot",
+  ".css", ".js", ".map", ".txt", ".json", ".xml",
+];
+
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Allow public routes
+  // Allow public routes and static assets
+  const hasStaticExtension = STATIC_EXTENSIONS.some((ext) =>
+    pathname.toLowerCase().endsWith(ext)
+  );
+
   if (
     pathname.startsWith("/login") ||
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/api/callbacks") ||
     pathname.startsWith("/_next") ||
-    pathname === "/favicon.ico"
+    pathname === "/favicon.ico" ||
+    hasStaticExtension
   ) {
     return NextResponse.next();
   }
@@ -44,7 +56,18 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Protect all routes except auth, callbacks, and static assets
-    "/((?!login|api/auth|api/callbacks|_next/static|_next/image|favicon.ico).*)",
+    /*
+     * Protect all routes EXCEPT:
+     * - login page
+     * - NextAuth API routes
+     * - n8n callback API
+     * - Next.js internals (static, image, prefetch)
+     * - any file with an extension (favicon.ico, .png, .css, etc.)
+     *
+     * The negative lookahead at the end (`\\..*`) ensures any path with
+     * a `.` followed by characters (i.e. a file with extension) is
+     * skipped — this handles all public/ static assets in one shot.
+     */
+    "/((?!login|api/auth|api/callbacks|_next/static|_next/image|.*\\..*).*)",
   ],
 };
