@@ -19,6 +19,32 @@ export const generateGammaFn = inngest.createFunction(
     name: "Generate Gamma Deck",
     retries: 1,
     triggers: [{ event: "report/gamma.requested" }],
+    // Mark DB as "failed" if the function dies for any reason,
+    // so the UI reflects reality.
+    onFailure: async ({ event, error }) => {
+      const reportId = (event.data.event.data as { reportId?: string }).reportId;
+      if (!reportId) return;
+
+      const errorMessage =
+        error instanceof Error
+          ? `${error.name}: ${error.message}`
+          : typeof error === "string"
+            ? error
+            : "Inngest function failed (see Inngest dashboard for details)";
+
+      try {
+        await db
+          .update(companyReports)
+          .set({
+            gammaStatus: "failed",
+            gammaError: errorMessage.slice(0, 2000),
+            updatedAt: new Date(),
+          })
+          .where(eq(companyReports.id, reportId));
+      } catch (e) {
+        console.error("[onFailure] Failed to update gamma status:", e);
+      }
+    },
   },
   async ({ event, step }) => {
     const { reportId, actorId, actorEmail } = event.data;

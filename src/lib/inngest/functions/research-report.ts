@@ -225,6 +225,34 @@ export const researchReportFn = inngest.createFunction(
     name: "Research Company Report",
     retries: 1,
     triggers: [{ event: "report/research.requested" }],
+    // If the function fails for any reason (timeout, API error, exhausted
+    // retries), mark the DB as "failed" so the UI reflects reality and
+    // operators can retry. Without this, reports get stuck in "running".
+    onFailure: async ({ event, error }) => {
+      const reportId = (event.data.event.data as { reportId?: string }).reportId;
+      if (!reportId) return;
+
+      const errorMessage =
+        error instanceof Error
+          ? `${error.name}: ${error.message}`
+          : typeof error === "string"
+            ? error
+            : "Inngest function failed (see Inngest dashboard for details)";
+
+      try {
+        await db
+          .update(companyReports)
+          .set({
+            researchStatus: "failed",
+            researchPhase: null,
+            researchError: errorMessage.slice(0, 2000),
+            updatedAt: new Date(),
+          })
+          .where(eq(companyReports.id, reportId));
+      } catch (e) {
+        console.error("[onFailure] Failed to update report status:", e);
+      }
+    },
   },
   async ({ event, step }) => {
     const { reportId, actorId, actorEmail } = event.data;
