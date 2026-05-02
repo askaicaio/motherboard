@@ -128,14 +128,21 @@ async function liveGenerate(
   const baseUrl = process.env.GAMMA_API_BASE_URL || "https://public-api.gamma.app";
   const themeId = process.env.GAMMA_THEME_ID || undefined;
 
-  // Image source: prefer free-to-use-commercially stock for legitimate
-  // royalty-free imagery. Operators can override via env var.
-  // Options: aiGenerated | pictographic | pexels | webFreeToUseCommercially | themeAccent | placeholder | noImages
-  const imageSource = (process.env.GAMMA_IMAGE_SOURCE ||
-    "webFreeToUseCommercially") as
+  // Image source default: Pexels (curated free stock, no watermarks).
+  // The "webFreeToUseCommercially" web search filter is unreliable —
+  // it surfaces preview images from sites like Alamy/Shutterstock that
+  // appear free but actually carry watermarks. Pexels is a single
+  // trusted source with professional photography and zero watermarks.
+  //
+  // Override via env var: GAMMA_IMAGE_SOURCE=aiGenerated for custom
+  // flux-1-pro imagery (more credits, no watermarks). Or "themeAccent"
+  // / "pictographic" for minimal McKinsey-style graphics.
+  // Options: aiGenerated | pictographic | pexels | webFreeToUse | webFreeToUseCommercially | themeAccent | placeholder | noImages
+  const imageSource = (process.env.GAMMA_IMAGE_SOURCE || "pexels") as
     | "aiGenerated"
     | "pictographic"
     | "pexels"
+    | "webFreeToUse"
     | "webFreeToUseCommercially"
     | "themeAccent"
     | "placeholder"

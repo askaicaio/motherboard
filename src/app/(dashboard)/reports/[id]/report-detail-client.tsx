@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ResearchProgress } from "@/components/reports/research-progress";
+import { GammaProgress } from "@/components/reports/gamma-progress";
 import { DossierViewer } from "@/components/reports/dossier-viewer";
 import {
   Card,
@@ -134,6 +135,24 @@ export function ReportDetailClient({
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       toast.success("Job reset — you can now retry");
+      await refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to reset");
+    }
+  }
+
+  async function resetStuckGamma() {
+    if (!confirm("Reset stuck Gamma generation? It will be marked as failed and you can retry.")) {
+      return;
+    }
+    try {
+      const res = await fetch(`/api/reports/${report.id}/reset`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stage: "gamma" }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      toast.success("Gamma generation reset — you can now retry");
       await refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to reset");
@@ -496,13 +515,12 @@ export function ReportDetailClient({
               </Button>
             )}
 
-            {report.gammaStatus === "running" && (
-              <div className="rounded-md bg-blue-50 p-3 text-sm text-blue-800 flex items-start gap-2">
-                <Loader2 className="h-4 w-4 mt-0.5 animate-spin flex-shrink-0" />
-                <div>
-                  <strong>Generating Gamma deck.</strong> Usually takes 1-2 minutes.
-                </div>
-              </div>
+            {report.gammaStatus === "running" && report.gammaStartedAt && (
+              <GammaProgress
+                startedAt={report.gammaStartedAt}
+                status={report.gammaStatus}
+                onReset={resetStuckGamma}
+              />
             )}
 
             {report.gammaStatus === "complete" && report.gammaUrl && (
