@@ -56,7 +56,7 @@ export function DossierViewer({ dossier, companyName, trigger }: Props) {
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden gap-0">
+      <DialogContent className="!max-w-[min(1100px,92vw)] sm:!max-w-[min(1100px,92vw)] max-h-[92vh] flex flex-col p-0 overflow-hidden gap-0">
         <DialogHeader className="px-6 pt-5 pb-3 border-b border-zinc-100">
           <div className="flex items-start justify-between gap-3">
             <div className="space-y-1.5 flex-1 min-w-0">
@@ -86,8 +86,8 @@ export function DossierViewer({ dossier, companyName, trigger }: Props) {
           </div>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto px-8 py-6">
-          <article className="dossier-content max-w-3xl mx-auto">
+        <div className="flex-1 overflow-y-auto px-10 py-7">
+          <article className="dossier-content max-w-[860px] mx-auto">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{dossier}</ReactMarkdown>
           </article>
         </div>
