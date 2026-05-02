@@ -128,7 +128,14 @@ Structure:
    - "No public AI or technology initiatives exist"
    - "Industry pressures that frame the AI opportunity"
    - "{Specific verification or gap} could not be publicly verified"
-5. **Tables** — use markdown tables for financial estimates with source columns
+5. **Tables** — use markdown tables for financial estimates with source columns. **Tables MUST use proper GitHub-Flavored Markdown table syntax with a separator row**, like this:
+   \`\`\`
+   | Metric | Value | Source |
+   | --- | --- | --- |
+   | Annual Revenue | $2.3B | FY2025 10-K |
+   | EBITDA Margin | 29.8% | Press release |
+   \`\`\`
+   The pipe-and-dash separator row (\`| --- | --- | --- |\`) is **mandatory** — without it, the table renders as broken inline text. NEVER output multiple pipe-rows without a separator row between header and data.
 6. **Concluding section** — brief synthesis of the AI ROI angle (does NOT need to be the 10-slide format)
 
 **Length target:** 5,000-20,000 characters depending on company size and public information availability. Don't pad — every paragraph must add value. The Widel dossier (small company, limited info) is 9K chars; the Andrews McMeel dossier (mid-size with rich data) is 14K chars.

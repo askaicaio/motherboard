@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { fixMarkdownTables } from "./fix-markdown-tables";
 import {
   Dialog,
   DialogContent,
@@ -23,6 +24,7 @@ interface Props {
 
 export function DossierViewer({ dossier, companyName, trigger }: Props) {
   const [open, setOpen] = useState(false);
+  const normalized = useMemo(() => fixMarkdownTables(dossier), [dossier]);
 
   async function copy() {
     await navigator.clipboard.writeText(dossier);
@@ -88,7 +90,7 @@ export function DossierViewer({ dossier, companyName, trigger }: Props) {
 
         <div className="flex-1 overflow-y-auto px-10 py-7">
           <article className="dossier-content max-w-[860px] mx-auto">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{dossier}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{normalized}</ReactMarkdown>
           </article>
         </div>
       </DialogContent>
