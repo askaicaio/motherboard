@@ -1,26 +1,29 @@
 // =============================================================
 // Markdown table normalizer
 // =============================================================
-// remark-gfm requires GitHub-flavored Markdown tables to have:
-//   1. A header row (first row of cells)
-//   2. A separator row immediately after (e.g. |---|---|---|)
-//   3. Data rows
+// Handles three common Claude output bugs:
 //
-// Claude sometimes outputs "tables" that are missing the separator
-// row, producing pipe-soup that renders as inline text. This
-// helper detects sequences of pipe-rows and injects the missing
-// separator so they render as actual tables.
+// 1. **Missing GFM separator row.** A pipe-row block needs
+//    `|---|---|---|` between header and data. Without it, GFM
+//    falls through to inline rendering and you see pipe-soup.
+//
+// 2. **One-cell pseudo-tables.** Lines like `| iFactory |` are
+//    not actually tables — they're stray attribution. We strip
+//    the pipes and render as plain text.
+//
+// 3. **Tables broken across paragraphs.** Claude sometimes
+//    interleaves prose between rows, fragmenting a logical
+//    table into many tiny ones. We can't always re-merge these
+//    safely (the prose between rows is meaningful), so we leave
+//    them alone but ensure each fragment renders as a real table.
 // =============================================================
 
 const TABLE_ROW = /^\s*\|.*\|\s*$/;
 const SEPARATOR_ROW = /^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)+\|?\s*$/;
 
 function countCells(line: string): number {
-  // Count pipes that aren't escaped, then subtract 1 for outer pipes.
-  // Tolerant: returns at least 1.
   const trimmed = line.trim().replace(/^\||\|$/g, "");
   if (!trimmed) return 1;
-  // Split on unescaped pipes
   const parts = trimmed.split(/(?<!\\)\|/);
   return Math.max(1, parts.length);
 }
@@ -30,12 +33,17 @@ function makeSeparator(numCells: number): string {
 }
 
 /**
- * Normalize markdown so that pipe-style tables always render correctly.
- * - Detects contiguous blocks of lines that look like table rows.
- * - If the second line of a block isn't a separator, inserts one
- *   based on the first row's cell count.
- * - Leaves already-correct tables untouched.
+ * Strip pipes from a single-cell pseudo-table row and return as
+ * plain text. `| iFactory |` → `iFactory`.
  */
+function stripPipes(line: string): string {
+  return line
+    .trim()
+    .replace(/^\|/, "")
+    .replace(/\|$/, "")
+    .trim();
+}
+
 export function fixMarkdownTables(markdown: string): string {
   const lines = markdown.split("\n");
   const result: string[] = [];
@@ -45,32 +53,57 @@ export function fixMarkdownTables(markdown: string): string {
     const line = lines[i];
 
     if (TABLE_ROW.test(line)) {
-      // Found the start of what looks like a table block
+      // Find the contiguous block of pipe-rows
       const blockStart = i;
       let j = i;
       while (j < lines.length && TABLE_ROW.test(lines[j])) j++;
-      // lines[blockStart..j-1] are the contiguous pipe rows
+      const blockSize = j - blockStart;
 
       const headerLine = lines[blockStart];
+      const headerCells = countCells(headerLine);
+
+      // CASE 1: Single row with only 1 cell — pseudo-table.
+      // Convert to plain text (strips the surrounding pipes).
+      if (blockSize === 1 && headerCells <= 1) {
+        const stripped = stripPipes(headerLine);
+        if (stripped) result.push(stripped);
+        i = j;
+        continue;
+      }
+
+      // CASE 2: Single row with 2+ cells — orphan row, not really
+      // a table. Convert to bullet list with bold labels.
+      // Example: `| | Gross margin | 29.8% | 30.3% |` becomes
+      // a bullet with the cells separated by middots.
+      if (blockSize === 1 && headerCells >= 2) {
+        const cells = headerLine
+          .trim()
+          .replace(/^\||\|$/g, "")
+          .split(/(?<!\\)\|/)
+          .map((c) => c.trim())
+          .filter((c) => c.length > 0);
+        if (cells.length === 0) {
+          // weird case, skip
+        } else if (cells.length === 1) {
+          result.push(cells[0]);
+        } else {
+          // First cell as bold label, rest separated by middots
+          result.push(`- **${cells[0]}** — ${cells.slice(1).join(" · ")}`);
+        }
+        i = j;
+        continue;
+      }
+
+      // CASE 3: Multi-row table — ensure separator row is present
       const secondLine = lines[blockStart + 1];
-
       result.push(headerLine);
-
-      if (
-        blockStart + 1 < j &&
-        secondLine !== undefined &&
-        SEPARATOR_ROW.test(secondLine)
-      ) {
-        // Already has separator — leave untouched, push the rest as-is
-        for (let k = blockStart + 1; k < j; k++) result.push(lines[k]);
-      } else if (j - blockStart >= 2) {
-        // Two or more rows, no separator — inject one after the header
-        const cells = countCells(headerLine);
-        result.push(makeSeparator(cells));
+      if (secondLine !== undefined && SEPARATOR_ROW.test(secondLine)) {
+        // Already has separator
         for (let k = blockStart + 1; k < j; k++) result.push(lines[k]);
       } else {
-        // Single pipe-row, not really a table — push and move on
-        // (already pushed above)
+        // Inject separator
+        result.push(makeSeparator(headerCells));
+        for (let k = blockStart + 1; k < j; k++) result.push(lines[k]);
       }
 
       i = j;

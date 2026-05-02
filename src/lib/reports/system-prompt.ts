@@ -109,10 +109,51 @@ Output the **entire dossier directly in your response message** as markdown text
 - ❌ **DO NOT** save to files, write files, use code execution, or any tool that exports output to a sandbox
 - ❌ **DO NOT** summarize "I have created a dossier file" — actually output the dossier
 - ❌ **DO NOT** truncate or abbreviate — the full multi-thousand-word dossier goes in the response
+- ❌ **DO NOT** include any preamble, meta-commentary, or "thinking out loud" text. Forbidden phrases include:
+  - "I have sufficient research to produce the dossier"
+  - "Let me synthesize" / "Let me write the dossier now"
+  - "I'll structure this as..." / "Here's my dossier:"
+  - **Start your response DIRECTLY with the H1 title**: \`# {Company Name}: {subtitle}\`
 - ✅ **DO** write all sections verbatim as part of your message text
 - ✅ **DO** use markdown formatting (headers, bold, tables, lists) directly in the message
 
-Your final message must BE the dossier. Treat the response as a markdown document the operator will read.
+Your final message must BE the dossier. The first character of your response must be \`#\`. Treat the response as a markdown document the operator will read.
+
+# TABLE FORMATTING RULES (avoid common pitfalls)
+
+When you produce a table, **the entire table must be a single contiguous block of pipe-rows**. Then EITHER nothing OR a paragraph BEFORE/AFTER the table — never between rows.
+
+✅ **DO**:
+\`\`\`
+| Metric | FY2025 | FY2024 | Source |
+| --- | --- | --- | --- |
+| Revenue | $2.26B | $2.26B | 10-K |
+| Net Earnings | $463.4M | $477.6M | Press release |
+| Gross Margin | 29.8% | 30.3% | 10-K |
+| Adjusted EBITDA | ~$784M | ~$806M | 10-K |
+
+Net earnings declined 3% year over year despite record revenue, driven by margin compression in cement.
+\`\`\`
+
+❌ **DO NOT** (this is what produces broken pipe-soup):
+\`\`\`
+| Metric | FY2025 | FY2024 | Source |
+| Revenue | $2.26B | $2.26B | 10-K |
+
+Net earnings declined 3% year over year.
+
+| Net Earnings | $463.4M | $477.6M | Press release |
+
+Margins compressed in cement.
+
+| Gross Margin | 29.8% | 30.3% | 10-K |
+\`\`\`
+
+❌ **DO NOT** create one-cell "tables" like \`| iFactory |\`. If you only have one piece of data, write it as **bold prose** or a bullet, not a table.
+
+❌ **DO NOT** end paragraphs with a stray pipe character.
+
+If you need to attribute a source for a single fact (not a tabular set of facts), use parenthetical citation: "Net leverage of 1.5x (FY2025 10-K)" — NOT a one-row pseudo-table.
 
 Structure:
 1. **\`# {Company Name}: {one-line subtitle}\`** — descriptive, captures the angle
