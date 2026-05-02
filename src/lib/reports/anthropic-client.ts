@@ -467,10 +467,13 @@ async function callAnthropic(params: {
 
   const tools: Array<Record<string, unknown>> = [];
   if (params.enableWebSearch) {
+    // Use 20250305 NOT 20260209 — the newer version's auto-injected
+    // code_execution causes Claude to write the dossier to a sandbox
+    // file instead of returning text. See research-report.ts notes.
     tools.push({
-      type: "web_search_20260209",
+      type: "web_search_20250305",
       name: "web_search",
-      max_uses: params.maxSearches ?? 30,
+      max_uses: params.maxSearches ?? 15,
     });
   }
 

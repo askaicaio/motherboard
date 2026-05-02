@@ -102,10 +102,15 @@ async function callAnthropicStage(params: {
 
   const tools: Array<Record<string, unknown>> = [];
   if (params.enableWebSearch) {
+    // Use web_search_20250305 (the older basic version) NOT 20260209.
+    // The newer version auto-injects code_execution which causes Claude
+    // to write outputs to its sandbox filesystem instead of returning
+    // them as message text — silently swallowing the dossier. See:
+    // https://platform.claude.com/docs/en/agents-and-tools/tool-use/web-search-tool
     tools.push({
-      type: "web_search_20260209",
+      type: "web_search_20250305",
       name: "web_search",
-      max_uses: params.maxSearches ?? 20,
+      max_uses: params.maxSearches ?? 15,
     });
   }
 
@@ -292,37 +297,80 @@ export const researchReportFn = inngest.createFunction(
     // ============================================================
     // STAGE 1: Deep research
     // ============================================================
-    // 15 searches with "high" effort fits comfortably within Vercel's
-    // 800s function limit even for data-rich public companies. For
-    // truly exhaustive research, refactor into 3 smaller Inngest
-    // steps (see roadmap).
-    const stage1 = await step.run("stage-1-deep-research", async () => {
-      return await callAnthropicStage({
-        systemPrompt: buildResearchPrompt(promptOptions),
-        userMessage: buildUserMessage(promptOptions),
-        enableWebSearch: true,
-        maxSearches: Number(process.env.ANTHROPIC_MAX_SEARCHES || "15"),
+    // Skip if a dossier was already saved to the DB from a previous run.
+    // This lets us recover from Stage 2 failures without re-paying for
+    // the long Stage 1 work.
+    let dossier: string;
+    let stage1Usage: CallStageResult["usage"] | null = null;
+    let stage1Sources: CallStageResult["sources"] = [];
+    let stage1Thinking: string | undefined;
+
+    if (report.researchDossier && report.researchDossier.length > 1000) {
+      console.log(
+        `[research-report] Skipping Stage 1 — dossier already exists (${report.researchDossier.length} chars)`,
+      );
+      dossier = report.researchDossier;
+      // Preserve previously-saved sources/usage from the earlier run
+      stage1Sources = (report.researchSources as CallStageResult["sources"]) || [];
+    } else {
+      const stage1 = await step.run("stage-1-deep-research", async () => {
+        return await callAnthropicStage({
+          systemPrompt: buildResearchPrompt(promptOptions),
+          userMessage: buildUserMessage(promptOptions),
+          enableWebSearch: true,
+          maxSearches: Number(process.env.ANTHROPIC_MAX_SEARCHES || "15"),
+        });
       });
-    });
 
-    const dossier = stage1.text;
+      // Sanity-check the output: if Claude returned a meta-summary instead
+      // of the actual dossier (e.g. because it tried to write files via
+      // code_execution), reject early so the operator can retry with a
+      // clearer prompt instead of pushing garbage into Stage 2.
+      if (
+        !stage1.text ||
+        stage1.text.length < 1500 ||
+        /the file .*\.md.* (is exported|has been (saved|created|exported))/i.test(
+          stage1.text,
+        ) ||
+        /I('| ha)?ve (created|written|exported|saved) (a |the )?(dossier|file)/i.test(
+          stage1.text.slice(0, 500),
+        )
+      ) {
+        throw new Error(
+          `Stage 1 returned a meta-summary instead of the dossier (${stage1.text.length} chars). ` +
+            `Claude likely wrote the dossier to a sandbox file. Retry with the updated prompt.`,
+        );
+      }
 
-    // ---- Persist dossier immediately ----
-    await step.run("save-dossier", async () => {
-      await db
-        .update(companyReports)
-        .set({
-          researchDossier: dossier,
-          researchPhase: "distilling",
-          updatedAt: new Date(),
-        })
-        .where(eq(companyReports.id, reportId));
-    });
+      dossier = stage1.text;
+      stage1Usage = stage1.usage;
+      stage1Sources = stage1.sources;
+      stage1Thinking = stage1.thinking;
+
+      // Persist dossier immediately so it survives Stage 2 failures
+      await step.run("save-dossier", async () => {
+        await db
+          .update(companyReports)
+          .set({
+            researchDossier: dossier,
+            researchPhase: "distilling",
+            updatedAt: new Date(),
+          })
+          .where(eq(companyReports.id, reportId));
+      });
+    }
 
     // ============================================================
     // STAGE 2: Slide distillation (separate durable step — auto-retries
     // independently if it fails)
     // ============================================================
+    await step.run("mark-distilling", async () => {
+      await db
+        .update(companyReports)
+        .set({ researchPhase: "distilling", updatedAt: new Date() })
+        .where(eq(companyReports.id, reportId));
+    });
+
     const stage2 = await step.run("stage-2-slide-distillation", async () => {
       return await callAnthropicStage({
         systemPrompt: buildSlideDeckPrompt(promptOptions, dossier),
@@ -331,26 +379,27 @@ export const researchReportFn = inngest.createFunction(
       });
     });
 
-    // ---- Combine usage across both stages ----
+    // ---- Combine usage across both stages (Stage 1 may be skipped) ----
     const totalUsage = {
-      inputTokens: stage1.usage.inputTokens + stage2.usage.inputTokens,
-      outputTokens: stage1.usage.outputTokens + stage2.usage.outputTokens,
+      inputTokens: (stage1Usage?.inputTokens ?? 0) + stage2.usage.inputTokens,
+      outputTokens: (stage1Usage?.outputTokens ?? 0) + stage2.usage.outputTokens,
       cacheReadTokens:
-        stage1.usage.cacheReadTokens + stage2.usage.cacheReadTokens,
+        (stage1Usage?.cacheReadTokens ?? 0) + stage2.usage.cacheReadTokens,
       cacheCreationTokens:
-        stage1.usage.cacheCreationTokens + stage2.usage.cacheCreationTokens,
+        (stage1Usage?.cacheCreationTokens ?? 0) +
+        stage2.usage.cacheCreationTokens,
       webSearchRequests:
-        stage1.usage.webSearchRequests + stage2.usage.webSearchRequests,
+        (stage1Usage?.webSearchRequests ?? 0) + stage2.usage.webSearchRequests,
       estimatedCostUsd:
-        stage1.usage.estimatedCostUsd + stage2.usage.estimatedCostUsd,
+        (stage1Usage?.estimatedCostUsd ?? 0) + stage2.usage.estimatedCostUsd,
     };
 
     const combinedSources = new Map<string, { url: string; title: string; pageAge?: string }>();
-    for (const s of [...stage1.sources, ...stage2.sources]) {
+    for (const s of [...stage1Sources, ...stage2.sources]) {
       if (!combinedSources.has(s.url)) combinedSources.set(s.url, s);
     }
 
-    const combinedThinking = [stage1.thinking, stage2.thinking]
+    const combinedThinking = [stage1Thinking, stage2.thinking]
       .filter(Boolean)
       .join("\n---\n");
 
