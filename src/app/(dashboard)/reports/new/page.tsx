@@ -8,9 +8,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, FileText } from "lucide-react";
-import { REPORT_TITLE_FORMATS, type ReportTitleFormat } from "@/types";
+import { ArrowLeft, FileText, Sparkles, Zap, Upload } from "lucide-react";
+import {
+  REPORT_TITLE_FORMATS,
+  REPORT_RESEARCH_MODES,
+  type ReportTitleFormat,
+  type ReportResearchMode,
+} from "@/types";
 import { toast } from "sonner";
+
+const MODE_ICONS: Record<ReportResearchMode, React.ElementType> = {
+  deep: Sparkles,
+  quick: Zap,
+  manual: Upload,
+};
 
 export default function NewReportPage() {
   const router = useRouter();
@@ -19,6 +30,8 @@ export default function NewReportPage() {
   const [knownDetails, setKnownDetails] = useState("");
   const [titleFormat, setTitleFormat] =
     useState<ReportTitleFormat>("strategic_growth");
+  const [researchMode, setResearchMode] =
+    useState<ReportResearchMode>("deep");
   const [submitting, setSubmitting] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -37,6 +50,7 @@ export default function NewReportPage() {
           industry: industry.trim() || undefined,
           knownDetails: knownDetails.trim() || undefined,
           titleFormat,
+          researchMode,
         }),
       });
       if (!res.ok) {
@@ -118,6 +132,48 @@ export default function NewReportPage() {
               <p className="text-xs text-zinc-500">
                 Optional. Free-form notes, hints, parent companies, recent news, etc.
               </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Research mode</Label>
+              <div className="space-y-2">
+                {REPORT_RESEARCH_MODES.map((mode) => {
+                  const Icon = MODE_ICONS[mode.value];
+                  return (
+                    <label
+                      key={mode.value}
+                      className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors ${
+                        researchMode === mode.value
+                          ? "border-zinc-900 bg-zinc-50"
+                          : "border-zinc-200 hover:bg-zinc-50"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="researchMode"
+                        value={mode.value}
+                        checked={researchMode === mode.value}
+                        onChange={() => setResearchMode(mode.value)}
+                        className="mt-1"
+                      />
+                      <Icon className="h-4 w-4 mt-0.5 text-zinc-500 shrink-0" />
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="text-sm font-medium text-zinc-900">
+                            {mode.label}
+                          </div>
+                          <div className="text-xs text-zinc-500 font-mono shrink-0">
+                            {mode.estimatedCost} · {mode.estimatedDuration}
+                          </div>
+                        </div>
+                        <div className="text-xs text-zinc-500 mt-0.5">
+                          {mode.description}
+                        </div>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
             </div>
 
             <div className="space-y-2">

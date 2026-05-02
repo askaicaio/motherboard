@@ -11,6 +11,7 @@ const createReportSchema = z.object({
   industry: z.string().max(200).optional(),
   knownDetails: z.string().max(5000).optional(),
   titleFormat: z.enum(["strategic_growth", "ebitda_expansion"]),
+  researchMode: z.enum(["deep", "quick", "manual"]).default("deep"),
 });
 
 export async function GET(request: NextRequest) {
@@ -50,6 +51,7 @@ export async function POST(request: NextRequest) {
         industry: data.industry || null,
         knownDetails: data.knownDetails || null,
         titleFormat: data.titleFormat,
+        researchMode: data.researchMode,
         createdBy: user.id,
       })
       .returning();

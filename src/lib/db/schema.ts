@@ -98,6 +98,12 @@ export const reportTitleFormatEnum = pgEnum("report_title_format", [
   "ebitda_expansion", // "Leveraging Generative AI for Operational Excellence & EBITDA Expansion"
 ]);
 
+export const reportResearchModeEnum = pgEnum("report_research_mode", [
+  "deep", // Opus 4.7 + xhigh effort + 15 searches (~$3-5, ~10 min)
+  "quick", // Sonnet 4.6 + medium effort + 6 searches (~$0.30, ~2 min) — for testing/demos
+  "manual", // No research call — operator uploads dossier directly
+]);
+
 export const jobTypeEnum = pgEnum("job_type", [
   "onboarding",
   "offboarding",
@@ -639,6 +645,9 @@ export const companyReports = pgTable(
     titleFormat: reportTitleFormatEnum("title_format")
       .notNull()
       .default("strategic_growth"),
+    researchMode: reportResearchModeEnum("research_mode")
+      .notNull()
+      .default("deep"),
 
     // Stage 1: Deep Research
     researchStatus: reportStageStatusEnum("research_status")

@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { ResearchProgress } from "@/components/reports/research-progress";
 import { GammaProgress } from "@/components/reports/gamma-progress";
 import { DossierViewer } from "@/components/reports/dossier-viewer";
+import { DossierUploadDialog } from "@/components/reports/dossier-upload-dialog";
 import {
   Card,
   CardContent,
@@ -30,6 +31,7 @@ import {
   Clock,
   Archive,
   ArchiveRestore,
+  Upload,
 } from "lucide-react";
 import { REPORT_STAGE_STATUS_CONFIG } from "@/types";
 import { format, formatDistanceToNow } from "date-fns";
@@ -370,19 +372,39 @@ export function ReportDetailClient({
           </CardHeader>
           <CardContent className="space-y-3">
             {report.researchStatus === "pending" && (
-              <Button onClick={runResearch} disabled={researchLoading} className="w-full">
-                {researchLoading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Starting research...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    Run Deep Research
-                  </>
-                )}
-              </Button>
+              <div className="space-y-2">
+                <Button onClick={runResearch} disabled={researchLoading} className="w-full">
+                  {researchLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Starting research...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Run Deep Research
+                    </>
+                  )}
+                </Button>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 h-px bg-zinc-200" />
+                  <span className="text-[10px] uppercase tracking-wider text-zinc-400">or</span>
+                  <div className="flex-1 h-px bg-zinc-200" />
+                </div>
+                <DossierUploadDialog
+                  reportId={report.id}
+                  trigger={
+                    <Button variant="outline" className="w-full">
+                      <Upload className="h-4 w-4 mr-2" />
+                      Upload existing dossier
+                    </Button>
+                  }
+                />
+                <p className="text-[11px] text-zinc-500 text-center">
+                  Skip Stage 1 if you already have a dossier (e.g. from your own
+                  Claude Pro account). Saves $3-5 per report.
+                </p>
+              </div>
             )}
 
             {report.researchStatus === "running" && report.researchStartedAt && (
@@ -540,6 +562,25 @@ export function ReportDetailClient({
                     Open in Gamma
                   </Button>
                 </a>
+                <Button
+                  onClick={runGamma}
+                  disabled={gammaLoading}
+                  variant="ghost"
+                  size="sm"
+                  className="w-full"
+                >
+                  {gammaLoading ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                      Regenerating...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                      Regenerate deck
+                    </>
+                  )}
+                </Button>
               </div>
             )}
 

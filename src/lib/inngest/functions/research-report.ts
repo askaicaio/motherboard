@@ -89,16 +89,18 @@ async function callAnthropicStage(params: {
   userMessage: string;
   enableWebSearch: boolean;
   maxSearches?: number;
+  /** Override model + effort for the call */
+  modelOverride?: string;
+  effortOverride?: string;
 }): Promise<CallStageResult> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error("ANTHROPIC_API_KEY not set");
-  // Default model: Opus 4.7 for best quality.
-  const model = process.env.ANTHROPIC_MODEL || "claude-opus-4-7";
-
-  // "high" effort fits comfortably in Vercel's 800s function limit
-  // for typical research even on data-rich public companies.
-  // Use "xhigh" only if you've split Stage 1 into multiple calls.
-  const effort = process.env.ANTHROPIC_EFFORT || "high";
+  const model =
+    params.modelOverride ||
+    process.env.ANTHROPIC_MODEL ||
+    "claude-opus-4-7";
+  const effort =
+    params.effortOverride || process.env.ANTHROPIC_EFFORT || "high";
 
   const tools: Array<Record<string, unknown>> = [];
   if (params.enableWebSearch) {
@@ -297,9 +299,25 @@ export const researchReportFn = inngest.createFunction(
     // ============================================================
     // STAGE 1: Deep research
     // ============================================================
-    // Skip if a dossier was already saved to the DB from a previous run.
-    // This lets us recover from Stage 2 failures without re-paying for
-    // the long Stage 1 work.
+    // Mode-specific parameters:
+    //   deep:   Opus 4.7 + xhigh + 15 searches (~$3-5, ~10 min) — real prospects
+    //   quick:  Sonnet 4.6 + medium + 6 searches (~$0.30, ~2 min) — testing/demos
+    //   manual: skip Stage 1 entirely — operator uploaded dossier directly
+    const mode = report.researchMode || "deep";
+    const stage1Params =
+      mode === "quick"
+        ? {
+            modelOverride: "claude-sonnet-4-6",
+            effortOverride: "medium",
+            maxSearches: 6,
+          }
+        : {
+            // deep — uses env defaults (Opus 4.7 + high)
+            maxSearches: Number(process.env.ANTHROPIC_MAX_SEARCHES || "15"),
+          };
+
+    // Skip if a dossier was already saved to the DB from a previous run,
+    // or if this is a manual-upload report.
     let dossier: string;
     let stage1Usage: CallStageResult["usage"] | null = null;
     let stage1Sources: CallStageResult["sources"] = [];
@@ -307,18 +325,21 @@ export const researchReportFn = inngest.createFunction(
 
     if (report.researchDossier && report.researchDossier.length > 1000) {
       console.log(
-        `[research-report] Skipping Stage 1 — dossier already exists (${report.researchDossier.length} chars)`,
+        `[research-report] Skipping Stage 1 — dossier already exists (${report.researchDossier.length} chars, mode=${mode})`,
       );
       dossier = report.researchDossier;
-      // Preserve previously-saved sources/usage from the earlier run
       stage1Sources = (report.researchSources as CallStageResult["sources"]) || [];
+    } else if (mode === "manual") {
+      throw new Error(
+        "Manual mode requires a dossier to be uploaded before research can run. Upload the dossier first.",
+      );
     } else {
       const stage1 = await step.run("stage-1-deep-research", async () => {
         return await callAnthropicStage({
           systemPrompt: buildResearchPrompt(promptOptions),
           userMessage: buildUserMessage(promptOptions),
           enableWebSearch: true,
-          maxSearches: Number(process.env.ANTHROPIC_MAX_SEARCHES || "15"),
+          ...stage1Params,
         });
       });
 
@@ -371,11 +392,17 @@ export const researchReportFn = inngest.createFunction(
         .where(eq(companyReports.id, reportId));
     });
 
+    const stage2Params =
+      mode === "quick"
+        ? { modelOverride: "claude-sonnet-4-6", effortOverride: "medium" }
+        : {};
+
     const stage2 = await step.run("stage-2-slide-distillation", async () => {
       return await callAnthropicStage({
         systemPrompt: buildSlideDeckPrompt(promptOptions, dossier),
         userMessage: `Distill the dossier above into the 10-slide markdown for ${report.companyName}. Output ONLY the markdown, no preamble.`,
         enableWebSearch: false,
+        ...stage2Params,
       });
     });
 

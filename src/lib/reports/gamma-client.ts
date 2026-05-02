@@ -128,17 +128,20 @@ async function liveGenerate(
   const baseUrl = process.env.GAMMA_API_BASE_URL || "https://public-api.gamma.app";
   const themeId = process.env.GAMMA_THEME_ID || undefined;
 
-  // Image source default: Pexels (curated free stock, no watermarks).
-  // The "webFreeToUseCommercially" web search filter is unreliable —
-  // it surfaces preview images from sites like Alamy/Shutterstock that
-  // appear free but actually carry watermarks. Pexels is a single
-  // trusted source with professional photography and zero watermarks.
+  // Image source default: aiGenerated — Gamma's built-in AI image
+  // generation (flux-1-pro). Reasons:
+  //   - Custom imagery for every prospect, no generic stock cliches
+  //   - Zero watermarks (Pexels is OK, web filters surface watermarked previews)
+  //   - Editorial / McKinsey style via stylePreset + style
+  //   - Cost is negligible vs the $50K+ deals these decks support
   //
-  // Override via env var: GAMMA_IMAGE_SOURCE=aiGenerated for custom
-  // flux-1-pro imagery (more credits, no watermarks). Or "themeAccent"
-  // / "pictographic" for minimal McKinsey-style graphics.
-  // Options: aiGenerated | pictographic | pexels | webFreeToUse | webFreeToUseCommercially | themeAccent | placeholder | noImages
-  const imageSource = (process.env.GAMMA_IMAGE_SOURCE || "pexels") as
+  // Override via GAMMA_IMAGE_SOURCE env var:
+  //   pexels         — curated free stock photography (good fallback)
+  //   themeAccent    — solid color blocks, pure McKinsey minimalism
+  //   pictographic   — clean iconography, abstract
+  //   noImages       — text-only deck
+  //   webFreeToUse*  — NOT recommended (surfaces watermarked Alamy previews)
+  const imageSource = (process.env.GAMMA_IMAGE_SOURCE || "aiGenerated") as
     | "aiGenerated"
     | "pictographic"
     | "pexels"

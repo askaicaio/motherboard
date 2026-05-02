@@ -83,6 +83,38 @@ export type ReportStageStatus = "pending" | "running" | "complete" | "failed";
 
 export type ReportTitleFormat = "strategic_growth" | "ebitda_expansion";
 
+export type ReportResearchMode = "deep" | "quick" | "manual";
+
+export const REPORT_RESEARCH_MODES: {
+  value: ReportResearchMode;
+  label: string;
+  description: string;
+  estimatedCost: string;
+  estimatedDuration: string;
+}[] = [
+  {
+    value: "deep",
+    label: "Deep Research",
+    description: "Opus 4.7 + xhigh thinking + 15 web searches. Use for real prospects.",
+    estimatedCost: "~$3-5",
+    estimatedDuration: "~8-12 min",
+  },
+  {
+    value: "quick",
+    label: "Quick Research",
+    description: "Sonnet 4.6 + medium thinking + 6 web searches. Use for testing/demos.",
+    estimatedCost: "~$0.30",
+    estimatedDuration: "~2-3 min",
+  },
+  {
+    value: "manual",
+    label: "Manual Upload",
+    description: "Skip Stage 1 — paste or upload your own pre-written dossier markdown.",
+    estimatedCost: "$0",
+    estimatedDuration: "Instant",
+  },
+];
+
 export const REPORT_TITLE_FORMATS: { value: ReportTitleFormat; label: string; description: string }[] = [
   {
     value: "strategic_growth",

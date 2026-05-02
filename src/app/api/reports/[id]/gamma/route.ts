@@ -38,13 +38,6 @@ export async function POST(
     );
   }
 
-  if (report.gammaStatus === "complete" && report.gammaUrl) {
-    return NextResponse.json(
-      { error: "Gamma deck already generated.", url: report.gammaUrl },
-      { status: 409 },
-    );
-  }
-
   if (report.gammaStatus === "running") {
     return NextResponse.json(
       { error: "Gamma generation is already running." },
@@ -52,16 +45,31 @@ export async function POST(
     );
   }
 
+  // If the deck was previously generated, allow regeneration but clear
+  // the old URL so the UI shows progress instead of the stale link
+  // until the new generation completes.
+  const isRegeneration = report.gammaStatus === "complete";
+
   const isMockMode =
     process.env.REPORTS_MODE === "mock" || !process.env.GAMMA_API_KEY;
 
-  // Mark as running
+  // Mark as running. On regeneration, clear the old URL/credits so the
+  // UI shows progress instead of the stale link until completion.
   await db
     .update(companyReports)
     .set({
       gammaStatus: "running",
       gammaStartedAt: new Date(),
+      gammaCompletedAt: null,
       gammaError: null,
+      ...(isRegeneration
+        ? {
+            gammaUrl: null,
+            gammaGenerationId: null,
+            gammaCreditsDeducted: null,
+            gammaCreditsRemaining: null,
+          }
+        : {}),
       updatedAt: new Date(),
     })
     .where(eq(companyReports.id, id));
@@ -70,7 +78,12 @@ export async function POST(
     action: "report_gamma_started",
     actorId: user.id,
     actorEmail: user.email!,
-    details: { reportId: id, companyName: report.companyName, mode: isMockMode ? "mock" : "live" },
+    details: {
+      reportId: id,
+      companyName: report.companyName,
+      mode: isMockMode ? "mock" : "live",
+      regeneration: isRegeneration,
+    },
   });
 
   // ============================================================

@@ -1,0 +1,2 @@
+CREATE TYPE "public"."report_research_mode" AS ENUM('deep', 'quick', 'manual');--> statement-breakpoint
+ALTER TABLE "company_reports" ADD COLUMN "research_mode" "report_research_mode" DEFAULT 'deep' NOT NULL;
