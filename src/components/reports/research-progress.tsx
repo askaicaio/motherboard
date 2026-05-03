@@ -8,17 +8,34 @@ interface Props {
   startedAt: Date | string;
   phase: "researching" | "distilling" | null;
   status: "pending" | "running" | "complete" | "failed";
-  /** Called when the operator clicks "Reset stuck job" — only visible after 45 min */
+  /** Research mode — affects estimated duration and stage labels */
+  mode?: "deep" | "quick" | "manual" | null;
+  /** Called when the operator clicks "Reset stuck job" — only visible after threshold */
   onReset?: () => void;
 }
 
-// Background jobs run on Inngest with up to 2 hours per step.
-// Long runs (15-30 min) are common for thorough research on
-// data-rich public companies. Only flag truly stuck jobs (45+ min).
-const STUCK_THRESHOLD_MS = 45 * 60 * 1000; // 45 minutes
-const ESTIMATED_STAGE_1_MS = 8 * 60 * 1000; // 8 minutes typical
-const ESTIMATED_STAGE_2_MS = 90 * 1000; // 1.5 minutes typical
-const ESTIMATED_TOTAL_MS = ESTIMATED_STAGE_1_MS + ESTIMATED_STAGE_2_MS;
+// Mode-specific time estimates
+const ESTIMATES = {
+  deep: {
+    stage1Ms: 8 * 60 * 1000, // 8 min typical
+    stage2Ms: 90 * 1000, // 1.5 min typical
+    stuckThresholdMs: 45 * 60 * 1000, // 45 min
+    stage1Label: "Deep Research",
+  },
+  quick: {
+    stage1Ms: 2 * 60 * 1000, // 2 min typical
+    stage2Ms: 60 * 1000, // 1 min typical
+    stuckThresholdMs: 15 * 60 * 1000, // 15 min — Sonnet should be much faster
+    stage1Label: "Quick Research",
+  },
+  manual: {
+    // Manual mode skips Stage 1, only Stage 2 runs
+    stage1Ms: 0,
+    stage2Ms: 90 * 1000,
+    stuckThresholdMs: 10 * 60 * 1000,
+    stage1Label: "Manual",
+  },
+} as const;
 
 function formatElapsed(ms: number): string {
   const totalSec = Math.floor(ms / 1000);
@@ -27,7 +44,7 @@ function formatElapsed(ms: number): string {
   return `${min}:${sec.toString().padStart(2, "0")}`;
 }
 
-export function ResearchProgress({ startedAt, phase, status, onReset }: Props) {
+export function ResearchProgress({ startedAt, phase, status, mode, onReset }: Props) {
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -36,23 +53,24 @@ export function ResearchProgress({ startedAt, phase, status, onReset }: Props) {
     return () => clearInterval(interval);
   }, [status]);
 
+  const estimates = ESTIMATES[mode ?? "deep"];
+  const ESTIMATED_TOTAL_MS = estimates.stage1Ms + estimates.stage2Ms;
+
   const start = typeof startedAt === "string" ? new Date(startedAt).getTime() : startedAt.getTime();
   const elapsedMs = Math.max(0, now - start);
 
-  // Estimated progress: 0-80% during researching, 80-100% during distilling
+  // Estimated progress: 0-80% during researching, 80-95% during distilling
   let estimatedProgress = 0;
   if (phase === "researching") {
-    // 0% to 80% over the estimated stage 1 duration
-    estimatedProgress = Math.min(80, (elapsedMs / ESTIMATED_STAGE_1_MS) * 80);
+    estimatedProgress = Math.min(80, (elapsedMs / Math.max(1, estimates.stage1Ms)) * 80);
   } else if (phase === "distilling") {
-    // Already 80%, climb to 95% over stage 2 (leaves 5% for actual completion)
-    const distillElapsed = Math.max(0, elapsedMs - ESTIMATED_STAGE_1_MS);
-    estimatedProgress = 80 + Math.min(15, (distillElapsed / ESTIMATED_STAGE_2_MS) * 15);
+    const distillElapsed = Math.max(0, elapsedMs - estimates.stage1Ms);
+    estimatedProgress = 80 + Math.min(15, (distillElapsed / estimates.stage2Ms) * 15);
   } else if (status === "complete") {
     estimatedProgress = 100;
   }
 
-  const isStuck = status === "running" && elapsedMs > STUCK_THRESHOLD_MS;
+  const isStuck = status === "running" && elapsedMs > estimates.stuckThresholdMs;
   const elapsedLabel = formatElapsed(elapsedMs);
 
   return (
@@ -61,7 +79,7 @@ export function ResearchProgress({ startedAt, phase, status, onReset }: Props) {
       <div className="grid grid-cols-2 gap-2">
         <StageIndicator
           number={1}
-          label="Deep Research"
+          label={estimates.stage1Label}
           icon={<Sparkles className="h-3.5 w-3.5" />}
           state={getStage1State(phase, status)}
         />

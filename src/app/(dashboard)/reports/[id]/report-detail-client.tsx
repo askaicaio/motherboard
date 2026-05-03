@@ -350,8 +350,21 @@ export function ReportDetailClient({
           <CardHeader className="pb-3">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-purple-500" />
-                <CardTitle className="text-base">1. Deep Research</CardTitle>
+                {report.researchMode === "quick" ? (
+                  <Zap className="h-4 w-4 text-amber-500" />
+                ) : report.researchMode === "manual" ? (
+                  <Upload className="h-4 w-4 text-zinc-500" />
+                ) : (
+                  <Sparkles className="h-4 w-4 text-purple-500" />
+                )}
+                <CardTitle className="text-base">
+                  1.{" "}
+                  {report.researchMode === "quick"
+                    ? "Quick Research"
+                    : report.researchMode === "manual"
+                      ? "Manual Dossier"
+                      : "Deep Research"}
+                </CardTitle>
               </div>
               <div className="flex items-center gap-1.5">
                 {report.researchCostUsd && parseFloat(report.researchCostUsd) > 0 && (
@@ -459,6 +472,7 @@ export function ReportDetailClient({
                     (report.researchPhase as "researching" | "distilling" | null) ?? null
                   }
                   status={report.researchStatus}
+                  mode={(report.researchMode as "deep" | "quick" | "manual" | null) ?? null}
                   onReset={resetStuckResearch}
                 />
                 {report.researchDossier && report.researchPhase === "distilling" && (
