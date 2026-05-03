@@ -32,6 +32,7 @@ import {
   Archive,
   ArchiveRestore,
   Upload,
+  Zap,
 } from "lucide-react";
 import { REPORT_STAGE_STATUS_CONFIG } from "@/types";
 import { format, formatDistanceToNow } from "date-fns";
@@ -49,6 +50,7 @@ interface CompanyReport {
   industry: string | null;
   knownDetails: string | null;
   titleFormat: string;
+  researchMode?: "deep" | "quick" | "manual" | null;
   researchStatus: "pending" | "running" | "complete" | "failed";
   researchPhase?: string | null; // "researching" | "distilling" | null
   researchStartedAt: Date | string | null;
@@ -373,37 +375,79 @@ export function ReportDetailClient({
           <CardContent className="space-y-3">
             {report.researchStatus === "pending" && (
               <div className="space-y-2">
-                <Button onClick={runResearch} disabled={researchLoading} className="w-full">
-                  {researchLoading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Starting research...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="h-4 w-4 mr-2" />
-                      Run Deep Research
-                    </>
-                  )}
-                </Button>
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 h-px bg-zinc-200" />
-                  <span className="text-[10px] uppercase tracking-wider text-zinc-400">or</span>
-                  <div className="flex-1 h-px bg-zinc-200" />
-                </div>
-                <DossierUploadDialog
-                  reportId={report.id}
-                  trigger={
-                    <Button variant="outline" className="w-full">
-                      <Upload className="h-4 w-4 mr-2" />
-                      Upload existing dossier
+                {report.researchMode === "manual" ? (
+                  <>
+                    <DossierUploadDialog
+                      reportId={report.id}
+                      trigger={
+                        <Button className="w-full">
+                          <Upload className="h-4 w-4 mr-2" />
+                          Upload Dossier
+                        </Button>
+                      }
+                    />
+                    <p className="text-[11px] text-zinc-500 text-center">
+                      Manual mode — paste or upload a pre-written research
+                      dossier to skip Stage 1.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <Button
+                      onClick={runResearch}
+                      disabled={researchLoading}
+                      className="w-full"
+                    >
+                      {researchLoading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Starting research...
+                        </>
+                      ) : report.researchMode === "quick" ? (
+                        <>
+                          <Zap className="h-4 w-4 mr-2" />
+                          Run Quick Research
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="h-4 w-4 mr-2" />
+                          Run Deep Research
+                        </>
+                      )}
                     </Button>
-                  }
-                />
-                <p className="text-[11px] text-zinc-500 text-center">
-                  Skip Stage 1 if you already have a dossier (e.g. from your own
-                  Claude Pro account). Saves $3-5 per report.
-                </p>
+                    <p className="text-[11px] text-zinc-500 text-center">
+                      {report.researchMode === "quick" ? (
+                        <>
+                          Sonnet 4.6 + 6 web searches · ~$0.30 · ~2-3 min
+                        </>
+                      ) : (
+                        <>
+                          Opus 4.7 + 15 web searches · ~$3-5 · ~8-12 min
+                        </>
+                      )}
+                    </p>
+                    <div className="flex items-center gap-2 pt-1">
+                      <div className="flex-1 h-px bg-zinc-200" />
+                      <span className="text-[10px] uppercase tracking-wider text-zinc-400">
+                        or
+                      </span>
+                      <div className="flex-1 h-px bg-zinc-200" />
+                    </div>
+                    <DossierUploadDialog
+                      reportId={report.id}
+                      trigger={
+                        <Button variant="outline" className="w-full">
+                          <Upload className="h-4 w-4 mr-2" />
+                          Upload existing dossier
+                        </Button>
+                      }
+                    />
+                    <p className="text-[11px] text-zinc-500 text-center">
+                      Skip Stage 1 if you already have a dossier (e.g. from
+                      your own Claude Pro account). Saves $3-5 per report.
+                    </p>
+                  </>
+                )}
               </div>
             )}
 
@@ -792,7 +836,7 @@ export function ReportDetailClient({
           <CardTitle className="text-base">Input details</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm">
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
               <div className="text-xs text-zinc-500 mb-0.5">Company</div>
               <div className="font-medium">{report.companyName}</div>
@@ -802,11 +846,34 @@ export function ReportDetailClient({
               <div>{report.industry || <span className="italic text-zinc-400">—</span>}</div>
             </div>
             <div>
+              <div className="text-xs text-zinc-500 mb-0.5">Research mode</div>
+              <div className="flex items-center gap-1">
+                {report.researchMode === "quick" ? (
+                  <>
+                    <Zap className="h-3 w-3 text-amber-500" />
+                    <span className="text-xs font-medium">Quick</span>
+                    <span className="text-xs text-zinc-400">($0.30)</span>
+                  </>
+                ) : report.researchMode === "manual" ? (
+                  <>
+                    <Upload className="h-3 w-3 text-zinc-500" />
+                    <span className="text-xs font-medium">Manual</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-3 w-3 text-purple-500" />
+                    <span className="text-xs font-medium">Deep</span>
+                    <span className="text-xs text-zinc-400">($3-5)</span>
+                  </>
+                )}
+              </div>
+            </div>
+            <div>
               <div className="text-xs text-zinc-500 mb-0.5">Title format</div>
               <div className="text-xs">
                 {report.titleFormat === "ebitda_expansion"
-                  ? "Operational Excellence & EBITDA Expansion"
-                  : "Strategic Growth Through AI"}
+                  ? "EBITDA Expansion"
+                  : "Strategic Growth"}
               </div>
             </div>
           </div>
