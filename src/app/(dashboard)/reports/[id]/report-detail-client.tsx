@@ -290,7 +290,7 @@ export function ReportDetailClient({
     (report.gammaStatus === "pending" || report.gammaStatus === "failed");
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0">
       {isArchived && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 flex items-center gap-2">
           <Archive className="h-4 w-4" />
@@ -712,8 +712,8 @@ export function ReportDetailClient({
                     <div className="text-xs text-zinc-500 mb-2 flex items-center justify-between">
                       <span>Quick markdown preview. Click <strong>View Research Dossier</strong> above for the rendered version.</span>
                     </div>
-                    <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4 max-h-[400px] overflow-y-auto">
-                      <pre className="text-xs font-mono whitespace-pre-wrap text-zinc-700 leading-relaxed">
+                    <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4 max-h-[400px] overflow-auto">
+                      <pre className="text-xs font-mono whitespace-pre-wrap break-words text-zinc-700 leading-relaxed">
                         {report.researchDossier}
                       </pre>
                     </div>
@@ -724,8 +724,8 @@ export function ReportDetailClient({
                   <div className="text-xs text-zinc-500 mb-2">
                     The 10-slide markdown distilled from the dossier — this is what goes to Gamma.
                   </div>
-                  <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4 max-h-[600px] overflow-y-auto">
-                    <pre className="text-xs font-mono whitespace-pre-wrap text-zinc-700 leading-relaxed">
+                  <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4 max-h-[600px] overflow-auto">
+                    <pre className="text-xs font-mono whitespace-pre-wrap break-words text-zinc-700 leading-relaxed">
                       {report.researchMarkdown}
                     </pre>
                   </div>
