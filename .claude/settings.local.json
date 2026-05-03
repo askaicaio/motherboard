@@ -45,7 +45,8 @@
       "Bash(npm list *)",
       "Bash(git add *)",
       "Bash(git commit -m 'Detail page: reflect researchMode in button labels + Input details *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(git commit -m 'Add SQL script to recompute historical research costs with correct per-model pricing *)"
     ]
   }
 }
