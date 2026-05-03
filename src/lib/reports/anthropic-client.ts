@@ -386,22 +386,43 @@ interface AnthropicResponse {
   error?: { type: string; message: string };
 }
 
-// Pricing for Claude Opus 4.7 (per 1M tokens)
-const PRICE_INPUT_PER_M = 15.0;
-const PRICE_OUTPUT_PER_M = 75.0;
-const PRICE_CACHE_READ_PER_M = 1.5;
-const PRICE_CACHE_WRITE_PER_M = 18.75;
+// Per-model Anthropic pricing (USD per 1M tokens)
+interface ModelPricing {
+  input: number;
+  output: number;
+  cacheRead: number;
+  cacheWrite: number;
+}
+
+const MODEL_PRICING: Record<string, ModelPricing> = {
+  "claude-opus-4-7": { input: 15.0, output: 75.0, cacheRead: 1.5, cacheWrite: 18.75 },
+  "claude-opus-4-6": { input: 15.0, output: 75.0, cacheRead: 1.5, cacheWrite: 18.75 },
+  "claude-sonnet-4-6": { input: 3.0, output: 15.0, cacheRead: 0.3, cacheWrite: 3.75 },
+  "claude-sonnet-4-5": { input: 3.0, output: 15.0, cacheRead: 0.3, cacheWrite: 3.75 },
+  "claude-haiku-4-5": { input: 0.8, output: 4.0, cacheRead: 0.08, cacheWrite: 1.0 },
+};
+
 const PRICE_PER_WEB_SEARCH = 0.01;
 
-function estimateCost(usage: NonNullable<AnthropicResponse["usage"]>): number {
-  const input = (usage.input_tokens ?? 0) * (PRICE_INPUT_PER_M / 1_000_000);
-  const output = (usage.output_tokens ?? 0) * (PRICE_OUTPUT_PER_M / 1_000_000);
+function pricingForModel(modelName: string): ModelPricing {
+  if (MODEL_PRICING[modelName]) return MODEL_PRICING[modelName];
+  for (const [key, pricing] of Object.entries(MODEL_PRICING)) {
+    if (modelName.startsWith(key)) return pricing;
+  }
+  return MODEL_PRICING["claude-opus-4-7"];
+}
+
+function estimateCost(
+  usage: NonNullable<AnthropicResponse["usage"]>,
+  modelName: string,
+): number {
+  const p = pricingForModel(modelName);
+  const input = (usage.input_tokens ?? 0) * (p.input / 1_000_000);
+  const output = (usage.output_tokens ?? 0) * (p.output / 1_000_000);
   const cacheRead =
-    (usage.cache_read_input_tokens ?? 0) *
-    (PRICE_CACHE_READ_PER_M / 1_000_000);
+    (usage.cache_read_input_tokens ?? 0) * (p.cacheRead / 1_000_000);
   const cacheWrite =
-    (usage.cache_creation_input_tokens ?? 0) *
-    (PRICE_CACHE_WRITE_PER_M / 1_000_000);
+    (usage.cache_creation_input_tokens ?? 0) * (p.cacheWrite / 1_000_000);
   const search =
     (usage.server_tool_use?.web_search_requests ?? 0) * PRICE_PER_WEB_SEARCH;
   return input + output + cacheRead + cacheWrite + search;
@@ -431,7 +452,7 @@ function addUsage(
       acc.cacheCreationTokens + (u.cache_creation_input_tokens ?? 0),
     webSearchRequests:
       acc.webSearchRequests + (u.server_tool_use?.web_search_requests ?? 0),
-    estimatedCostUsd: acc.estimatedCostUsd + estimateCost(u),
+    estimatedCostUsd: acc.estimatedCostUsd + estimateCost(u, resp.model),
   };
 }
 

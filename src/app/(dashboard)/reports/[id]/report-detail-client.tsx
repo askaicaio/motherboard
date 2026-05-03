@@ -346,7 +346,7 @@ export function ReportDetailClient({
       {/* ---- Two-stage workflow ---- */}
       <div className="grid gap-4 md:grid-cols-2">
         {/* Stage 1: Research */}
-        <Card className={report.researchStatus === "complete" ? "border-emerald-200" : ""}>
+        <Card className={`min-w-0 ${report.researchStatus === "complete" ? "border-emerald-200" : ""}`}>
           <CardHeader className="pb-3">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-2">
@@ -553,7 +553,7 @@ export function ReportDetailClient({
         </Card>
 
         {/* Stage 2: Gamma */}
-        <Card className={report.gammaStatus === "complete" ? "border-emerald-200" : ""}>
+        <Card className={`min-w-0 ${report.gammaStatus === "complete" ? "border-emerald-200" : ""}`}>
           <CardHeader className="pb-3">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-2">
