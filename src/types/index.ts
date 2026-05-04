@@ -26,6 +26,54 @@ export type DivisionType = "b2c" | "b2b" | "sales";
 
 export type AdminRole = "super_admin" | "admin" | "viewer";
 
+// Simplified UI-facing role labels. Internally we have 3 roles (super_admin,
+// admin, viewer) but the operator-facing UX presents only Admin / User.
+export type MemberRole = "admin" | "user";
+
+export function memberRoleFromAdminRole(role: AdminRole | string | null): MemberRole {
+  return role === "super_admin" || role === "admin" ? "admin" : "user";
+}
+
+export function isAdminRole(role: AdminRole | string | null): boolean {
+  return role === "super_admin" || role === "admin";
+}
+
+// ---- Departments ----
+export type Department =
+  | "operations"
+  | "caio_services"
+  | "sales"
+  | "marketing"
+  | "technology"
+  | "social_media"
+  | "podcast_support"
+  | "unassigned";
+
+export const DEPARTMENTS_LIST: { value: Department; label: string }[] = [
+  { value: "operations", label: "Operations" },
+  { value: "caio_services", label: "CAIO Services" },
+  { value: "sales", label: "Sales" },
+  { value: "marketing", label: "Marketing" },
+  { value: "technology", label: "Technology" },
+  { value: "social_media", label: "Social Media" },
+  { value: "podcast_support", label: "Podcast Support" },
+  { value: "unassigned", label: "Unassigned" },
+];
+
+export function departmentLabel(d: Department | string | null): string {
+  const found = DEPARTMENTS_LIST.find((x) => x.value === d);
+  return found?.label ?? "Unassigned";
+}
+
+/** Who can see Company Reports: admins + sales department members. */
+export function canSeeCompanyReports(
+  role: AdminRole | string | null,
+  department: Department | string | null,
+): boolean {
+  if (isAdminRole(role)) return true;
+  return department === "sales";
+}
+
 export type AuditAction =
   | "request_created"
   | "request_updated"
@@ -159,7 +207,9 @@ export const TOOL_DISPLAY_NAMES: Record<ToolKey, string> = {
   zoom: "Zoom",
 };
 
-export const DEPARTMENTS = [
+// Department choices for the onboarding form (employee being onboarded).
+// Distinct from the team-member Department type above.
+export const ONBOARDING_DEPARTMENTS = [
   "Engineering",
   "Marketing",
   "Sales",
@@ -173,7 +223,12 @@ export const DEPARTMENTS = [
   "Community",
 ] as const;
 
-export type Department = (typeof DEPARTMENTS)[number];
+export type OnboardingDepartment = (typeof ONBOARDING_DEPARTMENTS)[number];
+
+// Backwards-compat aliases for existing code that imports DEPARTMENTS / Department
+// for the onboarding form. New code should use ONBOARDING_DEPARTMENTS / OnboardingDepartment
+// or the team-member Department + DEPARTMENTS_LIST defined above.
+export const DEPARTMENTS = ONBOARDING_DEPARTMENTS;
 
 export const DIVISIONS: { value: DivisionType; label: string }[] = [
   { value: "b2c", label: "B2C" },

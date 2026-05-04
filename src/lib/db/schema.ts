@@ -133,6 +133,19 @@ export const notificationTypeEnum = pgEnum("notification_type", [
   "step_retry_needed",
 ]);
 
+// Departments for team members (extend by editing this enum + the
+// DEPARTMENTS_LIST constant in src/types/index.ts)
+export const departmentEnum = pgEnum("department", [
+  "operations",
+  "caio_services",
+  "sales",
+  "marketing",
+  "technology",
+  "social_media",
+  "podcast_support",
+  "unassigned",
+]);
+
 // ========================================================================
 // Tables -- Core
 // ========================================================================
@@ -141,9 +154,22 @@ export const adminUsers = pgTable("admin_users", {
   id: uuid("id").primaryKey().defaultRandom(),
   email: text("email").notNull().unique(),
   name: text("name").notNull(),
-  role: text("role").notNull().default("admin"), // super_admin | admin | viewer
+  // 'admin' (full access) or 'viewer' (regular member). 'super_admin' kept
+  // for backwards compat. UI presents only Admin / User.
+  role: text("role").notNull().default("viewer"),
+  department: departmentEnum("department").notNull().default("unassigned"),
   avatarUrl: text("avatar_url"),
   isActive: boolean("is_active").notNull().default(true),
+  // Date the member started (hire/contract start, separate from when their
+  // record was created in Motherboard).
+  startedAt: timestamp("started_at", { withTimezone: true }),
+  // Invite tracking
+  invitedAt: timestamp("invited_at", { withTimezone: true }),
+  invitedBy: uuid("invited_by"), // self-reference; constraint added below
+  // Soft archive (separate from isActive — archived = deactivated AND
+  // moved out of the main list)
+  archivedAt: timestamp("archived_at", { withTimezone: true }),
+  archivedBy: uuid("archived_by"),
   lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

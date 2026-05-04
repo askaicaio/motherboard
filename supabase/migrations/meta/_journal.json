@@ -50,6 +50,13 @@
       "when": 1777709100739,
       "tag": "0006_add_research_mode",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1777911014941,
+      "tag": "0007_add_member_fields",
+      "breakpoints": true
     }
   ]
 }

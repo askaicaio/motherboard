@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 import {
   LayoutDashboard,
   UserPlus,
@@ -12,14 +13,32 @@ import {
   Shield,
   Plug,
   FileText,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { canSeeCompanyReports } from "@/lib/auth/permissions";
+import type { Department, AdminRole } from "@/types";
 
-const navItems = [
+interface NavItem {
+  href: string;
+  label: string;
+  icon: React.ElementType;
+  /** Returns true if this item should be visible to the given user. */
+  visible?: (role: string | undefined, dept: string | undefined) => boolean;
+}
+
+const navItems: NavItem[] = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/onboarding", label: "Onboarding", icon: List },
   { href: "/onboarding/new", label: "New Request", icon: UserPlus },
-  { href: "/reports", label: "Company Reports", icon: FileText },
+  {
+    href: "/reports",
+    label: "Company Reports",
+    icon: FileText,
+    visible: (role, dept) =>
+      canSeeCompanyReports(role as AdminRole, dept as Department),
+  },
+  { href: "/members", label: "Members", icon: Users },
   { href: "/integrations", label: "Integrations", icon: Plug },
   { href: "/audit-log", label: "Audit Log", icon: ScrollText },
   { href: "/settings/rules", label: "Rules", icon: Shield },
@@ -28,6 +47,18 @@ const navItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { data: session } = useSession();
+
+  // Pull role + department from the extended session user
+  const sessionUser = session?.user as
+    | { role?: string; department?: string }
+    | undefined;
+  const role = sessionUser?.role;
+  const department = sessionUser?.department;
+
+  const visibleItems = navItems.filter(
+    (item) => !item.visible || item.visible(role, department),
+  );
 
   return (
     <aside className="fixed left-0 top-0 z-30 flex h-screen w-60 flex-col border-r bg-white">
@@ -56,7 +87,7 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 space-y-1 p-3">
-        {navItems.map((item) => {
+        {visibleItems.map((item) => {
           const isActive =
             item.href === "/"
               ? pathname === "/"

@@ -3,7 +3,7 @@ import Google from "next-auth/providers/google";
 import { db } from "@/lib/db";
 import { adminUsers } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import type { AdminRole } from "@/types";
+import type { AdminRole, Department } from "@/types";
 
 // ---- Domain restriction ----
 const ALLOWED_EMAIL_DOMAIN = process.env.ALLOWED_EMAIL_DOMAIN || "chiefaiofficer.com";
@@ -92,6 +92,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           const extUser = session.user as unknown as SessionUser;
           extUser.id = adminUser.id;
           extUser.role = adminUser.role as AdminRole;
+          extUser.department = (adminUser.department as Department) || "unassigned";
         }
       }
       return session;
@@ -110,6 +111,7 @@ export interface SessionUser {
   email?: string | null;
   image?: string | null;
   role: AdminRole;
+  department?: Department;
 }
 
 export { ALLOWED_EMAIL_DOMAIN };

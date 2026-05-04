@@ -12,6 +12,7 @@ const DEV_MOCK_USER: SessionUser = {
   email: "admin@chiefaiofficer.com",
   image: null,
   role: "super_admin",
+  department: "operations",
 };
 
 function isDevBypass(): boolean {
