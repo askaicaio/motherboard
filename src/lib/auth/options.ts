@@ -132,20 +132,43 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return true;
     },
 
-    async session({ session }) {
-      if (session.user?.email) {
+    /**
+     * jwt() runs on sign-in and on token refresh — much less often than
+     * session(). We use it to fetch the user's role/department from the
+     * DB once and embed them in the JWT itself. The session() callback
+     * then reads from the token, avoiding a DB hit on every request.
+     */
+    async jwt({ token, user, trigger }) {
+      // On initial sign-in, `user` is populated. On subsequent calls
+      // it's not — so we only do the DB lookup when needed.
+      const shouldRefreshFromDb =
+        !!user || trigger === "signIn" || trigger === "update" || !token.role;
+
+      if (shouldRefreshFromDb && token.email) {
         const adminUser = await db.query.adminUsers.findFirst({
-          where: eq(adminUsers.email, session.user.email),
+          where: eq(adminUsers.email, token.email),
         });
         if (adminUser) {
-          const extUser = session.user as unknown as SessionUser;
-          extUser.id = adminUser.id;
-          extUser.role = adminUser.role as AdminRole;
-          extUser.department = (adminUser.department as Department) || "unassigned";
+          token.id = adminUser.id;
+          token.role = adminUser.role;
+          token.department = adminUser.department || "unassigned";
         }
+      }
+      return token;
+    },
+
+    async session({ session, token }) {
+      if (session.user && token) {
+        const extUser = session.user as unknown as SessionUser;
+        extUser.id = (token.id as string) || extUser.id;
+        extUser.role = (token.role as AdminRole) || "viewer";
+        extUser.department = (token.department as Department) || "unassigned";
       }
       return session;
     },
+  },
+  session: {
+    strategy: "jwt",
   },
   pages: {
     signIn: "/login",
