@@ -8,10 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, FileText, Sparkles, Zap, Upload } from "lucide-react";
+import { ArrowLeft, FileText, Sparkles, Zap, Upload, UserSquare } from "lucide-react";
 import {
   REPORT_TITLE_FORMATS,
   REPORT_RESEARCH_MODES,
+  DEFAULT_REPORT_CONTACT,
   type ReportTitleFormat,
   type ReportResearchMode,
 } from "@/types";
@@ -32,6 +33,9 @@ export default function NewReportPage() {
     useState<ReportTitleFormat>("strategic_growth");
   const [researchMode, setResearchMode] =
     useState<ReportResearchMode>("deep");
+  const [contactName, setContactName] = useState<string>(DEFAULT_REPORT_CONTACT.name);
+  const [contactEmail, setContactEmail] = useState<string>(DEFAULT_REPORT_CONTACT.email);
+  const [contactPhone, setContactPhone] = useState<string>(DEFAULT_REPORT_CONTACT.phone);
   const [submitting, setSubmitting] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -51,6 +55,9 @@ export default function NewReportPage() {
           knownDetails: knownDetails.trim() || undefined,
           titleFormat,
           researchMode,
+          contactName: contactName.trim() || undefined,
+          contactEmail: contactEmail.trim() || undefined,
+          contactPhone: contactPhone.trim() || undefined,
         }),
       });
       if (!res.ok) {
@@ -132,6 +139,48 @@ export default function NewReportPage() {
               <p className="text-xs text-zinc-500">
                 Optional. Free-form notes, hints, parent companies, recent news, etc.
               </p>
+            </div>
+
+            <div className="space-y-3 rounded-lg border border-zinc-200 bg-zinc-50/50 p-4">
+              <div className="flex items-center gap-2">
+                <UserSquare className="h-4 w-4 text-zinc-500" />
+                <Label className="!m-0">CAIO representative for this report</Label>
+              </div>
+              <p className="text-xs text-zinc-500 -mt-1">
+                Shown on Slide 10 (Call to Action) as the contact for next steps.
+                Pre-filled with the default; edit if a different rep is owning this prospect.
+              </p>
+              <div className="space-y-1.5">
+                <Label htmlFor="contactName" className="text-xs">Name</Label>
+                <Input
+                  id="contactName"
+                  value={contactName}
+                  onChange={(e) => setContactName(e.target.value)}
+                  placeholder={DEFAULT_REPORT_CONTACT.name}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="contactEmail" className="text-xs">Email</Label>
+                  <Input
+                    id="contactEmail"
+                    type="email"
+                    value={contactEmail}
+                    onChange={(e) => setContactEmail(e.target.value)}
+                    placeholder={DEFAULT_REPORT_CONTACT.email}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="contactPhone" className="text-xs">Phone</Label>
+                  <Input
+                    id="contactPhone"
+                    type="tel"
+                    value={contactPhone}
+                    onChange={(e) => setContactPhone(e.target.value)}
+                    placeholder={DEFAULT_REPORT_CONTACT.phone}
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="space-y-2">

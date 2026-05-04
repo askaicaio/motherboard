@@ -129,6 +129,14 @@ export type NotificationType =
 // ---- Company Reports ----
 export type ReportStageStatus = "pending" | "running" | "complete" | "failed";
 
+/** Default CAIO representative shown on Slide 10 (CTA). Pre-filled in
+ *  the New Report form but editable per-report. */
+export const DEFAULT_REPORT_CONTACT = {
+  name: "Dani Apgar",
+  email: "Dani@ChiefAIOfficer.com",
+  phone: "858-463-1130",
+} as const;
+
 export type ReportTitleFormat = "strategic_growth" | "ebitda_expansion";
 
 export type ReportResearchMode = "deep" | "quick" | "manual";

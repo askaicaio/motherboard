@@ -47,7 +47,7 @@ const navItems: NavItem[] = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
 
   // Pull role + department from the extended session user
   const sessionUser = session?.user as
@@ -56,9 +56,18 @@ export function Sidebar() {
   const role = sessionUser?.role;
   const department = sessionUser?.department;
 
-  const visibleItems = navItems.filter(
-    (item) => !item.visible || item.visible(role, department),
-  );
+  // While the session is still loading, render gated items optimistically
+  // (assume the user has access). Hide them only once we KNOW they don't.
+  // This prevents the "flash where Company Reports appears late" — the
+  // server-side page-level guard still enforces the actual permissions
+  // if someone without access tries to navigate to the URL directly.
+  const sessionLoading = status === "loading";
+
+  const visibleItems = navItems.filter((item) => {
+    if (!item.visible) return true;
+    if (sessionLoading) return true; // optimistic during load
+    return item.visible(role, department);
+  });
 
   return (
     <aside className="fixed left-0 top-0 z-30 flex h-screen w-60 flex-col border-r bg-white">

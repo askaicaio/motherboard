@@ -57,6 +57,20 @@
       "when": 1777911014941,
       "tag": "0007_add_member_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1777911988583,
+      "tag": "0008_add_report_contact",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1777913628023,
+      "tag": "0009_add_invite_password",
+      "breakpoints": true
     }
   ]
 }

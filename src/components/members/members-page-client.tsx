@@ -167,7 +167,7 @@ export function MembersPageClient({
           <p className="text-sm text-zinc-500 mt-1">
             {showArchived
               ? "Restore archived members or permanently delete them."
-              : "Team members with access to Motherboard. Admins can invite, edit roles, and deactivate."}
+              : "Everyone with access to Motherboard — including team members onboarded through the Onboarding workflow. Admins can invite, edit roles, deactivate, or archive."}
           </p>
         </div>
 

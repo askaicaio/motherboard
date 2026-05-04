@@ -308,6 +308,9 @@ export const researchReportFn = inngest.createFunction(
       industry: report.industry || undefined,
       knownDetails: report.knownDetails || undefined,
       titleFormat: report.titleFormat as "strategic_growth" | "ebitda_expansion",
+      contactName: report.contactName,
+      contactEmail: report.contactEmail,
+      contactPhone: report.contactPhone,
     };
 
     // ---- Mark as researching ----

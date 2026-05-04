@@ -166,6 +166,12 @@ export const adminUsers = pgTable("admin_users", {
   // Invite tracking
   invitedAt: timestamp("invited_at", { withTimezone: true }),
   invitedBy: uuid("invited_by"), // self-reference; constraint added below
+  /** One-time signup token sent in the invite email; nulled out once consumed. */
+  inviteToken: text("invite_token"),
+  inviteTokenExpiresAt: timestamp("invite_token_expires_at", { withTimezone: true }),
+  /** Optional password hash for email+password sign-in. Google sign-in still works
+   *  regardless. Null until member explicitly sets a password during welcome. */
+  passwordHash: text("password_hash"),
   // Soft archive (separate from isActive — archived = deactivated AND
   // moved out of the main list)
   archivedAt: timestamp("archived_at", { withTimezone: true }),
@@ -674,6 +680,11 @@ export const companyReports = pgTable(
     researchMode: reportResearchModeEnum("research_mode")
       .notNull()
       .default("deep"),
+    // CAIO representative shown on Slide 10 (CTA). Pre-filled with
+    // Dani Apgar by default but editable per-report.
+    contactName: text("contact_name"),
+    contactEmail: text("contact_email"),
+    contactPhone: text("contact_phone"),
 
     // Stage 1: Deep Research
     researchStatus: reportStageStatusEnum("research_status")

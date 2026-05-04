@@ -48,7 +48,9 @@
       "Bash(git push *)",
       "Bash(git commit -m 'Add SQL script to recompute historical research costs with correct per-model pricing *)",
       "Bash(git commit -m 'Fix layout overflow at the layout root + scrollable markdown previews *)",
-      "Bash(DATABASE_URL=\"postgres://placeholder:placeholder@localhost:5432/placeholder\" npx drizzle-kit generate --name add_member_fields)"
+      "Bash(DATABASE_URL=\"postgres://placeholder:placeholder@localhost:5432/placeholder\" npx drizzle-kit generate --name add_member_fields)",
+      "Bash(DATABASE_URL=\"postgres://placeholder:placeholder@localhost:5432/placeholder\" npx drizzle-kit generate --name add_report_contact)",
+      "Bash(DATABASE_URL=\"postgres://placeholder:placeholder@localhost:5432/placeholder\" npx drizzle-kit generate --name add_invite_password)"
     ]
   }
 }

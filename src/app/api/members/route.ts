@@ -1,11 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { randomBytes } from "crypto";
 import { db } from "@/lib/db";
 import { adminUsers } from "@/lib/db/schema";
 import { audit } from "@/lib/audit/logger";
 import { getOptionalAuth } from "@/lib/auth/guard";
 import { isAdminRole, ALLOWED_EMAIL_DOMAIN_HINT } from "@/lib/auth/permissions";
+import { sendEmail } from "@/lib/email/sender";
+import { buildInviteEmail } from "@/lib/email/invite-template";
+import { departmentLabel } from "@/types";
 import { desc, isNull, isNotNull } from "drizzle-orm";
+
+const INVITE_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+function generateInviteToken(): string {
+  return randomBytes(32).toString("base64url");
+}
 
 const inviteSchema = z.object({
   email: z.string().email().toLowerCase(),
@@ -76,6 +86,10 @@ export async function POST(request: NextRequest) {
   // Map UI 'admin'/'user' to internal 'admin'/'viewer'
   const internalRole = body.role === "admin" ? "admin" : "viewer";
 
+  // Generate one-time invite token (7-day expiry)
+  const inviteToken = generateInviteToken();
+  const inviteTokenExpiresAt = new Date(Date.now() + INVITE_TOKEN_TTL_MS);
+
   try {
     const [created] = await db
       .insert(adminUsers)
@@ -88,8 +102,29 @@ export async function POST(request: NextRequest) {
         startedAt: body.startedAt ? new Date(body.startedAt) : null,
         invitedAt: new Date(),
         invitedBy: user.id,
+        inviteToken,
+        inviteTokenExpiresAt,
       })
       .returning();
+
+    // Send the invite email (non-blocking — log failures but don't roll back)
+    const baseUrl =
+      process.env.NEXT_PUBLIC_APP_URL ||
+      process.env.NEXTAUTH_URL ||
+      "http://localhost:3000";
+    const welcomeUrl = `${baseUrl.replace(/\/$/, "")}/welcome?token=${inviteToken}`;
+    const { subject, html, plain } = buildInviteEmail({
+      inviteeName: body.name,
+      inviteeEmail: body.email,
+      inviterName: user.name || user.email || "Your admin",
+      role: body.role,
+      department: departmentLabel(body.department),
+      welcomeUrl,
+    });
+    const sendResult = await sendEmail({ to: body.email, subject, html, plain });
+    if (!sendResult.success) {
+      console.error(`[invite] Failed to send invite email to ${body.email}:`, sendResult.error);
+    }
 
     await audit({
       action: "settings_updated", // reuse — could add member_invited later
@@ -101,10 +136,15 @@ export async function POST(request: NextRequest) {
         memberEmail: created.email,
         role: internalRole,
         department: body.department,
+        emailSent: sendResult.success,
       },
     });
 
-    return NextResponse.json({ member: created }, { status: 201 });
+    // Don't return the inviteToken to clients — it's secret
+    return NextResponse.json(
+      { member: { ...created, inviteToken: undefined }, emailSent: sendResult.success },
+      { status: 201 },
+    );
   } catch (err) {
     // Handle duplicate email (unique constraint)
     const message = err instanceof Error ? err.message : String(err);

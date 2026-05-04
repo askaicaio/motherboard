@@ -25,8 +25,10 @@ export function proxy(request: NextRequest) {
 
   if (
     pathname.startsWith("/login") ||
+    pathname.startsWith("/welcome") || // public — token-gated invite acceptance
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/api/callbacks") ||
+    pathname.startsWith("/api/welcome") || // public — token-gated activation
     pathname.startsWith("/api/inngest") || // Inngest webhook — verifies its own signatures
     pathname.startsWith("/_next") ||
     pathname === "/favicon.ico" ||
@@ -69,6 +71,6 @@ export const config = {
      * a `.` followed by characters (i.e. a file with extension) is
      * skipped — this handles all public/ static assets in one shot.
      */
-    "/((?!login|api/auth|api/callbacks|api/inngest|_next/static|_next/image|.*\\..*).*)",
+    "/((?!login|welcome|api/auth|api/callbacks|api/welcome|api/inngest|_next/static|_next/image|.*\\..*).*)",
   ],
 };

@@ -13,12 +13,25 @@
 
 import { REFERENCES } from "./reference-content";
 import type { ReportTitleFormat } from "@/types";
+import { DEFAULT_REPORT_CONTACT } from "@/types";
 
 export interface BuildPromptOptions {
   companyName: string;
   industry?: string;
   knownDetails?: string;
   titleFormat: ReportTitleFormat;
+  /** CAIO representative shown on Slide 10 (CTA). Falls back to Dani Apgar. */
+  contactName?: string | null;
+  contactEmail?: string | null;
+  contactPhone?: string | null;
+}
+
+function resolveContact(options: BuildPromptOptions) {
+  return {
+    name: options.contactName?.trim() || DEFAULT_REPORT_CONTACT.name,
+    email: options.contactEmail?.trim() || DEFAULT_REPORT_CONTACT.email,
+    phone: options.contactPhone?.trim() || DEFAULT_REPORT_CONTACT.phone,
+  };
 }
 
 const TITLE_FORMAT_INSTRUCTION: Record<ReportTitleFormat, string> = {
@@ -204,6 +217,7 @@ export function buildSlideDeckPrompt(
   options: BuildPromptOptions,
   dossier: string,
 ): string {
+  const contact = resolveContact(options);
   return `You are a senior McKinsey-caliber AI consulting strategist working for CAIO (ChiefAIOfficer.com).
 
 # YOUR TASK — STAGE 2 OF 2
@@ -285,7 +299,7 @@ ${dossier}
   - Week 1-2: CEO-wide communication on AI vision; invite employee input
   - Week 2-4: Select Phase 1 pilots; begin Executive Immersion training
 - Optional bold closing quote — one sentence, prospect-specific
-- Contact: **Dani@ChiefAIOfficer.com · 858-463-1130**
+- Contact: **${contact.name} — ${contact.email} · ${contact.phone}**
 
 ---
 

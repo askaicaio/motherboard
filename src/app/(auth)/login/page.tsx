@@ -1,10 +1,46 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 export default function LoginPage() {
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  async function handlePasswordSignIn(e: React.FormEvent) {
+    e.preventDefault();
+    if (!email || !password) {
+      toast.error("Email and password required");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const result = await signIn("credentials", {
+        email: email.trim(),
+        password,
+        redirect: false,
+      });
+      if (result?.error) {
+        toast.error("Invalid email or password.");
+        setSubmitting(false);
+        return;
+      }
+      // Successful sign-in — full reload to pick up session
+      window.location.href = "/";
+    } catch {
+      toast.error("Sign-in failed. Try again.");
+      setSubmitting(false);
+    }
+  }
+
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
       {/* ---- Left side: sign-in form ---- */}
@@ -42,24 +78,93 @@ export default function LoginPage() {
             </div>
 
             <div className="space-y-4">
-              <Button
-                className="w-full h-11 bg-zinc-900 hover:bg-zinc-800 text-white font-medium"
-                onClick={() => signIn("google", { callbackUrl: "/" })}
-              >
-                <GoogleIcon className="mr-2 h-4 w-4" />
-                Continue with Google
-              </Button>
+              {!showPasswordForm ? (
+                <>
+                  <Button
+                    className="w-full h-11 bg-zinc-900 hover:bg-zinc-800 text-white font-medium"
+                    onClick={() => signIn("google", { callbackUrl: "/" })}
+                  >
+                    <GoogleIcon className="mr-2 h-4 w-4" />
+                    Continue with Google
+                  </Button>
 
-              <div className="rounded-lg border border-zinc-100 bg-zinc-50 px-4 py-3">
-                <p className="text-xs leading-relaxed text-zinc-500">
-                  Access is restricted to{" "}
-                  <span className="font-mono text-zinc-700">
-                    @chiefaiofficer.com
-                  </span>{" "}
-                  Google accounts. If you don&apos;t have access, contact your
-                  workspace administrator.
-                </p>
-              </div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-px bg-zinc-200" />
+                    <span className="text-[10px] uppercase tracking-wider text-zinc-400">or</span>
+                    <div className="flex-1 h-px bg-zinc-200" />
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    className="w-full h-11"
+                    onClick={() => setShowPasswordForm(true)}
+                  >
+                    Sign in with email + password
+                  </Button>
+
+                  <div className="rounded-lg border border-zinc-100 bg-zinc-50 px-4 py-3">
+                    <p className="text-xs leading-relaxed text-zinc-500">
+                      Access is restricted to{" "}
+                      <span className="font-mono text-zinc-700">
+                        @chiefaiofficer.com
+                      </span>{" "}
+                      accounts. If you don&apos;t have access, contact your
+                      workspace administrator.
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <form onSubmit={handlePasswordSignIn} className="space-y-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="you@chiefaiofficer.com"
+                      autoFocus
+                      autoComplete="email"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="password">Password</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Your password"
+                      autoComplete="current-password"
+                      required
+                    />
+                  </div>
+                  <Button type="submit" disabled={submitting} className="w-full h-11">
+                    {submitting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Signing in...
+                      </>
+                    ) : (
+                      "Sign in"
+                    )}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="w-full"
+                    onClick={() => setShowPasswordForm(false)}
+                    disabled={submitting}
+                  >
+                    Back to Google sign-in
+                  </Button>
+                  <p className="text-[11px] text-zinc-500 text-center">
+                    Password sign-in is only available if you set one up via your
+                    invite link. Otherwise use Google.
+                  </p>
+                </form>
+              )}
             </div>
           </div>
         </div>

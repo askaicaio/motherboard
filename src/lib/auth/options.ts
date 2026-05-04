@@ -1,5 +1,7 @@
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
+import Credentials from "next-auth/providers/credentials";
+import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { adminUsers } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -27,6 +29,53 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           access_type: "offline",
           response_type: "code",
         },
+      },
+    }),
+    // Email + password sign-in — works only for members who completed
+    // the /welcome flow and explicitly set a password. Google sign-in
+    // remains the primary path; this is a fallback.
+    Credentials({
+      name: "Email + password",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials) {
+        const email =
+          typeof credentials?.email === "string"
+            ? credentials.email.trim().toLowerCase()
+            : "";
+        const password =
+          typeof credentials?.password === "string" ? credentials.password : "";
+
+        if (!email || !password) return null;
+        if (!isAllowedDomain(email)) return null;
+
+        const member = await db.query.adminUsers.findFirst({
+          where: eq(adminUsers.email, email),
+        });
+        if (!member || !member.isActive || !member.passwordHash) return null;
+
+        const ok = await bcrypt.compare(password, member.passwordHash);
+        if (!ok) return null;
+
+        // Update last login + clear any pending invite token (consumed by signin)
+        await db
+          .update(adminUsers)
+          .set({
+            lastLoginAt: new Date(),
+            inviteToken: null,
+            inviteTokenExpiresAt: null,
+            updatedAt: new Date(),
+          })
+          .where(eq(adminUsers.id, member.id));
+
+        return {
+          id: member.id,
+          email: member.email,
+          name: member.name,
+          image: member.avatarUrl,
+        };
       },
     }),
   ],
