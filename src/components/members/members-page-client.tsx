@@ -1,11 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Table,
@@ -16,24 +16,42 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Users,
   Archive,
   ArchiveRestore,
   Shield,
   User as UserIcon,
+  SlidersHorizontal,
+  ChevronDown,
+  Building2,
+  UserMinus,
+  UserCog,
 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import {
+  DEPARTMENTS_LIST,
   departmentLabel,
   isAdminRole,
   memberRoleFromAdminRole,
+  type Department,
 } from "@/types";
+import { toast } from "sonner";
 import { InviteMemberDialog } from "./invite-member-dialog";
 import { MemberRowActions } from "./member-row-actions";
+import { MemberDetailDialog } from "./member-detail-dialog";
 import {
   GROUP_OPTIONS,
   SORT_OPTIONS,
+  COLUMN_DEFINITIONS,
+  type ColumnKey,
   type GroupKey,
   type Member,
   type SortKey,
@@ -84,40 +102,52 @@ function sortMembers(members: Member[], key: SortKey): Member[] {
         return db_ - da;
       });
     case "created_asc":
-      return sorted.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+      return sorted.sort(
+        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      );
     case "created_desc":
-      return sorted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    default:
-      return sorted;
+      return sorted.sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
   }
 }
 
-function groupMembers(members: Member[], key: GroupKey): Map<string, Member[]> {
+function groupMembers(
+  members: Member[],
+  group: GroupKey,
+): Map<string, Member[]> {
+  if (group === "none") return new Map([["__all__", members]]);
   const groups = new Map<string, Member[]>();
-  if (key === "none") {
-    groups.set("All members", members);
-    return groups;
-  }
   for (const m of members) {
-    let groupKey: string;
-    if (key === "role") {
-      groupKey = isAdminRole(m.role) ? "Admins" : "Users";
-    } else {
-      groupKey = departmentLabel(m.department);
-    }
-    if (!groups.has(groupKey)) groups.set(groupKey, []);
-    groups.get(groupKey)!.push(m);
+    const key =
+      group === "role"
+        ? memberRoleFromAdminRole(m.role) === "admin"
+          ? "Admin"
+          : "User"
+        : departmentLabel(m.department);
+    const list = groups.get(key) ?? [];
+    list.push(m);
+    groups.set(key, list);
   }
-  // Sort group keys alphabetically (with "Admins" first when grouping by role)
-  return new Map(
-    [...groups.entries()].sort(([a], [b]) => {
-      if (key === "role") {
-        if (a === "Admins") return -1;
-        if (b === "Admins") return 1;
-      }
-      return a.localeCompare(b);
-    }),
-  );
+  return groups;
+}
+
+const COLUMN_STORAGE_KEY = "members-columns";
+
+function loadColumnPrefs(): Set<ColumnKey> {
+  if (typeof window === "undefined") {
+    return new Set(COLUMN_DEFINITIONS.filter((c) => c.default).map((c) => c.key));
+  }
+  const stored = localStorage.getItem(COLUMN_STORAGE_KEY);
+  if (stored) {
+    try {
+      const arr = JSON.parse(stored) as ColumnKey[];
+      return new Set(arr);
+    } catch {
+      /* fall through */
+    }
+  }
+  return new Set(COLUMN_DEFINITIONS.filter((c) => c.default).map((c) => c.key));
 }
 
 export function MembersPageClient({
@@ -128,14 +158,21 @@ export function MembersPageClient({
   canManage,
 }: Props) {
   const router = useRouter();
-  const [sort, setSort] = useState<SortKey>(() => {
-    if (typeof window === "undefined") return "name_asc";
-    return (localStorage.getItem("members-sort") as SortKey) || "name_asc";
-  });
-  const [group, setGroup] = useState<GroupKey>(() => {
-    if (typeof window === "undefined") return "none";
-    return (localStorage.getItem("members-group") as GroupKey) || "none";
-  });
+  const [sort, setSort] = useState<SortKey>("name_asc");
+  const [group, setGroup] = useState<GroupKey>("none");
+  const [visibleColumns, setVisibleColumns] = useState<Set<ColumnKey>>(
+    () => new Set(COLUMN_DEFINITIONS.filter((c) => c.default).map((c) => c.key)),
+  );
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [detailMember, setDetailMember] = useState<Member | null>(null);
+  const [bulkBusy, setBulkBusy] = useState(false);
+
+  // Hydrate prefs from localStorage on first client render
+  useEffect(() => {
+    setSort((localStorage.getItem("members-sort") as SortKey) || "name_asc");
+    setGroup((localStorage.getItem("members-group") as GroupKey) || "none");
+    setVisibleColumns(loadColumnPrefs());
+  }, []);
 
   function setSortAndPersist(value: SortKey) {
     setSort(value);
@@ -147,13 +184,83 @@ export function MembersPageClient({
     if (typeof window !== "undefined") localStorage.setItem("members-group", value);
   }
 
-  const grouped = useMemo(() => {
-    const sorted = sortMembers(initialMembers, sort);
-    return groupMembers(sorted, group);
-  }, [initialMembers, sort, group]);
+  function toggleColumn(key: ColumnKey) {
+    const next = new Set(visibleColumns);
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    if (next.size === 0) return; // never hide all columns
+    setVisibleColumns(next);
+    if (typeof window !== "undefined") {
+      localStorage.setItem(COLUMN_STORAGE_KEY, JSON.stringify([...next]));
+    }
+  }
+
+  const sorted = useMemo(() => sortMembers(initialMembers, sort), [initialMembers, sort]);
+  const grouped = useMemo(() => groupMembers(sorted, group), [sorted, group]);
 
   function toggleArchived(showArchivedNow: boolean) {
     router.push(showArchivedNow ? "/members?archived=1" : "/members");
+  }
+
+  // ---- Selection helpers ----
+  const selectableIds = useMemo(
+    () => sorted.filter((m) => m.id !== currentUserId).map((m) => m.id),
+    [sorted, currentUserId],
+  );
+  const allSelected =
+    selected.size > 0 && selectableIds.every((id) => selected.has(id));
+  const someSelected = selected.size > 0;
+
+  function toggleSelectAll() {
+    if (allSelected) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(selectableIds));
+    }
+  }
+
+  function toggleOne(id: string) {
+    if (id === currentUserId) return;
+    const next = new Set(selected);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSelected(next);
+  }
+
+  // ---- Bulk actions ----
+  async function bulkAction(payload: {
+    action: string;
+    role?: "admin" | "user";
+    department?: Department;
+    confirmMsg?: string;
+  }) {
+    if (selected.size === 0) return;
+    if (payload.confirmMsg && !confirm(payload.confirmMsg)) return;
+    setBulkBusy(true);
+    try {
+      const res = await fetch("/api/members/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ids: [...selected],
+          action: payload.action,
+          role: payload.role,
+          department: payload.department,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      toast.success(`${data.affected} member${data.affected === 1 ? "" : "s"} updated`);
+      setSelected(new Set());
+      router.refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Bulk action failed");
+    } finally {
+      setBulkBusy(false);
+    }
   }
 
   return (
@@ -166,7 +273,7 @@ export function MembersPageClient({
           </h1>
           <p className="text-sm text-zinc-500 mt-1">
             {showArchived
-              ? "Restore archived members or permanently delete them."
+              ? "Restore archived members or permanently delete them. Archived members are also where offboarded team members live."
               : "Everyone with access to Motherboard — including team members onboarded through the Onboarding workflow. Admins can invite, edit roles, deactivate, or archive."}
           </p>
         </div>
@@ -185,11 +292,29 @@ export function MembersPageClient({
       {initialMembers.length > 0 && (
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="text-sm text-zinc-500">
-            {initialMembers.length} {initialMembers.length === 1 ? "member" : "members"}
-            {showArchived && " in archive"}
+            {someSelected ? (
+              <span className="font-medium text-zinc-900">
+                {selected.size} selected
+              </span>
+            ) : (
+              <>
+                {initialMembers.length} {initialMembers.length === 1 ? "member" : "members"}
+                {showArchived && " in archive"}
+              </>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Bulk actions */}
+            {someSelected && canManage && (
+              <BulkActionsMenu
+                count={selected.size}
+                onAction={bulkAction}
+                busy={bulkBusy}
+                showArchived={showArchived}
+              />
+            )}
+
             <select
               value={sort}
               onChange={(e) => setSortAndPersist(e.target.value as SortKey)}
@@ -212,6 +337,38 @@ export function MembersPageClient({
                 </option>
               ))}
             </select>
+
+            {/* Column customizer */}
+            <DropdownMenu>
+              <DropdownMenuTrigger>
+                <Button variant="outline" size="sm" className="gap-1.5 h-8 text-xs">
+                  <SlidersHorizontal className="h-3.5 w-3.5" />
+                  Columns
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <div className="px-2 py-1.5 text-[10px] uppercase tracking-wider text-zinc-500 font-medium">
+                  Show columns
+                </div>
+                <DropdownMenuSeparator />
+                {COLUMN_DEFINITIONS.map((col) => (
+                  <DropdownMenuItem
+                    key={col.key}
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      toggleColumn(col.key);
+                    }}
+                    className="gap-2"
+                  >
+                    <Checkbox
+                      checked={visibleColumns.has(col.key)}
+                      onCheckedChange={() => toggleColumn(col.key)}
+                    />
+                    <span>{col.label}</span>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       )}
@@ -244,12 +401,28 @@ export function MembersPageClient({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="pl-6">Name</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Department</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Started</TableHead>
-                <TableHead>Last login</TableHead>
+                {canManage && (
+                  <TableHead className="pl-6 w-10">
+                    <Checkbox
+                      checked={allSelected}
+                      onCheckedChange={toggleSelectAll}
+                      aria-label="Select all"
+                    />
+                  </TableHead>
+                )}
+                {visibleColumns.has("name") && (
+                  <TableHead className={canManage ? "" : "pl-6"}>Name</TableHead>
+                )}
+                {visibleColumns.has("role") && <TableHead>Role</TableHead>}
+                {visibleColumns.has("department") && <TableHead>Department</TableHead>}
+                {visibleColumns.has("jobTitle") && <TableHead>Job Title</TableHead>}
+                {visibleColumns.has("location") && <TableHead>Location</TableHead>}
+                {visibleColumns.has("phone") && <TableHead>Phone</TableHead>}
+                {visibleColumns.has("status") && <TableHead>Status</TableHead>}
+                {visibleColumns.has("started") && <TableHead>Started</TableHead>}
+                {visibleColumns.has("invited") && <TableHead>Invited</TableHead>}
+                {visibleColumns.has("lastLogin") && <TableHead>Last login</TableHead>}
+                {visibleColumns.has("createdAt") && <TableHead>Date Added</TableHead>}
                 <TableHead className="text-right pr-4">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -261,6 +434,10 @@ export function MembersPageClient({
                   members={members}
                   currentUserId={currentUserId}
                   canManage={canManage}
+                  visibleColumns={visibleColumns}
+                  selected={selected}
+                  onToggleSelect={toggleOne}
+                  onRowClick={setDetailMember}
                 />
               ))}
             </TableBody>
@@ -280,6 +457,14 @@ export function MembersPageClient({
           </button>
         </div>
       )}
+
+      {/* Detail dialog */}
+      <MemberDetailDialog
+        member={detailMember}
+        open={!!detailMember}
+        onOpenChange={(open) => !open && setDetailMember(null)}
+        canManage={canManage}
+      />
     </div>
   );
 }
@@ -289,17 +474,31 @@ function MemberGroup({
   members,
   currentUserId,
   canManage,
+  visibleColumns,
+  selected,
+  onToggleSelect,
+  onRowClick,
 }: {
   groupName: string | null;
   members: Member[];
   currentUserId: string;
   canManage: boolean;
+  visibleColumns: Set<ColumnKey>;
+  selected: Set<string>;
+  onToggleSelect: (id: string) => void;
+  onRowClick: (m: Member) => void;
 }) {
+  // Compute total cell count for groupName row span
+  const totalCols =
+    (canManage ? 1 : 0) + // checkbox column
+    [...visibleColumns].length + // visible data columns
+    1; // actions column
+
   return (
     <>
       {groupName && (
         <TableRow className="bg-zinc-50/70 hover:bg-zinc-50/70">
-          <TableCell colSpan={7} className="pl-6 py-2">
+          <TableCell colSpan={totalCols} className="pl-6 py-2">
             <div className="text-[11px] uppercase tracking-wider font-medium text-zinc-600">
               {groupName} · {members.length}
             </div>
@@ -310,53 +509,121 @@ function MemberGroup({
         const status = statusBadge(member);
         const isAdmin = isAdminRole(member.role);
         const memberRole = memberRoleFromAdminRole(member.role);
+        const isSelf = member.id === currentUserId;
+        const isSelected = selected.has(member.id);
+
         return (
-          <TableRow key={member.id} className={cn(!member.isActive && "opacity-60")}>
-            <TableCell className="pl-6 py-3">
-              <div className="flex items-center gap-3">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={undefined} alt={member.name} />
-                  <AvatarFallback className="text-[11px] bg-zinc-100">
-                    {initials(member.name)}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="min-w-0">
-                  <div className="font-medium text-sm truncate">{member.name}</div>
-                  <div className="text-xs text-zinc-500 font-mono truncate">
-                    {member.email}
+          <TableRow
+            key={member.id}
+            className={cn(
+              !member.isActive && "opacity-60",
+              "cursor-pointer hover:bg-zinc-50/80",
+              isSelected && "bg-indigo-50/40 hover:bg-indigo-50/50",
+            )}
+            onClick={() => onRowClick(member)}
+          >
+            {canManage && (
+              <TableCell
+                className="pl-6 w-10"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Checkbox
+                  checked={isSelected}
+                  onCheckedChange={() => onToggleSelect(member.id)}
+                  disabled={isSelf}
+                  aria-label={`Select ${member.name}`}
+                />
+              </TableCell>
+            )}
+            {visibleColumns.has("name") && (
+              <TableCell className={canManage ? "py-3" : "pl-6 py-3"}>
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={member.avatarUrl ?? undefined} alt={member.name} />
+                    <AvatarFallback className="text-[11px] bg-zinc-100">
+                      {initials(member.name)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0">
+                    <div className="font-medium text-sm truncate">{member.name}</div>
+                    <div className="text-xs text-zinc-500 font-mono truncate">
+                      {member.email}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </TableCell>
-            <TableCell>
-              <div className="flex items-center gap-1.5">
-                {isAdmin ? (
-                  <Shield className="h-3.5 w-3.5 text-purple-500" />
-                ) : (
-                  <UserIcon className="h-3.5 w-3.5 text-zinc-400" />
-                )}
-                <span className="text-sm capitalize">{memberRole}</span>
-              </div>
-            </TableCell>
-            <TableCell className="text-sm text-zinc-700">
-              {departmentLabel(member.department)}
-            </TableCell>
-            <TableCell>
-              <Badge className={status.cls}>{status.label}</Badge>
-            </TableCell>
-            <TableCell className="text-sm text-zinc-500">
-              {member.startedAt ? format(new Date(member.startedAt), "MMM d, yyyy") : "—"}
-            </TableCell>
-            <TableCell className="text-sm text-zinc-500">
-              {member.lastLoginAt
-                ? format(new Date(member.lastLoginAt), "MMM d, yyyy")
-                : <span className="italic">never</span>}
-            </TableCell>
-            <TableCell className="text-right pr-4">
+              </TableCell>
+            )}
+            {visibleColumns.has("role") && (
+              <TableCell>
+                <div className="flex items-center gap-1.5">
+                  {isAdmin ? (
+                    <Shield className="h-3.5 w-3.5 text-purple-500" />
+                  ) : (
+                    <UserIcon className="h-3.5 w-3.5 text-zinc-400" />
+                  )}
+                  <span className="text-sm capitalize">{memberRole}</span>
+                </div>
+              </TableCell>
+            )}
+            {visibleColumns.has("department") && (
+              <TableCell className="text-sm text-zinc-700">
+                {departmentLabel(member.department)}
+              </TableCell>
+            )}
+            {visibleColumns.has("jobTitle") && (
+              <TableCell className="text-sm text-zinc-700">
+                {member.jobTitle || <span className="italic text-zinc-400">—</span>}
+              </TableCell>
+            )}
+            {visibleColumns.has("location") && (
+              <TableCell className="text-sm text-zinc-700">
+                {member.location || <span className="italic text-zinc-400">—</span>}
+              </TableCell>
+            )}
+            {visibleColumns.has("phone") && (
+              <TableCell className="text-sm text-zinc-700">
+                {member.phone || <span className="italic text-zinc-400">—</span>}
+              </TableCell>
+            )}
+            {visibleColumns.has("status") && (
+              <TableCell>
+                <Badge className={status.cls}>{status.label}</Badge>
+              </TableCell>
+            )}
+            {visibleColumns.has("started") && (
+              <TableCell className="text-sm text-zinc-500">
+                {member.startedAt
+                  ? format(new Date(member.startedAt), "MMM d, yyyy")
+                  : <span className="italic">—</span>}
+              </TableCell>
+            )}
+            {visibleColumns.has("invited") && (
+              <TableCell className="text-sm text-zinc-500">
+                {member.invitedAt
+                  ? format(new Date(member.invitedAt), "MMM d, yyyy")
+                  : <span className="italic">—</span>}
+              </TableCell>
+            )}
+            {visibleColumns.has("lastLogin") && (
+              <TableCell className="text-sm text-zinc-500">
+                {member.lastLoginAt
+                  ? format(new Date(member.lastLoginAt), "MMM d, yyyy")
+                  : <span className="italic">never</span>}
+              </TableCell>
+            )}
+            {visibleColumns.has("createdAt") && (
+              <TableCell className="text-sm text-zinc-500">
+                {format(new Date(member.createdAt), "MMM d, yyyy")}
+              </TableCell>
+            )}
+            <TableCell
+              className="text-right pr-4"
+              onClick={(e) => e.stopPropagation()}
+            >
               <MemberRowActions
                 member={member}
                 canManage={canManage}
-                isSelf={member.id === currentUserId}
+                isSelf={isSelf}
               />
             </TableCell>
           </TableRow>
@@ -366,4 +633,118 @@ function MemberGroup({
   );
 }
 
-export { Link };
+function BulkActionsMenu({
+  count,
+  onAction,
+  busy,
+  showArchived,
+}: {
+  count: number;
+  onAction: (payload: {
+    action: string;
+    role?: "admin" | "user";
+    department?: Department;
+    confirmMsg?: string;
+  }) => void;
+  busy: boolean;
+  showArchived: boolean;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger>
+        <Button
+          variant="default"
+          size="sm"
+          className="gap-1.5 h-8 text-xs"
+          disabled={busy}
+        >
+          Bulk actions ({count})
+          <ChevronDown className="h-3 w-3" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        {/* Role */}
+        <div className="px-2 py-1.5 text-[10px] uppercase tracking-wider text-zinc-500 font-medium">
+          Set role
+        </div>
+        <DropdownMenuItem
+          onSelect={() => onAction({ action: "update_role", role: "admin" })}
+        >
+          <Shield className="h-3.5 w-3.5 mr-2 text-purple-500" />
+          Make Admin
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onSelect={() => onAction({ action: "update_role", role: "user" })}
+        >
+          <UserIcon className="h-3.5 w-3.5 mr-2 text-zinc-500" />
+          Make User
+        </DropdownMenuItem>
+
+        <DropdownMenuSeparator />
+
+        {/* Department */}
+        <div className="px-2 py-1.5 text-[10px] uppercase tracking-wider text-zinc-500 font-medium">
+          Set department
+        </div>
+        {DEPARTMENTS_LIST.map((d) => (
+          <DropdownMenuItem
+            key={d.value}
+            onSelect={() =>
+              onAction({
+                action: "update_department",
+                department: d.value as Department,
+              })
+            }
+          >
+            <Building2 className="h-3.5 w-3.5 mr-2 text-zinc-400" />
+            {d.label}
+          </DropdownMenuItem>
+        ))}
+
+        <DropdownMenuSeparator />
+
+        {/* Lifecycle */}
+        {!showArchived && (
+          <>
+            <DropdownMenuItem
+              onSelect={() =>
+                onAction({
+                  action: "deactivate",
+                  confirmMsg: `Deactivate ${count} member(s)? They will lose access until reactivated.`,
+                })
+              }
+            >
+              <UserMinus className="h-3.5 w-3.5 mr-2 text-amber-600" />
+              Deactivate
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={() =>
+                onAction({
+                  action: "archive",
+                  confirmMsg: `Archive ${count} member(s)? They'll be moved to the archive list.`,
+                })
+              }
+            >
+              <Archive className="h-3.5 w-3.5 mr-2 text-zinc-500" />
+              Archive
+            </DropdownMenuItem>
+          </>
+        )}
+        {showArchived && (
+          <DropdownMenuItem
+            onSelect={() => onAction({ action: "unarchive" })}
+          >
+            <ArchiveRestore className="h-3.5 w-3.5 mr-2 text-zinc-500" />
+            Restore from archive
+          </DropdownMenuItem>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+// Re-export Link for backwards compat with existing imports
+export { default as Link } from "next/link";
+
+// Suppress unused-warnings for kept imports referenced in JSX above
+void UserCog;

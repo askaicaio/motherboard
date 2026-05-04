@@ -31,6 +31,10 @@ export function EditMemberDialog({ member, open, onOpenChange }: Props) {
   const [department, setDepartment] = useState<Department>(
     (member.department as Department) || "unassigned",
   );
+  const [jobTitle, setJobTitle] = useState(member.jobTitle ?? "");
+  const [location, setLocation] = useState(member.location ?? "");
+  const [phone, setPhone] = useState(member.phone ?? "");
+  const [bio, setBio] = useState(member.bio ?? "");
   const [startedAt, setStartedAt] = useState(
     member.startedAt
       ? new Date(member.startedAt).toISOString().slice(0, 10)
@@ -43,6 +47,10 @@ export function EditMemberDialog({ member, open, onOpenChange }: Props) {
       setName(member.name);
       setRole(memberRoleFromAdminRole(member.role));
       setDepartment((member.department as Department) || "unassigned");
+      setJobTitle(member.jobTitle ?? "");
+      setLocation(member.location ?? "");
+      setPhone(member.phone ?? "");
+      setBio(member.bio ?? "");
       setStartedAt(
         member.startedAt
           ? new Date(member.startedAt).toISOString().slice(0, 10)
@@ -62,6 +70,10 @@ export function EditMemberDialog({ member, open, onOpenChange }: Props) {
           name: name.trim(),
           role,
           department,
+          jobTitle: jobTitle.trim() || null,
+          location: location.trim() || null,
+          phone: phone.trim() || null,
+          bio: bio.trim() || null,
           startedAt: startedAt || null,
         }),
       });
@@ -134,12 +146,61 @@ export function EditMemberDialog({ member, open, onOpenChange }: Props) {
           </div>
 
           <div className="space-y-1.5">
+            <Label htmlFor="edit-job-title">Job title (Company Role)</Label>
+            <Input
+              id="edit-job-title"
+              value={jobTitle}
+              onChange={(e) => setJobTitle(e.target.value)}
+              placeholder="e.g. Senior Account Manager"
+            />
+            <p className="text-[11px] text-zinc-500">
+              The member&apos;s title within the company. Distinct from the
+              platform Role above.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-location">Location</Label>
+              <Input
+                id="edit-location"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="Remote — Austin, TX"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-phone">Phone</Label>
+              <Input
+                id="edit-phone"
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="555-123-4567"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
             <Label htmlFor="edit-started">Start date</Label>
             <Input
               id="edit-started"
               type="date"
               value={startedAt}
               onChange={(e) => setStartedAt(e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="edit-bio">Bio (optional)</Label>
+            <textarea
+              id="edit-bio"
+              value={bio}
+              onChange={(e) => setBio(e.target.value)}
+              rows={3}
+              maxLength={2000}
+              placeholder="Short bio — what they do, focus areas, etc."
+              className="flex w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm shadow-sm focus:border-zinc-900 focus:outline-none resize-y"
             />
           </div>
 

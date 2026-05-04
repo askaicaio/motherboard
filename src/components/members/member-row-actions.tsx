@@ -110,7 +110,15 @@ export function MemberRowActions({ member, canManage, isSelf }: Props) {
         <DropdownMenuContent align="end">
           {!isArchived && (
             <>
-              <DropdownMenuItem onSelect={() => setEditOpen(true)} disabled={isSelf}>
+              <DropdownMenuItem
+                onSelect={(e) => {
+                  // Prevent Radix dropdown from auto-closing in a way that
+                  // steals focus before the Dialog mounts. Defer one tick.
+                  e.preventDefault();
+                  setTimeout(() => setEditOpen(true), 0);
+                }}
+                disabled={isSelf}
+              >
                 <UserCog className="h-3.5 w-3.5 mr-2" />
                 Edit role / department
               </DropdownMenuItem>

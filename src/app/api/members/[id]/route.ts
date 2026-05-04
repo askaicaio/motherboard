@@ -23,6 +23,12 @@ const updateSchema = z.object({
     ])
     .optional(),
   startedAt: z.string().nullable().optional(),
+  // Profile fields (admin-editable)
+  jobTitle: z.string().max(200).nullable().optional(),
+  location: z.string().max(200).nullable().optional(),
+  managerId: z.string().uuid().nullable().optional(),
+  phone: z.string().max(50).nullable().optional(),
+  bio: z.string().max(2000).nullable().optional(),
 });
 
 /** PATCH /api/members/[id] — update name/role/department (admin-only). */
@@ -69,6 +75,11 @@ export async function PATCH(
   if (body.startedAt !== undefined) {
     update.startedAt = body.startedAt ? new Date(body.startedAt) : null;
   }
+  if (body.jobTitle !== undefined) update.jobTitle = body.jobTitle?.trim() || null;
+  if (body.location !== undefined) update.location = body.location?.trim() || null;
+  if (body.managerId !== undefined) update.managerId = body.managerId || null;
+  if (body.phone !== undefined) update.phone = body.phone?.trim() || null;
+  if (body.bio !== undefined) update.bio = body.bio?.trim() || null;
 
   await db.update(adminUsers).set(update).where(eq(adminUsers.id, id));
 

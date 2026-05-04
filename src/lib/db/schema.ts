@@ -158,6 +158,19 @@ export const adminUsers = pgTable("admin_users", {
   // for backwards compat. UI presents only Admin / User.
   role: text("role").notNull().default("viewer"),
   department: departmentEnum("department").notNull().default("unassigned"),
+  /**
+   * Job title within the company (e.g. "Senior Account Manager", "Founder").
+   * Distinct from `role` which is the platform permission level.
+   */
+  jobTitle: text("job_title"),
+  /** Free-form location (e.g. "Remote — Austin, TX"). */
+  location: text("location"),
+  /** Direct manager — links to another admin_users row. */
+  managerId: uuid("manager_id"),
+  /** Personal phone or work cell (optional). */
+  phone: text("phone"),
+  /** Free-form bio / notes set by the member or admin. */
+  bio: text("bio"),
   avatarUrl: text("avatar_url"),
   isActive: boolean("is_active").notNull().default(true),
   // Date the member started (hire/contract start, separate from when their

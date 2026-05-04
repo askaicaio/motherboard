@@ -50,7 +50,8 @@
       "Bash(git commit -m 'Fix layout overflow at the layout root + scrollable markdown previews *)",
       "Bash(DATABASE_URL=\"postgres://placeholder:placeholder@localhost:5432/placeholder\" npx drizzle-kit generate --name add_member_fields)",
       "Bash(DATABASE_URL=\"postgres://placeholder:placeholder@localhost:5432/placeholder\" npx drizzle-kit generate --name add_report_contact)",
-      "Bash(DATABASE_URL=\"postgres://placeholder:placeholder@localhost:5432/placeholder\" npx drizzle-kit generate --name add_invite_password)"
+      "Bash(DATABASE_URL=\"postgres://placeholder:placeholder@localhost:5432/placeholder\" npx drizzle-kit generate --name add_invite_password)",
+      "Bash(DATABASE_URL=\"postgres://placeholder:placeholder@localhost:5432/placeholder\" npx drizzle-kit generate --name add_member_profile_fields)"
     ]
   }
 }

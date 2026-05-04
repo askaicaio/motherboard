@@ -71,6 +71,13 @@
       "when": 1777913628023,
       "tag": "0009_add_invite_password",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1777915923355,
+      "tag": "0010_add_member_profile_fields",
+      "breakpoints": true
     }
   ]
 }
