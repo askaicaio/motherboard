@@ -20,6 +20,15 @@ export function buildInviteEmail(params: InviteEmailParams) {
   const roleLabel = role === "admin" ? "Admin" : "User";
   const subject = `${inviterName} invited you to Motherboard`;
 
+  // Absolute URL for the CAIO logo (white on transparent — works on purple banner)
+  const appUrl = (
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXTAUTH_URL ||
+    "https://motherboard.chiefaiofficer.com"
+  ).replace(/\/$/, "");
+  const caioLogoUrl = `${appUrl}/caio-logo-white.png`;
+  const motherboardLogoUrl = `${appUrl}/icon-dark.png`;
+
   const html = `<!DOCTYPE html>
 <html>
 <head>
@@ -32,11 +41,29 @@ export function buildInviteEmail(params: InviteEmailParams) {
     <tr>
       <td align="center">
         <table width="100%" style="max-width:560px; background:#ffffff; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.04); overflow:hidden;">
-          <!-- Brand bar -->
+          <!-- Brand bar with CAIO logo -->
           <tr>
-            <td style="background:#6749e3; padding:24px 32px; text-align:left;">
-              <div style="color:#ffffff; font-size:14px; font-weight:600; letter-spacing:-0.01em;">Motherboard</div>
-              <div style="color:rgba(255,255,255,0.75); font-size:12px; margin-top:2px;">CAIO Internal Operations</div>
+            <td style="background:#6749e3; padding:24px 32px;">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="vertical-align:middle;">
+                    <table cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td style="vertical-align:middle; padding-right:10px;">
+                          <img src="${motherboardLogoUrl}" alt="Motherboard" width="28" height="28" style="display:block; border:0; outline:none;">
+                        </td>
+                        <td style="vertical-align:middle;">
+                          <div style="color:#ffffff; font-size:15px; font-weight:600; letter-spacing:-0.01em; line-height:1.2;">Motherboard</div>
+                          <div style="color:rgba(255,255,255,0.75); font-size:12px; margin-top:2px; line-height:1.2;">CAIO Internal Operations</div>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                  <td style="vertical-align:middle; text-align:right;">
+                    <img src="${caioLogoUrl}" alt="Chief AI Officer" width="44" height="44" style="display:block; margin-left:auto; border:0; outline:none; opacity:0.95;">
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
 
