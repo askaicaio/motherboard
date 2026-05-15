@@ -51,7 +51,8 @@
       "Bash(DATABASE_URL=\"postgres://placeholder:placeholder@localhost:5432/placeholder\" npx drizzle-kit generate --name add_member_fields)",
       "Bash(DATABASE_URL=\"postgres://placeholder:placeholder@localhost:5432/placeholder\" npx drizzle-kit generate --name add_report_contact)",
       "Bash(DATABASE_URL=\"postgres://placeholder:placeholder@localhost:5432/placeholder\" npx drizzle-kit generate --name add_invite_password)",
-      "Bash(DATABASE_URL=\"postgres://placeholder:placeholder@localhost:5432/placeholder\" npx drizzle-kit generate --name add_member_profile_fields)"
+      "Bash(DATABASE_URL=\"postgres://placeholder:placeholder@localhost:5432/placeholder\" npx drizzle-kit generate --name add_member_profile_fields)",
+      "Bash(git commit -m 'Auth: harden sign-in against missing migrations + log DB errors *)"
     ]
   }
 }

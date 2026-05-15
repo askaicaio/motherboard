@@ -111,10 +111,31 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
       }
 
-      // Only allow users who exist in admin_users table and are active
-      const adminUser = await db.query.adminUsers.findFirst({
-        where: eq(adminUsers.email, user.email),
-      });
+      // Only allow users who exist in admin_users table and are active.
+      // We use a narrow SELECT (id, email, isActive) so a missing/lagging
+      // migration on an unrelated column can't break sign-in.
+      let adminUser:
+        | { id: string; email: string; isActive: boolean }
+        | undefined;
+      try {
+        const rows = await db
+          .select({
+            id: adminUsers.id,
+            email: adminUsers.email,
+            isActive: adminUsers.isActive,
+          })
+          .from(adminUsers)
+          .where(eq(adminUsers.email, user.email))
+          .limit(1);
+        adminUser = rows[0];
+      } catch (err) {
+        console.error(
+          `[AUTH] DB error while looking up ${user.email}:`,
+          err instanceof Error ? err.message : err,
+        );
+        // Fail closed — don't silently allow if we can't verify
+        return false;
+      }
 
       if (!adminUser?.isActive) {
         console.warn(
@@ -123,11 +144,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         return false;
       }
 
-      // Update last login timestamp
-      await db
-        .update(adminUsers)
-        .set({ lastLoginAt: new Date(), updatedAt: new Date() })
-        .where(eq(adminUsers.email, user.email));
+      // Update last login timestamp — also narrow + best-effort.
+      try {
+        await db
+          .update(adminUsers)
+          .set({ lastLoginAt: new Date(), updatedAt: new Date() })
+          .where(eq(adminUsers.email, user.email));
+      } catch (err) {
+        console.warn(
+          `[AUTH] Failed to update lastLoginAt for ${user.email}:`,
+          err instanceof Error ? err.message : err,
+        );
+        // Don't fail the sign-in just because lastLoginAt couldn't be written
+      }
 
       return true;
     },
@@ -145,13 +174,30 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         !!user || trigger === "signIn" || trigger === "update" || !token.role;
 
       if (shouldRefreshFromDb && token.email) {
-        const adminUser = await db.query.adminUsers.findFirst({
-          where: eq(adminUsers.email, token.email),
-        });
-        if (adminUser) {
-          token.id = adminUser.id;
-          token.role = adminUser.role;
-          token.department = adminUser.department || "unassigned";
+        // Narrow SELECT — same defensive pattern as signIn callback so
+        // a lagging migration on an unrelated column can't break auth.
+        try {
+          const rows = await db
+            .select({
+              id: adminUsers.id,
+              role: adminUsers.role,
+              department: adminUsers.department,
+            })
+            .from(adminUsers)
+            .where(eq(adminUsers.email, token.email))
+            .limit(1);
+          const adminUser = rows[0];
+          if (adminUser) {
+            token.id = adminUser.id;
+            token.role = adminUser.role;
+            token.department = adminUser.department || "unassigned";
+          }
+        } catch (err) {
+          console.error(
+            `[AUTH/jwt] DB error refreshing role for ${token.email}:`,
+            err instanceof Error ? err.message : err,
+          );
+          // Leave token.role unchanged — better stale than no session
         }
       }
       return token;
