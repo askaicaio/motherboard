@@ -219,7 +219,11 @@ export function CampaignDetailClient({
         />
       </div>
 
-      <Tabs defaultValue="leads">
+      {/* Default to Setup tab when there are zero leads — the user is in
+          configuration mode and the most useful thing to show is the
+          webhook URLs they need to paste into GHL. Once leads exist,
+          default to the Leads tab where they'll spend most of their time. */}
+      <Tabs defaultValue={leads.length === 0 ? "setup" : "leads"}>
         <TabsList>
           <TabsTrigger value="leads">Leads ({leads.length})</TabsTrigger>
           <TabsTrigger value="sources">Sources</TabsTrigger>

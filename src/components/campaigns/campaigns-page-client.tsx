@@ -6,7 +6,14 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Megaphone, Plus, Calendar, ExternalLink } from "lucide-react";
+import {
+  Megaphone,
+  Plus,
+  Calendar,
+  ExternalLink,
+  Copy,
+  CheckCheck,
+} from "lucide-react";
 import { format, formatDistanceToNow, isPast, isFuture } from "date-fns";
 import { toast } from "sonner";
 import { CreateCampaignDialog } from "./create-campaign-dialog";
@@ -78,9 +85,11 @@ export function CampaignsPageClient({
       ) : (
         <>
           {upcoming.length > 0 && (
-            <Section title="Upcoming & active" items={upcoming} />
+            <Section title="Upcoming & active" items={upcoming} baseUrl={baseUrl} />
           )}
-          {past.length > 0 && <Section title="Past" items={past} />}
+          {past.length > 0 && (
+            <Section title="Past" items={past} baseUrl={baseUrl} />
+          )}
         </>
       )}
 
@@ -97,9 +106,11 @@ export function CampaignsPageClient({
 function Section({
   title,
   items,
+  baseUrl,
 }: {
   title: string;
   items: CampaignListItem[];
+  baseUrl: string;
 }) {
   return (
     <section className="space-y-3">
@@ -108,70 +119,118 @@ function Section({
       </h2>
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
         {items.map((c) => (
-          <CampaignCard key={c.id} campaign={c} />
+          <CampaignCard key={c.id} campaign={c} baseUrl={baseUrl} />
         ))}
       </div>
     </section>
   );
 }
 
-function CampaignCard({ campaign }: { campaign: CampaignListItem }) {
+function CampaignCard({
+  campaign,
+  baseUrl,
+}: {
+  campaign: CampaignListItem;
+  baseUrl: string;
+}) {
+  const [copied, setCopied] = useState(false);
   const eventDate = campaign.eventDate ? new Date(campaign.eventDate) : null;
   const conversionPct =
     campaign.leadCount > 0
       ? Math.round((campaign.attendedCount / campaign.leadCount) * 100)
       : 0;
 
+  const signupUrl = `${baseUrl}/api/campaigns/${campaign.id}/webhook/${campaign.webhookSecret}?event=signup`;
+
+  // Card body is not wrapped in <a>; the title is the only link. This
+  // way the Copy button doesn't trigger navigation (and we keep
+  // semantic markup — no nested interactive elements).
+  async function copySignupUrl() {
+    await navigator.clipboard.writeText(signupUrl);
+    setCopied(true);
+    toast.success("Signup webhook URL copied");
+    setTimeout(() => setCopied(false), 1500);
+  }
+
   return (
-    <Link href={`/campaigns/${campaign.id}`} className="group block">
-      <Card className="h-full transition-shadow hover:shadow-md">
-        <CardContent className="space-y-3 p-5">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <h3 className="truncate font-medium group-hover:underline">
-                {campaign.name}
-              </h3>
-              <div className="mt-1 flex items-center gap-2">
-                <Badge variant="secondary" className="capitalize text-xs">
-                  {campaign.type.replace(/_/g, " ")}
+    <Card className="h-full transition-shadow hover:shadow-md">
+      <CardContent className="space-y-3 p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <Link
+              href={`/campaigns/${campaign.id}`}
+              className="block hover:underline"
+            >
+              <h3 className="truncate font-medium">{campaign.name}</h3>
+            </Link>
+            <div className="mt-1 flex items-center gap-2">
+              <Badge variant="secondary" className="capitalize text-xs">
+                {campaign.type.replace(/_/g, " ")}
+              </Badge>
+              {campaign.status !== "active" && (
+                <Badge variant="outline" className="capitalize text-xs">
+                  {campaign.status}
                 </Badge>
-                {campaign.status !== "active" && (
-                  <Badge variant="outline" className="capitalize text-xs">
-                    {campaign.status}
-                  </Badge>
-                )}
-              </div>
+              )}
             </div>
           </div>
+        </div>
 
-          {eventDate && (
-            <div className="flex items-center gap-2 text-xs text-zinc-500">
-              <Calendar className="h-3.5 w-3.5" />
-              <span>
-                {format(eventDate, "MMM d, yyyy 'at' h:mm a")}
-                {isFuture(eventDate) && (
-                  <span className="ml-1 text-zinc-400">
-                    · in {formatDistanceToNow(eventDate)}
-                  </span>
-                )}
-              </span>
-            </div>
-          )}
-
-          {campaign.description && (
-            <p className="line-clamp-2 text-sm text-zinc-600">
-              {campaign.description}
-            </p>
-          )}
-
-          <div className="grid grid-cols-3 gap-2 border-t pt-3">
-            <Stat label="Signups" value={campaign.leadCount} />
-            <Stat label="Attended" value={campaign.attendedCount} />
-            <Stat label="Conv." value={`${conversionPct}%`} />
+        {eventDate && (
+          <div className="flex items-center gap-2 text-xs text-zinc-500">
+            <Calendar className="h-3.5 w-3.5" />
+            <span>
+              {format(eventDate, "MMM d, yyyy 'at' h:mm a")}
+              {isFuture(eventDate) && (
+                <span className="ml-1 text-zinc-400">
+                  · in {formatDistanceToNow(eventDate)}
+                </span>
+              )}
+            </span>
           </div>
-        </CardContent>
-      </Card>
-    </Link>
+        )}
+
+        {campaign.description && (
+          <p className="line-clamp-2 text-sm text-zinc-600">
+            {campaign.description}
+          </p>
+        )}
+
+        <div className="grid grid-cols-3 gap-2 border-t pt-3">
+          <Stat label="Signups" value={campaign.leadCount} />
+          <Stat label="Attended" value={campaign.attendedCount} />
+          <Stat label="Conv." value={`${conversionPct}%`} />
+        </div>
+
+        <div className="flex items-center gap-2 border-t pt-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={copySignupUrl}
+            className="flex-1"
+            title={signupUrl}
+          >
+            {copied ? (
+              <>
+                <CheckCheck className="mr-2 h-3.5 w-3.5 text-emerald-600" />
+                Copied
+              </>
+            ) : (
+              <>
+                <Copy className="mr-2 h-3.5 w-3.5" />
+                Copy signup URL
+              </>
+            )}
+          </Button>
+          <Link
+            href={`/campaigns/${campaign.id}`}
+            className="rounded-md border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+          >
+            Open →
+          </Link>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
