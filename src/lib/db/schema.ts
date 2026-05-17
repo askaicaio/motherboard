@@ -765,3 +765,228 @@ export const companyReportsRelations = relations(companyReports, ({ one }) => ({
     references: [adminUsers.id],
   }),
 }));
+
+// ========================================================================
+// Campaigns — webhook-driven marketing campaign tracking
+// ========================================================================
+//
+// Model
+// -----
+// campaigns ─┬─< campaign_leads >─┬─ campaign_people (deduped across campaigns by email)
+//            │                    │
+//            └─< campaign_events >┘
+//
+// Each campaign exposes a per-campaign webhook endpoint
+// (/api/campaigns/{id}/webhook/{secret}) that ingests outbound webhook
+// payloads from GHL Workflows, Zoom, or any other source. The endpoint
+// upserts a campaign_person by email, links it to the campaign via a
+// campaign_lead row, and appends a campaign_event with the raw payload.
+// ========================================================================
+
+export const campaigns = pgTable(
+  "campaigns",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    name: text("name").notNull(),
+    /** Free-form type — e.g. "webinar" | "email_blast" | "launch" | "event". */
+    type: text("type").notNull().default("webinar"),
+    /** Human-readable description, optional. */
+    description: text("description"),
+    /** When the campaign's marquee moment happens (webinar start, launch date). */
+    eventDate: timestamp("event_date", { withTimezone: true }),
+    /** IANA timezone string used to render eventDate to humans. */
+    eventTimezone: text("event_timezone").default("America/New_York"),
+    /** "draft" | "active" | "completed" | "archived" */
+    status: text("status").notNull().default("active"),
+    /** Random URL-safe secret used to authenticate inbound webhooks. */
+    webhookSecret: text("webhook_secret").notNull(),
+    /** Optional landing-page URL for reference. */
+    landingPageUrl: text("landing_page_url"),
+    /** Optional GHL workflow/funnel ID for cross-reference. */
+    ghlWorkflowId: text("ghl_workflow_id"),
+
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    archivedBy: uuid("archived_by").references(() => adminUsers.id),
+
+    createdBy: uuid("created_by").references(() => adminUsers.id),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("idx_campaigns_status").on(table.status),
+    index("idx_campaigns_event_date").on(table.eventDate),
+    index("idx_campaigns_archived_at").on(table.archivedAt),
+    uniqueIndex("uniq_campaigns_webhook_secret").on(table.webhookSecret),
+  ],
+);
+
+/**
+ * One row per unique person across ALL campaigns — deduped by email.
+ * The campaign_leads junction connects a person to each campaign they
+ * appeared in, so we can show "this lead's full cross-campaign journey".
+ */
+export const campaignPeople = pgTable(
+  "campaign_people",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    email: text("email").notNull(),
+    name: text("name"),
+    phone: text("phone"),
+    /** GHL contact ID if we know it — lets us deep-link back to GHL. */
+    ghlContactId: text("ghl_contact_id"),
+    /** Most recent activity across any campaign — for sorting "active leads". */
+    lastActivityAt: timestamp("last_activity_at", { withTimezone: true }),
+
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("uniq_campaign_people_email").on(table.email),
+    index("idx_campaign_people_last_activity").on(table.lastActivityAt),
+    index("idx_campaign_people_ghl").on(table.ghlContactId),
+  ],
+);
+
+/**
+ * Junction: which person appeared in which campaign, with per-campaign
+ * source attribution + status. Composite unique on (campaign_id, person_id)
+ * means re-submits update the same row instead of duplicating.
+ */
+export const campaignLeads = pgTable(
+  "campaign_leads",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    campaignId: uuid("campaign_id")
+      .references(() => campaigns.id, { onDelete: "cascade" })
+      .notNull(),
+    personId: uuid("person_id")
+      .references(() => campaignPeople.id, { onDelete: "cascade" })
+      .notNull(),
+
+    /** GHL "source" field or our best guess from referer. */
+    source: text("source"),
+    utmSource: text("utm_source"),
+    utmMedium: text("utm_medium"),
+    utmCampaign: text("utm_campaign"),
+    utmContent: text("utm_content"),
+    utmTerm: text("utm_term"),
+    referer: text("referer"),
+
+    /** "registered" | "attended" | "no_show" | "booked_call" | "customer" */
+    journeyStage: text("journey_stage").notNull().default("registered"),
+
+    registeredAt: timestamp("registered_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    attendedAt: timestamp("attended_at", { withTimezone: true }),
+    bookedCallAt: timestamp("booked_call_at", { withTimezone: true }),
+
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("uniq_campaign_leads_campaign_person").on(
+      table.campaignId,
+      table.personId,
+    ),
+    index("idx_campaign_leads_campaign").on(table.campaignId),
+    index("idx_campaign_leads_person").on(table.personId),
+    index("idx_campaign_leads_journey_stage").on(table.journeyStage),
+    index("idx_campaign_leads_utm_source").on(table.utmSource),
+  ],
+);
+
+/**
+ * Event log — every webhook hit becomes a row. Append-only, never updated.
+ * Enables the timeline view on the lead detail dialog and full audit trail.
+ */
+export const campaignEvents = pgTable(
+  "campaign_events",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    campaignId: uuid("campaign_id")
+      .references(() => campaigns.id, { onDelete: "cascade" })
+      .notNull(),
+    /** Lead may be null if the webhook fired before we could resolve a person. */
+    leadId: uuid("lead_id").references(() => campaignLeads.id, {
+      onDelete: "cascade",
+    }),
+    personId: uuid("person_id").references(() => campaignPeople.id, {
+      onDelete: "cascade",
+    }),
+
+    /** "signup" | "attended" | "no_show" | "discovery_call_booked" | "custom" */
+    eventType: text("event_type").notNull(),
+    /** Free-form payload data we want easy access to (parsed). */
+    eventData: jsonb("event_data").default({}),
+    /** Full original webhook body — for debugging + future replay. */
+    rawPayload: jsonb("raw_payload"),
+
+    occurredAt: timestamp("occurred_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("idx_campaign_events_campaign").on(table.campaignId),
+    index("idx_campaign_events_lead").on(table.leadId),
+    index("idx_campaign_events_person").on(table.personId),
+    index("idx_campaign_events_occurred_at").on(table.occurredAt),
+    index("idx_campaign_events_type").on(table.eventType),
+  ],
+);
+
+export const campaignsRelations = relations(campaigns, ({ many, one }) => ({
+  leads: many(campaignLeads),
+  events: many(campaignEvents),
+  creator: one(adminUsers, {
+    fields: [campaigns.createdBy],
+    references: [adminUsers.id],
+  }),
+}));
+
+export const campaignPeopleRelations = relations(campaignPeople, ({ many }) => ({
+  leads: many(campaignLeads),
+  events: many(campaignEvents),
+}));
+
+export const campaignLeadsRelations = relations(campaignLeads, ({ one, many }) => ({
+  campaign: one(campaigns, {
+    fields: [campaignLeads.campaignId],
+    references: [campaigns.id],
+  }),
+  person: one(campaignPeople, {
+    fields: [campaignLeads.personId],
+    references: [campaignPeople.id],
+  }),
+  events: many(campaignEvents),
+}));
+
+export const campaignEventsRelations = relations(campaignEvents, ({ one }) => ({
+  campaign: one(campaigns, {
+    fields: [campaignEvents.campaignId],
+    references: [campaigns.id],
+  }),
+  lead: one(campaignLeads, {
+    fields: [campaignEvents.leadId],
+    references: [campaignLeads.id],
+  }),
+  person: one(campaignPeople, {
+    fields: [campaignEvents.personId],
+    references: [campaignPeople.id],
+  }),
+}));

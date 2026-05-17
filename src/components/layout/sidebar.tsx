@@ -14,6 +14,7 @@ import {
   Plug,
   FileText,
   Users,
+  Megaphone,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { canSeeCompanyReports } from "@/lib/auth/permissions";
@@ -39,6 +40,7 @@ const navItems: NavItem[] = [
       canSeeCompanyReports(role as AdminRole, dept as Department),
   },
   { href: "/members", label: "Members", icon: Users },
+  { href: "/campaigns", label: "Campaigns", icon: Megaphone },
   { href: "/integrations", label: "Integrations", icon: Plug },
   { href: "/audit-log", label: "Audit Log", icon: ScrollText },
   { href: "/settings/rules", label: "Rules", icon: Shield },
