@@ -110,6 +110,13 @@ export default async function CampaignDetailPage({
         webhookSecret: campaign.webhookSecret,
         landingPageUrl: campaign.landingPageUrl,
         ghlWorkflowId: campaign.ghlWorkflowId,
+        ghlTag: campaign.ghlTag,
+        ghlLastSyncedAt: campaign.ghlLastSyncedAt
+          ? campaign.ghlLastSyncedAt.toISOString()
+          : null,
+        ghlLastSyncStatus: campaign.ghlLastSyncStatus,
+        ghlLastSyncCount: campaign.ghlLastSyncCount,
+        ghlLastSyncError: campaign.ghlLastSyncError,
         createdAt: campaign.createdAt.toISOString(),
       }}
       leads={leadRows.map((l) => ({

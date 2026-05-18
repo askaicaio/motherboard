@@ -45,6 +45,7 @@ export function CreateCampaignDialog({
   const [eventDate, setEventDate] = useState("");
   const [eventTime, setEventTime] = useState("");
   const [landingPageUrl, setLandingPageUrl] = useState("");
+  const [ghlTag, setGhlTag] = useState("");
 
   function reset() {
     setName("");
@@ -53,6 +54,7 @@ export function CreateCampaignDialog({
     setEventDate("");
     setEventTime("");
     setLandingPageUrl("");
+    setGhlTag("");
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -79,6 +81,7 @@ export function CreateCampaignDialog({
           description: description.trim() || null,
           eventDate: eventDateISO,
           landingPageUrl: landingPageUrl.trim() || null,
+          ghlTag: ghlTag.trim() || null,
         }),
       });
       const data = await res.json();
@@ -180,6 +183,21 @@ export function CreateCampaignDialog({
               onChange={(e) => setLandingPageUrl(e.target.value)}
               placeholder="https://chiefaiofficer.com/playbook"
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="ghl-tag">GHL contact tag</Label>
+            <Input
+              id="ghl-tag"
+              value={ghlTag}
+              onChange={(e) => setGhlTag(e.target.value)}
+              placeholder="e.g. 90-day-ai-playbook-may-2026"
+              className="font-mono text-sm"
+            />
+            <p className="text-xs text-zinc-500">
+              If set, motherboard will pull contacts with this tag from GHL
+              every 5 minutes. No GHL workflow edits required.
+            </p>
           </div>
 
           <div className="space-y-2">

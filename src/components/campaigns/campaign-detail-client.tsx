@@ -45,6 +45,11 @@ interface Campaign {
   webhookSecret: string;
   landingPageUrl: string | null;
   ghlWorkflowId: string | null;
+  ghlTag: string | null;
+  ghlLastSyncedAt: string | null;
+  ghlLastSyncStatus: string | null;
+  ghlLastSyncCount: number | null;
+  ghlLastSyncError: string | null;
   createdAt: string;
 }
 
@@ -450,6 +455,7 @@ export function CampaignDetailClient({
 
         {/* ============== SETUP ============== */}
         <TabsContent value="setup" className="space-y-4">
+          <GhlSyncCard campaign={campaign} />
           <WebhookSetupCard
             campaignName={campaign.name}
             webhookBase={webhookBase}
@@ -485,6 +491,144 @@ function MetricCard({
           {label}
         </div>
         <div className="mt-2 text-2xl font-semibold">{value}</div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function GhlSyncCard({ campaign }: { campaign: Campaign }) {
+  const router = useRouter();
+  const [tag, setTag] = useState(campaign.ghlTag ?? "");
+  const [saving, setSaving] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+
+  const isDirty = tag.trim() !== (campaign.ghlTag ?? "").trim();
+
+  async function saveTag() {
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/campaigns/${campaign.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ghlTag: tag.trim() || null }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error || "Failed to save tag");
+        return;
+      }
+      toast.success(tag.trim() ? `Tag set to "${tag.trim()}"` : "Tag cleared");
+      router.refresh();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function syncNow() {
+    setSyncing(true);
+    try {
+      const res = await fetch(`/api/campaigns/${campaign.id}/sync-ghl`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        toast.error(data.error || "Sync failed");
+        return;
+      }
+      toast.success(
+        `Synced ${data.totalFromGhl} contacts · ${data.newLeads} new`,
+      );
+      router.refresh();
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  const lastSyncedAt = campaign.ghlLastSyncedAt
+    ? new Date(campaign.ghlLastSyncedAt)
+    : null;
+  const tone =
+    campaign.ghlLastSyncStatus === "success"
+      ? "text-emerald-600"
+      : campaign.ghlLastSyncStatus === "failed"
+      ? "text-red-600"
+      : "text-zinc-500";
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-sm font-medium">
+          GHL sync (recommended)
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <p className="text-sm text-zinc-600">
+          Set a GHL contact tag and motherboard will pull matching contacts
+          every 5 minutes. No GHL workflow edits needed — your existing setup
+          stays untouched. Requires{" "}
+          <code className="rounded bg-zinc-100 px-1 text-xs">GHL_API_TOKEN</code>{" "}
+          and{" "}
+          <code className="rounded bg-zinc-100 px-1 text-xs">
+            GHL_LOCATION_ID
+          </code>{" "}
+          in Vercel env vars.
+        </p>
+
+        <div className="space-y-2">
+          <label className="block text-xs font-medium uppercase tracking-wide text-zinc-500">
+            GHL contact tag
+          </label>
+          <div className="flex gap-2">
+            <Input
+              value={tag}
+              onChange={(e) => setTag(e.target.value)}
+              placeholder="e.g. 90-day-ai-playbook-may-2026"
+              className="font-mono text-sm"
+            />
+            <Button
+              onClick={saveTag}
+              disabled={!isDirty || saving}
+              variant="outline"
+            >
+              {saving ? "Saving…" : "Save"}
+            </Button>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between border-t pt-3">
+          <div className="text-xs">
+            {lastSyncedAt ? (
+              <>
+                <span className={cn("font-medium capitalize", tone)}>
+                  {campaign.ghlLastSyncStatus}
+                </span>{" "}
+                <span className="text-zinc-500">
+                  · {formatDistanceToNow(lastSyncedAt, { addSuffix: true })}
+                  {campaign.ghlLastSyncCount != null &&
+                    ` · ${campaign.ghlLastSyncCount} contacts`}
+                </span>
+                {campaign.ghlLastSyncError && (
+                  <div className="mt-1 max-w-md truncate font-mono text-[11px] text-red-600">
+                    {campaign.ghlLastSyncError}
+                  </div>
+                )}
+              </>
+            ) : (
+              <span className="text-zinc-500">Never synced</span>
+            )}
+          </div>
+          <Button
+            size="sm"
+            onClick={syncNow}
+            disabled={!campaign.ghlTag || syncing}
+            title={!campaign.ghlTag ? "Set a tag first" : "Sync now"}
+          >
+            <RefreshCw
+              className={cn("mr-2 h-4 w-4", syncing && "animate-spin")}
+            />
+            Sync now
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

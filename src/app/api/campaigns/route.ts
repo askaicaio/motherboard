@@ -17,6 +17,7 @@ const createSchema = z.object({
   eventTimezone: z.string().optional().default("America/New_York"),
   landingPageUrl: z.string().url().optional().nullable(),
   ghlWorkflowId: z.string().optional().nullable(),
+  ghlTag: z.string().optional().nullable(),
 });
 
 function generateSecret(): string {
@@ -91,6 +92,7 @@ export async function POST(request: NextRequest) {
       eventTimezone: body.eventTimezone ?? "America/New_York",
       landingPageUrl: body.landingPageUrl ?? null,
       ghlWorkflowId: body.ghlWorkflowId ?? null,
+      ghlTag: body.ghlTag ?? null,
       webhookSecret: generateSecret(),
       status: "active",
       createdBy: user.id,

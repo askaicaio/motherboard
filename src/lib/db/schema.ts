@@ -805,6 +805,22 @@ export const campaigns = pgTable(
     /** Optional GHL workflow/funnel ID for cross-reference. */
     ghlWorkflowId: text("ghl_workflow_id"),
 
+    /**
+     * GHL contact tag that identifies signups for this campaign.
+     * When set, the cron job /api/cron/sync-ghl-campaigns will pull
+     * all contacts with this tag and upsert them as leads.
+     * Webhook ingestion still works as a fallback in parallel.
+     */
+    ghlTag: text("ghl_tag"),
+    /** Most recent sync attempt (success or failure). */
+    ghlLastSyncedAt: timestamp("ghl_last_synced_at", { withTimezone: true }),
+    /** "success" | "failed" | "in_progress" */
+    ghlLastSyncStatus: text("ghl_last_sync_status"),
+    /** Number of contacts pulled on the most recent successful sync. */
+    ghlLastSyncCount: integer("ghl_last_sync_count"),
+    /** Human-readable error from the most recent failed sync. */
+    ghlLastSyncError: text("ghl_last_sync_error"),
+
     archivedAt: timestamp("archived_at", { withTimezone: true }),
     archivedBy: uuid("archived_by").references(() => adminUsers.id),
 

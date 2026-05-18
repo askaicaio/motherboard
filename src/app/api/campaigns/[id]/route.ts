@@ -18,6 +18,7 @@ const patchSchema = z.object({
   status: z.enum(["active", "draft", "completed", "archived"]).optional(),
   landingPageUrl: z.string().url().nullable().optional(),
   ghlWorkflowId: z.string().nullable().optional(),
+  ghlTag: z.string().nullable().optional(),
 });
 
 export async function GET(
@@ -70,6 +71,7 @@ export async function PATCH(
   if (body.status !== undefined) patch.status = body.status;
   if (body.landingPageUrl !== undefined) patch.landingPageUrl = body.landingPageUrl;
   if (body.ghlWorkflowId !== undefined) patch.ghlWorkflowId = body.ghlWorkflowId;
+  if (body.ghlTag !== undefined) patch.ghlTag = body.ghlTag;
 
   const [updated] = await db
     .update(campaigns)
