@@ -28,6 +28,7 @@ import {
   TrendingUp,
   Search,
   ChevronRight,
+  MousePointerClick,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -101,12 +102,14 @@ export function CampaignDetailClient({
   leads,
   events,
   sourceBreakdown,
+  visitCount,
 }: {
   baseUrl: string;
   campaign: Campaign;
   leads: Lead[];
   events: CampaignEvent[];
   sourceBreakdown: SourceBucket[];
+  visitCount: number;
 }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
@@ -126,8 +129,13 @@ export function CampaignDetailClient({
       ["booked_call", "customer"].includes(l.journeyStage),
     ).length;
     const conversion = total > 0 ? Math.round((attended / total) * 100) : 0;
-    return { total, attended, noShow, bookedCall, conversion };
-  }, [leads]);
+    // Visit → signup conversion. Visits are anonymous arrivals from
+    // tagged channels (quiz_visit, page_view). Only meaningful when
+    // visitCount >= total (it usually is — every signup had a visit).
+    const visitToSignup =
+      visitCount > 0 ? Math.round((total / visitCount) * 100) : null;
+    return { total, attended, noShow, bookedCall, conversion, visitToSignup };
+  }, [leads, visitCount]);
 
   // Filtered table view
   const filteredLeads = useMemo(() => {
@@ -201,7 +209,27 @@ export function CampaignDetailClient({
       </div>
 
       {/* Metric cards */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      {/* Visit count is only useful when something is actually pinging us
+          with quiz_visit events. Hide it for campaigns with zero visits to
+          keep the layout tight. */}
+      <div
+        className={cn(
+          "grid grid-cols-2 gap-3",
+          visitCount > 0 ? "sm:grid-cols-5" : "sm:grid-cols-4",
+        )}
+      >
+        {visitCount > 0 && (
+          <MetricCard
+            label="Visits"
+            value={visitCount}
+            icon={<MousePointerClick className="h-4 w-4" />}
+            sub={
+              stats.visitToSignup != null
+                ? `${stats.visitToSignup}% → signup`
+                : undefined
+            }
+          />
+        )}
         <MetricCard
           label="Signups"
           value={stats.total}
@@ -478,10 +506,12 @@ function MetricCard({
   label,
   value,
   icon,
+  sub,
 }: {
   label: string;
   value: string | number;
   icon: React.ReactNode;
+  sub?: string;
 }) {
   return (
     <Card>
@@ -491,6 +521,7 @@ function MetricCard({
           {label}
         </div>
         <div className="mt-2 text-2xl font-semibold">{value}</div>
+        {sub && <div className="mt-0.5 text-xs text-zinc-500">{sub}</div>}
       </CardContent>
     </Card>
   );

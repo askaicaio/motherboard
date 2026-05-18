@@ -73,7 +73,20 @@ export default async function CampaignDetailPage({
     .orderBy(desc(campaignEvents.occurredAt))
     .limit(500);
 
-  // 4. Source breakdown (utm_source if present, else "source", else "Direct")
+  // 4. Anonymous visit count — quiz_visit / page_view events that fired
+  // before the lead converted. Lets us show a real funnel: visits → signups.
+  const [visitCountRow] = await db
+    .select({
+      count: sql<number>`COUNT(*)::int`,
+    })
+    .from(campaignEvents)
+    .where(
+      sql`${campaignEvents.campaignId} = ${id}
+          AND ${campaignEvents.eventType} IN ('quiz_visit','page_view')`,
+    );
+  const visitCount = visitCountRow?.count ?? 0;
+
+  // 5. Source breakdown (utm_source if present, else "source", else "Direct")
   const sourceRows = await db
     .select({
       source: sql<string>`COALESCE(
@@ -150,6 +163,7 @@ export default async function CampaignDetailPage({
         source: r.source,
         count: r.count,
       }))}
+      visitCount={visitCount}
     />
   );
 }

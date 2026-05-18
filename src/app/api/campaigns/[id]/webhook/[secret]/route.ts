@@ -185,7 +185,21 @@ const EVENT_TO_STAGE: Record<string, Stage | null> = {
   discovery_call_booked: "booked_call",
   customer: "customer",
   custom: null, // doesn't move the journey forward
+  // Anonymous funnel events — fired before we know who the lead is.
+  // They get logged but don't change anyone's journey_stage.
+  quiz_visit: null,
+  page_view: null,
+  email_open: null,
+  email_click: null,
 };
+
+/** Events that legitimately don't carry an email — don't flag as errors. */
+const ANONYMOUS_EVENTS = new Set([
+  "quiz_visit",
+  "page_view",
+  "email_open",
+  "email_click",
+]);
 
 export async function POST(
   request: NextRequest,
@@ -229,17 +243,32 @@ export async function POST(
 
   const lead = extract(payload, request);
 
-  // Without an email we can't dedupe / link a person. Still log the event
-  // so the user can see the inbound traffic in the campaign's raw log.
+  // Without an email we can't dedupe / link a person. For anonymous funnel
+  // events (quiz_visit, page_view, email_open, email_click) this is the
+  // expected case — log the event with attribution. For everything else,
+  // log with an "missing email" hint so the user can debug.
   if (!lead.email) {
+    const isAnonymous = ANONYMOUS_EVENTS.has(eventType);
     await db.insert(campaignEvents).values({
       campaignId: campaign.id,
       eventType,
-      eventData: { error: "No email in payload" },
+      eventData: isAnonymous
+        ? {
+            source: lead.source,
+            utmSource: lead.utmSource,
+            utmMedium: lead.utmMedium,
+            utmCampaign: lead.utmCampaign,
+            utmContent: lead.utmContent,
+            utmTerm: lead.utmTerm,
+            referer: lead.referer,
+          }
+        : { error: "No email in payload" },
       rawPayload: payload as object,
     });
     return NextResponse.json(
-      { ok: true, warning: "No email — event logged without lead association" },
+      isAnonymous
+        ? { ok: true, eventType, anonymous: true }
+        : { ok: true, warning: "No email — event logged without lead association" },
       { status: 200 },
     );
   }
