@@ -1006,3 +1006,53 @@ export const campaignEventsRelations = relations(campaignEvents, ({ one }) => ({
     references: [campaignPeople.id],
   }),
 }));
+
+// ========================================================================
+// Documentation directory — a curated library of links
+// ========================================================================
+// Each row is a link to an external doc (Google Docs, Notion, Slack canvas,
+// etc.). We store light metadata (category, tags, description) so the user
+// can organise the list however they like over time. URL parsing happens
+// client-side to decide which icon/source badge to render.
+// ========================================================================
+
+export const documents = pgTable(
+  "documents",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    title: text("title").notNull(),
+    url: text("url").notNull(),
+    /** Short blurb shown under the title — optional. */
+    description: text("description"),
+    /** Free-form category — autocompletes from existing values in the UI. */
+    category: text("category"),
+    /** Multi-tag array — text[] in Postgres. Empty array by default. */
+    tags: text("tags").array().default([]).notNull(),
+    /** Pinned items sort to the top of every view. */
+    pinned: boolean("pinned").notNull().default(false),
+
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    archivedBy: uuid("archived_by").references(() => adminUsers.id),
+
+    createdBy: uuid("created_by").references(() => adminUsers.id),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("idx_documents_category").on(table.category),
+    index("idx_documents_pinned").on(table.pinned),
+    index("idx_documents_archived_at").on(table.archivedAt),
+    index("idx_documents_created_at").on(table.createdAt),
+  ],
+);
+
+export const documentsRelations = relations(documents, ({ one }) => ({
+  creator: one(adminUsers, {
+    fields: [documents.createdBy],
+    references: [adminUsers.id],
+  }),
+}));

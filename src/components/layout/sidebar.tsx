@@ -15,6 +15,7 @@ import {
   FileText,
   Users,
   Megaphone,
+  BookOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { canSeeCompanyReports } from "@/lib/auth/permissions";
@@ -41,6 +42,7 @@ const navItems: NavItem[] = [
   },
   { href: "/members", label: "Members", icon: Users },
   { href: "/campaigns", label: "Campaigns", icon: Megaphone },
+  { href: "/docs", label: "Docs", icon: BookOpen },
   { href: "/integrations", label: "Integrations", icon: Plug },
   { href: "/audit-log", label: "Audit Log", icon: ScrollText },
   { href: "/settings/rules", label: "Rules", icon: Shield },
