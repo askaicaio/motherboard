@@ -46,33 +46,40 @@ Verify: `claude --version`
      enable it on that account or provide an Anthropic API key instead.
 4. Back in the terminal you should see your account name. You're in.
 
-### 1.4 Get access to the code
-- Cedric will add **operations@chiefaiofficer.com** (or your GitHub username) as a
-  collaborator on the repo `askaicaio/motherboard`. You can't clone it until he does.
-- Once added, clone it:
-  ```bash
-  git clone https://github.com/askaicaio/motherboard.git
-  cd motherboard
-  ```
+### 1.4 The CAIO accounts you'll use
+You'll be signing into CAIO's own accounts (via **operations@chiefaiofficer.com**) for:
+**GitHub** (the repo), **Vercel** (deploys + env vars + logs), **Supabase** (the
+database), and **Resend** (transactional email). Because you're using the existing
+`operations@` login rather than being added as a new paid seat, there's no extra cost.
+This also means you can **self-serve** on env vars and migrations — no waiting on
+anyone.
 
-### 1.5 Install dependencies
+### 1.5 Get the code
+You already have repo access through CAIO's GitHub. Clone it:
 ```bash
+git clone https://github.com/askaicaio/motherboard.git
+cd motherboard
 npm install
 ```
 
-### 1.6 Environment variables
-1. Copy the template:
-   ```bash
-   cp .env.local.example .env.local
-   ```
-2. You need the real values for at least `DATABASE_URL`, `NEXTAUTH_SECRET`,
-   `NEXTAUTH_URL` (`http://localhost:3000` for local), `GOOGLE_CLIENT_ID`,
-   `GOOGLE_CLIENT_SECRET`, `ALLOWED_EMAIL_DOMAIN`.
-   - **Cedric will send these via 1Password — NOT via Discord.** Never paste secrets
-     into chat. The repo uses 1Password already (`OP_SERVICE_ACCOUNT_TOKEN`).
-3. For this feature you'll also eventually need the automation-source credentials
-   (see Part 3): GHL tokens for both subaccounts, a Make API token, an n8n API key.
-   Get those from Cedric the same way when you reach that phase.
+### 1.6 Environment variables — pull them from Vercel
+You have Vercel access, so don't hand-copy secrets. Use the CLI:
+```bash
+npm i -g vercel              # install the Vercel CLI
+vercel login                 # sign in as operations@chiefaiofficer.com
+vercel link                  # pick the "caio-motherboard" project when prompted
+vercel env pull .env.local --environment=production
+```
+That writes a real `.env.local` for you. (Pull `production` specifically — the
+`development` environment may not have `DATABASE_URL` set.) Set `NEXTAUTH_URL` to
+`http://localhost:3000` locally afterward.
+
+For this feature you'll also add new automation-source credentials (GHL tokens for both
+subaccounts, a Make API token, an n8n API key) — you'll add those as Vercel env vars
+yourself when you reach Part 3.
+
+> Security note: a pulled `.env.local` contains live production secrets. It's already
+> gitignored — never commit it, and delete it if you hand the machine off.
 
 ### 1.7 Run it locally
 ```bash
@@ -182,12 +189,14 @@ Mirror the Campaigns shape (`campaigns → leads → events` becomes
   `started_at`, `finished_at`, `duration_ms`, `error_message`, `raw_payload` (jsonb),
   `created_at`.
 
-> ⚠️ **You cannot run migrations against production yourself.** Motherboard's prod DB
-> lives in a Supabase project that only Cedric can reach. Workflow: you write an
-> **idempotent** SQL migration file under `supabase/migrations/NNNN_*.sql` (use
-> `CREATE TABLE IF NOT EXISTS`, `ADD COLUMN IF NOT EXISTS`), and Cedric pastes it into
-> the Supabase SQL Editor. Keep the Drizzle schema and the SQL file in sync. Look at
-> existing files in `supabase/migrations/` for the exact style.
+> **Migrations — you run these yourself.** You have Supabase access via the CAIO
+> account. Workflow: (1) update the Drizzle schema in `src/lib/db/schema.ts`, (2) write
+> a matching **idempotent** SQL file under `supabase/migrations/NNNN_*.sql` (use
+> `CREATE TABLE IF NOT EXISTS`, `ADD COLUMN IF NOT EXISTS` so it's safe to re-run),
+> (3) paste it into the Supabase **SQL Editor** and run it. Keep the schema file and the
+> SQL file in sync — Drizzle is the app's source of truth, the SQL file is the record of
+> what's been applied to prod. Look at existing files in `supabase/migrations/` for the
+> exact style.
 
 ### 3.4 Sync strategy per platform
 - **n8n + Make** (best APIs): build a poller for each. Add to the cron (or a new cron
@@ -233,9 +242,10 @@ Each phase is its own PR.
   for review.
 - **Quality gates before every commit:** `npx tsc --noEmit`, `npx eslint <files>`, and
   `npm run build` must all pass.
-- **Migrations:** idempotent SQL file in `supabase/migrations/`, and tell Cedric to run
-  it. He applies it; you don't have prod DB access.
-- **Secrets:** env vars only, shared via 1Password, never in code or Discord.
+- **Migrations:** idempotent SQL file in `supabase/migrations/`, then run it yourself in
+  the Supabase SQL Editor. Keep it in sync with the Drizzle schema.
+- **Secrets:** env vars only (pull/manage via Vercel). Never commit `.env.local`, never
+  paste secrets into Discord.
 - **Commit style:** look at `git log` — short imperative subject, a body explaining the
   "why." Keep PRs scoped to one phase.
 - **When in doubt, copy Campaigns.** It's the closest working example of everything
