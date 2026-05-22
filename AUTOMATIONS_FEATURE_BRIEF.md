@@ -28,25 +28,29 @@ dashboard UI). **Copy its patterns.** More on that in Part 2.
 You need Node.js 20 or newer. Check with `node -v`. If you don't have it, install the
 LTS from https://nodejs.org.
 
-### 1.2 Install Claude Code
-Pick the line for your OS and run it in a terminal:
+### 1.2 Get Claude Code
+There are two ways to use Claude Code. **The team uses it through the Claude desktop
+app — start there; it's the friendliest, especially if the terminal isn't your home.**
 
-- **macOS / Linux:** `curl -fsSL https://claude.ai/install.sh | bash`
-- **Windows (PowerShell):** `irm https://claude.ai/install.ps1 | iex`
-- **Any OS (via npm):** `npm install -g @anthropic-ai/claude-code`
+**Option A — Claude desktop app (recommended):**
+1. Download the Claude app from https://claude.ai/download and install it.
+2. Open it and sign in with **operations@chiefaiofficer.com** (this account has Claude
+   Pro, which includes Claude Code).
+3. Open Claude Code inside the app and point it at a project folder (you'll create that
+   folder in step 1.5 — or just ask Claude Code to clone the repo for you; it can run
+   the commands itself).
 
-Verify: `claude --version`
+**Option B — terminal CLI (if you prefer the command line):**
+- macOS / Linux: `curl -fsSL https://claude.ai/install.sh | bash`
+- Windows (PowerShell): `irm https://claude.ai/install.ps1 | iex`
+- Then run `claude`, type `/login`, sign in with operations@chiefaiofficer.com.
 
-### 1.3 Sign in
-1. In a terminal, run: `claude`
-2. At the prompt type: `/login`
-3. A browser opens — sign in with **operations@chiefaiofficer.com**.
-   - ⚠️ That account must have an active **Claude Pro, Max, or Team** subscription for
-     Claude Code to work. If login says "no subscription," tell Cedric — he'll either
-     enable it on that account or provide an Anthropic API key instead.
-4. Back in the terminal you should see your account name. You're in.
+Either way: **you don't have to memorize terminal commands.** Claude Code runs them for
+you. The commands in this doc are things you can literally paste to Claude Code and say
+"run these," or ask it to do in plain English ("clone the motherboard repo and install
+dependencies").
 
-### 1.4 The CAIO accounts you'll use
+### 1.3 The CAIO accounts you'll use
 You'll be signing into CAIO's own accounts (via **operations@chiefaiofficer.com**) for:
 **GitHub** (the repo), **Vercel** (deploys + env vars + logs), **Supabase** (the
 database), and **Resend** (transactional email). Because you're using the existing
@@ -54,7 +58,7 @@ database), and **Resend** (transactional email). Because you're using the existi
 This also means you can **self-serve** on env vars and migrations — no waiting on
 anyone.
 
-### 1.5 Get the code
+### 1.4 Get the code
 You already have repo access through CAIO's GitHub. Clone it:
 ```bash
 git clone https://github.com/askaicaio/motherboard.git
@@ -62,7 +66,7 @@ cd motherboard
 npm install
 ```
 
-### 1.6 Environment variables — pull them from Vercel
+### 1.5 Environment variables — pull them from Vercel
 You have Vercel access, so don't hand-copy secrets. Use the CLI:
 ```bash
 npm i -g vercel              # install the Vercel CLI
@@ -81,15 +85,16 @@ yourself when you reach Part 3.
 > Security note: a pulled `.env.local` contains live production secrets. It's already
 > gitignored — never commit it, and delete it if you hand the machine off.
 
-### 1.7 Run it locally
+### 1.6 (Optional) Run it locally
+You don't have to — see "Reviewing your work" in Part 2 for the no-local workflow the
+team prefers (Vercel preview deployments). But if you want a fast local loop:
 ```bash
 npm run dev
 ```
 Open http://localhost:3000. If `NEXTAUTH_SECRET` is unset locally, the app falls back
-to a mock admin user so you can develop UI without real Google login — but for testing
-the real flows you'll want the actual env values.
+to a mock admin user so you can develop UI without real Google login.
 
-### 1.8 Sanity check before you build
+### 1.7 Sanity check before you build
 - `npm run build` should succeed.
 - `npx tsc --noEmit` should be clean.
 - `npx eslint <files you touched>` should be clean.
@@ -98,6 +103,34 @@ Run all three before every commit. CI/Vercel will reject a broken build.
 ---
 
 ## Part 2 — Learn the codebase
+
+### 2.0 How to build with Claude Code (read this if you're new to it)
+Claude Code is your pair programmer. You describe what you want in plain English; it
+reads the code, proposes changes, edits files, and runs commands (git, npm, migrations)
+for you. You stay in the loop by reviewing what it does. A few habits make it work well:
+
+- **Start by orienting it.** First message in a fresh session: *"This is the Motherboard
+  repo. Read AGENTS.md and the AUTOMATIONS_FEATURE_BRIEF.md, then summarize the plan for
+  the Automations feature before writing any code."* This grounds it in our conventions.
+- **Make it plan before building.** For anything non-trivial, ask: *"Plan this first,
+  don't write code yet."* Review the plan, correct it, then say "go." Catching a wrong
+  assumption in the plan is far cheaper than in the code.
+- **Point it at the reference.** Our Campaigns feature is the template (see 2.3). Say
+  *"Build the Automations list page modeled on the Campaigns list page."* Concrete file
+  references produce far better output than vague asks.
+- **Make it read the framework docs.** This repo pins a newer Next.js (see 2.1). Tell it
+  *"read the relevant guide in node_modules/next/dist/docs before writing routing or
+  server-component code."*
+- **Have it self-check before committing.** Ask it to run `npx tsc --noEmit`,
+  `npx eslint <files>`, and `npm run build`, and fix anything that fails — every time,
+  before it commits.
+- **Review the diffs.** Claude Code shows you what it changed. Skim it. If something
+  looks off, say so — it'll revise. Don't rubber-stamp large changes blindly.
+- **Work in small chunks.** One phase (see 3.6) per session/PR. Long sessions drift;
+  tight scope keeps quality high.
+- **It can do the ops too.** "Create a branch," "commit this," "open a PR," "write the
+  migration SQL and apply it to Supabase" — it runs all of that. You rarely touch a
+  terminal yourself.
 
 ### 2.1 Read this first — IMPORTANT
 The repo's `AGENTS.md` says: **"This is NOT the Next.js you know."** This project pins
@@ -142,6 +175,31 @@ almost 1:1:
 The most recently added tab, **Docs** (`src/components/docs/`,
 `src/app/(dashboard)/docs/`), is a simpler reference for the list/grid/CRUD UI pattern
 if Campaigns feels like too much at once.
+
+### 2.4 Reviewing your work — preview deployments (no local dev needed)
+Nobody on this team runs local versions to review. We use **Vercel preview
+deployments**: every branch and every PR automatically gets its own live URL.
+
+- Push a branch → Vercel builds it → a preview URL appears (on the PR, and in the Vercel
+  dashboard under Deployments, e.g. `motherboard-git-feat-automations-…vercel.app`).
+- Share that URL with Cedric to review the feature on a real, hosted site — no local
+  setup on his end.
+- **One-time setup so previews can reach the database:** preview deployments use the
+  **Preview** environment's env vars, which may be empty by default. In the Vercel
+  project → **Settings → Environment Variables**, make sure the **Preview** environment
+  has the same values as Production (at minimum `DATABASE_URL`, `NEXTAUTH_SECRET`,
+  `NEXTAUTH_URL`, `GOOGLE_CLIENT_ID/SECRET`, `ALLOWED_EMAIL_DOMAIN`). Quickest way:
+  in the env var list, edit each production var and tick "Preview" too, or use
+  `vercel env add`. You have the access to do this.
+  - Note `NEXTAUTH_URL` is awkward for previews (the URL changes per branch). For
+    reviewing the Automations UI this rarely matters; if Google login misbehaves on a
+    preview, test that part locally or on production and use the preview just for the
+    visual/flow review.
+- **Database for previews:** since the Automations feature only *adds* new tables, it's
+  safe for previews to share the production database — new tables don't affect existing
+  features. If you'd rather isolate, spin up a second free Supabase project, run the
+  migrations there, and point the Preview `DATABASE_URL` at it. Optional; not needed for
+  v1.
 
 ---
 
