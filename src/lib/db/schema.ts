@@ -685,6 +685,7 @@ export const companyReports = pgTable(
 
     // Input — what the operator entered
     companyName: text("company_name").notNull(),
+    companyUrl: text("company_url"), // optional — disambiguates the company so research targets the right one
     industry: text("industry"), // optional — research can fill it
     knownDetails: text("known_details"), // free-form context box (revenue, headcount, etc.)
     titleFormat: reportTitleFormatEnum("title_format")

@@ -47,6 +47,7 @@ interface ResearchSource {
 interface CompanyReport {
   id: string;
   companyName: string;
+  companyUrl?: string | null;
   industry: string | null;
   knownDetails: string | null;
   titleFormat: string;
@@ -891,6 +892,19 @@ export function ReportDetailClient({
               </div>
             </div>
           </div>
+          {report.companyUrl && (
+            <div>
+              <div className="text-xs text-zinc-500 mb-0.5">Company website</div>
+              <a
+                href={report.companyUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-xs text-indigo-600 hover:underline break-all"
+              >
+                {report.companyUrl}
+              </a>
+            </div>
+          )}
           {report.knownDetails && (
             <div>
               <div className="text-xs text-zinc-500 mb-0.5">Known details</div>

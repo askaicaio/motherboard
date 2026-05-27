@@ -27,6 +27,7 @@ const MODE_ICONS: Record<ReportResearchMode, React.ElementType> = {
 export default function NewReportPage() {
   const router = useRouter();
   const [companyName, setCompanyName] = useState("");
+  const [companyUrl, setCompanyUrl] = useState("");
   const [industry, setIndustry] = useState("");
   const [knownDetails, setKnownDetails] = useState("");
   const [titleFormat, setTitleFormat] =
@@ -51,6 +52,7 @@ export default function NewReportPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           companyName: companyName.trim(),
+          companyUrl: companyUrl.trim() || undefined,
           industry: industry.trim() || undefined,
           knownDetails: knownDetails.trim() || undefined,
           titleFormat,
@@ -111,6 +113,21 @@ export default function NewReportPage() {
                 required
                 autoFocus
               />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="companyUrl">Company website</Label>
+              <Input
+                id="companyUrl"
+                type="url"
+                value={companyUrl}
+                onChange={(e) => setCompanyUrl(e.target.value)}
+                placeholder="https://www.example.com"
+              />
+              <p className="text-xs text-zinc-500">
+                Recommended. The exact URL of the prospect so research locks
+                onto the right company (many businesses share names).
+              </p>
             </div>
 
             <div className="space-y-1.5">

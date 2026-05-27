@@ -8,6 +8,7 @@ import { desc, isNull, isNotNull } from "drizzle-orm";
 
 const createReportSchema = z.object({
   companyName: z.string().min(1).max(200),
+  companyUrl: z.string().max(500).optional(),
   industry: z.string().max(200).optional(),
   knownDetails: z.string().max(5000).optional(),
   titleFormat: z.enum(["strategic_growth", "ebitda_expansion"]),
@@ -51,6 +52,7 @@ export async function POST(request: NextRequest) {
       .insert(companyReports)
       .values({
         companyName: data.companyName,
+        companyUrl: data.companyUrl || null,
         industry: data.industry || null,
         knownDetails: data.knownDetails || null,
         titleFormat: data.titleFormat,

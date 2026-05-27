@@ -17,6 +17,8 @@ import { DEFAULT_REPORT_CONTACT } from "@/types";
 
 export interface BuildPromptOptions {
   companyName: string;
+  /** Official company website — disambiguates which company to research. */
+  companyUrl?: string;
   industry?: string;
   knownDetails?: string;
   titleFormat: ReportTitleFormat;
@@ -355,6 +357,11 @@ export function buildUserMessage(options: BuildPromptOptions): string {
     ``,
     `**Company:** ${options.companyName}`,
   ];
+  if (options.companyUrl) {
+    lines.push(
+      `**Official website:** ${options.companyUrl} — this is the correct, authoritative company. Anchor all research to this exact organization; if you find other companies sharing the name, ignore them and confirm you are researching the entity at this domain.`,
+    );
+  }
   if (options.industry) lines.push(`**Industry:** ${options.industry}`);
   else lines.push(`**Industry:** needs clarification — research from scratch`);
   if (options.knownDetails) {
