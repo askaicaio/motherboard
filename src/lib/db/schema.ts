@@ -6,6 +6,7 @@ import {
   timestamp,
   date,
   integer,
+  numeric,
   jsonb,
   uniqueIndex,
   index,
@@ -1054,6 +1055,78 @@ export const documents = pgTable(
 export const documentsRelations = relations(documents, ({ one }) => ({
   creator: one(adminUsers, {
     fields: [documents.createdBy],
+    references: [adminUsers.id],
+  }),
+}));
+
+// ========================================================================
+// Subscriptions — the SaaS / tools spend ledger
+// ========================================================================
+// Imported from the legacy ClickUp "Accounts" database. Each row tracks
+// one paid (or free, or cancelled) account: which service, who owns it,
+// what we pay per month, when it renews, and which department(s) use it.
+//
+// external_id preserves the ClickUp Task ID so re-importing the same CSV
+// upserts instead of duplicating. is_starred captures the "*" prefix on
+// shared/primary accounts (1Password, Slack, etc).
+// ========================================================================
+
+export const subscriptions = pgTable(
+  "subscriptions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    /** ClickUp Task ID from the original CSV — for idempotent re-imports. */
+    externalId: text("external_id"),
+
+    /** Full display name as imported (e.g. "ChatGPT | doc@chiefaiofficer.com"). */
+    name: text("name").notNull(),
+    /** Service portion, parsed from name (e.g. "ChatGPT"). */
+    serviceName: text("service_name"),
+    /** Owner email portion, parsed from name when present. */
+    ownerEmail: text("owner_email"),
+    /** True when the imported name had a "*" prefix — shared/primary platform. */
+    isStarred: boolean("is_starred").notNull().default(false),
+
+    websiteUrl: text("website_url"),
+    /** Multi-value, e.g. ["Marketing","Automations"]. */
+    departments: text("departments").array().notNull().default([]),
+    inOnePassword: boolean("in_one_password").notNull().default(false),
+
+    /** numeric(12,2) preserves cent precision without JS float drift. */
+    monthlyCostUsd: numeric("monthly_cost_usd", { precision: 12, scale: 2 }),
+    annualCostUsd: numeric("annual_cost_usd", { precision: 12, scale: 2 }),
+
+    renewalDate: date("renewal_date"),
+    notes: text("notes"),
+    /** Free-form misc field from the CSV "Tag" column. */
+    tag: text("tag"),
+
+    /** "active" | "cancelled" | "paused" | "archived" — defaults to active. */
+    status: text("status").notNull().default("active"),
+
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    archivedBy: uuid("archived_by").references(() => adminUsers.id),
+
+    createdBy: uuid("created_by").references(() => adminUsers.id),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("uniq_subscriptions_external_id").on(table.externalId),
+    index("idx_subscriptions_status").on(table.status),
+    index("idx_subscriptions_renewal_date").on(table.renewalDate),
+    index("idx_subscriptions_archived_at").on(table.archivedAt),
+    index("idx_subscriptions_owner_email").on(table.ownerEmail),
+  ],
+);
+
+export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
+  creator: one(adminUsers, {
+    fields: [subscriptions.createdBy],
     references: [adminUsers.id],
   }),
 }));
