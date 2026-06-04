@@ -78,7 +78,7 @@ const STATUS_TONE: Record<string, string> = {
 };
 
 function fmtUsd(n: number | null): string {
-  if (n == null) return "—";
+  if (n == null || !Number.isFinite(n)) return "—";
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
@@ -91,10 +91,25 @@ function fmtRenewal(d: string | null): {
   daysOut: number | null;
 } {
   if (!d) return { text: "—", daysOut: null };
-  const parsed = parseISO(d);
-  if (!dateIsValid(parsed)) return { text: d, daysOut: null };
-  const days = differenceInDays(parsed, new Date());
-  return { text: format(parsed, "MMM d, yyyy"), daysOut: days };
+  try {
+    const parsed = parseISO(d);
+    if (!dateIsValid(parsed)) return { text: d, daysOut: null };
+    const days = differenceInDays(parsed, new Date());
+    return { text: format(parsed, "MMM d, yyyy"), daysOut: days };
+  } catch {
+    // parseISO/format can throw on truly malformed input — fall back to raw
+    return { text: d, daysOut: null };
+  }
+}
+
+/** Safely extract a host for display. Returns null on malformed URLs. */
+function safeHost(url: string | null): string | null {
+  if (!url) return null;
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return null;
+  }
 }
 
 export function SubscriptionsPageClient({
@@ -200,10 +215,15 @@ export function SubscriptionsPageClient({
       } else if (groupBy === "status") {
         keys = [r.status];
       } else if (groupBy === "renewalMonth") {
-        if (!r.renewalDate) keys = ["(no renewal date)"];
-        else {
-          const dt = parseISO(r.renewalDate);
-          keys = [dateIsValid(dt) ? format(dt, "MMM yyyy") : "(unknown)"];
+        if (!r.renewalDate) {
+          keys = ["(no renewal date)"];
+        } else {
+          try {
+            const dt = parseISO(r.renewalDate);
+            keys = [dateIsValid(dt) ? format(dt, "MMM yyyy") : "(unknown)"];
+          } catch {
+            keys = ["(unknown)"];
+          }
         }
       }
       for (const k of keys) {
@@ -679,18 +699,23 @@ function TableView({
                 </td>
                 <td className="px-3 py-2 align-top">
                   <div className="font-medium text-zinc-900">{r.serviceName || r.name}</div>
-                  {r.websiteUrl && (
-                    <a
-                      href={r.websiteUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-900"
-                    >
-                      <ExternalLink className="h-3 w-3" />
-                      {new URL(r.websiteUrl).hostname.replace(/^www\./, "")}
-                    </a>
-                  )}
+                  {r.websiteUrl &&
+                    (() => {
+                      const host = safeHost(r.websiteUrl);
+                      if (!host) return null;
+                      return (
+                        <a
+                          href={r.websiteUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-900"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          {host}
+                        </a>
+                      );
+                    })()}
                 </td>
                 <td className="px-3 py-2 align-top text-xs font-mono text-zinc-600 max-w-[200px] truncate">
                   {r.ownerEmail || <span className="text-zinc-400">—</span>}
