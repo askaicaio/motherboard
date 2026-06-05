@@ -70,12 +70,22 @@ type SortKey =
   | "renewalLatest";
 type GroupKey = "none" | "department" | "owner" | "status" | "renewalMonth";
 
-const STATUS_TONE: Record<string, string> = {
-  active: "bg-emerald-100 text-emerald-700",
-  paused: "bg-amber-100 text-amber-700",
-  cancelled: "bg-zinc-200 text-zinc-700",
-  archived: "bg-zinc-100 text-zinc-500",
-};
+// Status palette — keyword-based so new ClickUp statuses we haven't seen
+// before still land on a reasonable colour. Order matters: first match wins.
+const STATUS_TONE_RULES: Array<{ match: RegExp; tone: string }> = [
+  { match: /not\s*working|broken/i,            tone: "bg-red-100 text-red-700" },
+  { match: /cancel|removed|terminat/i,          tone: "bg-zinc-200 text-zinc-700" },
+  { match: /to\s*be\s*verified|review|pending/i,tone: "bg-amber-100 text-amber-700" },
+  { match: /sensitive|secur/i,                  tone: "bg-purple-100 text-purple-700" },
+  { match: /archived/i,                         tone: "bg-zinc-100 text-zinc-500" },
+  { match: /free/i,                             tone: "bg-sky-100 text-sky-700" },
+  { match: /team\s*plan|enterprise/i,           tone: "bg-indigo-100 text-indigo-700" },
+  { match: /subscription|active|annual|auto/i,  tone: "bg-emerald-100 text-emerald-700" },
+];
+function statusTone(status: string): string {
+  for (const r of STATUS_TONE_RULES) if (r.match.test(status)) return r.tone;
+  return "bg-zinc-100 text-zinc-700";
+}
 
 function fmtUsd(n: number | null): string {
   if (n == null || !Number.isFinite(n)) return "—";
@@ -135,6 +145,14 @@ export function SubscriptionsPageClient({
   const allDepartments = useMemo(() => {
     const set = new Set<string>();
     for (const r of rows) for (const d of r.departments) set.add(d);
+    return Array.from(set).sort();
+  }, [rows]);
+
+  // Derive the universe of statuses from actual data (so new ClickUp
+  // values show up in the filter automatically without code edits).
+  const allStatuses = useMemo(() => {
+    const set = new Set<string>();
+    for (const r of rows) if (r.status) set.add(r.status);
     return Array.from(set).sort();
   }, [rows]);
 
@@ -457,10 +475,26 @@ export function SubscriptionsPageClient({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-72 max-h-[70vh] overflow-y-auto">
             <DropdownMenuLabel className="text-xs">Status</DropdownMenuLabel>
-            <DropdownMenuItem onSelect={() => setStatusFilter("all")}>{statusFilter === "all" ? "✓ " : "  "}All</DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => setStatusFilter("active")}>{statusFilter === "active" ? "✓ " : "  "}Active</DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => setStatusFilter("cancelled")}>{statusFilter === "cancelled" ? "✓ " : "  "}Cancelled</DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => setStatusFilter("paused")}>{statusFilter === "paused" ? "✓ " : "  "}Paused</DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={(e) => {
+                e.preventDefault();
+                setStatusFilter("all");
+              }}
+            >
+              {statusFilter === "all" ? "✓ " : "  "}All
+            </DropdownMenuItem>
+            {allStatuses.map((s) => (
+              <DropdownMenuItem
+                key={s}
+                onSelect={(e) => {
+                  e.preventDefault();
+                  setStatusFilter(s);
+                }}
+              >
+                {statusFilter === s ? "✓ " : "  "}
+                {s}
+              </DropdownMenuItem>
+            ))}
             <DropdownMenuSeparator />
             <DropdownMenuLabel className="text-xs">In 1Password</DropdownMenuLabel>
             <DropdownMenuItem onSelect={() => setIn1pFilter("any")}>{in1pFilter === "any" ? "✓ " : "  "}Any</DropdownMenuItem>
@@ -553,6 +587,7 @@ export function SubscriptionsPageClient({
         existing={editing ?? undefined}
         onSaved={handleSaved}
         knownDepartments={allDepartments}
+        knownStatuses={allStatuses}
         readOnly={!editMode}
       />
       <EditSubscriptionDialog
@@ -560,6 +595,7 @@ export function SubscriptionsPageClient({
         onOpenChange={setAddOpen}
         onCreated={handleCreated}
         knownDepartments={allDepartments}
+        knownStatuses={allStatuses}
       />
     </div>
   );
@@ -634,8 +670,8 @@ function StatusBadge({ status }: { status: string }) {
   return (
     <span
       className={cn(
-        "inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium capitalize",
-        STATUS_TONE[status] || STATUS_TONE.archived,
+        "inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium",
+        statusTone(status),
       )}
     >
       {status}

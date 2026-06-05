@@ -179,6 +179,7 @@ const colIdx = {
   renewal: header.indexOf("Renewal Date (date)"),
   notes: header.indexOf("Notes (text)"),
   tag: header.indexOf("Tag (drop down)"),
+  status: header.indexOf("Status"),
 };
 
 const inserts = [];
@@ -217,7 +218,13 @@ for (const row of data) {
   const tag = (row[colIdx.tag] || "").trim() || null;
   const websiteUrl = (row[colIdx.website] || "").trim() || null;
   const inOnePassword = parseBool(row[colIdx.in1p]);
-  const status = isArchived ? "archived" : "active";
+  // ClickUp Status (the new column) is the source of truth for status.
+  // The *Archived department marker is a separate axis — it sets
+  // archived_at (soft-delete from default view) but no longer touches
+  // the status string.
+  const rawStatus =
+    colIdx.status >= 0 ? (row[colIdx.status] || "").trim() : "";
+  const status = rawStatus || (isArchived ? "archived" : "active");
   const archivedAt = isArchived ? "now()" : "NULL";
 
   inserts.push(

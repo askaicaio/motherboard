@@ -21,10 +21,11 @@ const createSchema = z.object({
   renewalDate: z.string().nullable().optional(), // ISO yyyy-mm-dd
   notes: z.string().max(5000).nullable().optional(),
   tag: z.string().max(200).nullable().optional(),
-  status: z
-    .enum(["active", "cancelled", "paused", "archived"])
-    .optional()
-    .default("active"),
+  // Status is free-form (max 100) to faithfully preserve the ClickUp
+  // status spectrum (e.g. "subscription", "free account", "not working",
+  // "archived working", "cancelled subscription", etc.) instead of
+  // forcing them into a narrow enum.
+  status: z.string().max(100).optional().default("active"),
 });
 
 export async function GET(request: NextRequest) {

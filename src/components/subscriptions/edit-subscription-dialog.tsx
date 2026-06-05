@@ -24,11 +24,11 @@ interface Props {
   onSaved?: (row: SubscriptionRow) => void;
   onCreated?: (row: SubscriptionRow) => void;
   knownDepartments?: string[];
+  /** Universe of statuses pulled from the live data — drives the dropdown. */
+  knownStatuses?: string[];
   /** When true the dialog renders fields as plain text (no editing). */
   readOnly?: boolean;
 }
-
-const STATUSES = ["active", "paused", "cancelled", "archived"];
 
 export function EditSubscriptionDialog({
   open,
@@ -37,6 +37,7 @@ export function EditSubscriptionDialog({
   onSaved,
   onCreated,
   knownDepartments = [],
+  knownStatuses = [],
   readOnly = false,
 }: Props) {
   const isEdit = !!existing;
@@ -293,18 +294,21 @@ export function EditSubscriptionDialog({
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="sub-status">Status</Label>
-              <select
+              <Input
                 id="sub-status"
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
-                className="block w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-zinc-400 focus:outline-none"
-              >
-                {STATUSES.map((s) => (
-                  <option key={s} value={s}>
-                    {s[0].toUpperCase() + s.slice(1)}
-                  </option>
-                ))}
-              </select>
+                list="known-statuses"
+                placeholder="e.g. subscription, free account"
+                maxLength={100}
+              />
+              {knownStatuses.length > 0 && (
+                <datalist id="known-statuses">
+                  {knownStatuses.map((s) => (
+                    <option key={s} value={s} />
+                  ))}
+                </datalist>
+              )}
             </div>
           </div>
 

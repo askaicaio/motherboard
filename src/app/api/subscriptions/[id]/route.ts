@@ -21,7 +21,7 @@ const patchSchema = z.object({
   renewalDate: z.string().nullable().optional(),
   notes: z.string().max(5000).nullable().optional(),
   tag: z.string().max(200).nullable().optional(),
-  status: z.enum(["active", "cancelled", "paused", "archived"]).optional(),
+  status: z.string().max(100).optional(),
 });
 
 export async function PATCH(
