@@ -2,8 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { useRouter, usePathname } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
 import {
   LayoutDashboard,
   UserPlus,
@@ -17,7 +17,20 @@ import {
   Megaphone,
   BookOpen,
   Workflow,
+  Receipt,
+  LogOut,
+  UserRound,
+  ChevronUp,
 } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { canSeeCompanyReports } from "@/lib/auth/permissions";
 import type { Department, AdminRole } from "@/types";
@@ -45,6 +58,7 @@ const navItems: NavItem[] = [
   { href: "/campaigns", label: "Campaigns", icon: Megaphone },
   { href: "/automations", label: "Automations", icon: Workflow },
   { href: "/docs", label: "Docs", icon: BookOpen },
+  { href: "/subscriptions", label: "Subscriptions", icon: Receipt },
   { href: "/integrations", label: "Integrations", icon: Plug },
   { href: "/audit-log", label: "Audit Log", icon: ScrollText },
   { href: "/settings/rules", label: "Rules", icon: Shield },
@@ -52,8 +66,17 @@ const navItems: NavItem[] = [
 ];
 
 export function Sidebar() {
+  const router = useRouter();
   const pathname = usePathname();
   const { data: session, status } = useSession();
+  const user = session?.user;
+  const initials =
+    user?.name
+      ?.split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2) || "??";
 
   // Pull role + department from the extended session user
   const sessionUser = session?.user as
@@ -126,12 +149,62 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="border-t p-3">
-        <div className="rounded-md bg-zinc-50 p-3">
-          <p className="text-xs text-zinc-500">Environment</p>
-          <p className="text-xs font-medium text-zinc-700">
-            {process.env.PROVISIONING_MODE === "live" ? "Production" : "Development (Mock)"}
-          </p>
+      {/* Profile chip at the bottom of the sidebar — standard pattern
+          (Slack/Linear/Notion). Opens upward into the account menu.
+          Environment label sits below as a thin status line. */}
+      <div className="border-t p-2">
+        {user && (
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              className="flex w-full items-center gap-2 rounded-md px-2 py-2 hover:bg-zinc-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-200 cursor-pointer"
+              aria-label="Account menu"
+            >
+              <Avatar className="h-7 w-7 shrink-0">
+                <AvatarImage src={user.image ?? undefined} />
+                <AvatarFallback className="text-xs">{initials}</AvatarFallback>
+              </Avatar>
+              <div className="min-w-0 flex-1 text-left">
+                <div className="truncate text-sm font-medium text-zinc-800">
+                  {user.name}
+                </div>
+                <div className="truncate text-[11px] font-mono text-zinc-500">
+                  {user.email}
+                </div>
+              </div>
+              <ChevronUp className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="top" align="start" className="w-56">
+              <DropdownMenuLabel className="font-normal">
+                <p className="text-sm font-medium">{user.name}</p>
+                <p className="truncate font-mono text-xs text-zinc-500">
+                  {user.email}
+                </p>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={() => router.push("/members")}>
+                <UserRound className="mr-2 h-4 w-4" />
+                My profile
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => router.push("/settings")}>
+                <Settings className="mr-2 h-4 w-4" />
+                Settings
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onSelect={() => signOut({ callbackUrl: "/login" })}
+                className="text-red-600 focus:text-red-700"
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                Sign out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+        <div className="mt-1 flex items-center justify-between px-2 py-1 text-[10px] uppercase tracking-wide text-zinc-400">
+          <span>
+            {process.env.PROVISIONING_MODE === "live" ? "Production" : "Dev"}
+          </span>
+          <span className="font-mono text-zinc-300">Motherboard</span>
         </div>
       </div>
     </aside>

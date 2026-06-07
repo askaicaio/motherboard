@@ -1,0 +1,749 @@
+"Task ID","Task Name","Website Link (url)","Department (labels)","In 1Password (checkbox)","Subscription Amount (per month) (currency)","Annual Cost (formula)","Renewal Date (date)","Notes (text)","Tag (drop down)","Status"
+"868ewc7d3","No Code MBA | caio@chiefaiofficer.com","https://app.nocode.mba/dashboard","[Training, App Development]","true",12.6,151.2,"Sunday, July 26th 2026","not sure if we are still using this / no monthly option
+","","annual plans"
+"868e5en63","*1Password","https://start.1password.com/signin?l=en","[Unique Account Needed]","",292.48,3509.76,"Friday, February 20th 2026","26 active members + tax, billed every 20th
+","","team plan"
+"868e5epgd","*ClickUp","https://app.clickup.com/","[Unique Account Needed]","",114,1368,"Friday, August 28th 2026","5 active accounts ($95/month x 12)
+","","team plan"
+"868e5encj","*Fathom","https://fathom.video/users/sign_in","[Unique Account Needed]","","","","","","","team plan"
+"868e5enf7","*Google","https://accounts.google.com/","[Unique Account Needed]","",636.54,7638.48,"","23 active accounts, 1 archived account
+","","team plan"
+"868e5en74","*Slack","https://daygull.slack.com/","[Unique Account Needed]","",284.95,3419.3999999999996,"","$7.25/mo/member + 20 members
+","","team plan"
+"868ewbmcn","*Zoom | askai@chiefaiofficer.com","https://us06web.zoom.us/recording/","[Operations, Unique Account Needed]","true",350.63,4207.5599999999995,"Thursday, August 14th 2025","Monthly Price varies. listed subscription price is the highest recorded.
+","","team plan"
+"868efrgzh","Apollo.io | doc@chiefaiofficer.com","https://app.apollo.io/#/login","[Marketing]","true","","","","CANCELLED, used to be 4 users
+plan includes 2 users (Doc & Lea)
+","","team plan"
+"868egedw7","Canva Teams | CAIO's team | askai@chiefaiofficer.com","https://www.canva.com","[Content Creation]","true",15.99,191.88,"","contains smartcuts, assets, etc
+","","team plan"
+"868epzdnp","Cassidy | doc@chiefaiofficer.com","https://app.cassidyai.com/auth/signin","","true",0,0,"","??? I dont think the doc@ is the owner of the team
+","","team plan"
+"868ewbt7h","ChatGPT | doctordaigle@gmail.com","https://chat.openai.com","[Operations]","",1391.48,16697.760000000002,"Saturday, August 16th 2025","$30/seat monthly
+Feb 2026: ($215.25 × 3) + ($724.20) + ($21.53) = $1,391.48
+","","team plan"
+"868hn363k","Claude | doc@chiefaiofficer.com","https://claude.ai/login","","true",941.72,11300.64,"","Team Plan Owner. $20/mo per seat. Monthly price varies.
+","","team plan"
+"868eqf9pw","Fathom | doc@chiefaiofficer.com","https://fathom.video/users/sign_in","[Operations]","true",242,2904,"Sunday, February 1st 2026","April 2026 - Pricing is outdated and needs to be updated
+$29 per user, every 1st
+Feb 2026 Monthly Cost $242.00
+Free trial ends Sept 29, 2025 (it says this but I think Chris has a special account that is FREE)
+
+","","team plan"
+"868euwzfq","GoHighLevel | doc@chiefofficer.com","https://app.gohighlevel.com","[Marketing, Operations]","true",534.9,6418.799999999999,"Saturday, August 9th 2025","$497 + Sales Tax || GHL Agency Pro Plan
+","","team plan"
+"868hvb626","Krisp | teams@chiefaiofficer.com","","[Services]","true",16,192,"","Anna approval:
+https://daygull.slack.com/archives/C08HVBRTDN2/p1772649927206229
+","","team plan"
+"868ewc7hq","n8n | askai@chiefaiofficer.com","https://chiefaiofficer.app.n8n.cloud/","[App Development]","true",144,1728,"Wednesday, July 30th 2025","","","team plan"
+"868hvb690","Podder Audio Advertising S.L. | account???","","[Podcast Production]","true",19,228,"","Anna question:
+https://daygull.slack.com/archives/C08HVBRTDN2/p1772644555560489
+
+","","team plan"
+"868ewbpw7","Zendesk | askai@chiefaiofficer.com","https://help.chiefaiofficer.com","[Customer Support]","true",75.34,904.08,"Wednesday, August 20th 2025","$69 per agent / month
+","","team plan"
+"868hvb6um","ZVentures LLC | account???","","","true",37,444,"","NEEDS TO BE CANCELLED
+
+Anna question:
+https://daygull.slack.com/archives/C08HVBRTDN2/p1771823601020159
+","","team plan"
+"868ehq3g8","BookFunnel | doc@chiefaiofficer.com","https://dashboard.bookfunnel.com","[Marketing, Content Creation]","true",15,180,"","You are currently on the Mid-List Author + Integrations Monthly plan.
+You are allowed unlimited books.
+You are allowed 2 author names.
+You are allowed 5000 downloads per month.
+You are allowed 2 integrations.
+","","subscription"
+"868fcfa7d","Bubble.io | Prompt Vault Studio","http://www.bubble.io","[App Development]","",134,1608,"","No 1P entry
+","","subscription"
+"868epj0vy","Buzzsprout | doc@chiefaiofficer.com","https://www.buzzsprout.com","[Podcast Production]","true",20,240,"","3 hours per month. Any overage costs extra. Price Varies
+","","subscription"
+"868epzfuz","Certifier | askai@chiefaiofficer.com","https://app.certifier.io","[Course Content]","true",128,1536,"Saturday, July 26th 2025","","","subscription"
+"868jtpxq7","ChatGPT + Codex | joshdelos@chiefaiofficer.com","","[Automations]","true",100,1200,"Friday, June 26th 2026","","","subscription"
+"868epzmef","Claude | doctordaigle@gmail.com","https://claude.ai/login?selectAccount=true&returnTo=%2Fchat%2F602ad0ff-fcf4-4bbc-ad49-621bf6115472","[Admin]","true",107.63,1291.56,"","","","subscription"
+"868epzqrd","Clay | doc@chiefaiofficer.com","https://app.clay.com/","[Automations]","true",499,5988,"","$499 Explorer Plan
+ 
+","","subscription"
+"868fzhcbz","Cloudflare | askai@chiefaiofficer.com","https://dash.cloudflare.com","[Website]","true",11.63,139.56,"","+Taxes. Subscribed by Ben
+","","subscription"
+"868eq0fep","Cognito Forms | askai@chiefaiofficer.com","https://www.cognitoforms.com","[Marketing, Operations]","true",19,228,"Friday, August 1st 2025","","","subscription"
+"868ewbkre","Descript | doctordaigle@gmail.com","https://www.descript.com/","[Content Creation]","true",105,1260,"","April 2026 - Pricing is outdated and needs to be updated
+Feb 2026 NEEDS CODE
+","","subscription"
+"868eqej84","Digital Ocean | askai@chiefaiofficer.com","https://cloud.digitalocean.com/","[Website]","true",22,264,"","","","subscription"
+"868eqekra","Docusign | askai@chiefaiofficer.com","https://account.docusign.com/","[Operations, Admin]","true",541.8,6501.599999999999,"","","","subscription"
+"868eqf6wx","ElevenLabs | doc@chiefaiofficer.com","https://elevenlabs.io/","[Content Creation, Podcast Production]","true",22,264,"Tuesday, August 12th 2025","","","subscription"
+"868eqf966","Fathom | caio@chiefaiofficer.com","https://fathom.video/users/sign_in","[Operations]","true",15,180,"","April 2026 - Pricing is outdated and needs to be updated
+","","subscription"
+"868ehv1dw","Fireflies.ai | doc@chiefaiofficer.com","https://app.fireflies.ai","[Operations]","true",29,348,"","used to be 4 members (including Segovia & Jenn), and CAIO@ - I removed everyone else
+","","subscription"
+"868eqfcn3","Gamma | askai@chiefaiofficer.com","https://gamma.app/signin","[Content Creation]","true",10,120,"","$10 Plus Account
+","","subscription"
+"868ewcdkd","Gamma | doc@chiefaiofficer.com","https://gamma.app","[Content Creation]","true",98,1176,"Friday, July 25th 2025","$20 Pro Monthly - 2 Qty
+Added to subscription amount other unlisted accounts
+","","subscription"
+"868efvgtw","Heygen | doc@chiefaiofficer.com","https://app.heygen.com/","[Content Creation]","true",99,1188,"","$99 Monthly Pro Plan
+","","subscription"
+"868ewcc40","Ideogram | doc@chiefaiofficer.com","https://ideogram.ai/__/auth/handler?apiKey=AIzaSyBwq4bRiOapXYaKE-0Y46vLAw1-fzALq7Y&appName=%5BDEFAULT%5D&authType=signInViaRedirect&redirectUrl=https%3A%2F%2Fideogram.ai%2F&v=10.13.1&providerId=google.com&customParameters=%7B%22prompt%22%3A%22select_account%22%7D&scopes=profile","[Content Creation]","true",20,240,"","$20 Ideogram Plus Monthly - since August 14, 2025
+
+","","subscription"
+"868huzj5v","Instantly.ai | askai@chiefaiofficer.com","https://app.instantly.ai","[Marketing, Sales]","true",47,564,"","","","subscription"
+"868hn3wpw","Instantly.ai | dani@chiefaiofficer.com","https://app.instantly.ai/auth/login?comet_token_override=18715239341891183577114769721826302903294029226044","","true",96,1152,"","","","subscription"
+"868e7kf66","Leonardo.ai | doc@chiefaiofficer.com","https://app.leonardo.ai","[Content Creation]","true",12,144,"","","IMAGE","subscription"
+"868g8g1jw","LinkBoss | doc@chiefaiofficer.com","https://app.linkboss.io","[Operations]","true",37,444,"Sunday, November 23rd 2025","","","subscription"
+"868ewcah0","LinkedIn | doctordaigle@gmail.com","https://www.linkedin.com","[Social Media]","",99.99,1199.8799999999999,"","Sales Navigator Core: $99.99 + taxes monthly every 2nd
+","","subscription"
+"868hvb7fj","Lovable | doc@chiefaiofficer.com ???","","[Website]","",9,108,"","Chris approval:
+https://daygull.slack.com/archives/C08HVBRTDN2/p1771292222826539?thread_ts=1771292123.412389&cid=C08HVBRTDN2
+
+","","subscription"
+"868ewb8h8","Make | askai@chiefaiofficer.com","https://us1.make.com/organization/1193307/dashboard","[Automations]","true",18.92,227.04000000000002,"Thursday, August 21st 2025","Upgraded since Feb 27, 2026
+","","subscription"
+"868hn367c","Manus | doc@chiefaiofficer.com","https://manus.im","","true",20,240,"Friday, April 17th 2026","","","subscription"
+"868gk6gpu","OneStream Live | askai@chiefaiofficer.com","https://app.onestream.live/","[Community + Moderation, Content Creation]","true",15,180,"Thursday, November 13th 2025","","VIDEO","subscription"
+"868ewc6pk","Opus Clip Pro | doc@chiefaiofficer.com","https://www.opus.pro/","[Content Creation]","true",0,0,"Saturday, November 29th 2025","Cancelled
+","","subscription"
+"868hhuq7m","Otter | askai@chiefaiofficer.com","https://otter.ai","[Content Creation]","true",0,0,"Wednesday, March 4th 2026","Cancel before March 4 - Update: Cancelled the $30 plan
+","","subscription"
+"868ewc5uj","Perplexity | doc@chiefaiofficer.com","http://www.perplexity.ai","[Operations]","true",331.46,3977.5199999999995,"Sunday, August 3rd 2025","April 2026 - Pricing is outdated and needs to be updated
+Enterprise Perplexity Pro and Enterprise Perplexity Max
+","","subscription"
+"868ek99m3","RB2B | doc@chiefaiofficer.com","https://app.rb2b.com/","[Sales]","true",249,2988,"","$249/month renews every 12th
+","","subscription"
+"868ewbj8y","Rebrandly | askai@chiefaiofficer.com","https://app.rebrandly.com/","[Marketing, Website]","true",39,468,"","","","subscription"
+"868fzhcwy","Resend | askai@chiefaiofficer.com","https://resend.com","[Marketing]","true",20,240,"Saturday, February 14th 2026","Subscribed by Ben
+","","subscription"
+"868ewbjyq","Riverside | doc@chiefaiofficer.com","http://riverside.fm","[Content Creation]","true",44,528,"","Pro + Live Studio
+","","subscription"
+"868j42qgy","Smartlead | askai@chiefaiofficer.com","","[Marketing]","true",39,468,"","","","subscription"
+"868ewbyq8","Twitter | @AChiefAIOfficer","https://twitter.com","[Social Media]","true",57.22,686.64,"Friday, August 8th 2025","Premium+
+","","subscription"
+"868gy5waj","Usersnap | doc@chiefaiofficer.com","https://usersnap.com","[Operations]","true",49,588,"Thursday, February 5th 2026","Tina asked for subscription, approved by both Anna and Chris
+","","subscription"
+"868e7n320","Vimeo | doctordaigle@gmail.com ","https://vimeo.com/","[Content Creation]","true",41,492,"Thursday, April 16th 2026","$300/yr + tax = $25/month
+","","subscription"
+"868ewb877","Zapier | caio@chiefaiofficer.com","https://zapier.com/","[Automations]","true",32.28,387.36,"","Professional plan
+
+Dec 2025 - downgraded to 750 tasks/month
+","","subscription"
+"868hvb5kn","ZenLeads Inc. (dba Apollo.io)","","[Sales]","true",59,708,"Thursday, March 5th 2026","Chris approval:
+https://daygull.slack.com/archives/C08HVBRTDN2/p1772749901054259
+","","subscription"
+"868efw4xy","AssemblyAI | askai@chiefaiofficer.com","http://www.assemblyai.com","[App Development]","true","","","","renews when balance falls below $4.99, brings balance back to $13
+NEGLIGIBLE - inactive for years
+","","auto-renews credits"
+"868efr64y","American Express | FoxwoodFamily2018","https://www.americanexpress.com/en-us/account/login/","[Accounting]","true","","","","","","sensitive account"
+"868hn3ebp","CAIO LLC TX - BofA","https://www.bankofamerica.com/business/","","true","","","","","","sensitive account"
+"868ewc944","MakersHub | doc@chiefaiofficer.com","https://makershub.ai","[Accounting]","true","","","","not sure how much is the subscription fee for this one, if any
+","","sensitive account"
+"868ewc7wx","Moneygram | doctordaigle@gmail.com","https://www.moneygram.com","[Accounting]","true","","","","no option to login on site
+","","sensitive account"
+"868ewc668","Payoneer | accounting@chiefaiofficer.com","https://paynow.payoneer.com/Home/PersonalDetails","[Accounting]","true","","","","could not sign in, code wasnt being received
+","","sensitive account"
+"868ewc5x4","Paypal | accounting@chiefaiofficer.com","https://www.paypal.com","[Accounting]","true","","","","","","sensitive account"
+"868ewc0b1","Stripe | admin@chiefaiofficer.com","https://dashboard.stripe.com/login","[Accounting]","true","","","","NEEDS CODE
+","","sensitive account"
+"868e7mya5","1Password | admin@chiefaiofficer.com (Owner)","https://start.1password.com/signin?l=en","[Top Admin]","true","","","","","","member account"
+"868e5epfd","1Password | media@chiefaiofficer.com","https://start.1password.com/signin?l=en","[Content Creation, Podcast Production, Social Media]","true","","","","","","member account"
+"868epzkjy","Circle | aerinmyra@gmail.com","https://circle.so/","[Community + Moderation, Admin]","true","","","","","","member account"
+"868epzmct","Circle | askai@chiefaiofficer.com","https://circle.so/","[Community + Moderation, Admin]","true","","","","","","member account"
+"868epzm1a","Circle | caio@chiefaiofficer.com","https://circle.so/","[Community + Moderation, Admin]","true","","","","","","member account"
+"868epzktw","Circle | doc@chiefaiofficer.com","https://circle.so/","[Community + Moderation, Admin]","true","","","","","","member account"
+"868epzrfg","ClickUp | doctordaigle@gmail.com","https://app.clickup.com/","[Admin]","true","","","","","","member account"
+"868epzr1y","ClickUp | genevieve@daygullstrategic.com","https://app.clickup.com/","[Admin]","true","","","","","","member account"
+"868epzrqp","ClickUp | lee@chiefaiofficer.com","https://app.clickup.com/","[Admin]","true","","","","","","member account"
+"868hn2zbw","GHL - Ask AI | askai@chiefaiofficer.com","https://app.gohighlevel.com/","","true","","","","Part of GHL Team Plan
+","","member account"
+"868e5epp1","Google | admin@chiefaiofficer.com","https://accounts.google.com/","[Top Admin]","true","","","","","","member account"
+"868ewcc21","IACAIO Google | marketing@iacaio.org","https://accounts.google.com/","[Marketing]","true","","","","","","member account"
+"868ewcc1w","IACAIO Google | membership@iacaio.org","https://accounts.google.com/","[Admin]","true","","","","","","member account"
+"868ewcc1g","IACAIO Google | rupesh@iacaio.org","https://accounts.google.com/","[Admin]","true","","","","","","member account"
+"868g8g34n","WP Admin Petar | petar@chiefaiofficer.com","https://blog.chiefaiofficer.com/wp-admin","[Admin]","true","","","","Email needs to be verified
+","","member account"
+"868efrdaj","Anima | doc@chiefaiofficer.com (Owner)","https://projects.animaapp.com/login","[Content Creation]","true","","","","not active since 2022
+","","free team"
+"868eqf7nq","EPX Global - CAIO Team | askai@chiefaiofficer.com","https://epx.global/","[Community + Moderation, Marketing, Automations]","true","","","","","","free team"
+"868ewbtnp","Miro | askai@chiefaiofficer.com","https://miro.com/login/","[Content Creation]","true","","","Saturday, July 26th 2025","used to be $21.53/month
+","","free team"
+"868ev22ku","Notion | doc@chiefaiofficer.com","https://www.notion.so/","[Admin]","true","","","Thursday, July 31st 2025","used to be $60/month
+","","free team"
+"868fvrhrh","Read.ai | dani@chiefaiofficer.com","https://app.read.ai/","[Operations, Sales]","true","","","","used to be $59/month since January 2026
+
+","","free team"
+"868epzgxz","Slack (Chris)","https://daygull.slack.com/?redir=%2Farchives%2FC066C6WTUG4%3Fname%3DC066C6WTUG4","[Admin]","true","","","","","","free team"
+"868ewbzjy","Supabase | doc@chiefaiofficer.com","https://supabase.com","","true","","","","","","free team"
+"868e5era8","Ad Coach with Curt Maly | genevieve@chiefaiofficer.com","https://bbdp.samcart.com/courses/login","[Training, Marketing]","true","","","","Course title: A.I. Content Labs: Craft, Refine, & Spread Your Message
+","COURSE","free account"
+"868hn3xyn","AI Branding | doc@chiefaiofficer.com","https://aibranding.academy","[]","true","","","","","COURSE","free account"
+"868ehq7ry","Automatic Clients | doc@chiefaiofficer.com","https://app.automaticclients.com/login/","[Training, Marketing]","true","","","","","COURSE","free account"
+"868hnxjwg","Bing Webmaster Tools | askai@chiefaiofficer.com","https://www.bing.com/webmasters","","true","","","","","","free account"
+"868ehvabk","Botpress | askai@chiefaiofficer.com","https://botpress.com/","[Automations]","true","","","","","","free account"
+"868epj4dg","Calligraphr | doc@chiefaiofficer.com","https://www.calligraphr.com","[Content Creation]","true","","","","","","free account"
+"868hnx3j2","ChatGPT (Sales) | sales@chiefaiofficer.com","https://chat.openai.com","","true","","","","","","free account"
+"868hn39mz","ChatGPT | askai@chiefaiofficer.com","https://chat.openai.com","","true","","","","","","free account"
+"868hnwz0a","ChatGPT | operations@chiefaiofficer.com","https://chat.openai.com","","true","","","","","","free account"
+"868hnw2cv","ChatGPT | services@chiefaiofficer.com","https://chat.openai.com","","true","","","","","","free account"
+"868hn36cp","ChatGPT | tech@chiefaiofficer.com","https://chat.openai.com","","true","","","","","","free account"
+"868hnx19q","Claude (Operations) | operations@chiefaiofficer.com","https://claude.ai/login","","true","","","","","","free account"
+"868hnx396","Claude (Sales) | sales@chiefaiofficer.com","https://claude.ai/login","","true","","","","","","free account"
+"868hnvvcq","Claude (Services) - FREE | services@chiefaiofficer.com","https://claude.ai/login","","true","","","","","","free account"
+"868hn38ha","Claude | askai@chiefaiofficer.com","https://claude.ai/login","","true","","","","","","free account"
+"868hn35w4","Claude | tech@chiefaiofficer.com","https://claude.ai/login","","true","","","","","","free account"
+"868epzre5","Click2Mail | cdaigle","https://click2mail.com","[Operations]","true","","","","","","free account"
+"868hnw6an","Clickup | alina@chiefaiofficer.com","https://app.clickup.com/","","true","","","","","","free account"
+"868epzu91","Cloudinary | askai@chiefaiofficer.com","https://cloudinary.com","[App Development]","true","","","","","","free account"
+"868eq0fwx","CopeCart - Doc | doc@chiefaiofficer.com","https://copecart.com/us/","[Sales]","true","","","","","","free account"
+"868eq0gg0","Core Values | doctordaigle@gmail.com","https://robertglazer.thinkific.com/users/sign_in","[Course Content]","true","","","","","COURSE","free account"
+"868eq0gng","CoSchedule | doc@chiefaiofficer.com","https://accounts.coschedule.com/login","[Marketing]","true","","","","","","free account"
+"868hnvy46","Council Chiefaiofficer | sherry@chiefaiofficer.com","https://council.chiefaiofficer.com/sign-in","","true","","","","","","free account"
+"868eq0h3p","Credly (INACTIVE) | askai@chiefaiofficer.com","https://www.credly.com","[Training]","true","","","","","","free account"
+"868hn37af","Custom Podcast Automation Tool | askai@chiefaiofficer.com","https://v0-podcast-automation-ciao-internal.vercel.app/","","true","","","","","","free account"
+"868eqcmv2","DeepL Translate | doc@chiefaiofficer.com","https://www.deepl.com","[Content Creation]","true","","","","","","free account"
+"868eqe9hr","Delta - Genevieve | mcwhiteson4","https://www.delta.com/","[Customer Support, Marketing]","true","","","","","","free account"
+"868eqekv2","DomainsPricedRight | 589544431","https://sso.secureserver.net/?plid=1592&prog_id=domainspricedright&realm=idp&path=%2Fproducts&app=account","[Website]","true","","","","","","free account"
+"868eqempe","Dropbox - AskAI (CAIO) | askai@chiefaiofficer.com","https://www.dropbox.com","[Operations]","true","","","","","","free account"
+"868ewcemz","Empire OS | genevieve.white","https://empireom.com/","[Training]","true","","","","1 course: Empire Business Operations Course
+","COURSE","free account"
+"868ewc7q1","EPIC Network | doc@chiefaiofficer.com","https://aeaccelerator.mykajabi.com","[Training]","true","","","","courses include:
+AI Monetization Mastery Training
+The AI Powered Expert
+","COURSE","free account"
+"868eqf7mz","EPIC Network | doctordaigle@gmail.com","https://aeaccelerator.mykajabi.com/login","[Training]","true","","","","has much more courses than the other one
+","COURSE","free account"
+"868ewceet","EPX Global | askai@chiefaiofficer.com","https://epx.global/","[Community + Moderation]","true","","","","","","free account"
+"868ewcee7","EPX Global | doctordaigle@gmail.com","https://epx.global/","[Community + Moderation]","true","","","","","","free account"
+"868eqf8qa","Facebook | doctordaigle@gmail.com","https://www.facebook.com","[Community + Moderation, Social Media]","true","","","","","","free account"
+"868eqfa6w","FedEx | doc@chiefaiofficer.com","https://www.fedex.com","[Operations, Sales]","true","","","","","","free account"
+"868eux048","Gmail | doc@chiefaiofficer.com","https://www.gmail.com","","true","","","","","","free account"
+"868hn3f18","GoHighLevel (HEADSTART) | headstart@chiefaiofficer.com","https://app.gohighlevel.com/","","true","","","","is this part of GHL team plan?
+","","free account"
+"868hn3ztz","GoHighLevel (Hello@GoFunnel.io) | hello@gofunnels.io","https://app.gohighlevel.com/","","true","","","","is this part of GHL team plan?
+","","free account"
+"868hnwdyx","GoHighLevel | media@chiefaiofficer.com","https://app.gohighlevel.com/","","true","","","","is this part of GHL team plan?
+","","free account"
+"868hn35nb","Google (AskAI) | askai@chiefaiofficer.com","https://accounts.google.com/","","true","","","","","","free account"
+"868hn4180","Google (CAIO Mentor) | mentor@chiefaiofficer.com","https://accounts.google.com/","","true","","","","","","free account"
+"868hn3cqp","Google (CAIO) | caio@chiefaiofficer.com","https://accounts.google.com/","","true","","","","","","free account"
+"868hn2xwn","Google (Doc DS) | doc@daygullstrategic.com","http://www.gmail.com","","true","","","","Requires recovery phone
+","","free account"
+"868hn3dkb","Google (Doc) | doc@chiefaiofficer.com","https://accounts.google.com/","","true","","","","","","free account"
+"868hnwtn4","Google (DoctorDaigle) | doctordaigle@gmail.com","https://myaccount.google.com","","true","","","","","","free account"
+"868hn40cq","Google (Media) | media@chiefaiofficer.com","https://accounts.google.com/","","true","","","","","","free account"
+"868hn39yt","Google (QA) | qa@chiefaiofficer.com","https://accounts.google.com","","true","","","","Needs phone number
+","","free account"
+"868hn3c9b","Google (Support) | support@chiefaiofficer.com","https://accounts.google.com/","","true","","","","","","free account"
+"868hn39c0","Google (Teams) | teams@chiefaiofficer.com","https://myaccount.google.com","","true","","","","needs recovery phone
+","","free account"
+"868hn40y9","Google (Teri) | teri@chiefaiofficer.com","https://accounts.google.com","","true","","","","","","free account"
+"868hnwb8b","Google | alina@chiefaiofficer.com","https://accounts.google.com","","true","","","","","","free account"
+"868ewcb7c","GPT Excel | doc@chiefaiofficer.com","https://auth.gptexcel.uk/__/auth/handler?apiKey=AIzaSyB_85KvrP2KivSfamQkZPltajj1t-TO8is&appName=%5BDEFAULT%5D&authType=signInViaRedirect&redirectUrl=https%3A%2F%2Fgptexcel.uk%2Fsignin&v=10.12.2&providerId=google.com&scopes=profile","[Operations]","true","","","","","","free account"
+"868ewcbdt","Headliner | doc@chiefaiofficer.com","https://make.headliner.app/login?utm_source=headliner_brochure&utm_medium=website&utm_content=header_button","[Content Creation]","true","","","","","","free account"
+"868ewcbht","HelloConversions | doc@chiefaiofficer.com","https://app.helloconversions.com","[Marketing]","true","","","","not sure if this has a subscription, I think Steven may have been the one that made this account, I see the notifs that this sends in Slack
+","","free account"
+"868ewcbkm","Hilton Honors | 1518864655","https://www.hilton.com/","[Travel]","true","","","","","","free account"
+"868ewcawj","Koala AI Affiliate Account | accounting@chiefaiofficer.com","https://friends.koala.sh/login","[Affiliate Account]","true","","","","","","free account"
+"868ewca4j","Learnworlds - Geoff Woods | doc@chiefaiofficer.com","https://aileadership.learnworlds.com/","[Training]","true","","","","paid course worth $2500
+2025 Strategic Planning Workshop, Date: 08 Nov 2024
+","COURSE","free account"
+"868hn3bgd","LinkedIn | doc@chiefaiofficer.com","https://www.linkedin.com","","true","","","","","","free account"
+"868hnxc8t","LinkedIn | katie@chiefaiofficer.com","https://www.linkedin.com","","true","","","","","","free account"
+"868ewc9rg","Lnk.bio | askai@chiefaiofficer.com","https://lnk.bio","[Marketing, Website]","true","","","","paid account worth $9.99, one-time payment
+","","free account"
+"868ewc9hf","LucidChart | askai@chiefaiofficer.com","https://lucid.app/users/login#/login","[Content Creation]","true","","","","","","free account"
+"868hn3xv4","Mailgun | askai@chiefaiofficer.com","https://login.mailgun.com","","true","","","","","","free account"
+"868ewc8wp","Marketing Academy AI | doctordaigle@gmail.com","https://learn.marketingacademy.ai/users/sign_in","[Training]","true","","","","courses include:
+MAICON 23 Workshop: Presentation Decks
+MAICON 23 Main Conference: Presentation Decks
+Update: Old Website is gone, need to sign into the new one which does not have a working account yet
+","","free account"
+"868hn3z2w","Namecheap | chiefaiofficer","https://www.namecheap.com/","","true","","","","","","free account"
+"868hn37gj","News API | doc@chiefaiofficer.com","https://newsapi.org","","true","","","","","","free account"
+"868hn364y","OpenAI | askai@chiefaiofficer.com","https://auth0.openai.com/u/login/identifier?state=hKFo2SBuUDMwSXhWUnQzSXp2bXNvLUM4NnRNUGc0UUpTOC12bKFur3VuaXZlcnNhbC1sb2dpbqN0aWTZIF81NXFyVWVqWWFvdF9BZldZWXBlMzdBSkp3czBWVl9jo2NpZNkgRFJpdnNubTJNdTQyVDNLT3BxZHR3QjNOWXZpSFl6d0Q","","true","","","","","","free account"
+"868ewc6ha","Opus Affiliate Account | doc@chiefaiofficer.com","https://affiliates.opus.pro","[Affiliate Account]","true","","","","","","free account"
+"868ewc4ce","PartnerStack | accounting@chiefaiofficer.com","https://dash.partnerstack.com/quillbot","[Affiliate Account]","true","","","","","","free account"
+"868ewc6bg","PartnerStack | doc@chiefaiofficer.com","https://dash.partnerstack.com","[Affiliate Account]","true","","","","has affiliate accounts for:
+ElevenLabs
+Castmagic
+","","free account"
+"868ewc5r5","PhantomBuster | doc@chiefaiofficer.com","https://phantombuster.com","[Automations]","true","","","","","","free account"
+"868ewc9yb","Planable | doctordaigle@gmail.com","https://app.planable.io/calendar/zwtDYFc5xmjctNfNh","[Social Media]","true","","","","","","free account"
+"868hnw9xt","Podderapp | doc@chiefaiofficer.com","https://app.podderapp.com","","true","","","","","","free account"
+"868hn39nu","Postman | ced@chiefaiofficer.com","https://identity.getpostman.com","","true","","","","","","free account"
+"868ewc5b2","Prompt Vault Studio | cedric.g.kato@gmail.com","https://promptvault.studio","[Operations]","true","","","","","","free account"
+"868ewc5df","Prompt Vault Studio | jennipher@chiefaiofficer.com","https://promptvault.studio","[Operations]","true","","","","","","free account"
+"868ewc39n","Render | askai@chiefaiofficer.com","https://dashboard.render.com/login","[App Development]","true","","","","","","free account"
+"868ewc0pf","SSRN | doc@chiefaiofficer.com","https://papers.ssrn.com","[Research]","true","","","","","","free account"
+"868hn3yf1","StoryBrand.ai | doc@chiefaiofficer.com","https://app.storybrand.ai","","true","","","","","","free account"
+"868ewbzhw","Synthesia Affiliate Account | accounting@chiefaiofficer.com","https://synthesia.getrewardful.com/login","[Affiliate Account]","true","","","","","","free account"
+"868hn35t1","Test User 1 (Microsoft 365) | testuser1@chiefaiofficer.onmicrosoft.com","https://login.microsoftonline.com","","true","","","","","","free account"
+"868hn35r9","Test User 2 (Microsoft 365) | testuser2@chiefaiofficer.onmicrosoft.com","https://login.microsoftonline.com","","true","","","","","","free account"
+"868ewbyzz","The Growth Institute | doctordaigle@gmail.com","http://learn.growthinstitute.com","[Training, Admin]","true","","","","courses include:
+High Stakes Negotiation
+Scaling Up Virtual Master Class
+","COURSE","free account"
+"868ewbyxp","Thought Leaders | chrisdaigle","https://thoughtleaderscentral.com/login","[Social Media]","true","","","","","","free account"
+"868hn38a2","Tidio | askai@chiefaiofficer.com","https://www.tidio.com","","true","","","","","","free account"
+"868ewbyra","Twitter | @realchiefai","https://x.com/i/flow/login","[Social Media]","true","","","","","","free account"
+"868ewbyr5","Twitter | @UsingAIatWork","https://twitter.com","[Social Media]","true","","","","","","free account"
+"868e7kmq8","Typeform | doctordaigle@gmail.com","https://admin.typeform.com/login","[Marketing]","true","","","","","","free account"
+"868ewbvce","UpCounsel | doc@chiefaiofficer.com","https://www.upcounsel.com","[Legal]","true","","","","","","free account"
+"868ewbv1g","Vidyo | doc@chiefaiofficer.com","https://app.vidyo.ai","[Content Creation]","true","","","","","","free account"
+"868hn3ctc","Vimeo | caio@chiefaiofficer.com","https://vimeo.com","","true","","","","","","free account"
+"868ewbuhj","Whimsical AI | cedrick.taskbullet@gmail.com","https://whimsical.com/login","[Content Creation]","true","","","","","","free account"
+"868hnxnt5","WP Admin || ChrisDaigle.com | chrisdaigle","https://chrisdaigle.com/wp-admin/","","true","","","","","","free account"
+"868hnxnnb","WP Admin || ChrisDaigle.com | genevievewhite","https://chrisdaigle.com/wp-admin/","","true","","","","","","free account"
+"868ewbrhx","Writesonic Affiliate Account | askai@chiefaiofficer.com","https://affiliates.writesonic.com/login","[Marketing]","true","","","","","","free account"
+"868hbtrqd","*Microsoft 365 Admin Center | admin@chiefaiofficer.com ","http://admin.cloud.microsoft","[]","true","","","Monday, March 2nd 2026","cancelled subscription of $1162.5
+","","cancelled subscription"
+"868g8g4t4","10Web | doc@chiefaiofficer.com","http://10web.io/","[Operations]","true","","","","","","cancelled subscription"
+"868e5f06m","Akismet | askai@chiefaiofficer.com","https://akismet.com/account/","[Website]","true","","","","Previous plan: $14.95/month
+","WP PLUGIN","cancelled subscription"
+"868ehv674","Beautiful.ai | doc@chiefaiofficer.com","https://www.beautiful.ai","[Content Creation]","true","","","","Requires subscription to open
+","","cancelled subscription"
+"868ege6wg","Canva Teams | Chris Daigle's team | doc@chiefaiofficer.com","https://www.canva.com","[Content Creation]","true","","","","Cancelled- was 5 users @ $10/user/month
+","","cancelled subscription"
+"868epzfnu","CastMagic | doc@chiefaiofficer.com","https://app.castmagic.io","[Podcast Production]","true","","","Saturday, August 9th 2025","Cancelled, was $39/month
+
+","","cancelled subscription"
+"868epzry8","CloseBot | doctordaigle@gmail.com","https://app.closebot.ai","[Sales]","true","","","","$53 per month billed annually? need to verify - Cancelled
+
+","","cancelled subscription"
+"868eq0gt6","Coursera | doctordaigle@gmail.com","https://www.coursera.org/login","[Course Content]","true","","","","Plus Subscription $52.74 USD - Cancelled Since Mar 2024
+","","cancelled subscription"
+"868ek98am","Crazy Egg | doc@chiefaiofficer.com","https://core.crazyegg.com/","[Marketing, Website]","true","","","Wednesday, April 8th 2026","renews April 8 / no monthly option
+Cancelled, was $348 annually
+","","cancelled subscription"
+"868ehv3ry","Figma | askai@chiefaiofficer.com","https://www.figma.com/","[Content Creation, App Development]","true","","","","cancels Dec 8
+
+used to renew every Dec 8 for $154.98
+","","cancelled subscription"
+"868eqfc04","Formless | caio@chiefaiofficer.com","https://formless.ai/","[Automations]","true","","","Saturday, July 26th 2025","Was $59/month every 26th of the month
+","","cancelled subscription"
+"868hn36kw","HeyReach | doc@chiefaiofficer.com","https://app.heyreach.io/account/login","","true","","","","Cancelled on March 2026. Was $316/mo
+
+","","cancelled subscription"
+"868hn3bbk","HeyReach | shamaevakarina4@gmail.com","https://app.heyreach.io/account/login","","true","","","","One of the seats
+
+","","cancelled subscription"
+"868e7nhcw","Loom | askai@chiefaiofficer.com","https://www.loom.com/login?redirect_after=%2Fmy-videos","[Operations]","true","","","","cancels Apr 12 (was $96/yr)
+","VIDEO","cancelled subscription"
+"868hn3aad","Microsoft 365 Admin Centre | teams@chiefaiofficer.onmicrosoft.com","https://admin.cloud.microsoft","","true","","","","","","cancelled subscription"
+"868ewc5gc","PodMatch | doc@chiefaiofficer.com","https://podmatch.com","[Podcast Production]","true","","","Saturday, August 9th 2025","Originally $6 - Price changed to $35 on Sep 2025
+Deleted - No option to just cancel
+","","cancelled subscription"
+"868ewc567","QR Code Generator | askai@chiefaiofficer.com","https://login.qr-code-generator.com/","[Marketing]","true","","","","","","cancelled subscription"
+"868ewc2mr","Rosebud AI | doc@chiefaiofficer.com","https://rosebud.ai/","[Content Creation, App Development]","true",0,0,"","Indie Dev $15/month - Update: currently on Free Plan
+","","cancelled subscription"
+"868e7jd5f","Scribehow | caio@chiefaiofficer.com","http://www.scribehow.com","[Operations]","true","","","","cancelled: $58/month
+","","cancelled subscription"
+"868g8gbxz","SearchAtlas | caio@chiefaiofficer.com","https://dashboard.searchatlas.com","[Marketing]","true",0,0,"","Was $99 - Cancelled since January 2026
+","","cancelled subscription"
+"868g8gc7p","SearchAtlas | info@emediatech.com","https://dashboard.searchatlas.com","[Marketing]","true","","","","No Subscription Amount since this is the 2nd seat of the subscription
+","","cancelled subscription"
+"868ewbn2k","Secta AI | doc@chiefaiofficer.com","https://secta.ai/","[Content Creation]","true",0,0,"Sunday, July 27th 2025","$9.99 Secta Pro Subscription - Update: Currently no subscription
+","","cancelled subscription"
+"868ewbjgh","Senja | askai@chiefaiofficer.com","https://app.senja.io","[Marketing]","true","","","","cancelled: $29/month
+","","cancelled subscription"
+"868ewc0wz","Skool | doc@chiefaiofficer.com","https://www.skool.com","[Training, Community + Moderation, Social Media]","true",0,0,"","has 3 memberships
+","","cancelled subscription"
+"868hxgu4a","SoftwareOA","","","",0,0,"","Feb 2026
+Cancelled by Chris
+","","cancelled subscription"
+"868ewc02m","Submagic | doc@chiefaiofficer.com","https://app.submagic.co/login","[Content Creation]","true",0,0,"Saturday, November 29th 2025","to be cancelled on the 29th, will renew after.
+","","cancelled subscription"
+"868ewbzu1","Submagic | tech@socialtrainingcompany.com","https://app.submagic.co/login","[Content Creation]","true",0,0,"","I don't think we are the one paying for this account.
+","","cancelled subscription"
+"868e7kzw6","Tango | askai@chiefaiofficer.com","https://app.tango.us","[Operations]","true","","","","cancels June 26, 2025 ($24/monht/users x 3 users)
+","","cancelled subscription"
+"868hc27nm","TurboScribe | askai@chiefaiofficer.com","https://turboscribe.ai","","true","","","","Cancelled after done with Wayne's task
+
+","","cancelled subscription"
+"868ewbuq8","VistaSocial | doc@chiefaiofficer.com","https://vistasocial.com/login","[Social Media]","true","","","","Cancelled - was $79/month
+","","cancelled subscription"
+"868hxk4ny","Adobe","","","",32.28,387.36,"","Feb 2026
+","","to be verified"
+"868e5f0b6","Alaska Airlines | gwhite@healthcoachnw.com","https://www.alaskaair.com/","[Operations]","","","","","","","to be verified"
+"868efqyuv","Amazon KDP | admin@chiefaiofficer.com","https://kdp.amazon.com/","[Marketing, Content Creation]","true","","","","books in account:
+The Chief AI Officer Blueprint: Harness the Power of AI for Business and Beyond (published)
+The Chief AI Marketing Officer Playbook (draft)
+","","to be verified"
+"868efrega","Anima | askai@chiefaiofficer.com","https://projects.animaapp.com/login","[Content Creation]","true","","","","not active since 2022 - Too many devices logged in
+","","to be verified"
+"868hxjpk8","Anthropic API","","","",931.67,11180.039999999999,"","Feb 2026
+","","to be verified"
+"868hn3xd5","Baseplane | accounting@baseplane.ai","https://accounts.google.com/v3/signin/challenge/pwd?TL=AC3PFD6ilfxYhWAfMDaKK9svmTW-tAHRI4sy6NLGe6qcQu1PKHvD5YRW4xar5it0&checkConnection=youtube%3A226&checkedDomains=youtube&cid=1&continue=https%3A%2F%2Fmail.google.com%2Fmail&ddm=0&dsh=S1477110167%3A1718201229709269&ec=GAlAFw&flowEntry=AddSession&flowName=GlifWebSignIn&hl=en&pstMsg=1&service=mail&authuser=0","","true","","","","Needs Verification Code
+","","to be verified"
+"868hxjgff","BeenVerified","","","",36.4,436.79999999999995,"","Feb 2026
+","","to be verified"
+"868epj3hm","Calendly | doc@chiefaiofficer.com","https://calendly.com/login","[Marketing, Operations]","true","","","","","","to be verified"
+"868hxka1x","Cassidy","","","",49,588,"","Feb 2026
+","","to be verified"
+"868hxjtej","Coda Pro","","","",12,144,"","Feb 2026
+","","to be verified"
+"868eq0h6q","CS email | caio@chiefaiofficer.com","","","","","","","No Website
+","","to be verified"
+"868eqehuz","Descript | doc@chiefaiofficer.com","https://www.descript.com/","[Content Creation, Automations, Podcast Production]","","","","","Not in 1P - Does this account exist?
+","","to be verified"
+"868hn3ff0","Dnb | doc@chiefaiofficer.com","https://my.dnb.com","","true","","","","","","to be verified"
+"868eqemmv","DomainsPricedRight | 16956176","https://sso.secureserver.net/?plid=1592&prog_id=domainspricedright&realm=idp&path=%2Fproducts&app=account","[Website]","true","","","","","","to be verified"
+"868hxheuq","Dropbox","","","",12.91,154.92000000000002,"","Feb 2026
+","","to be verified"
+"868eqf6z2","Empire | genevieve.white","","[Operations, Automations, App Development]","","","","","No Website
+","","to be verified"
+"868ewce8j","Eventbrite | doc@chiefaiofficer.com","https://www.eventbrite.com","[Marketing]","true","","","","NEEDS CODE
+","","to be verified"
+"868eqf880","Eventbrite | doctordaigle@gmail.com","https://www.eventbrite.com/","[Marketing]","true","","","","NEEDS CODE
+","","to be verified"
+"868eqf95j","Fathom | doctordaigle@gmail.com","https://fathom.video/users/sign_in","[Operations]","true","","","","","","to be verified"
+"868eqfa44","Fathom | mentor@chiefaiofficer.com","https://fathom.video/users/sign_in","[Operations]","true","","","","","","to be verified"
+"868hn397m","Fathom | teams@chiefaiofficer.com","https://fathom.video/users/sign_in","","true","","","","","","to be verified"
+"868hxk5yh","Frame.io","","","",30,360,"","Feb 2026
+","","to be verified"
+"868hn3h67","GHL Experts","https://members.ghlexperts.com/members-login","","true","","","","Can't log in to the website. Does this have a different website login somewhere else?
+","","to be verified"
+"868euwzmu","GitHub | admin@chiefaiofficer.com","https://github.com","[App Development]","true","","","","needs verification code from app
+","","to be verified"
+"868ewc32c","GitHub | askai@chiefaiofficer.com","https://github.com/login?client_id=d1ac311ccc7b5a0cd057&return_to=%2Flogin%2Foauth%2Fauthorize%3Fclient_id%3Dd1ac311ccc7b5a0cd057%26redirect_uri%3Dhttps%253A%252F%252Freplicate.com%252Fcomplete%252Fgithub%252F%26response_type%3Dcode%26scope%3Duser%253Aemail%26state%3D3enZjIAB6qwTDPxC5fa2dNxcwegAxWk9","[App Development]","true","","","","needs verification code from app
+","","to be verified"
+"868euwzt3","GitHub | doc@chiefaiofficer.com","https://github.com/login?client_id=d1ac311ccc7b5a0cd057&return_to=%2Flogin%2Foauth%2Fauthorize%3Fclient_id%3Dd1ac311ccc7b5a0cd057%26redirect_uri%3Dhttps%253A%252F%252Freplicate.com%252Fcomplete%252Fgithub%252F%26response_type%3Dcode%26scope%3Duser%253Aemail%26state%3D3enZjIAB6qwTDPxC5fa2dNxcwegAxWk9","[App Development]","true","","","","needs passkey
+","","to be verified"
+"868hn39xp","Google (CAIO Guide) | caioguide@chiefaiofficer.com","https://accounts.google.com/v3/signin/challenge/pwd?TL=AEzbmxycw83B1PXyGkZFrNur8_x1Q2GrPjKHY3qN_Ijmiot-OxK4oTjo5aDlgDeM&checkConnection=youtube%3A100&checkedDomains=youtube&cid=1&client_id=408604349651-70b91o2vtoj40rrqk7u9app88480jo9d.apps.googleusercontent.com&continue=https%3A%2F%2Faccounts.google.com%2Fsignin%2Foauth%2Fconsent%3Fauthuser%3Dunknown%26part%3DAJi8hAM2t4k8Zt0l5RRL7zDMYcbfZOW8M_iTKTtzkPdI7tESuA_WzjVyIVfVcXxW0s0c3QpaOJc4IHEA7gCTUXzlbCdCKHaiCqKrMn7WanZcCqF58a_UQFuna0L5yjV72_XBj8jxwFFH6_hLMAAxfgYFXX2SQ5KJoxj4mOiBhYXP2-wNbfR9fYlLoTWqMh7yfhCMIc5Qh495bd0yx-oeeBBjhD_09gDe_Znq3c5cj9x3_QT--477TP04zHBf8ICRwGJ7rP4C4YK1yJ4tEEWfLraN6YGZFRNisFCM-zUjRwVqznkCDPNaDTPHGuxsmekplxoSwqdZCydFmAa_U5zWdqJ6ZnNRCehUbjIiJtLsrJ9O7KXX7Lvyuga0uhc1JUEKMAtJuitv2p3pmSF2PsO_q743nruuxKoCM__0FuXGD-Pum6s_wPyan6-G2f5DDQ6FFQsa52PZV7W_kM7nmGRBaQmcZIpxZMs9_gqZVwEsG4Rf5anuH0VYSqg%26flowName%3DGeneralOAuthFlow%26as%3DS-1711077238%253A1712864920602224%26client_id%3D408604349651-70b91o2vtoj40rrqk7u9app88480jo9d.apps.googleusercontent.com%26theme%3Dmn%23&ddm=0&flowName=GeneralOAuthFlow&o2v=1&pstMsg=1&redirect_uri=https%3A%2F%2Fwww.integromat.com%2Foauth%2Flogin&response_type=code&scope=profile%20email&service=lso&state=1cdca37503b2ca2693e9&theme=mn","","true","","","","Why does the 1P website Link lead to Make.com?
+","","to be verified"
+"868hxhhte","Google One","","","",21.51,258.12,"","Feb 2026
+","","to be verified"
+"868ewc810","HatchWorks Gen AI Community | doc@chiefaiofficer.com","https://generative-driven-development.mn.co","[Training, Community + Moderation]","true","","","","","","to be verified"
+"868ewcbrt","Hotels.com | doctordaigle@gmail.com","","[Travel]","","","","","NEEDS CODE
+","","to be verified"
+"868ewcddb","Intuit | doc@chiefaiofficer.com","https://accounts.intuit.com","","true","","","","NEEDS CODE
+","","to be verified"
+"868ewcazn","Kajabi | admin@chiefaiofficer.com","https://kajabi.com/","[Course Content, Marketing]","true","","","","needs code from number ending in 6113
+","","to be verified"
+"868hxk6q7","Mermaid Chart","","","",240,2880,"","Feb 2026
+","","to be verified"
+"868hnvyb7","Microsoft Teams | teams@chiefaiofficer.com","https://account.live.com/","","true","","","","Requires passkey?
+","","to be verified"
+"868hxhtux","Midjourney","","","",10.76,129.12,"","Feb 2026
+","","to be verified"
+"868hn3euc","Moneygram | doctordaigle@gmail.com","https://www.moneygram.com","","true","","","","Region locked Account?
+","","to be verified"
+"868hxhp6e","Neon.tech","","","",11.03,132.35999999999999,"","Feb 2026
+","","to be verified"
+"868hxkd4b","NYX Vending","","","",4.5,54,"","Feb 2026
+","","to be verified"
+"868ewc7ar","OpenAI | doctordaigle@gmail.com","","[App Development]","true","","","","","","to be verified"
+"868hxgdm2","Patreon","","","",7.53,90.36,"","Feb 2026
+","","to be verified"
+"868hn3emq","Payoneer | accounting@chiefaiofficer.com","https://paynow.payoneer.com/Home/PersonalDetails","","true","","","","Need password update but also 2FA
+","","to be verified"
+"868hn3e1g","Paypal | accounting@baseplane.ai","https://www.paypal.com","","true","","","","Requires code
+","","to be verified"
+"868ewc5ny","Pinecone | askai@chiefaiofficer.com","https://www.pinecone.io/","[App Development]","true","","","","","","to be verified"
+"868ewc5ep","Powerline | doc@chiefaiofficer.com","https://auth.powerline.bot/u/login?state=hKFo2SBuRHpwQmd5bkZoMkRwa00yTGswRWhTZ3FYOC1DaDJIdaFur3VuaXZlcnNhbC1sb2dpbqN0aWTZIGZqUG5LZTROVk9wejJ5UjQ2SjdOMk5RdHdHLWxiZ05zo2NpZNkgZGxucUhNVHQ3MkRjREpyTllnWHpGQnRrc2xrUlB6NWY","[Customer Support, *Archived]","true",49.99,599.88,"","Feb 2026, 1P Entry does not Work
+","","to be verified"
+"868hxjxx7","Resend","","","",20,240,"Saturday, February 28th 2026","Feb 2026 - This is a different invoice to the other account
+","","to be verified"
+"868hxj6nb","Restream","","","",19,228,"","Feb 2026
+","","to be verified"
+"868hxja19","Rev.com","","","",20,240,"","Feb 2026
+","","to be verified"
+"868hxkbvw","Russell Brand","","","",3,36,"","Feb 2026
+","","to be verified"
+"868ewc07x","Storybrand.ai | admin@chiefaiofficer.com","https://app.storybrand.ai","[Marketing]","","","","","Does this account exist?
+","","to be verified"
+"868hn3e50","Stripe | segovia@chiefaiofficer.com","https://dashboard.stripe.com","","true","","","","needs 2FA
+","","to be verified"
+"868ewbzet","Taplio | doc@chiefaiofficer.com","https://auth0.taplio.com","","true","","","","","","to be verified"
+"868hn3ep1","Taskbullet | askai@chiefaiofficer.com","http://www.taskbullet.com","","true","","","","","","to be verified"
+"868ewbz55","Teachable: Growth Hackers | doc@chiefaiofficer.com","https://growthuniversity.teachable.com/admin-app/courses/2549760/setup","","true","","","","no code being sent
+
+","","to be verified"
+"868hxk395","Transcript Exporter","","","",6.99,83.88,"","Feb 2026
+","","to be verified"
+"868hn3aet","Twilio | caio@chiefaiofficer.com","https://login.twilio.com","","true","","","","Can't Send code
+","","to be verified"
+"868ewbytf","Twilio | doc@chiefaiofficer.com","https://login.twilio.com","","true","","","","NEEDS CODE
+","","to be verified"
+"868hn3fuw","TX SOS","https://direct.sos.state.tx.us","","true","","","","1P entry has expired
+","","to be verified"
+"868ewbv9q","Upwork | askai@chiefaiofficer.com","https://www.upwork.com/ab/account-security/login","[Admin]","true","","","","Login requires answering Security Questions
+","","to be verified"
+"868ewbumd","Walmart | doctordaigle@gmail.com","https://www.walmart.com","","true","","","","NEEDS CODE
+","","to be verified"
+"868ewcbv5","World of Hyatt | mcwhiteson4@gmail.com","","[Travel]","","","","","No 1P entry
+","","to be verified"
+"868ewbrmq","WP Engine | doc@chiefaiofficer.com","https://identity.wpengine.com/","[Website]","true","","","","empty account - needs code
+","","to be verified"
+"868hxgxx4","Youtube","","","",15.05,180.60000000000002,"","Feb 2026
+","","to be verified"
+"868hn2yfa","Youtube (CAIO Channel) | doctordaigle@gmail.com","https://youtube.com","","true","","","","Needs Passkey
+","","to be verified"
+"868hn3d2t","Zoom | ask@chiefaiofficer.com","https://zoom.us/signin","","true","","","","Needs Code
+","","to be verified"
+"868hn3cvh","Zoom | caio@chiefaiofficer.com","https://zoom.us/signin","","true","","","","needs code
+","","to be verified"
+"868hn3ewz","Zoom | headstart@chiefaiofficer.com","https://www.zoom.us/signup","","true","","","","needs code
+","","to be verified"
+"868hn3cm9","Zoom | teams@chiefaiofficer.com","https://zoom.us","","true","","","","needs code
+","","to be verified"
+"868hn41bt","Zoom || CAIO Mentor | mentor@chiefaiofficer.com","https://www.zoom.us/signin#/login","","true","","","","needs code
+","","to be verified"
+"868hn2ye1","Zoom || Doc | doc@chiefaiofficer.com","https://zoom.us/signin","","true","","","","Needs Verification
+","","to be verified"
+"868hn2y4c","Zoom || DoctorDaigle | doctordaigle@gmail.com","https://zoom.us/signin#/login","","true","","","","needs code
+","","to be verified"
+"868ewbn97","ZoomInfo | doc@chiefaiofficer.com","https://login.zoominfo.com","[Marketing, Podcast Production]","true","","","","NEEDS CODE
+","","to be verified"
+"868e5ere3","Adcreative | accounting@chiefaiofficer.com","https://dash.partnerstack.com/adcreative","[*Archived]","true","","","","Affiliate Link: https://free-trial.adcreative.ai/y01py6slciiz
+
+Connected apps:
+Adcreative.ai
+Quillbot
+
+","","archived working"
+"868e5eru1","AddEvent | doc@chiefaiofficer.com","https://app.addevent.com/signin","[*Archived]","true","","","","Previous plan: $36/month (SMALL BUSINESS)
+","","archived working"
+"868e5exv4","aiCarousels.com | doc@chiefaiofficer.com","https://aicarousels.outseta.com/auth?widgetMode=login","[*Archived]","true","","","","Cancelled - $14.95/mo
+
+","","archived working"
+"868e5ey3a","Airtable | askai@chiefaiofficer.com","https://airtable.com/signup#name_and_password","[*Archived]","true","","","","2 members:
+askai@chiefaiofficer.com
+Ahsan
+
+Cancelled from $51.66
+","","archived working"
+"868efpmxj","AlignToday (Scaling Up Scoreboard) | askai@chiefaiofficer.com (Daygull Equity)","https://application.aligntoday.com/Application/Dashboard.aspx","[*Archived]","true","","","","not active since 2022
+","","archived working"
+"868efr4g5","American Airlines | Genevieve | P684BP8","https://www.aa.com/homePage.do?locale=en_US","[Operations, *Archived]","","","","","needs 2FA from MC****@GMAIL.COM
+","","archived working"
+"868efvn2r","Apple Developer Account | doc@chiefaiofficer.com","https://idmsa.apple.com/IDMSWebAuth/signin?appIdKey=891bd3417a7776362562d2197f89480a8547b108fd934911bcbea0110d07f757&path=%2Faccount%2F&rv=1","[*Archived, App Development]","true","","","","Locked Account
+","","archived working"
+"868e7jwd9","ApproveMyFunding | doc@chiefaiofficer.com","https://training.approvemyfunding.com/login","[*Archived]","true","","","","We arent sure which account has the subscription yet since we were charged $49.95 from them, monthly.
+","","archived working"
+"868hn3emg","ApproveMyFunding | doc@chiefaiofficer.com","https://training.approvemyfunding.com/login","[*Archived]","true","","","","","","archived working"
+"868hn3f7e","Best Buy | accounting@chiefaiofficer.com","https://www.bestbuy.com","[*Archived]","true","","","","","","archived working"
+"868hn39j2","Bright Data | askai@chiefaiofficer.com","https://brightdata.com","[*Archived]","true","","","","","","archived working"
+"868epyryx","Cartesia |","https://play.cartesia.ai/sign-in?redirect_url=https%3A%2F%2Fplay.cartesia.ai%2F","[*Archived, Automations]","","","","","","","archived working"
+"868epzcwx","Cash Flow Story | askai@chiefaiofficer.com","https://mycashflowstory.com","[*Archived]","true","","","","","","archived working"
+"868hnxefr","ChatGPT (Dan - Legacy) | dan@chiefaiofficer.com","https://chat.openai.com","[*Archived]","true","","","","Needs Verification code sent to email
+","","archived working"
+"868hnxgxn","CHI (The Elevated Dream 100 Bootcamp) | doc@chiefaiofficer.com","https://chetholmes.thinkific.com","[*Archived]","true","","","","","","archived working"
+"868e7mxze","Deviate Tracking | doc@chiefaiofficer.com","https://deviatetracking.com/wp-login.php?action=rp","[*Archived]","true","","","","cancelled ($19/mo)
+","","archived working"
+"868eqf5v0","Elementor | askai@chiefaiofficerc.om","https://my.elementor.com/login/","[*Archived, Website]","true","","","","does not have anything - Incorrect username and password in 1P
+","","archived working"
+"868eqf5nb","Elementor | doc@chiefaiofficer.com","https://elementor.com/","[*Archived, Website]","true","","","Sunday, March 8th 2026","CANCELLED: $99/yr renews every Mar 8
+","","archived working"
+"868e7kj0x","Frame.io | segovia@chiefaiofficer.com","https://accounts.frame.io","[Content Creation, *Archived]","true","","","","cancels on June 5, 2025
+","","archived working"
+"868eux0kt","GoDaddy | 1176543","https://sso.godaddy.com/?plid=1&isc=gdbb3052","[*Archived]","true","","","","","","archived working"
+"868e7n7wp","HelloBonsai | askai@chiefaiofficer.com","https://app.hellobonsai.com/users/sign_in","[*Archived]","true","","","","cancels June 16 (was $35/mo)
+","","archived working"
+"868ewcd5d","Integrately | doc@chiefaiofficer.com","https://app.integrately.com/signup?from=web&ct=3&triggerAppId=1964&actionAppId=283","[*Archived, Automations]","true","","","","","","archived working"
+"868ewca72","LearnDash | chiefaiffocer.com","https://www.learndash.com/","[Course Content, *Archived, Website]","true","","","Monday, October 20th 2025","CANCELLED: $199/yr renews every Oct 20
+","","archived working"
+"868ewc867","Mermaid Chart | segovia@chiefaiofficer.com","https://www.mermaidchart.com","[Content Creation, *Archived]","true","","","","","","archived working"
+"868ewc84b","Mike Hardenbrook | doc@chiefaiofficer.com","https://sso.teachable.com","[Training, *Archived]","true","","","","Page does not exist
+","","archived working"
+"868hnw93f","Podroll | doc@chiefaiofficer.com","https://app.podroll.fm","[*Archived]","true","","","","","","archived working"
+"868ewc5ad","PromptPerfect | segovia@interplicity.com","https://promptperfect.jina.ai/","[Operations, *Archived]","true","","","","","","archived working"
+"868ewc3a3","ReMarkable | mcwhiteson4@gmail.com","https://remarkable.com/","[*Archived]","true","","","","not sure what this is for
+","","archived working"
+"868e7nt7y","Restream | askai@chiefaiofficer.com","https://restream.io","[*Archived]","true","","","","cancelled (was $239/mo)
+","","archived working"
+"868ewc1t5","Scribehow | segovia@chiefaiofficer.com","https://scribehow.com/signin","[Operations, *Archived]","true","","","","","","archived working"
+"868ewc10x","ShutterStock | accounting@daygullstrategic.com","https://accounts.shutterstock.com/login","[*Archived]","true","","","","","","archived working"
+"868hvj5rv","Skool (Lee)","https://www.skool.com/login","[*Archived]","true","","","","Lee's Personal Account
+","","archived working"
+"868ewbu8z","Woosender | doc@chiefaiofficer.com","https://app.woosender.com/login","[Marketing, *Archived]","true",500,6000,"Wednesday, August 20th 2025","1P login does not work
+","","archived working"
+"868g89a6z","WP Rocket | accounting@chiefaiofficer.com","https://wp-rocket.me/account/","[Operations, *Archived]","true",4.92,59.04,"Monday, October 27th 2025","CANCELLED
+","","archived working"
+"868hn3zkx","10Web | askai@chiefaiofficer.com","https://my.10web.io","","true","","","","","","not working"
+"868e5epme","99Designs | segovia@chiefaiofficer.com","","[Content Creation, *Archived]","","","","","","","not working"
+"868e5eqy0","ActiveCampaign | doctordaigle","https://www.activecampaign.com/login","[Marketing, *Archived]","true","","","","","","not working"
+"868e5ew6z","Affilisting | doc@chiefaiofficer.com","https://affilisting.com","[*Archived]","true","","",""," 
+","","not working"
+"868e5ewmr","Agent.ai | doc@chiefaiofficer.com","https://agent-ai.us.auth0.com","[Automations]","true","","","","138 credits left, 1P Entry does not work
+","","not working"
+"868e5exaq","AI Persona Method | doctordaigle@gmail.com","https://course.aipersonamethod.com","[Course Content, Training, *Archived]","true","","","","","COURSE","not working"
+"868e5ey19","Air.ai | doc@chiefaiofficer.com","https://chat.air.ai","[Sales, *Archived]","true","","","","AI sales agent, Redirects to Bubble.io
+","","not working"
+"868hnxmnv","Amazon + Kindle | doctordaigle@gmail.com","https://signin.aws.amazon.com","","true","","","","","","not working"
+"868hn3fbk","Amazon - AWS | doc@chiefaiofficer.com","https://signin.aws.amazon.com","","true","","","","","","not working"
+"868hn3zgt","Amazon AWS | askai@chiefaiofficer.com","https://signin.aws.amazon.com","","true","","","","","","not working"
+"868efr33m","Amazon KDP | genevieve@daygullstrategic.com","https://kdp.amazon.com/en_US/","[Marketing, Content Creation, *Archived]","true","","","","needs 2Fa from phone ending in 13
+","","not working"
+"868ehv57v","Basecamp | askai@chiefaiofficer.com","https://launchpad.37signals.com/basecamp","[Operations, *Archived]","true","","","","pw doesnt work
+","","not working"
+"868ehv86p","Billy Gene's AI Courses | doctordaigle@gmail.com","https://billy-genes-gene-pool.mykajabi.com/login","[Course Content, Training, Marketing]","true","","","","lots of courses - Website Broken
+","COURSE","not working"
+"868hn3z99","Brave API | askai@chiefaiofficer.com","https://api-dashboard.search.brave.com/verify-otp","","true","","","","Not a Login Website
+","","not working"
+"868ehvbce","Bubble.io | askai@chiefaiofficer.com","","[*Archived, App Development]","","","","","Ced has access via his email, Manish added him to the Bubble team
+","","not working"
+"868hn3gxy","Bubble.io | Chief AI Officer","http://www.bubble.io","","true","","","","1P Entry does not work
+","","not working"
+"868epzgh5","Chiefaiofficer | doc@chiefaiofficer.com","","[Admin, Website]","","","","","","","not working"
+"868epzgqr","ChiefAIOfficer | WP Admin - Agent Smith (Admin) | segovia@xlr8media.com","https://www.chiefaiofficer.com/wp-admin/","[Admin, Website]","true","","","","1P account details dont work
+","","not working"
+"868hn3yqt","Circle | Aerin Myra (Circle CAIO)","https://circle.so/","","true","","","","1P entry does not work
+","","not working"
+"868epzqgm","Claude - Segovia (CAIO | segovia@chiefaiofficer.com","https://claude.ai/","[*Archived, Admin]","true","","","","No account password
+","","not working"
+"868epzt4w","Cloudflare | doctordaigle@gmail.com","https://dash.cloudflare.com","[*Archived, Automations]","true","","","","Account and password don't match
+","","not working"
+"868eqejch","dlvr.it | askai@chiefaofficer.com","https://dlvrit.com/","[Social Media]","true","","","","1P entry not working
+","","not working"
+"868eqf8kh","Expedia | doctordaigle@gmail.com","","[Travel]","","","","","No 1P entry
+","","not working"
+"868eqfad3","Findaipros | doc@chiefaiofficer.com","https://app.findaipros.com","[Sales, Website]","true","","","","","","not working"
+"868hnw0nm","Fisglobal","https://login5.fisglobal.com/idp/EBTEdge_NCH/?client_id=EBTEdge_NCH_APIKey&redirect_uri=https://cardholder.ebtedge.com/mobilev2/auth/callback/&scope=openid&response_type=code&code_challenge=HGQHg9o_tx1Sgq00kttr3qFz8C-qp8GbI540xFnpDnQ=&code_challenge_method=S256","","true","","","","","","not working"
+"868ewc0cw","FreshBooks | accounting@chiefaiofficer.com","https://auth.freshbooks.com","[Sales, *Archived]","true","","","","1P entry does not work
+","","not working"
+"868hn35wr","GHL - Josh | jcbdelossantos.va@gmail.com","https://app.gohighlevel.com/","","true","","","","Invalid 1P entry
+","","not working"
+"868hn2zvd","GHL Marketplace } askai@chiefaiofficer.com","https://marketplace.gohighlevel.com/","","true","","","","Invalid 1P entry
+","","not working"
+"868euwzk5","GIPHY | doctordaigle","https://giphy.com","[Marketing, Content Creation]","true","","","","invalid 1P entry
+","","not working"
+"868hn3x3q","Gmail (LGJ) | Chris@thechiefofficerai.com","https://mail.google.com/","","true","","","","Invalid 1P entry
+","","not working"
+"868eux09d","Gmail | contact@iacaio.org","https://www.gmail.com","","true","","","","Invalid 1P account
+","","not working"
+"868eux0ew","GoDaddy | doctordaigle@gmail.com","https://sso.godaddy.com","","true","","","","Invalid 1P entry
+","","not working"
+"868hnxetf","GoHighLevel (Segovia) | segovia@chiefaiofficer.com","https://app.gohighlevel.com/","","true","","","","Invalid 1P entry
+","","not working"
+"868hn2xpe","Google (Chris @ Using AI at Work) | chris@usingaiatwork.com","http://www.gmail.com","","true","","","","invalid 1P entry
+","","not working"
+"868hnwjqm","Google (Dan) | dan@chiefaiofficer.com","http://www.gmail.com","","true","","","","1P entry does not work
+","","not working"
+"868hn3cg9","Google (Elmer) | elmer@chiefaiofficer.com","https://www.gmail.com","","true","","","","1P entry does not work
+","","not working"
+"868hn3cr5","Google (Segovia) | segovia@chiefaiofficer.com","http://accounts.google.com","","true","","","","1P entry does not work
+","","not working"
+"868hnxf3b","Google AI Studio - CAIO (Segovia) | segovia@chiefaiofficer.com","https://aistudio.google.com/app/u/5/apikey?pli=1","","true","","","","1P entry does not work
+","","not working"
+"868ewcb8e","Gravity Forms | admin@chiefaiofficer.com","https://www.gravityforms.com/wp-login.php","[*Archived, Website]","true","","","","404 1P
+","","not working"
+"868ewcba3","Guestify | sendjunktome@yahoo.com","https://guestify.ai","[*Archived]","true","","","","Broken website
+","","not working"
+"868ewcbb9","GummySearch | doc@chiefaiofficer.com","https://go.gummysearch.com","[Marketing]","true","","","","Website Shutdown
+","","not working"
+"868ewcbpq","Hosting - IACAIO.org","https://trabant.websitewelcome.com:2087/cpsess8309350932/scripts5/wwwacctform","[Website]","true","","","","not sure if this is the domain provider for iacaio.org, will need to ask Chris
+1P entry does not work
+","","not working"
+"868ewccfe","IHG | mcwhiteson4@gmail.com","http://www.ihg.com","[*Archived, Travel]","true","","","","1P entry does not work
+","","not working"
+"868ewc7t3","Impactable | chiefaiofficer","https://impactable.mybillsystem.com","[*Archived]","true","","","","","","not working"
+"868ewccvx","Influex | chrisdaigle.com","https://influex.ziflow.io/proof/l2birqe9hb5ku0taef947bdtva","[Marketing, *Archived]","true","","","","1P entry does not work
+","","not working"
+"868ewcd3j","Instagram | @achiefaiofficer","https://www.instagram.com","[Social Media]","true","","","","1P Login Information is Incorrect
+","","not working"
+"868ewcd2w","Instagram | @doctordaigle","https://www.instagram.com","[Social Media]","true","","","","1P Login Information is Incorrect
+","","not working"
+"868ewcdhh","Invision | askai@chiefaiofficer.com","https://login.invisionapp.com/auth/sign-in","[*Archived]","true","","","","","","not working"
+"868ewcb45","Jira | askai@chiefaiofficer.com","https://chiefaiofficer.atlassian.net/","[Operations]","true","","","","I did not see any trace of a subscription
+Website does not Work
+","","not working"
+"868ewcb21","Kafkai Affiliate Account | accounting@chiefaiofficer.com","https://laloka-labs-2.getrewardful.com/login","[Affiliate Account, *Archived]","true","","","","","","not working"
+"868ewcay6","Klap | doc@chiefaiofficer.com","https://klap.app","[Content Creation]","true","","","","free trial, 1P Login Credentials Invalid
+","","not working"
+"868ewc8qd","Marriott (Genevieve) | 682098773","http://www.marriott.com","[*Archived, Travel]","true","","","","1P entry does not work
+","","not working"
+"868ewc8rv","Marriott | 345249432","http://www.marriott.com","[*Archived, Travel]","true","","","","1P entry does not work
+","","not working"
+"868hn3aa1","Microsoft 365 Admin Centre | daya@chiefaiofficer.onmicrosoft.com","https://admin.cloud.microsoft","","true","","","","1P entry does not work
+","","not working"
+"868hn3a9v","Microsoft 365 Admin Centre | tina@chiefaiofficer.onmicrosoft.com","https://admin.cloud.microsoft","","true","","","","1P entry does not work
+","","not working"
+"868hn3z6d","Microsoftonline","https://login.microsoftonline.com","","true","","","","1P entry does not have username
+","","not working"
+"868ewc7vf","MS Online - CAIO","https://passwordreset.microsoftonline.com","[*Archived]","true","","","","no email attached to 1P
+","","not working"
+"868ewc76b","OnDeck","https://online.ondeck.com","[*Archived, Accounting]","true","","","","not sure what this was for, login does not work - it was in the Finance vault
+","","not working"
+"868ewc6fp","Outsource School | doctordaigle@gmail.com","https://outsourceschool.mykajabi.com/login","[Training]","true","","","","courses include:
+Podcast Outreach Formula → Grow Your Business with Podcast Interviews
+","COURSE","not working"
+"868ewc5pv","Photo AI Affiliate Account | accounting@chiefaiofficer.com","https://photoai.getrewardful.com/login","[Affiliate Account]","true","","","","Affiliate program no longer active
+","","not working"
+"868ewc5hk","Podcast Outreach Program | doctordaigle@gmail.com","https://outsourceschool.mykajabi.com/login","[*Archived]","true","","","","wasn't working
+","","not working"
+"868hnw8vr","Podmagic | doc@chiefaiofficer.com","https://app.podmagic.co","","true","","","","1P entry does not work
+","","not working"
+"868ewc5fj","PodPitch","https://go.podpitch.com/make-pw","[*Archived]","true","","","","1P has no Username
+","","not working"
+"868ewc58j","PromptWise | doc@chiefaiofficer.com","https://www.promptwise.ai","[*Archived]","true","","","","Website does nothing but serve ads
+","","not working"
+"868ewc3vp","RainMakerAI | doc@chiefaiofficer.com","http://app.rainmakerai.com","[*Archived]","true","","","","1P entry does not work
+","","not working"
+"868hn3zf2","Rank Math | chrisdaigle","https://rankmath.com/my-account/","","true","","","","1P entry does not work
+","","not working"
+"868ewc3p8","Rasa | doc@chiefaiofficer.com","https://dashboard.rasa.io/login","[*Archived]","true","","","","Account got Cancelled
+","","not working"
+"868ewc3et","Relevance AI | doc@chiefaiofficer.com","https://app.relevanceai.com/auth?redirect=index&redirect-params=%7B%7D&redirect-query=%7B%7D","[App Development]","true","","","","1P entry does not work
+","","not working"
+"868ewc36r","Replicate | askai@chiefaiofficer.com","https://replicate.com/signin?next=/","[App Development]","true","","","","Faulty 1P entry
+","","not working"
+"868e7nrzj","Restream | segovia@interplicity.com","https://restream.io","[*Archived, Social Media]","true","","","","Needs 2FA
+","","not working"
+"868hn32z0","Rocket Fuel University (Gen MW) | mcwhiteson4@gmail.com","https://members.rocketfueluniversity.com/login","","true","","","","Website does not work?
+","","not working"
+"868ewc2w7","Rocket Fuel University | doctordaigle@gmail.com","https://members.rocketfueluniversity.com/login","[Training]","true","","","","courses include:
+Rocket Fuel University (free)
+Integrator Masterclass (paid $2500)
+Website Not Working
+","COURSE","not working"
+"868ewc24a","Scalable Library | askai@chiefaiofficer.com","https://library.scalable.co/login/","[*Archived]","true","","","","","","not working"
+"868ewc223","Scalenut | accounting@chiefaiofficer.com","https://affiliates.scalenut.com/login","[Affiliate Account, *Archived]","true","","","","Invalid 1P entry
+","","not working"
+"868ewc155","Secta AI | segovia@chiefaiofficer.com","https://secta.ai/","[Content Creation, *Archived]","true","","","","Needs verification code
+","","not working"
+"868ewc11u","SFTP - CAIO Website | chiefaioffistg.sftp.wpengine.com","","[*Archived, Website]","true","","","","","","not working"
+"868ewc0pz","Skype | doctordaigle@gmail.com","","[*Archived, Admin]","true","","","","","","not working"
+"868ewc0f4","Stan | caio@chiefaiofficer.com","https://stan.store","[Operations, *Archived]","true","","","","","","not working"
+"868hn330c","Stripe | jennipher@xlr8mediainc.com","https://dashboard.stripe.com/dashboard","","true","","","","1P entry does not work
+","","not working"
+"868ewbz15","The AI Exchange: Prompting for AI Ops | doc@chiefaiofficer.com","https://courses.theaiexchange.com/users/sign_in","[Training, *Archived]","true","","","","","","not working"
+"868ewbz5j","The Association | askai@chiefaiofficer.com","https://theassociation.ai/wp-login.php","[*Archived]","true","","","","","","not working"
+"868ewc7yq","The Modern Millionaires | doctordaigle@gmail.com","https://member.themodernmillionaires.com/users/sign_in","[Training, *Archived]","true","","","","","","not working"
+"868ewbywu","Tiktok | ChiefAIOfficer","https://www.tiktok.com/login","[*Archived, Social Media]","true","","","","","","not working"
+"868ewbyw0","Tina Lopez Coaching | doc@chiefaiofficer.com","https://tinalopezcoaching.thrivecart.com","[Training, *Archived]","true","","","","","","not working"
+"868hnxkq9","Twilio | askai@chiefaiofficer.com","https://login.twilio.com","","true","","","","1P entry does not work
+","","not working"
+"868ewbv3w","Upwork | aerinmyra@gmail.com","https://www.upwork.com/ab/account-security/login","[*Archived, Admin]","true","","","","","","not working"
+"868hn332f","Vimeo | nelllindsell@gmail.com","https://vimeo.com/log_in?tbhcjfk6wfdkxgy4qnai77tubm=k2qgfdzou3ryrmdko6hseahcw4","","true","","","","1P entry does not work
+","","not working"
+"868ewbufe","Wise | doc@chiefaiofficer.com","https://wise.com","[Sales, *Archived]","true","","","","","","not working"
+"868hnxqve","WP Admin || CAIO (Admin) | admin@chiefaiofficer.com","https://www.chiefaiofficer.com/wp-admin/","","true","","","","1P entry does not work
+","","not working"
+"868hnxqmy","WP Admin || CAIO | caio@chiefaiofficer.com","https://www.chiefaiofficer.com/wp-admin/","","true","","","","1P entry does not work
+","","not working"
+"868hnxn0b","WP Admin || IACAIO","https://iacaio.org/wp-admin","","true","","","","1P entry does not work
+","","not working"
+"868hnxn5y","WP Engine (Daygull) | Daygull","https://identity.wpengine.com/","","true","","","","1P entry does not work
+","","not working"
+"868ewbty2","WPE Dev Site | askai@chiefaiofficer.com","http://chiefainew.wpenginepowered.com/wp-admin","[*Archived, Website]","true","","","","","","not working"
+"868hn3ca6","Zendesk (Ask / CAIO Support) | ask@chiefaiofficer.com","https://chiefaiofficer.zendesk.com/","","true","","","","1P entry does not work
+","","not working"
+"868hn3gjg","Zendesk | doc@chiefaiofficer.com","https://chiefaiofficer.zendesk.com","","true","","","","1P entry does not work
+","","not working"
+"868hn3cbc","Zendesk | JENNIPHER","https://chiefaiofficer.zendesk.com","","true","","","","1P entry does not work
+","","not working"
+"868hn36qm","Zendesk | support@chiefaiofficer.com","https://help.chiefaiofficer.com","","true","","","","1P entry does not work
+","","not working"
+"868hn2x3c","Google (Affiliates) | affiliates@chiefaiofficer.com","https://accounts.google.com/","[]","true","","","","Account Disabled
+","","removed"
+"868hn3evg","Google (HEADSTART) | headstart@chiefaiofficer.com","https://accounts.google.com/","","true","","","","Disabled account
+","","removed"
+"868hn2xtg","Google (Hello DS) | hello@daygullstrategic.com","http://www.gmail.com","","true","","","","Workspace suspended
+","","removed"
+"868hn3g6b","Google (Hello) | hello@chiefaiofficer.com","http://www.gmail.com","","true","","","","1P entry does not work
+","","removed"
+"868hn3dqv","Google (Jenn) | jenn@chiefaiofficer.com","https://accounts.google.com","","true","","","","1P Entry does not work
+","","removed"
+"868hnx515","Google (Steven) | steven@chiefaiofficer.com","https://accounts.google.com","","true","","","","account disabled
+","","removed"
+"868gf9zka","Kling AI","https://app.klingai.com/","","","","","","to be deleted by Chris
+https://daygull.slack.com/archives/C08LMKSLY5N/p1763858745656749
+","","removed"
