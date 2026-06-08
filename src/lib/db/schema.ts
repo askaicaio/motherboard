@@ -1130,3 +1130,45 @@ export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
     references: [adminUsers.id],
   }),
 }));
+
+// ========================================================================
+// Automations — inventory of automations/workflows across source websites
+// ========================================================================
+// One row per automation (a workflow / scenario / zap). Grouped by
+// `platform` (which source website); each Per Website Page lists the rows
+// for its platform. `externalUrl` is the automation's identity — the link
+// used to open it on the source site — so it is unique across the table.
+
+export const automations = pgTable(
+  "automations",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    /** Which source website. Matches an AUTOMATION_SITES slug:
+     *  'make' | 'n8n' | 'ghl' | 'ghl-b2b' | 'zapier'. */
+    platform: text("platform").notNull(),
+    /** Column 1 on the per-website table — the automation's visible name. */
+    name: text("name").notNull(),
+    /** Column 2 — the link to open it on the source site. Treated as the
+     *  automation's identity, so it is unique across the table. */
+    externalUrl: text("external_url").notNull(),
+
+    createdBy: uuid("created_by").references(() => adminUsers.id),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("uniq_automations_external_url").on(table.externalUrl),
+    index("idx_automations_platform").on(table.platform),
+  ],
+);
+
+export const automationsRelations = relations(automations, ({ one }) => ({
+  creator: one(adminUsers, {
+    fields: [automations.createdBy],
+    references: [adminUsers.id],
+  }),
+}));
