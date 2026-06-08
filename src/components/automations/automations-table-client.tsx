@@ -167,7 +167,7 @@ export function AutomationsTableClient({
                             "text-xs font-medium",
                             r.status === "active"
                               ? "text-green-600"
-                              : "text-red-600",
+                              : "text-zinc-900",
                           )}
                         >
                           {r.status === "active" ? "Active" : "Paused"}

@@ -197,9 +197,7 @@ export function WorkflowDialog({
                 <SelectItem value="active">
                   <span className="text-green-600">Active</span>
                 </SelectItem>
-                <SelectItem value="paused">
-                  <span className="text-red-600">Paused</span>
-                </SelectItem>
+                <SelectItem value="paused">Paused</SelectItem>
               </SelectContent>
             </Select>
           </div>
