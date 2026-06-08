@@ -8,7 +8,8 @@ import { getOptionalAuth } from "@/lib/auth/guard";
 import { and, eq, ne } from "drizzle-orm";
 
 const patchSchema = z.object({
-  name: z.string().min(1).max(300).optional(),
+  // Name is optional (may be set to ""); Link must be a valid URL when present.
+  name: z.string().max(300).optional(),
   externalUrl: z.string().url().max(1000).optional(),
 });
 

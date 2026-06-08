@@ -60,10 +60,7 @@ export function WorkflowDialog({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (!name.trim()) {
-      setError("Name is required");
-      return;
-    }
+    // Name is optional; Link is required.
     if (!externalUrl.trim()) {
       setError("Link is required");
       return;
@@ -108,7 +105,7 @@ export function WorkflowDialog({
         toast.success("Saved");
       } else {
         onCreated?.(row);
-        toast.success(`Added ${row.name}`);
+        toast.success(row.name ? `Added ${row.name}` : "Added automation");
       }
       onOpenChange(false);
     } catch {
@@ -131,7 +128,7 @@ export function WorkflowDialog({
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="space-y-1.5">
-            <Label htmlFor="wf-name">Name</Label>
+            <Label htmlFor="wf-name">Name (optional)</Label>
             <Input
               id="wf-name"
               value={name}
@@ -139,7 +136,6 @@ export function WorkflowDialog({
                 setName(e.target.value);
                 setError(null);
               }}
-              required
               maxLength={300}
               placeholder="e.g. New lead → Slack alert"
             />
