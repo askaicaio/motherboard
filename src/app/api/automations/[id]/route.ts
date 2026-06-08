@@ -11,6 +11,7 @@ const patchSchema = z.object({
   // Name is optional (may be set to ""); Link must be a valid URL when present.
   name: z.string().max(300).optional(),
   externalUrl: z.string().url().max(1000).optional(),
+  status: z.enum(["active", "paused"]).optional(),
 });
 
 const DUPLICATE_LINK_ERROR = "An automation with that link already exists.";
@@ -60,6 +61,7 @@ export async function PATCH(
   const patch: Record<string, unknown> = { updatedAt: new Date() };
   if (body.name !== undefined) patch.name = body.name.trim();
   if (body.externalUrl !== undefined) patch.externalUrl = body.externalUrl.trim();
+  if (body.status !== undefined) patch.status = body.status;
 
   // Deterministic duplicate check — block if ANOTHER row already uses this
   // link (the link is the automation's identity). Excludes the row itself.

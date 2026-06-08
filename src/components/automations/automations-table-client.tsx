@@ -21,6 +21,7 @@ export interface AutomationRow {
   id: string;
   name: string;
   externalUrl: string;
+  status: string; // "active" | "paused"
 }
 
 export function AutomationsTableClient({
@@ -101,13 +102,14 @@ export function AutomationsTableClient({
                 <tr>
                   <th className="px-3 py-2 text-left">Name</th>
                   <th className="px-3 py-2 text-left">Link</th>
+                  <th className="px-3 py-2 text-left">Status</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={2}
+                      colSpan={3}
                       className="px-3 py-16 text-center text-sm text-zinc-500"
                     >
                       {rows.length === 0
@@ -143,6 +145,18 @@ export function AutomationsTableClient({
                           <ExternalLink className="h-3 w-3 shrink-0" />
                           {r.externalUrl}
                         </a>
+                      </td>
+                      <td className="px-3 py-2 align-top">
+                        <span
+                          className={cn(
+                            "text-xs font-medium",
+                            r.status === "active"
+                              ? "text-green-600"
+                              : "text-red-600",
+                          )}
+                        >
+                          {r.status === "active" ? "Active" : "Paused"}
+                        </span>
                       </td>
                     </tr>
                   ))

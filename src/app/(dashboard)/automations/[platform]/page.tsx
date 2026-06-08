@@ -33,6 +33,7 @@ export default async function AutomationWebsitePage({
       id: automations.id,
       name: automations.name,
       externalUrl: automations.externalUrl,
+      status: automations.status,
     })
     .from(automations)
     .where(eq(automations.platform, site.slug))

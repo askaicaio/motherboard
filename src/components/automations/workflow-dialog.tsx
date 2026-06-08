@@ -19,6 +19,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import type { AutomationRow } from "./automations-table-client";
@@ -46,6 +53,8 @@ export function WorkflowDialog({
   const [submitting, setSubmitting] = useState(false);
   const [name, setName] = useState("");
   const [externalUrl, setExternalUrl] = useState("");
+  // Status defaults to "paused" for new automations.
+  const [status, setStatus] = useState("paused");
   // Inline error shown as red text inside the dialog (e.g. duplicate link).
   const [error, setError] = useState<string | null>(null);
 
@@ -54,6 +63,7 @@ export function WorkflowDialog({
     if (!open) return;
     setName(existing?.name ?? "");
     setExternalUrl(existing?.externalUrl ?? "");
+    setStatus(existing?.status ?? "paused");
     setError(null);
   }, [open, existing]);
 
@@ -72,8 +82,8 @@ export function WorkflowDialog({
         : "/api/automations";
       const method = isEdit ? "PATCH" : "POST";
       const body = isEdit
-        ? { name: name.trim(), externalUrl: externalUrl.trim() }
-        : { platform, name: name.trim(), externalUrl: externalUrl.trim() };
+        ? { name: name.trim(), externalUrl: externalUrl.trim(), status }
+        : { platform, name: name.trim(), externalUrl: externalUrl.trim(), status };
 
       const res = await fetch(endpoint, {
         method,
@@ -99,6 +109,7 @@ export function WorkflowDialog({
         id: data.automation.id,
         name: data.automation.name,
         externalUrl: data.automation.externalUrl,
+        status: data.automation.status,
       };
       if (isEdit) {
         onSaved?.(row);
@@ -154,6 +165,22 @@ export function WorkflowDialog({
               maxLength={1000}
               placeholder="https://…"
             />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="wf-status">Status</Label>
+            <Select value={status} onValueChange={(v) => setStatus(v ?? "paused")}>
+              <SelectTrigger id="wf-status" className="w-40">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">
+                  <span className="text-green-600">Active</span>
+                </SelectItem>
+                <SelectItem value="paused">
+                  <span className="text-red-600">Paused</span>
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           {error && (
             <p className="text-sm font-medium text-red-600" role="alert">

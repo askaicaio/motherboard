@@ -17,6 +17,7 @@ const createSchema = z.object({
   // Name is optional (stored as "" when omitted); Link is required.
   name: z.string().max(300).optional().default(""),
   externalUrl: z.string().url().max(1000),
+  status: z.enum(["active", "paused"]).optional().default("paused"),
 });
 
 /**
@@ -92,6 +93,7 @@ export async function POST(request: NextRequest) {
         platform: body.platform,
         name: body.name.trim(),
         externalUrl,
+        status: body.status,
         createdBy: user.id,
       })
       .returning();
