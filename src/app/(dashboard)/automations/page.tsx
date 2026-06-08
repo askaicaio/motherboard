@@ -87,11 +87,7 @@ export default async function AutomationsPage() {
                     value={stats.active}
                     valueClassName="text-green-600"
                   />
-                  <Stat
-                    label="Paused"
-                    value={stats.paused}
-                    valueClassName="text-red-600"
-                  />
+                  <Stat label="Paused" value={stats.paused} />
                 </div>
 
                 <div className="mt-auto flex items-center border-t pt-3">
