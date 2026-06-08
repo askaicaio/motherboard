@@ -45,30 +45,32 @@ export function AutomationsTableClient({
         />
       </div>
 
-      {rows.length === 0 ? (
-        <Card>
-          <CardContent className="py-16 text-center text-sm text-zinc-500">
-            No automations yet.
-          </CardContent>
-        </Card>
-      ) : filtered.length === 0 ? (
-        <Card>
-          <CardContent className="py-16 text-center text-sm text-zinc-500">
-            No automations match your search.
-          </CardContent>
-        </Card>
-      ) : (
-        <Card>
-          <CardContent className="overflow-x-auto p-0">
-            <table className="w-full text-sm">
-              <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
+      {/* Table — the Name/Link column headers always render, even when empty,
+          so the structure is visible. Empty / no-match messages sit inside
+          the table body as a full-width row beneath the headers. */}
+      <Card>
+        <CardContent className="overflow-x-auto p-0">
+          <table className="w-full text-sm">
+            <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
+              <tr>
+                <th className="px-3 py-2 text-left">Name</th>
+                <th className="px-3 py-2 text-left">Link</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.length === 0 ? (
                 <tr>
-                  <th className="px-3 py-2 text-left">Name</th>
-                  <th className="px-3 py-2 text-left">Link</th>
+                  <td
+                    colSpan={2}
+                    className="px-3 py-16 text-center text-sm text-zinc-500"
+                  >
+                    {rows.length === 0
+                      ? "No automations yet."
+                      : "No automations match your search."}
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {filtered.map((r) => (
+              ) : (
+                filtered.map((r) => (
                   <tr key={r.id} className="border-t hover:bg-zinc-50">
                     <td className="px-3 py-2 align-top font-medium text-zinc-900">
                       {r.name}
@@ -85,12 +87,12 @@ export function AutomationsTableClient({
                       </a>
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </CardContent>
-        </Card>
-      )}
+                ))
+              )}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
     </div>
   );
 }
