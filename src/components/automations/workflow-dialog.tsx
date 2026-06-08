@@ -46,22 +46,26 @@ export function WorkflowDialog({
   const [submitting, setSubmitting] = useState(false);
   const [name, setName] = useState("");
   const [externalUrl, setExternalUrl] = useState("");
+  // Inline error shown as red text inside the dialog (e.g. duplicate link).
+  const [error, setError] = useState<string | null>(null);
 
   // Populate (edit) or clear (add) the fields whenever the dialog opens.
   useEffect(() => {
     if (!open) return;
     setName(existing?.name ?? "");
     setExternalUrl(existing?.externalUrl ?? "");
+    setError(null);
   }, [open, existing]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setError(null);
     if (!name.trim()) {
-      toast.error("Name is required");
+      setError("Name is required");
       return;
     }
     if (!externalUrl.trim()) {
-      toast.error("Link is required");
+      setError("Link is required");
       return;
     }
     setSubmitting(true);
@@ -81,7 +85,7 @@ export function WorkflowDialog({
       });
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error || "Save failed");
+        setError(data.error || "Save failed");
         return;
       }
 
@@ -120,7 +124,10 @@ export function WorkflowDialog({
             <Input
               id="wf-name"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => {
+                setName(e.target.value);
+                setError(null);
+              }}
               required
               maxLength={300}
               placeholder="e.g. New lead → Slack alert"
@@ -132,12 +139,20 @@ export function WorkflowDialog({
               id="wf-url"
               type="url"
               value={externalUrl}
-              onChange={(e) => setExternalUrl(e.target.value)}
+              onChange={(e) => {
+                setExternalUrl(e.target.value);
+                setError(null);
+              }}
               required
               maxLength={1000}
               placeholder="https://…"
             />
           </div>
+          {error && (
+            <p className="text-sm font-medium text-red-600" role="alert">
+              {error}
+            </p>
+          )}
           <DialogFooter>
             <Button
               type="button"
