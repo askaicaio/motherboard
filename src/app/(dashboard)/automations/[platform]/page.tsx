@@ -11,7 +11,7 @@ import { db } from "@/lib/db";
 import { automations } from "@/lib/db/schema";
 import { asc, eq } from "drizzle-orm";
 import { requireAuth } from "@/lib/auth/guard";
-import { ArrowLeft, Workflow } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { getAutomationSite } from "@/lib/automations/sites";
 import { AutomationsTableClient } from "@/components/automations/automations-table-client";
 
@@ -48,19 +48,12 @@ export default async function AutomationWebsitePage({
         Back to Automations
       </Link>
 
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <Workflow className="h-5 w-5 text-zinc-500" />
-            <h1 className="text-2xl font-semibold tracking-tight">
-              {site.label}
-            </h1>
-          </div>
-          <p className="mt-1 text-sm text-zinc-500">{site.description}</p>
-        </div>
-      </div>
-
-      <AutomationsTableClient initialRows={rows} />
+      <AutomationsTableClient
+        platform={site.slug}
+        label={site.label}
+        description={site.description}
+        initialRows={rows}
+      />
     </div>
   );
 }
