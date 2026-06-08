@@ -1151,6 +1151,8 @@ export const automations = pgTable(
     /** Column 2 — the link to open it on the source site. Treated as the
      *  automation's identity, so it is unique across the table. */
     externalUrl: text("external_url").notNull(),
+    /** "active" | "paused" — new rows default to paused. */
+    status: text("status").notNull().default("paused"),
 
     createdBy: uuid("created_by").references(() => adminUsers.id),
     createdAt: timestamp("created_at", { withTimezone: true })
