@@ -127,7 +127,22 @@ export function WorkflowDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(isOpen, eventDetails) => {
+        // Don't dismiss on an outside/backdrop click or focus loss — that
+        // would lose typed work on a misclick. Esc, the ✕, Cancel, and a
+        // successful save still close the dialog.
+        if (
+          !isOpen &&
+          (eventDetails?.reason === "outside-press" ||
+            eventDetails?.reason === "focus-out")
+        ) {
+          return;
+        }
+        onOpenChange(isOpen);
+      }}
+    >
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit Workflow" : "Add New Workflow"}</DialogTitle>
@@ -139,7 +154,7 @@ export function WorkflowDialog({
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="space-y-1.5">
-            <Label htmlFor="wf-name">Name (optional)</Label>
+            <Label htmlFor="wf-name">Name</Label>
             <Input
               id="wf-name"
               value={name}
@@ -152,7 +167,9 @@ export function WorkflowDialog({
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="wf-url">Link</Label>
+            <Label htmlFor="wf-url">
+              Link<span className="text-red-600">*</span>
+            </Label>
             <Input
               id="wf-url"
               type="url"
