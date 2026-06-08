@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Search, ExternalLink, Workflow, Plus, Pencil } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { WorkflowDialog } from "./workflow-dialog";
 
@@ -52,6 +53,19 @@ export function AutomationsTableClient({
     setRows((prev) => [row, ...prev]);
   const handleSaved = (row: AutomationRow) =>
     setRows((prev) => prev.map((r) => (r.id === row.id ? row : r)));
+
+  // Hard delete — permanently removes the row after a confirm.
+  const handleDelete = async (row: AutomationRow) => {
+    const label = row.name || "this automation";
+    if (!confirm(`Delete ${label}? This can't be undone.`)) return;
+    const res = await fetch(`/api/automations/${row.id}`, { method: "DELETE" });
+    if (!res.ok) {
+      toast.error("Failed to delete");
+      return;
+    }
+    setRows((prev) => prev.filter((r) => r.id !== row.id));
+    toast.success("Deleted");
+  };
 
   return (
     <div className="space-y-6">
@@ -103,13 +117,14 @@ export function AutomationsTableClient({
                   <th className="px-3 py-2 text-left">Name</th>
                   <th className="px-3 py-2 text-left">Link</th>
                   <th className="px-3 py-2 text-left">Status</th>
+                  {editMode && <th className="w-16 px-3 py-2"></th>}
                 </tr>
               </thead>
               <tbody>
                 {filtered.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={3}
+                      colSpan={editMode ? 4 : 3}
                       className="px-3 py-16 text-center text-sm text-zinc-500"
                     >
                       {rows.length === 0
@@ -158,6 +173,20 @@ export function AutomationsTableClient({
                           {r.status === "active" ? "Active" : "Paused"}
                         </span>
                       </td>
+                      {editMode && (
+                        <td className="px-3 py-2 align-top text-right">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(r);
+                            }}
+                            className="text-xs font-medium text-red-600 hover:underline"
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   ))
                 )}
