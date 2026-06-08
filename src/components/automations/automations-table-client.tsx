@@ -126,7 +126,11 @@ export function AutomationsTableClient({
                       )}
                     >
                       <td className="px-3 py-2 align-top font-medium text-zinc-900">
-                        {r.name}
+                        {r.name || (
+                          <span className="font-normal text-zinc-400">
+                            (unnamed)
+                          </span>
+                        )}
                       </td>
                       <td className="px-3 py-2 align-top">
                         <a

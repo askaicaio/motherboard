@@ -14,7 +14,8 @@ const createSchema = z.object({
   platform: z
     .string()
     .refine((s) => !!getAutomationSite(s), { message: "Unknown platform" }),
-  name: z.string().min(1).max(300),
+  // Name is optional (stored as "" when omitted); Link is required.
+  name: z.string().max(300).optional().default(""),
   externalUrl: z.string().url().max(1000),
 });
 
