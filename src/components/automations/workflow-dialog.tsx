@@ -83,9 +83,18 @@ export function WorkflowDialog({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || "Save failed");
+
+      // Parse defensively — an unexpected server error may not be JSON, and
+      // we never want a failed save to fall through without a message.
+      let data: { error?: string; automation?: AutomationRow } = {};
+      try {
+        data = await res.json();
+      } catch {
+        data = {};
+      }
+
+      if (!res.ok || !data.automation) {
+        setError(data.error || `Save failed (${res.status})`);
         return;
       }
 
@@ -102,6 +111,8 @@ export function WorkflowDialog({
         toast.success(`Added ${row.name}`);
       }
       onOpenChange(false);
+    } catch {
+      setError("Something went wrong — please try again.");
     } finally {
       setSubmitting(false);
     }
