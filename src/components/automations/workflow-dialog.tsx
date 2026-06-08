@@ -168,7 +168,11 @@ export function WorkflowDialog({
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="wf-url">
-              Link<span className="text-red-600">*</span>
+              {/* Wrapped in one element so the Label's flex `gap` doesn't
+                  push the asterisk away from the word — keeps "Link*" tight. */}
+              <span>
+                Link<span className="text-red-600">*</span>
+              </span>
             </Label>
             <Input
               id="wf-url"
