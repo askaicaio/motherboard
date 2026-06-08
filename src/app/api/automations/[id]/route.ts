@@ -95,3 +95,21 @@ export async function PATCH(
     throw err;
   }
 }
+
+// DELETE /api/automations/[id] — hard delete (permanently removes the row).
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const user = await getOptionalAuth();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { id } = await params;
+  const [deleted] = await db
+    .delete(automations)
+    .where(eq(automations.id, id))
+    .returning();
+
+  if (!deleted) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  return NextResponse.json({ automation: deleted });
+}
