@@ -13,7 +13,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { Search, ExternalLink, Workflow, Plus, Pencil } from "lucide-react";
+import { Search, ExternalLink, Workflow, Plus, Pencil, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { WorkflowDialog } from "./workflow-dialog";
@@ -41,6 +41,11 @@ export function AutomationsTableClient({
   const [editMode, setEditMode] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [editing, setEditing] = useState<AutomationRow | null>(null);
+  // TEMPORARY placeholder state for the "Refresh List" button. Live syncing
+  // isn't built yet, so pressing the button always shows this error. When real
+  // refresh/sync is implemented, remove this forced error and wire the button
+  // to the actual refresh call. (See the Automations to-do list.)
+  const [refreshError, setRefreshError] = useState<string | null>(null);
 
   // Search filters by NAME only (Column 1) — deliberately not the link.
   const filtered = useMemo(() => {
@@ -53,6 +58,12 @@ export function AutomationsTableClient({
     setRows((prev) => [row, ...prev]);
   const handleSaved = (row: AutomationRow) =>
     setRows((prev) => prev.map((r) => (r.id === row.id ? row : r)));
+
+  // TEMPORARY: the Refresh List button can't sync anything yet, so it just
+  // shows an error. Replace with the real refresh once syncing exists.
+  const handleRefresh = () => {
+    setRefreshError("Couldn't refresh — live syncing isn't set up yet.");
+  };
 
   // Hard delete — permanently removes the row after a confirm.
   const handleDelete = async (row: AutomationRow) => {
@@ -80,6 +91,31 @@ export function AutomationsTableClient({
           <p className="mt-1 text-sm text-zinc-500">{description}</p>
         </div>
         <div className="flex items-center gap-3">
+          {/* Refresh List — TEMPORARY placeholder. Sits to the LEFT of the Edit
+              mode toggle. Same style as "+ New Workflow" (default Button), but
+              turns red with an error message below it on click, because live
+              syncing isn't built yet. Remove the error behaviour when it works. */}
+          <div className="relative">
+            <Button
+              size="sm"
+              onClick={handleRefresh}
+              className={cn(
+                refreshError &&
+                  "bg-red-600 text-white hover:bg-red-600 focus-visible:ring-red-600/50",
+              )}
+            >
+              <RefreshCw className="mr-2 h-3.5 w-3.5" />
+              Refresh List
+            </Button>
+            {refreshError && (
+              <p
+                role="alert"
+                className="absolute right-0 top-full z-10 mt-1 whitespace-nowrap text-xs font-medium text-red-600"
+              >
+                {refreshError}
+              </p>
+            )}
+          </div>
           <div className="flex items-center gap-2 text-xs text-zinc-600">
             <Pencil className="h-3.5 w-3.5" />
             Edit mode
