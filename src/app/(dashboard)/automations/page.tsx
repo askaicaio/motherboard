@@ -105,18 +105,17 @@ export default async function AutomationsPage() {
                   )}
                   <h3 className="text-xl font-medium">{site.label}</h3>
                 </div>
-                <div className="border-t pt-3">
-                  {/* Description sits below the divider line, above the stats. */}
-                  <p className="text-sm text-zinc-600">{site.description}</p>
-                  <div className="mt-3 grid grid-cols-3 gap-2">
-                    <Stat label="Total" value={stats.total} />
-                    <Stat
-                      label="Active"
-                      value={stats.active}
-                      valueClassName="text-green-600"
-                    />
-                    <Stat label="Paused" value={stats.paused} />
-                  </div>
+                {/* Description sits directly under the website name. */}
+                <p className="text-sm text-zinc-600">{site.description}</p>
+
+                <div className="grid grid-cols-3 gap-2 border-t pt-3">
+                  <Stat label="Total" value={stats.total} />
+                  <Stat
+                    label="Active"
+                    value={stats.active}
+                    valueClassName="text-green-600"
+                  />
+                  <Stat label="Paused" value={stats.paused} />
                 </div>
 
                 <div className="mt-auto flex items-center gap-2 border-t pt-3">
