@@ -103,7 +103,7 @@ export default async function AutomationsPage() {
                       className="h-8 w-8 shrink-0 object-contain"
                     />
                   )}
-                  <h3 className="font-medium">{site.label}</h3>
+                  <h3 className="text-xl font-medium">{site.label}</h3>
                 </div>
                 <p className="text-sm text-zinc-600">{site.description}</p>
 

@@ -56,8 +56,8 @@ export const AUTOMATION_SITES: AutomationSite[] = [
     slug: "zapier",
     label: "Zapier",
     description: "Zaps automated in Zapier.",
-    icon: "/automation-icons/zapier.svg",
-    iconColor: "#FF4F00",
+    // Full-colour logo (user-provided), so no iconColor tint.
+    icon: "/automation-icons/zapier.png",
   },
 ];
 
