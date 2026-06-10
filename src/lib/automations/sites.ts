@@ -10,18 +10,46 @@ export interface AutomationSite {
   label: string;
   /** Short one-liner shown under the label on the Main Page card. */
   description: string;
+  /**
+   * Path (under /public) to the website's logo icon, shown on the Main Page
+   * card next to the label. Make/n8n/Zapier use official monochrome SVG
+   * glyphs; GHL (and GHL b2b, same brand) use the GoHighLevel favicon as a
+   * stopgap until a clean official SVG icon is sourced.
+   */
+  icon: string;
 }
 
 export const AUTOMATION_SITES: AutomationSite[] = [
-  { slug: "make", label: "Make", description: "Scenarios automated in Make." },
-  { slug: "n8n", label: "n8n", description: "Workflows automated in n8n." },
-  { slug: "ghl", label: "GHL", description: "Workflows in GoHighLevel." },
+  {
+    slug: "make",
+    label: "Make",
+    description: "Scenarios automated in Make.",
+    icon: "/automation-icons/make.svg",
+  },
+  {
+    slug: "n8n",
+    label: "n8n",
+    description: "Workflows automated in n8n.",
+    icon: "/automation-icons/n8n.svg",
+  },
+  {
+    slug: "ghl",
+    label: "GHL",
+    description: "Workflows in GoHighLevel.",
+    icon: "/automation-icons/ghl.png",
+  },
   {
     slug: "ghl-b2b",
     label: "GHL b2b",
     description: "Workflows in the GoHighLevel B2B subaccount.",
+    icon: "/automation-icons/ghl.png",
   },
-  { slug: "zapier", label: "Zapier", description: "Zaps automated in Zapier." },
+  {
+    slug: "zapier",
+    label: "Zapier",
+    description: "Zaps automated in Zapier.",
+    icon: "/automation-icons/zapier.svg",
+  },
 ];
 
 /** Look up a single site by its URL slug. Returns undefined if unknown. */
