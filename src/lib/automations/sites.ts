@@ -29,33 +29,33 @@ export const AUTOMATION_SITES: AutomationSite[] = [
   {
     slug: "make",
     label: "Make",
-    description: "Scenarios automated in Make.",
+    description: "Scenarios found in Make",
     icon: "/automation-icons/make.svg",
     iconColor: "#B02DE9",
   },
   {
     slug: "n8n",
     label: "n8n",
-    description: "Workflows automated in n8n.",
+    description: "Workflows found in n8n",
     icon: "/automation-icons/n8n.svg",
     iconColor: "#EA4B71",
   },
   {
     slug: "ghl",
     label: "GHL",
-    description: "Workflows in GoHighLevel.",
+    description: "Workflows found in GoHighLevel",
     icon: "/automation-icons/ghl.png",
   },
   {
     slug: "ghl-b2b",
     label: "GHL b2b",
-    description: "Workflows in the GoHighLevel B2B subaccount.",
+    description: "Workflows found in the GoHighLevel B2B subaccount",
     icon: "/automation-icons/ghl.png",
   },
   {
     slug: "zapier",
     label: "Zapier",
-    description: "Zaps automated in Zapier.",
+    description: "Zaps found in Zapier",
     // Full-colour logo (user-provided), so no iconColor tint.
     icon: "/automation-icons/zapier.png",
   },
