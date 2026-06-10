@@ -1,4 +1,4 @@
-// Automations Main Page — the hub. One card per automation website; each
+// Automations Main Page, the hub. One card per automation website; each
 // card shows a Total / Active / Paused stats row (counts from the
 // automations table) and an "Open →" link to that website's page. The
 // table / search / edit-mode features live on those per-website pages.
@@ -95,7 +95,7 @@ export default async function AutomationsPage() {
                   {/* No API key source is wired yet, so no `apiKey` is passed:
                       the button renders its red "No API Integration" state. It
                       lights up automatically once a real key is provided here.
-                      (Sourcing the real key safely is deferred — see the
+                      (Sourcing the real key safely is deferred, see the
                       SECURITY FLAG in the Automations to-do.) */}
                   <CopyApiKeyButton />
                   <Link

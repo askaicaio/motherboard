@@ -91,7 +91,7 @@ export function WorkflowDialog({
         body: JSON.stringify(body),
       });
 
-      // Parse defensively — an unexpected server error may not be JSON, and
+      // Parse defensively, an unexpected server error may not be JSON, and
       // we never want a failed save to fall through without a message.
       let data: { error?: string; automation?: AutomationRow } = {};
       try {
@@ -120,7 +120,7 @@ export function WorkflowDialog({
       }
       onOpenChange(false);
     } catch {
-      setError("Something went wrong — please try again.");
+      setError("Something went wrong. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -130,7 +130,7 @@ export function WorkflowDialog({
     <Dialog
       open={open}
       onOpenChange={(isOpen, eventDetails) => {
-        // Don't dismiss on an outside/backdrop click or focus loss — that
+        // Don't dismiss on an outside/backdrop click or focus loss, that
         // would lose typed work on a misclick. Esc, the ✕, Cancel, and a
         // successful save still close the dialog.
         if (
@@ -148,7 +148,7 @@ export function WorkflowDialog({
           <DialogTitle>{isEdit ? "Edit Workflow" : "Add New Workflow"}</DialogTitle>
           <DialogDescription>
             {isEdit
-              ? "Update any field — only changed values are saved."
+              ? "Update any field. Only changed values are saved."
               : "Adds a new automation entry to the ledger."}
           </DialogDescription>
         </DialogHeader>
@@ -169,7 +169,7 @@ export function WorkflowDialog({
           <div className="space-y-1.5">
             <Label htmlFor="wf-url">
               {/* Wrapped in one element so the Label's flex `gap` doesn't
-                  push the asterisk away from the word — keeps "Link*" tight. */}
+                  push the asterisk away from the word, keeps "Link*" tight. */}
               <span>
                 Link<span className="text-red-600">*</span>
               </span>
