@@ -4,24 +4,50 @@
 // Sits to the LEFT of the card's "Open ->" link. Styled to match the
 // Campaigns tab "Copy signup URL" button (outline + copy icon).
 //
-// STEP 1 (testing scaffolding): on click it copies the literal dummy
-// string "Test Admin Test" to the clipboard and shows a confirmation
-// toast, so the copy + toast behaviour can be verified. This dummy value
-// is temporary; in Step 2 it gets removed and the button gains a
-// "has API key?" check that copies the real per-platform key when present
-// and shows a permanent red "No API Integration" state when absent.
+// Option A behaviour (gated on whether the platform has an API key):
+//   - No key  -> permanent RED "No API Integration" state (stays red until
+//                a real key exists). Not clickable.
+//   - Has key -> the working button: click copies the key + shows a
+//                confirmation toast.
+//
+// Right now NO platform has a key wired up (see the Automations to-do +
+// [[automations-one-token-per-platform]]), so every card shows the red
+// "No API Integration" state. The working path stays in place, dormant,
+// and lights up automatically once `apiKey` is provided.
+//
+// SECURITY NOTE: an API key is a live production secret. We deliberately do
+// NOT source/pass a real key to this client component yet. Before wiring the
+// real "copy the actual key" behaviour, decide how the key reaches the client
+// safely (authed-admin only, masked/reference value, on-click server fetch,
+// etc). See the SECURITY FLAG in the Automations to-do.
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Copy, CheckCheck } from "lucide-react";
+import { Copy, CheckCheck, Ban } from "lucide-react";
 import { toast } from "sonner";
 
-export function CopyApiKeyButton() {
+export function CopyApiKeyButton({ apiKey }: { apiKey?: string | null }) {
   const [copied, setCopied] = useState(false);
 
+  // No key configured -> permanent red "No API Integration" state.
+  if (!apiKey) {
+    return (
+      <Button
+        variant="outline"
+        size="sm"
+        aria-disabled="true"
+        onClick={(e) => e.preventDefault()}
+        className="flex-1 cursor-default border-red-300 bg-red-50 text-red-600 hover:bg-red-50 hover:text-red-600"
+      >
+        <Ban className="mr-2 h-3.5 w-3.5" />
+        No API Integration
+      </Button>
+    );
+  }
+
+  // Working state: a real key exists for this platform, so copy it on click.
   async function copyApiKey() {
-    // Step 1 test value only. Replaced by the real key in Step 2.
-    await navigator.clipboard.writeText("Test Admin Test");
+    await navigator.clipboard.writeText(apiKey!);
     setCopied(true);
     toast.success("API key copied to your clipboard.");
     setTimeout(() => setCopied(false), 1500);
