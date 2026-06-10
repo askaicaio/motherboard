@@ -1,5 +1,5 @@
-// GET  /api/automations — list (optionally filtered by ?platform=<slug>)
-// POST /api/automations — create a new automation
+// GET  /api/automations, list (optionally filtered by ?platform=<slug>)
+// POST /api/automations, create a new automation
 
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
@@ -22,8 +22,8 @@ const createSchema = z.object({
 
 /**
  * Postgres unique-constraint violation (e.g. duplicate external_url).
- * Drizzle (v0.45) wraps the driver error, so the real Postgres error — with
- * the SQLSTATE `code` — can sit on `.cause`. Walk the chain to find 23505.
+ * Drizzle (v0.45) wraps the driver error, so the real Postgres error, with
+ * the SQLSTATE `code`, can sit on `.cause`. Walk the chain to find 23505.
  */
 function isUniqueViolation(err: unknown): boolean {
   let e: unknown = err;

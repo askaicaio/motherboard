@@ -1,6 +1,6 @@
 "use client";
 
-// Per Website Page — header (title + edit-mode toggle + "+ New Workflow"),
+// Per Website Page, header (title + edit-mode toggle + "+ New Workflow"),
 // search, and the automations table. Two columns: Name and Link (the link is
 // the automation's identity). The search bar filters by NAME only.
 //
@@ -56,7 +56,7 @@ export function AutomationsTableClient({
     };
   }, []);
 
-  // Search filters by NAME only (Column 1) — deliberately not the link.
+  // Search filters by NAME only (Column 1), deliberately not the link.
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return rows;
@@ -79,7 +79,7 @@ export function AutomationsTableClient({
     refreshTimer.current = setTimeout(() => setRefreshError(null), 5000);
   };
 
-  // Hard delete — permanently removes the row after a confirm.
+  // Hard delete, permanently removes the row after a confirm.
   const handleDelete = async (row: AutomationRow) => {
     const label = row.name || "this automation";
     if (!confirm(`Delete ${label}? This can't be undone.`)) return;
@@ -94,7 +94,7 @@ export function AutomationsTableClient({
 
   return (
     <div className="space-y-6">
-      {/* Header — title/description on the left; edit-mode toggle and (when
+      {/* Header, title/description on the left; edit-mode toggle and (when
           on) the "+ New Workflow" button on the right. */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
@@ -105,7 +105,7 @@ export function AutomationsTableClient({
           <p className="mt-1 text-sm text-zinc-500">{description}</p>
         </div>
         <div className="flex items-center gap-3">
-          {/* Refresh List — TEMPORARY placeholder. Sits to the LEFT of the Edit
+          {/* Refresh List, TEMPORARY placeholder. Sits to the LEFT of the Edit
               mode toggle. Same style as "+ New Workflow" (default Button), but
               turns red with an error message below it on click, because live
               syncing isn't built yet. Remove the error behaviour when it works. */}
@@ -145,7 +145,7 @@ export function AutomationsTableClient({
       </div>
 
       <div className="space-y-3">
-        {/* Search bar — searches the automation NAME only. */}
+        {/* Search bar, searches the automation NAME only. */}
         <div className="relative max-w-sm">
           <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
           <Input
@@ -156,7 +156,7 @@ export function AutomationsTableClient({
           />
         </div>
 
-        {/* Table — Name/Link headers always render; empty / no-match message
+        {/* Table, Name/Link headers always render; empty / no-match message
             sits inside the table body as a full-width row. Rows are clickable
             only in edit mode (click → edit). */}
         <Card>

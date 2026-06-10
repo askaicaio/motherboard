@@ -1,4 +1,4 @@
-// PATCH /api/automations/[id] — partial update of an automation
+// PATCH /api/automations/[id], partial update of an automation
 
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
@@ -18,8 +18,8 @@ const DUPLICATE_LINK_ERROR = "An automation with that link already exists.";
 
 /**
  * Postgres unique-constraint violation (e.g. duplicate external_url).
- * Drizzle (v0.45) wraps the driver error, so the real Postgres error — with
- * the SQLSTATE `code` — can sit on `.cause`. Walk the chain to find 23505.
+ * Drizzle (v0.45) wraps the driver error, so the real Postgres error, with
+ * the SQLSTATE `code`, can sit on `.cause`. Walk the chain to find 23505.
  */
 function isUniqueViolation(err: unknown): boolean {
   let e: unknown = err;
@@ -63,7 +63,7 @@ export async function PATCH(
   if (body.externalUrl !== undefined) patch.externalUrl = body.externalUrl.trim();
   if (body.status !== undefined) patch.status = body.status;
 
-  // Deterministic duplicate check — block if ANOTHER row already uses this
+  // Deterministic duplicate check, block if ANOTHER row already uses this
   // link (the link is the automation's identity). Excludes the row itself.
   if (typeof patch.externalUrl === "string") {
     const clash = await db
@@ -96,7 +96,7 @@ export async function PATCH(
   }
 }
 
-// DELETE /api/automations/[id] — hard delete (permanently removes the row).
+// DELETE /api/automations/[id], hard delete (permanently removes the row).
 export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },

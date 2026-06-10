@@ -1,4 +1,4 @@
-// Per Website Page — lists the automations tracked from one source website.
+// Per Website Page, lists the automations tracked from one source website.
 // Reached from the Automations Main Page cards ("Open →"). One dynamic route
 // serves all five websites; the slug is validated against AUTOMATION_SITES
 // (unknown slug → 404). The server fetches this platform's rows and hands
