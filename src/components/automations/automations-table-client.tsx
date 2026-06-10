@@ -72,7 +72,7 @@ export function AutomationsTableClient({
   // shows an error, then auto-reverts to its normal form after 5 seconds.
   // Replace with the real refresh once syncing exists.
   const handleRefresh = () => {
-    setRefreshError("Couldn't refresh — live syncing isn't set up yet.");
+    setRefreshError("Couldn't refresh. Live syncing isn't set up yet.");
     // Restart the countdown on each click so the error always shows for a
     // full 5s, then the button returns to its regular (non-error) form.
     if (refreshTimer.current) clearTimeout(refreshTimer.current);
