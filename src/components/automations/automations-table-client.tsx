@@ -8,7 +8,7 @@
 // button and makes table rows clickable (click a row to edit it). When OFF
 // the table is read-only. Add/Edit happen in the WorkflowDialog.
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -46,6 +46,15 @@ export function AutomationsTableClient({
   // refresh/sync is implemented, remove this forced error and wire the button
   // to the actual refresh call. (See the Automations to-do list.)
   const [refreshError, setRefreshError] = useState<string | null>(null);
+  // Holds the auto-revert timer so we can clear it (on re-click or unmount).
+  const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clear any pending revert timer if the component unmounts.
+  useEffect(() => {
+    return () => {
+      if (refreshTimer.current) clearTimeout(refreshTimer.current);
+    };
+  }, []);
 
   // Search filters by NAME only (Column 1) — deliberately not the link.
   const filtered = useMemo(() => {
@@ -60,9 +69,14 @@ export function AutomationsTableClient({
     setRows((prev) => prev.map((r) => (r.id === row.id ? row : r)));
 
   // TEMPORARY: the Refresh List button can't sync anything yet, so it just
-  // shows an error. Replace with the real refresh once syncing exists.
+  // shows an error, then auto-reverts to its normal form after 5 seconds.
+  // Replace with the real refresh once syncing exists.
   const handleRefresh = () => {
     setRefreshError("Couldn't refresh — live syncing isn't set up yet.");
+    // Restart the countdown on each click so the error always shows for a
+    // full 5s, then the button returns to its regular (non-error) form.
+    if (refreshTimer.current) clearTimeout(refreshTimer.current);
+    refreshTimer.current = setTimeout(() => setRefreshError(null), 5000);
   };
 
   // Hard delete — permanently removes the row after a confirm.
