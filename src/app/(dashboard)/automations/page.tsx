@@ -82,7 +82,7 @@ export default async function AutomationsPage() {
                   <img
                     src={site.icon}
                     alt=""
-                    className="h-4 w-4 shrink-0 object-contain"
+                    className="h-8 w-8 shrink-0 object-contain"
                   />
                   <h3 className="font-medium">{site.label}</h3>
                 </div>
