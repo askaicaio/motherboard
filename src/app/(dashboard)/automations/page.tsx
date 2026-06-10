@@ -76,14 +76,33 @@ export default async function AutomationsPage() {
             >
               <CardContent className="flex h-full flex-col gap-3 p-5">
                 <div className="flex items-center gap-2">
-                  {/* Per-card website logo (small static asset in /public, so
-                      Next's image optimizer is overkill here). */}
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={site.icon}
-                    alt=""
-                    className="h-8 w-8 shrink-0 object-contain"
-                  />
+                  {/* Per-card website logo. Monochrome SVG glyphs are tinted to
+                      the brand colour via a CSS mask; full-colour icons (the GHL
+                      favicon) render as a plain image in their own colours. */}
+                  {site.iconColor ? (
+                    <span
+                      aria-hidden
+                      className="h-8 w-8 shrink-0"
+                      style={{
+                        backgroundColor: site.iconColor,
+                        maskImage: `url(${site.icon})`,
+                        WebkitMaskImage: `url(${site.icon})`,
+                        maskRepeat: "no-repeat",
+                        WebkitMaskRepeat: "no-repeat",
+                        maskPosition: "center",
+                        WebkitMaskPosition: "center",
+                        maskSize: "contain",
+                        WebkitMaskSize: "contain",
+                      }}
+                    />
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={site.icon}
+                      alt=""
+                      className="h-8 w-8 shrink-0 object-contain"
+                    />
+                  )}
                   <h3 className="font-medium">{site.label}</h3>
                 </div>
                 <p className="text-sm text-zinc-600">{site.description}</p>
