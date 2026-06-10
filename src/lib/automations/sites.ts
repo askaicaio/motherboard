@@ -17,6 +17,12 @@ export interface AutomationSite {
    * stopgap until a clean official SVG icon is sourced.
    */
   icon: string;
+  /**
+   * Official brand colour (hex) used to tint the monochrome SVG glyph via a
+   * CSS mask. Leave undefined for full-colour icons (e.g. the GHL favicon),
+   * which render in their own colours.
+   */
+  iconColor?: string;
 }
 
 export const AUTOMATION_SITES: AutomationSite[] = [
@@ -25,12 +31,14 @@ export const AUTOMATION_SITES: AutomationSite[] = [
     label: "Make",
     description: "Scenarios automated in Make.",
     icon: "/automation-icons/make.svg",
+    iconColor: "#B02DE9",
   },
   {
     slug: "n8n",
     label: "n8n",
     description: "Workflows automated in n8n.",
     icon: "/automation-icons/n8n.svg",
+    iconColor: "#EA4B71",
   },
   {
     slug: "ghl",
@@ -49,6 +57,7 @@ export const AUTOMATION_SITES: AutomationSite[] = [
     label: "Zapier",
     description: "Zaps automated in Zapier.",
     icon: "/automation-icons/zapier.svg",
+    iconColor: "#FF4F00",
   },
 ];
 
