@@ -12,6 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Workflow } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AUTOMATION_SITES } from "@/lib/automations/sites";
+import { CopyApiKeyButton } from "@/components/automations/copy-api-key-button";
 
 export const dynamic = "force-dynamic";
 
@@ -90,7 +91,8 @@ export default async function AutomationsPage() {
                   <Stat label="Paused" value={stats.paused} />
                 </div>
 
-                <div className="mt-auto flex items-center border-t pt-3">
+                <div className="mt-auto flex items-center gap-2 border-t pt-3">
+                  <CopyApiKeyButton />
                   <Link
                     href={`/automations/${site.slug}`}
                     className="rounded-md border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
