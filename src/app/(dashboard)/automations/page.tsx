@@ -92,6 +92,11 @@ export default async function AutomationsPage() {
                 </div>
 
                 <div className="mt-auto flex items-center gap-2 border-t pt-3">
+                  {/* No API key source is wired yet, so no `apiKey` is passed:
+                      the button renders its red "No API Integration" state. It
+                      lights up automatically once a real key is provided here.
+                      (Sourcing the real key safely is deferred — see the
+                      SECURITY FLAG in the Automations to-do.) */}
                   <CopyApiKeyButton />
                   <Link
                     href={`/automations/${site.slug}`}
