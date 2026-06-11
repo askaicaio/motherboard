@@ -305,6 +305,10 @@ export function AutomationsTableClient({
               onClick={handleRefresh}
               disabled={refreshing}
               className={cn(
+                // TRIAL (Make page only): give the black button a hover. If the
+                // user likes it, the real fix is to drop the `[a]:` restriction
+                // in ui/button.tsx so ALL default buttons get this globally.
+                platform === "make" && "hover:bg-primary/80",
                 refreshError &&
                   "bg-red-600 text-white hover:bg-red-600 focus-visible:ring-red-600/50",
               )}
@@ -334,7 +338,12 @@ export function AutomationsTableClient({
             <Switch checked={editMode} onCheckedChange={setEditMode} />
           </div>
           {editMode && (
-            <Button size="sm" onClick={() => setAddOpen(true)}>
+            <Button
+              size="sm"
+              onClick={() => setAddOpen(true)}
+              // TRIAL (Make page only): same black-button hover as Refresh List.
+              className={cn(platform === "make" && "hover:bg-primary/80")}
+            >
               <Plus className="mr-2 h-3.5 w-3.5" />
               New Workflow
             </Button>
