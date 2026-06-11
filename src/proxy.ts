@@ -30,6 +30,7 @@ export function proxy(request: NextRequest) {
     pathname.startsWith("/api/callbacks") ||
     pathname.startsWith("/api/welcome") || // public — token-gated activation
     pathname.startsWith("/api/inngest") || // Inngest webhook — verifies its own signatures
+    pathname.startsWith("/api/cron") || // Vercel cron — enforces its own CRON_SECRET
     pathname.startsWith("/_next") ||
     pathname === "/favicon.ico" ||
     hasStaticExtension
@@ -64,6 +65,7 @@ export const config = {
      * - login page
      * - NextAuth API routes
      * - n8n callback API
+     * - Vercel cron routes (they enforce their own CRON_SECRET)
      * - Next.js internals (static, image, prefetch)
      * - any file with an extension (favicon.ico, .png, .css, etc.)
      *
@@ -71,6 +73,6 @@ export const config = {
      * a `.` followed by characters (i.e. a file with extension) is
      * skipped — this handles all public/ static assets in one shot.
      */
-    "/((?!login|welcome|api/auth|api/callbacks|api/welcome|api/inngest|_next/static|_next/image|.*\\..*).*)",
+    "/((?!login|welcome|api/auth|api/callbacks|api/welcome|api/inngest|api/cron|_next/static|_next/image|.*\\..*).*)",
   ],
 };
