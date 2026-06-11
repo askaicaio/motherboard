@@ -1153,6 +1153,10 @@ export const automations = pgTable(
     externalUrl: text("external_url").notNull(),
     /** "active" | "paused" — new rows default to paused. */
     status: text("status").notNull().default("paused"),
+    /** Free-text note describing what the automation is for. Optional
+     *  (nullable). Shown via the Purpose column's "Show"/"None" button and
+     *  edited in the Add/Edit Workflow dialog. */
+    purpose: text("purpose"),
 
     createdBy: uuid("created_by").references(() => adminUsers.id),
     createdAt: timestamp("created_at", { withTimezone: true })

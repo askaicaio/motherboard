@@ -18,6 +18,8 @@ const createSchema = z.object({
   name: z.string().max(300).optional().default(""),
   externalUrl: z.string().url().max(1000),
   status: z.enum(["active", "paused"]).optional().default("paused"),
+  // Purpose is optional free text; stored as null when blank.
+  purpose: z.string().max(2000).optional().default(""),
 });
 
 /**
@@ -94,6 +96,7 @@ export async function POST(request: NextRequest) {
         name: body.name.trim(),
         externalUrl,
         status: body.status,
+        purpose: body.purpose.trim() || null,
         createdBy: user.id,
       })
       .returning();

@@ -107,6 +107,7 @@ export async function getMakeRows() {
       name: automations.name,
       externalUrl: automations.externalUrl,
       status: automations.status,
+      purpose: automations.purpose,
     })
     .from(automations)
     .where(and(eq(automations.platform, PLATFORM)))
