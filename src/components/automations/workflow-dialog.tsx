@@ -218,6 +218,9 @@ export function WorkflowDialog({
               maxLength={2000}
               rows={3}
               placeholder="What this automation is for…"
+              // Break over-long unbroken words onto the next line instead of
+              // letting them stretch the (field-sizing-content) textarea.
+              className="[overflow-wrap:anywhere]"
             />
           </div>
           {error && (
