@@ -65,3 +65,15 @@ export const AUTOMATION_SITES: AutomationSite[] = [
 export function getAutomationSite(slug: string): AutomationSite | undefined {
   return AUTOMATION_SITES.find((site) => site.slug === slug);
 }
+
+/**
+ * Platforms whose "Refresh List" button performs a REAL sync (a sync engine
+ * + API route exist). Any platform not in this set keeps the temporary
+ * placeholder error on refresh. Add a slug here as its sync lands.
+ */
+export const SYNCABLE_PLATFORMS = new Set<string>(["make"]);
+
+/** True when this platform has a working refresh/sync wired up. */
+export function isSyncablePlatform(slug: string): boolean {
+  return SYNCABLE_PLATFORMS.has(slug);
+}
