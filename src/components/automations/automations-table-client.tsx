@@ -25,9 +25,11 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { WorkflowDialog } from "./workflow-dialog";
 
-/** 24 hours in ms — the auto-refresh cadence (client-side copy; the server is
- *  the source of truth, this is only for the instant optimistic countdown). */
-const DAY_MS = 24 * 60 * 60 * 1000;
+// ⚠️ TEMPORARY DEV TEST (2026-06-11): shortened from 24h to 1 MINUTE to match
+// the server (AUTO_REFRESH_INTERVAL_MS) while verifying the cron fires. REVERT
+// to `24 * 60 * 60 * 1000` once confirmed. (Used only for the instant optimistic
+// countdown; the server is the source of truth.)
+const DAY_MS = 60 * 1000;
 
 /** Format milliseconds remaining as HH:MM:SS (clamped at 0). */
 function formatCountdown(ms: number): string {
