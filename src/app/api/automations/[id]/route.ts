@@ -13,7 +13,7 @@ const patchSchema = z.object({
   externalUrl: z.string().url().max(1000).optional(),
   status: z.enum(["active", "paused"]).optional(),
   // Purpose is optional free text; stored as null when blank.
-  purpose: z.string().max(2000).optional(),
+  purpose: z.string().max(5000).optional(),
 });
 
 const DUPLICATE_LINK_ERROR = "An automation with that link already exists.";

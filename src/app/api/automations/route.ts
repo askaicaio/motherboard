@@ -19,7 +19,7 @@ const createSchema = z.object({
   externalUrl: z.string().url().max(1000),
   status: z.enum(["active", "paused"]).optional().default("paused"),
   // Purpose is optional free text; stored as null when blank.
-  purpose: z.string().max(2000).optional().default(""),
+  purpose: z.string().max(5000).optional().default(""),
 });
 
 /**
