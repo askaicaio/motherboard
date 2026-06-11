@@ -148,7 +148,7 @@ export function WorkflowDialog({
         onOpenChange(isOpen);
       }}
     >
-      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="flex h-[85vh] flex-col sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit Workflow" : "Add New Workflow"}</DialogTitle>
           <DialogDescription>
@@ -157,7 +157,7 @@ export function WorkflowDialog({
               : "Adds a new automation entry to the ledger."}
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-3">
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col space-y-3">
           <div className="space-y-1.5">
             <Label htmlFor="wf-name">Name</Label>
             <Input
@@ -206,7 +206,7 @@ export function WorkflowDialog({
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1.5">
+          <div className="flex min-h-0 flex-1 flex-col space-y-1.5">
             <Label htmlFor="wf-purpose">Purpose</Label>
             <Textarea
               id="wf-purpose"
@@ -216,12 +216,12 @@ export function WorkflowDialog({
                 setError(null);
               }}
               maxLength={2000}
-              rows={3}
               placeholder="What this automation is for…"
-              // Break over-long words onto the next line, and cap the height so
-              // a long note scrolls inside the textarea instead of ballooning
-              // the dialog past the screen (field-sizing-content grows it).
-              className="max-h-48 overflow-y-auto [overflow-wrap:anywhere]"
+              // Stretch to fill the dialog's remaining height and scroll inside
+              // when the note is long. [field-sizing:fixed] overrides the shared
+              // Textarea's content-based sizing so flex-1 can stretch it;
+              // [overflow-wrap:anywhere] breaks over-long words onto the next line.
+              className="min-h-0 flex-1 [field-sizing:fixed] overflow-y-auto [overflow-wrap:anywhere]"
             />
           </div>
           {error && (
