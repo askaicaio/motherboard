@@ -40,6 +40,15 @@ export default async function AutomationsPage() {
   for (const site of AUTOMATION_SITES) {
     statsByPlatform.set(site.slug, { total: 0, active: 0, paused: 0 });
   }
+
+  // Which platforms have a real API credential configured (server-side env
+  // var present). Only a boolean per platform is computed here and passed to
+  // the client; the secret token itself never leaves the server. A platform
+  // not listed here defaults to false → the card shows "No API Integration".
+  // Add a platform's env-var check here as each one's sync work is wired up.
+  const hasApiKeyByPlatform: Record<string, boolean> = {
+    make: !!process.env.MAKE_API_TOKEN,
+  };
   for (const row of grouped) {
     const s = statsByPlatform.get(row.platform);
     if (!s) continue; // ignore any platform not in the known set
@@ -119,13 +128,14 @@ export default async function AutomationsPage() {
                 </div>
 
                 <div className="mt-auto flex items-center gap-2 border-t pt-3">
-                  {/* No API key source is wired yet, so hasApiKey is not passed:
-                      the indicator shows its red "No API Integration" state. It
-                      turns green ("API Key Integrated") automatically once a
-                      real per-platform key is detected and a `hasApiKey` boolean
-                      is passed here (server-side; the secret never reaches the
-                      client). */}
-                  <CopyApiKeyButton />
+                  {/* The indicator turns green ("API Key Integrated") when this
+                      platform's key is detected server-side, else red ("No API
+                      Integration"). Only the boolean reaches the client; the
+                      secret never does. (Make is wired; the rest default red
+                      until their syncs land.) */}
+                  <CopyApiKeyButton
+                    hasApiKey={hasApiKeyByPlatform[site.slug] ?? false}
+                  />
                   <Link
                     href={`/automations/${site.slug}`}
                     className="rounded-md border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
