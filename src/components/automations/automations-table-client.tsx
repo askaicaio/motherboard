@@ -1,22 +1,39 @@
 "use client";
 
-// Per Website Page, header (title + edit-mode toggle + "+ New Workflow"),
-// search, and the automations table. Two columns: Name and Link (the link is
-// the automation's identity). The search bar filters by NAME only.
+// Per Website Page, header (auto-refresh toggle + "Refresh List" + edit-mode
+// toggle + "+ New Workflow"), search, and the automations table. Two columns:
+// Name and Link (the link is the automation's identity). Search filters by
+// NAME only.
 //
 // Edit mode (the toggle, top-right): when ON it reveals the "+ New Workflow"
 // button and makes table rows clickable (click a row to edit it). When OFF
 // the table is read-only. Add/Edit happen in the WorkflowDialog.
+//
+// Auto-refresh mode (the toggle, far left of the toolbar): Option A. Turning
+// it ON anchors a 24h countdown to now; the background cron refreshes the list
+// once it elapses, then resets the countdown. Re-toggling restarts the 24h.
+// Blocked (with a red error) on platforms with no API integration.
 
 import { useState, useMemo, useRef, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { Search, ExternalLink, Workflow, Plus, Pencil, RefreshCw } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { Search, ExternalLink, Workflow, Plus, Pencil, RefreshCw, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { WorkflowDialog } from "./workflow-dialog";
+
+/** Format milliseconds remaining as HH:MM:SS (clamped at 0). */
+function formatCountdown(ms: number): string {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${pad(h)}:${pad(m)}:${pad(s)}`;
+}
 
 export interface AutomationRow {
   id: string;
@@ -31,6 +48,8 @@ export function AutomationsTableClient({
   description,
   initialRows,
   canSync = false,
+  hasApiKey = false,
+  autoRefresh = { enabled: false, nextRefreshAt: null },
 }: {
   platform: string;
   label: string;
@@ -39,6 +58,11 @@ export function AutomationsTableClient({
   /** When true, "Refresh List" performs a real sync; otherwise it shows the
    *  temporary placeholder error (platforms whose sync isn't built yet). */
   canSync?: boolean;
+  /** Whether this platform has an API credential configured. Gates the
+   *  auto-refresh toggle (can't turn on without an integration). */
+  hasApiKey?: boolean;
+  /** Server-provided auto-refresh state for this platform. */
+  autoRefresh?: { enabled: boolean; nextRefreshAt: string | null };
 }) {
   const [rows, setRows] = useState(initialRows);
   const [query, setQuery] = useState("");
@@ -54,12 +78,68 @@ export function AutomationsTableClient({
   // Holds the auto-revert timer so we can clear it (on re-click or unmount).
   const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Clear any pending revert timer if the component unmounts.
+  // Auto-refresh mode state (Option A). `autoEnabled` + `nextRefreshAt` come
+  // from the server; `remainingMs` is the live countdown; `autoError` is the
+  // red text under the toggle (e.g. no API integration), fading after 5s.
+  const [autoEnabled, setAutoEnabled] = useState(autoRefresh.enabled);
+  const [nextRefreshAt, setNextRefreshAt] = useState<string | null>(
+    autoRefresh.nextRefreshAt,
+  );
+  const [remainingMs, setRemainingMs] = useState(() =>
+    autoRefresh.enabled && autoRefresh.nextRefreshAt
+      ? new Date(autoRefresh.nextRefreshAt).getTime() - Date.now()
+      : 0,
+  );
+  const [autoError, setAutoError] = useState<string | null>(null);
+  const autoErrorTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clear any pending timers if the component unmounts.
   useEffect(() => {
     return () => {
       if (refreshTimer.current) clearTimeout(refreshTimer.current);
+      if (autoErrorTimer.current) clearTimeout(autoErrorTimer.current);
     };
   }, []);
+
+  // Live countdown to the next scheduled refresh (ticks every second).
+  useEffect(() => {
+    if (!autoEnabled || !nextRefreshAt) {
+      setRemainingMs(0);
+      return;
+    }
+    const tick = () => setRemainingMs(new Date(nextRefreshAt).getTime() - Date.now());
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [autoEnabled, nextRefreshAt]);
+
+  // Once the countdown elapses, the cron refreshes within its interval. Poll
+  // for the new schedule + refreshed rows so an open tab stays in sync. Gated
+  // on a boolean (not remainingMs) so it doesn't re-subscribe every tick.
+  const countdownElapsed = autoEnabled && !!nextRefreshAt && remainingMs <= 0;
+  useEffect(() => {
+    if (!countdownElapsed) return;
+    const id = setInterval(async () => {
+      try {
+        const [stateRes, rowsRes] = await Promise.all([
+          fetch(`/api/automations/autorefresh?platform=${platform}`),
+          fetch(`/api/automations?platform=${platform}`),
+        ]);
+        if (stateRes.ok) {
+          const { state } = await stateRes.json();
+          setAutoEnabled(!!state?.enabled);
+          if (state?.nextRefreshAt) setNextRefreshAt(state.nextRefreshAt);
+        }
+        if (rowsRes.ok) {
+          const { automations } = await rowsRes.json();
+          if (Array.isArray(automations)) setRows(automations);
+        }
+      } catch {
+        // transient; retry on the next tick
+      }
+    }, 30000);
+    return () => clearInterval(id);
+  }, [countdownElapsed, platform]);
 
   // Search filters by NAME only (Column 1), deliberately not the link.
   const filtered = useMemo(() => {
@@ -116,6 +196,38 @@ export function AutomationsTableClient({
     }
   };
 
+  // Red error under the auto-refresh toggle, fading after 5s (the standing
+  // default for transient error texts).
+  const showAutoError = (message: string) => {
+    setAutoError(message);
+    if (autoErrorTimer.current) clearTimeout(autoErrorTimer.current);
+    autoErrorTimer.current = setTimeout(() => setAutoError(null), 5000);
+  };
+
+  const handleAutoToggle = async (checked: boolean) => {
+    // Turning ON requires an API integration; block it and show the error.
+    if (checked && !hasApiKey) {
+      showAutoError("Can't auto-refresh. This website has no API integration yet.");
+      return; // leave the switch off (it's controlled by autoEnabled)
+    }
+    try {
+      const res = await fetch("/api/automations/autorefresh", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ platform, enabled: checked }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || "Couldn't update auto-refresh.");
+      setAutoEnabled(!!data.state?.enabled);
+      setNextRefreshAt(data.state?.nextRefreshAt ?? null);
+      setAutoError(null);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Couldn't update auto-refresh.";
+      showAutoError(message);
+    }
+  };
+
   // Hard delete, permanently removes the row after a confirm.
   const handleDelete = async (row: AutomationRow) => {
     const label = row.name || "this automation";
@@ -142,6 +254,30 @@ export function AutomationsTableClient({
           <p className="mt-1 text-sm text-zinc-500">{description}</p>
         </div>
         <div className="flex items-center gap-3">
+          {/* Auto-refresh mode (Option A). Far left of the toolbar, styled
+              like the Edit mode toggle but with a clock icon. When ON, a
+              countdown to the next scheduled refresh shows under it; turning
+              it on without an API integration is blocked with a red error. */}
+          <div className="relative flex items-center gap-2 text-xs text-zinc-600">
+            <Clock className="h-3.5 w-3.5" />
+            Auto-refresh
+            <Switch checked={autoEnabled} onCheckedChange={handleAutoToggle} />
+            {autoError ? (
+              <p
+                role="alert"
+                className="absolute left-0 top-full z-10 mt-1 max-w-xs text-xs font-medium text-red-600"
+              >
+                {autoError}
+              </p>
+            ) : autoEnabled && nextRefreshAt ? (
+              <p className="absolute left-0 top-full z-10 mt-1 whitespace-nowrap text-[11px] font-medium text-zinc-500">
+                {remainingMs > 0
+                  ? `Next refresh in ${formatCountdown(remainingMs)}`
+                  : "Refreshing soon…"}
+              </p>
+            ) : null}
+          </div>
+
           {/* Refresh List. Sits to the LEFT of the Edit mode toggle, same
               style as "+ New Workflow". On syncable platforms it runs a real
               sync (spinner while in flight, success toast); on the rest it
@@ -171,6 +307,11 @@ export function AutomationsTableClient({
               </p>
             )}
           </div>
+
+          {/* Vertical divider between the list actions (auto-refresh + Refresh
+              List) and the editing controls (Edit mode + New Workflow). */}
+          <Separator orientation="vertical" className="h-5 self-center" />
+
           <div className="flex items-center gap-2 text-xs text-zinc-600">
             <Pencil className="h-3.5 w-3.5" />
             Edit mode

@@ -1,0 +1,14 @@
+// Server-side check for whether a platform has an API credential configured
+// (its env var is present). Used by the Main Page card indicator and the
+// per-website page's auto-refresh toggle. Reads env only — import server-side
+// only; only a boolean is ever exposed to the client, never the secret.
+
+export function platformHasApiKey(slug: string): boolean {
+  switch (slug) {
+    case "make":
+      return !!process.env.MAKE_API_TOKEN;
+    // n8n / ghl / ghl-b2b / zapier: wired as each platform's sync lands.
+    default:
+      return false;
+  }
+}
