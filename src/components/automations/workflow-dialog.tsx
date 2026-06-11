@@ -222,11 +222,12 @@ export function WorkflowDialog({
               maxLength={5000}
               rows={3}
               placeholder="What this automation is for…"
-              // Grows with content (the shared Textarea's field-sizing-content);
-              // the surrounding scroll area handles overflow, so ALL fields scroll
-              // together rather than just this one. [overflow-wrap:anywhere]
-              // breaks over-long words onto the next line.
-              className="[overflow-wrap:anywhere]"
+              // `block` overrides the shared Textarea's base `display:flex`, which
+              // was defeating its `field-sizing-content` (so it capped at the
+              // available height and showed its OWN scrollbar). As block, it grows
+              // with content and the outer fields scroll area is the single
+              // scrollbar. [overflow-wrap:anywhere] breaks over-long words.
+              className="block [overflow-wrap:anywhere]"
             />
           </div>
           {error && (
