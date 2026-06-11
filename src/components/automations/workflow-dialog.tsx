@@ -161,7 +161,7 @@ export function WorkflowDialog({
           {/* All fields scroll together when the dialog gets tall; the header
               and footer stay pinned. (-mx-1/px-1 gives focus rings room so they
               don't trigger a horizontal scrollbar.) */}
-          <div className="-mx-1 min-h-0 flex-1 space-y-3 overflow-y-auto px-1">
+          <div className="-mx-1 min-h-0 flex-1 space-y-3 overflow-y-auto px-1 pb-3">
           <div className="space-y-1.5">
             <Label htmlFor="wf-name">Name</Label>
             <Input
