@@ -504,11 +504,13 @@ export function AutomationsTableClient({
         open={showingPurpose !== null}
         onOpenChange={(o) => !o && setShowingPurpose(null)}
       >
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="flex max-h-[85vh] flex-col sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Purpose</DialogTitle>
           </DialogHeader>
-          <p className="whitespace-pre-wrap break-words text-sm text-zinc-700">
+          {/* Grows with content up to 85vh, then the text scrolls (single
+              scrollbar) while the title stays pinned. */}
+          <p className="min-h-0 flex-1 overflow-y-auto whitespace-pre-wrap break-words text-sm text-zinc-700">
             {showingPurpose}
           </p>
         </DialogContent>
