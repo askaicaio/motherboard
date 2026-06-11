@@ -148,7 +148,7 @@ export function WorkflowDialog({
         onOpenChange(isOpen);
       }}
     >
-      <DialogContent className="flex h-[85vh] flex-col sm:max-w-lg">
+      <DialogContent className="flex max-h-[85vh] flex-col sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit Workflow" : "Add New Workflow"}</DialogTitle>
           <DialogDescription>
@@ -157,7 +157,11 @@ export function WorkflowDialog({
               : "Adds a new automation entry to the ledger."}
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col space-y-3">
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+          {/* All fields scroll together when the dialog gets tall; the header
+              and footer stay pinned. (-mx-1/px-1 gives focus rings room so they
+              don't trigger a horizontal scrollbar.) */}
+          <div className="-mx-1 min-h-0 flex-1 space-y-3 overflow-y-auto px-1">
           <div className="space-y-1.5">
             <Label htmlFor="wf-name">Name</Label>
             <Input
@@ -206,7 +210,7 @@ export function WorkflowDialog({
               </SelectContent>
             </Select>
           </div>
-          <div className="flex min-h-0 flex-1 flex-col space-y-1.5">
+          <div className="space-y-1.5">
             <Label htmlFor="wf-purpose">Purpose</Label>
             <Textarea
               id="wf-purpose"
@@ -216,12 +220,13 @@ export function WorkflowDialog({
                 setError(null);
               }}
               maxLength={2000}
+              rows={3}
               placeholder="What this automation is for…"
-              // Stretch to fill the dialog's remaining height and scroll inside
-              // when the note is long. [field-sizing:fixed] overrides the shared
-              // Textarea's content-based sizing so flex-1 can stretch it;
-              // [overflow-wrap:anywhere] breaks over-long words onto the next line.
-              className="min-h-0 flex-1 [field-sizing:fixed] overflow-y-auto [overflow-wrap:anywhere]"
+              // Grows with content (the shared Textarea's field-sizing-content);
+              // the surrounding scroll area handles overflow, so ALL fields scroll
+              // together rather than just this one. [overflow-wrap:anywhere]
+              // breaks over-long words onto the next line.
+              className="[overflow-wrap:anywhere]"
             />
           </div>
           {error && (
@@ -229,7 +234,8 @@ export function WorkflowDialog({
               {error}
             </p>
           )}
-          <DialogFooter>
+          </div>
+          <DialogFooter className="shrink-0">
             <Button
               type="button"
               variant="outline"
