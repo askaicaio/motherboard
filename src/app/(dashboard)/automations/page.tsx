@@ -12,6 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Workflow } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AUTOMATION_SITES } from "@/lib/automations/sites";
+import { platformHasApiKey } from "@/lib/automations/credentials";
 import { CopyApiKeyButton } from "@/components/automations/copy-api-key-button";
 
 export const dynamic = "force-dynamic";
@@ -41,14 +42,6 @@ export default async function AutomationsPage() {
     statsByPlatform.set(site.slug, { total: 0, active: 0, paused: 0 });
   }
 
-  // Which platforms have a real API credential configured (server-side env
-  // var present). Only a boolean per platform is computed here and passed to
-  // the client; the secret token itself never leaves the server. A platform
-  // not listed here defaults to false → the card shows "No API Integration".
-  // Add a platform's env-var check here as each one's sync work is wired up.
-  const hasApiKeyByPlatform: Record<string, boolean> = {
-    make: !!process.env.MAKE_API_TOKEN,
-  };
   for (const row of grouped) {
     const s = statsByPlatform.get(row.platform);
     if (!s) continue; // ignore any platform not in the known set
@@ -133,9 +126,7 @@ export default async function AutomationsPage() {
                       Integration"). Only the boolean reaches the client; the
                       secret never does. (Make is wired; the rest default red
                       until their syncs land.) */}
-                  <CopyApiKeyButton
-                    hasApiKey={hasApiKeyByPlatform[site.slug] ?? false}
-                  />
+                  <CopyApiKeyButton hasApiKey={platformHasApiKey(site.slug)} />
                   <Link
                     href={`/automations/${site.slug}`}
                     className="rounded-md border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50"

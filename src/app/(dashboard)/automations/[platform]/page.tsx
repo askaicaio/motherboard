@@ -13,6 +13,8 @@ import { asc, eq } from "drizzle-orm";
 import { requireAuth } from "@/lib/auth/guard";
 import { ArrowLeft } from "lucide-react";
 import { getAutomationSite, isSyncablePlatform } from "@/lib/automations/sites";
+import { platformHasApiKey } from "@/lib/automations/credentials";
+import { getAutoRefreshFor } from "@/lib/automations/autorefresh";
 import { AutomationsTableClient } from "@/components/automations/automations-table-client";
 
 export const dynamic = "force-dynamic";
@@ -39,6 +41,8 @@ export default async function AutomationWebsitePage({
     .where(eq(automations.platform, site.slug))
     .orderBy(asc(automations.name));
 
+  const autoRefresh = await getAutoRefreshFor(site.slug);
+
   return (
     <div className="space-y-6 p-6">
       <Link
@@ -55,6 +59,8 @@ export default async function AutomationWebsitePage({
         description={site.description}
         initialRows={rows}
         canSync={isSyncablePlatform(site.slug)}
+        hasApiKey={platformHasApiKey(site.slug)}
+        autoRefresh={autoRefresh}
       />
     </div>
   );
