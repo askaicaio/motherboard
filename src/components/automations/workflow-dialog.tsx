@@ -148,7 +148,7 @@ export function WorkflowDialog({
         onOpenChange(isOpen);
       }}
     >
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit Workflow" : "Add New Workflow"}</DialogTitle>
           <DialogDescription>
@@ -218,9 +218,10 @@ export function WorkflowDialog({
               maxLength={2000}
               rows={3}
               placeholder="What this automation is for…"
-              // Break over-long unbroken words onto the next line instead of
-              // letting them stretch the (field-sizing-content) textarea.
-              className="[overflow-wrap:anywhere]"
+              // Break over-long words onto the next line, and cap the height so
+              // a long note scrolls inside the textarea instead of ballooning
+              // the dialog past the screen (field-sizing-content grows it).
+              className="max-h-48 overflow-y-auto [overflow-wrap:anywhere]"
             />
           </div>
           {error && (
