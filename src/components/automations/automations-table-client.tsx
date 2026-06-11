@@ -25,6 +25,10 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { WorkflowDialog } from "./workflow-dialog";
 
+/** 24 hours in ms — the auto-refresh cadence (client-side copy; the server is
+ *  the source of truth, this is only for the instant optimistic countdown). */
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 /** Format milliseconds remaining as HH:MM:SS (clamped at 0). */
 function formatCountdown(ms: number): string {
   const total = Math.max(0, Math.floor(ms / 1000));
@@ -210,6 +214,15 @@ export function AutomationsTableClient({
       showAutoError("Can't auto-refresh. This website has no API integration yet.");
       return; // leave the switch off (it's controlled by autoEnabled)
     }
+
+    // Optimistic: flip the switch + countdown immediately so it feels instant;
+    // the server call runs in the background and we reconcile / roll back after.
+    const prevEnabled = autoEnabled;
+    const prevNext = nextRefreshAt;
+    setAutoError(null);
+    setAutoEnabled(checked);
+    setNextRefreshAt(checked ? new Date(Date.now() + DAY_MS).toISOString() : null);
+
     try {
       const res = await fetch("/api/automations/autorefresh", {
         method: "POST",
@@ -218,10 +231,13 @@ export function AutomationsTableClient({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || "Couldn't update auto-refresh.");
+      // Reconcile with the server's canonical state (exact nextRefreshAt).
       setAutoEnabled(!!data.state?.enabled);
       setNextRefreshAt(data.state?.nextRefreshAt ?? null);
-      setAutoError(null);
     } catch (err) {
+      // Roll back the optimistic change and surface the error.
+      setAutoEnabled(prevEnabled);
+      setNextRefreshAt(prevNext);
       const message =
         err instanceof Error ? err.message : "Couldn't update auto-refresh.";
       showAutoError(message);
