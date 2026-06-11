@@ -227,10 +227,12 @@ export function WorkflowDialog({
               placeholder="What this automation is for…"
               // `block` overrides the shared Textarea's base `display:flex`, which
               // was defeating its `field-sizing-content` (so it capped at the
-              // available height and showed its OWN scrollbar). As block, it grows
-              // with content and the outer fields scroll area is the single
-              // scrollbar. [overflow-wrap:anywhere] breaks over-long words.
-              className="block [overflow-wrap:anywhere]"
+              // available height and showed its OWN scrollbar). `overflow-hidden`
+              // stops the textarea from ever scrolling itself, and `resize-none`
+              // removes the manual resize grip - together they force all growth
+              // into the outer fields scroll area, so there's a single scrollbar.
+              // [overflow-wrap:anywhere] breaks over-long words.
+              className="block resize-none overflow-hidden [overflow-wrap:anywhere]"
             />
           </div>
           {error && (
