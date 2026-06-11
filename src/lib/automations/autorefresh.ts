@@ -20,8 +20,12 @@ import { appSettings } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 
 const KEY = "automations_autorefresh";
-/** 24 hours — the once-a-day cadence. */
-export const AUTO_REFRESH_INTERVAL_MS = 24 * 60 * 60 * 1000;
+// ⚠️ TEMPORARY DEV TEST (2026-06-11): shortened from 24h to 1 MINUTE to verify
+// the auto-refresh cron actually fires. REVERT to `24 * 60 * 60 * 1000` once
+// the feature is confirmed working. (Pairs with the client DAY_MS override and
+// the every-minute cron schedule in vercel.json — revert all three together.)
+/** Auto-refresh cadence. */
+export const AUTO_REFRESH_INTERVAL_MS = 60 * 1000;
 
 export interface AutoRefreshState {
   enabled: boolean;
