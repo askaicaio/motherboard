@@ -20,6 +20,13 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Search, ExternalLink, Workflow, Plus, Pencil, RefreshCw, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -44,6 +51,7 @@ export interface AutomationRow {
   name: string;
   externalUrl: string;
   status: string; // "active" | "paused"
+  purpose?: string | null; // optional free-text note
 }
 
 export function AutomationsTableClient({
@@ -73,6 +81,8 @@ export function AutomationsTableClient({
   const [editMode, setEditMode] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [editing, setEditing] = useState<AutomationRow | null>(null);
+  // The purpose text shown in the read-only "Show purpose" popup (null = closed).
+  const [showingPurpose, setShowingPurpose] = useState<string | null>(null);
   // "Refresh List" state. On syncable platforms the button calls the real
   // sync; on the rest it shows a temporary placeholder error. `refreshError`
   // holds the red error text (real or placeholder); `refreshing` is the
@@ -365,6 +375,7 @@ export function AutomationsTableClient({
                   <th className="px-3 py-2 text-left">Name</th>
                   <th className="px-3 py-2 text-left">Link</th>
                   <th className="px-3 py-2 text-left">Status</th>
+                  <th className="px-3 py-2 text-left">Purpose</th>
                   {editMode && <th className="w-16 px-3 py-2"></th>}
                 </tr>
               </thead>
@@ -372,7 +383,7 @@ export function AutomationsTableClient({
                 {filtered.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={editMode ? 4 : 3}
+                      colSpan={editMode ? 5 : 4}
                       className="px-3 py-16 text-center text-sm text-zinc-500"
                     >
                       {rows.length === 0
@@ -421,6 +432,35 @@ export function AutomationsTableClient({
                           {r.status === "active" ? "Active" : "Paused"}
                         </span>
                       </td>
+                      <td className="px-3 py-2 align-top">
+                        {/* Purpose: "Show" opens a read-only popup when there's
+                            text; "None" (red, non-clickable) when empty. In edit
+                            mode the button is disabled and clicking the row opens
+                            the Edit Workflow dialog (where the purpose is set). */}
+                        {r.purpose ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={editMode}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowingPurpose(r.purpose ?? "");
+                            }}
+                          >
+                            Show
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            aria-disabled="true"
+                            onClick={(e) => e.preventDefault()}
+                            className="cursor-default border-red-300 bg-red-50 text-red-600 hover:bg-red-50 hover:text-red-600"
+                          >
+                            None
+                          </Button>
+                        )}
+                      </td>
                       {editMode && (
                         <td className="px-3 py-2 align-top text-right">
                           <button
@@ -459,6 +499,26 @@ export function AutomationsTableClient({
         existing={editing ?? undefined}
         onSaved={handleSaved}
       />
+
+      {/* Read-only "Show purpose" popup */}
+      <Dialog
+        open={showingPurpose !== null}
+        onOpenChange={(o) => !o && setShowingPurpose(null)}
+      >
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Purpose</DialogTitle>
+          </DialogHeader>
+          <p className="whitespace-pre-wrap break-words text-sm text-zinc-700">
+            {showingPurpose}
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowingPurpose(null)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -55,6 +56,8 @@ export function WorkflowDialog({
   const [externalUrl, setExternalUrl] = useState("");
   // Status defaults to "paused" for new automations.
   const [status, setStatus] = useState("paused");
+  // Purpose is an optional free-text note.
+  const [purpose, setPurpose] = useState("");
   // Inline error shown as red text inside the dialog (e.g. duplicate link).
   const [error, setError] = useState<string | null>(null);
 
@@ -64,6 +67,7 @@ export function WorkflowDialog({
     setName(existing?.name ?? "");
     setExternalUrl(existing?.externalUrl ?? "");
     setStatus(existing?.status ?? "paused");
+    setPurpose(existing?.purpose ?? "");
     setError(null);
   }, [open, existing]);
 
@@ -82,8 +86,8 @@ export function WorkflowDialog({
         : "/api/automations";
       const method = isEdit ? "PATCH" : "POST";
       const body = isEdit
-        ? { name: name.trim(), externalUrl: externalUrl.trim(), status }
-        : { platform, name: name.trim(), externalUrl: externalUrl.trim(), status };
+        ? { name: name.trim(), externalUrl: externalUrl.trim(), status, purpose: purpose.trim() }
+        : { platform, name: name.trim(), externalUrl: externalUrl.trim(), status, purpose: purpose.trim() };
 
       const res = await fetch(endpoint, {
         method,
@@ -110,6 +114,7 @@ export function WorkflowDialog({
         name: data.automation.name,
         externalUrl: data.automation.externalUrl,
         status: data.automation.status,
+        purpose: data.automation.purpose,
       };
       if (isEdit) {
         onSaved?.(row);
@@ -200,6 +205,20 @@ export function WorkflowDialog({
                 <SelectItem value="paused">Paused</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="wf-purpose">Purpose</Label>
+            <Textarea
+              id="wf-purpose"
+              value={purpose}
+              onChange={(e) => {
+                setPurpose(e.target.value);
+                setError(null);
+              }}
+              maxLength={2000}
+              rows={3}
+              placeholder="What this automation is for…"
+            />
           </div>
           {error && (
             <p className="text-sm font-medium text-red-600" role="alert">
