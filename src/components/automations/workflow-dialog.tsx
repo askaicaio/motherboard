@@ -219,7 +219,7 @@ export function WorkflowDialog({
                 setPurpose(e.target.value);
                 setError(null);
               }}
-              maxLength={2000}
+              maxLength={5000}
               rows={3}
               placeholder="What this automation is for…"
               // Grows with content (the shared Textarea's field-sizing-content);
