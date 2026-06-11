@@ -202,19 +202,11 @@ export function WorkflowDialog({
           <div className="space-y-1.5">
             <Label htmlFor="wf-status">Status</Label>
             <Select value={status} onValueChange={(v) => setStatus(v ?? "paused")}>
-              <SelectTrigger id="wf-status" className="w-40">
-                {/* Base UI's SelectValue renders the raw value ("paused") by
-                    default; map it to the proper label so the trigger reads
-                    "Paused" / "Active" (Active green, matching the items). */}
-                <SelectValue placeholder="Status">
-                  {(value) =>
-                    value === "active" ? (
-                      <span className="text-green-600">Active</span>
-                    ) : (
-                      "Paused"
-                    )
-                  }
-                </SelectValue>
+              {/* Base UI's SelectValue renders the raw lowercase value
+                  ("paused"); `capitalize` forces the trigger to display it
+                  as "Paused" / "Active". The stored value is unchanged. */}
+              <SelectTrigger id="wf-status" className="w-40 capitalize">
+                <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="active">
