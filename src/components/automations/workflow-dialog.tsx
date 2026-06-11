@@ -150,7 +150,7 @@ export function WorkflowDialog({
     >
       <DialogContent
         className="flex max-h-[85vh] flex-col sm:max-w-lg"
-        overlayClassName="bg-black/40"
+        overlayClassName="bg-black/70"
       >
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit Workflow" : "Add New Workflow"}</DialogTitle>
