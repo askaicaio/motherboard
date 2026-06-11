@@ -30,22 +30,27 @@ export function AutomationsTableClient({
   label,
   description,
   initialRows,
+  canSync = false,
 }: {
   platform: string;
   label: string;
   description: string;
   initialRows: AutomationRow[];
+  /** When true, "Refresh List" performs a real sync; otherwise it shows the
+   *  temporary placeholder error (platforms whose sync isn't built yet). */
+  canSync?: boolean;
 }) {
   const [rows, setRows] = useState(initialRows);
   const [query, setQuery] = useState("");
   const [editMode, setEditMode] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [editing, setEditing] = useState<AutomationRow | null>(null);
-  // TEMPORARY placeholder state for the "Refresh List" button. Live syncing
-  // isn't built yet, so pressing the button always shows this error. When real
-  // refresh/sync is implemented, remove this forced error and wire the button
-  // to the actual refresh call. (See the Automations to-do list.)
+  // "Refresh List" state. On syncable platforms the button calls the real
+  // sync; on the rest it shows a temporary placeholder error. `refreshError`
+  // holds the red error text (real or placeholder); `refreshing` is the
+  // in-flight spinner state for a real sync.
   const [refreshError, setRefreshError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   // Holds the auto-revert timer so we can clear it (on re-click or unmount).
   const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -68,15 +73,47 @@ export function AutomationsTableClient({
   const handleSaved = (row: AutomationRow) =>
     setRows((prev) => prev.map((r) => (r.id === row.id ? row : r)));
 
-  // TEMPORARY: the Refresh List button can't sync anything yet, so it just
-  // shows an error, then auto-reverts to its normal form after 5 seconds.
-  // Replace with the real refresh once syncing exists.
-  const handleRefresh = () => {
-    setRefreshError("Couldn't refresh. Live syncing isn't set up yet.");
-    // Restart the countdown on each click so the error always shows for a
-    // full 5s, then the button returns to its regular (non-error) form.
+  // Show a red error under the button for 5s, then auto-revert. Used for both
+  // the placeholder (non-syncable platforms) and real sync failures.
+  const showRefreshError = (message: string) => {
+    setRefreshError(message);
     if (refreshTimer.current) clearTimeout(refreshTimer.current);
     refreshTimer.current = setTimeout(() => setRefreshError(null), 5000);
+  };
+
+  const handleRefresh = async () => {
+    // Platforms without a real sync keep the temporary placeholder error.
+    if (!canSync) {
+      showRefreshError("Couldn't refresh. Live syncing isn't set up yet.");
+      return;
+    }
+
+    if (refreshing) return; // ignore double-clicks while a sync is in flight
+    setRefreshError(null);
+    if (refreshTimer.current) clearTimeout(refreshTimer.current);
+    setRefreshing(true);
+    try {
+      const res = await fetch("/api/automations/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ platform }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || "Refresh failed.");
+
+      if (Array.isArray(data.rows)) setRows(data.rows);
+      const r = data.result;
+      const summary =
+        r && (r.created || r.updated)
+          ? `Synced. ${r.created} added, ${r.updated} updated.`
+          : "List is up to date.";
+      toast.success(summary);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Refresh failed.";
+      showRefreshError(message);
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   // Hard delete, permanently removes the row after a confirm.
@@ -105,26 +142,30 @@ export function AutomationsTableClient({
           <p className="mt-1 text-sm text-zinc-500">{description}</p>
         </div>
         <div className="flex items-center gap-3">
-          {/* Refresh List, TEMPORARY placeholder. Sits to the LEFT of the Edit
-              mode toggle. Same style as "+ New Workflow" (default Button), but
-              turns red with an error message below it on click, because live
-              syncing isn't built yet. Remove the error behaviour when it works. */}
+          {/* Refresh List. Sits to the LEFT of the Edit mode toggle, same
+              style as "+ New Workflow". On syncable platforms it runs a real
+              sync (spinner while in flight, success toast); on the rest it
+              shows the temporary placeholder error. Either way, a failure
+              turns the button red with the error message below it for 5s. */}
           <div className="relative">
             <Button
               size="sm"
               onClick={handleRefresh}
+              disabled={refreshing}
               className={cn(
                 refreshError &&
                   "bg-red-600 text-white hover:bg-red-600 focus-visible:ring-red-600/50",
               )}
             >
-              <RefreshCw className="mr-2 h-3.5 w-3.5" />
-              Refresh List
+              <RefreshCw
+                className={cn("mr-2 h-3.5 w-3.5", refreshing && "animate-spin")}
+              />
+              {refreshing ? "Refreshing…" : "Refresh List"}
             </Button>
             {refreshError && (
               <p
                 role="alert"
-                className="absolute right-0 top-full z-10 mt-1 whitespace-nowrap text-xs font-medium text-red-600"
+                className="absolute right-0 top-full z-10 mt-1 max-w-xs text-right text-xs font-medium text-red-600"
               >
                 {refreshError}
               </p>

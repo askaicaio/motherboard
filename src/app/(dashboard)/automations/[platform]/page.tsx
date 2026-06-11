@@ -12,7 +12,7 @@ import { automations } from "@/lib/db/schema";
 import { asc, eq } from "drizzle-orm";
 import { requireAuth } from "@/lib/auth/guard";
 import { ArrowLeft } from "lucide-react";
-import { getAutomationSite } from "@/lib/automations/sites";
+import { getAutomationSite, isSyncablePlatform } from "@/lib/automations/sites";
 import { AutomationsTableClient } from "@/components/automations/automations-table-client";
 
 export const dynamic = "force-dynamic";
@@ -54,6 +54,7 @@ export default async function AutomationWebsitePage({
         label={site.label}
         description={site.description}
         initialRows={rows}
+        canSync={isSyncablePlatform(site.slug)}
       />
     </div>
   );
