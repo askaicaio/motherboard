@@ -25,7 +25,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import { Search, ExternalLink, Workflow, Plus, Pencil, RefreshCw, Clock } from "lucide-react";
 import { toast } from "sonner";
@@ -512,11 +511,6 @@ export function AutomationsTableClient({
           <p className="whitespace-pre-wrap break-words text-sm text-zinc-700">
             {showingPurpose}
           </p>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowingPurpose(null)}>
-              Close
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
