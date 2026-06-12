@@ -273,10 +273,17 @@ export function EditSubscriptionDialog({
                 step="0.01"
                 value={monthlyCost}
                 onChange={(e) => {
-                  setMonthlyCost(e.target.value);
-                  // Auto-derive annual on the fly
-                  const n = Number(e.target.value);
-                  if (Number.isFinite(n) && !annualCost) {
+                  const v = e.target.value;
+                  setMonthlyCost(v);
+                  // Monthly is the source of truth — recompute annual every
+                  // time it changes. If the user has a discount annual plan
+                  // they can override annual after.
+                  if (v === "") {
+                    setAnnualCost("");
+                    return;
+                  }
+                  const n = Number(v);
+                  if (Number.isFinite(n)) {
                     setAnnualCost(String(Math.round(n * 1200) / 100));
                   }
                 }}
@@ -285,6 +292,9 @@ export function EditSubscriptionDialog({
             <div className="space-y-1.5">
               <Label htmlFor="sub-annual">Annual cost (USD)</Label>
               <Input id="sub-annual" type="number" step="0.01" value={annualCost} onChange={(e) => setAnnualCost(e.target.value)} />
+              <p className="text-[10px] text-zinc-500">
+                Auto-fills from monthly × 12. Override here for discount annual plans.
+              </p>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
