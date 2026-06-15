@@ -33,9 +33,11 @@ export default async function SubscriptionsPage() {
         monthlyCostUsd: r.monthlyCostUsd != null ? Number(r.monthlyCostUsd) : null,
         annualCostUsd: r.annualCostUsd != null ? Number(r.annualCostUsd) : null,
         renewalDate: r.renewalDate, // already 'yyyy-mm-dd' or null
+        renewalDayOfMonth: r.renewalDayOfMonth,
         notes: r.notes,
         tag: r.tag,
         status: r.status,
+        parentId: r.parentId,
         createdAt: r.createdAt.toISOString(),
         updatedAt: r.updatedAt.toISOString(),
       }))}

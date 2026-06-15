@@ -19,6 +19,7 @@ const createSchema = z.object({
   monthlyCostUsd: z.number().nullable().optional(),
   annualCostUsd: z.number().nullable().optional(),
   renewalDate: z.string().nullable().optional(), // ISO yyyy-mm-dd
+  renewalDayOfMonth: z.number().int().min(1).max(31).nullable().optional(),
   notes: z.string().max(5000).nullable().optional(),
   tag: z.string().max(200).nullable().optional(),
   // Status is free-form (max 100) to faithfully preserve the ClickUp
@@ -26,6 +27,7 @@ const createSchema = z.object({
   // "archived working", "cancelled subscription", etc.) instead of
   // forcing them into a narrow enum.
   status: z.string().max(100).optional().default("active"),
+  parentId: z.string().uuid().nullable().optional(),
 });
 
 export async function GET(request: NextRequest) {
@@ -85,9 +87,11 @@ export async function POST(request: NextRequest) {
       monthlyCostUsd: body.monthlyCostUsd != null ? String(body.monthlyCostUsd) : null,
       annualCostUsd: annual != null ? String(annual) : null,
       renewalDate: body.renewalDate || null,
+      renewalDayOfMonth: body.renewalDayOfMonth ?? null,
       notes: body.notes?.trim() || null,
       tag: body.tag?.trim() || null,
       status: body.status,
+      parentId: body.parentId ?? null,
       createdBy: user.id,
     })
     .returning();

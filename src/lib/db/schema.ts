@@ -1097,12 +1097,26 @@ export const subscriptions = pgTable(
     annualCostUsd: numeric("annual_cost_usd", { precision: 12, scale: 2 }),
 
     renewalDate: date("renewal_date"),
+    /**
+     * Day of the month (1-31) for monthly-recurring subs (e.g. "billed
+     * every 20th"). When non-null, takes precedence over renewal_date for
+     * display and "renews soon" calculations — we compute the next
+     * occurrence on the fly. Null = one-time or yearly, uses renewal_date.
+     */
+    renewalDayOfMonth: integer("renewal_day_of_month"),
     notes: text("notes"),
     /** Free-form misc field from the CSV "Tag" column. */
     tag: text("tag"),
 
     /** "active" | "cancelled" | "paused" | "archived" — defaults to active. */
     status: text("status").notNull().default("active"),
+
+    /**
+     * Self-reference for parent/child nesting (e.g. Claude Team Plan
+     * owns the seat rows). Children always inherit the parent's billing
+     * — they typically have monthly_cost_usd = NULL. NULL = top-level.
+     */
+    parentId: uuid("parent_id"),
 
     archivedAt: timestamp("archived_at", { withTimezone: true }),
     archivedBy: uuid("archived_by").references(() => adminUsers.id),

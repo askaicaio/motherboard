@@ -26,6 +26,8 @@ interface Props {
   knownDepartments?: string[];
   /** Universe of statuses pulled from the live data — drives the dropdown. */
   knownStatuses?: string[];
+  /** Top-level rows the user can nest this one under (parent dropdown). */
+  possibleParents?: SubscriptionRow[];
   /** When true the dialog renders fields as plain text (no editing). */
   readOnly?: boolean;
 }
@@ -38,6 +40,7 @@ export function EditSubscriptionDialog({
   onCreated,
   knownDepartments = [],
   knownStatuses = [],
+  possibleParents = [],
   readOnly = false,
 }: Props) {
   const isEdit = !!existing;
@@ -51,11 +54,17 @@ export function EditSubscriptionDialog({
   const [monthlyCost, setMonthlyCost] = useState("");
   const [annualCost, setAnnualCost] = useState("");
   const [renewalDate, setRenewalDate] = useState("");
+  const [renewalDayOfMonth, setRenewalDayOfMonth] = useState<string>("");
+  // "date" = anchored to a specific calendar date; "monthly" = every Nth.
+  const [renewalCadence, setRenewalCadence] = useState<"date" | "monthly">(
+    "date",
+  );
   const [notes, setNotes] = useState("");
   const [tag, setTag] = useState("");
   const [status, setStatus] = useState("active");
   const [departments, setDepartments] = useState<string[]>([]);
   const [deptInput, setDeptInput] = useState("");
+  const [parentId, setParentId] = useState<string>("");
 
   useEffect(() => {
     if (!open) return;
@@ -69,10 +78,17 @@ export function EditSubscriptionDialog({
       setMonthlyCost(existing.monthlyCostUsd != null ? String(existing.monthlyCostUsd) : "");
       setAnnualCost(existing.annualCostUsd != null ? String(existing.annualCostUsd) : "");
       setRenewalDate(existing.renewalDate ?? "");
+      setRenewalDayOfMonth(
+        existing.renewalDayOfMonth != null
+          ? String(existing.renewalDayOfMonth)
+          : "",
+      );
+      setRenewalCadence(existing.renewalDayOfMonth != null ? "monthly" : "date");
       setNotes(existing.notes ?? "");
       setTag(existing.tag ?? "");
       setStatus(existing.status);
       setDepartments(existing.departments ?? []);
+      setParentId(existing.parentId ?? "");
     } else {
       setName("");
       setServiceName("");
@@ -83,10 +99,13 @@ export function EditSubscriptionDialog({
       setMonthlyCost("");
       setAnnualCost("");
       setRenewalDate("");
+      setRenewalDayOfMonth("");
+      setRenewalCadence("date");
       setNotes("");
       setTag("");
       setStatus("active");
       setDepartments([]);
+      setParentId("");
     }
     setDeptInput("");
   }, [open, existing]);
@@ -129,8 +148,16 @@ export function EditSubscriptionDialog({
         inOnePassword,
         monthlyCostUsd: monthly,
         annualCostUsd: annual,
-        renewalDate: renewalDate || null,
+        // Cadence chooses which renewal field we send: monthly clears
+        // renewal_date, date clears renewal_day_of_month. Backend treats
+        // null as "not set" for both.
+        renewalDate: renewalCadence === "date" ? renewalDate || null : null,
+        renewalDayOfMonth:
+          renewalCadence === "monthly" && renewalDayOfMonth.trim()
+            ? Math.max(1, Math.min(31, Number(renewalDayOfMonth)))
+            : null,
         notes: notes.trim() || null,
+        parentId: parentId || null,
         tag: tag.trim() || null,
         status,
       };
@@ -158,6 +185,7 @@ export function EditSubscriptionDialog({
         websiteUrl: data.subscription.websiteUrl ?? null,
         departments: data.subscription.departments ?? [],
         inOnePassword: data.subscription.inOnePassword,
+        parentId: data.subscription.parentId ?? null,
         monthlyCostUsd: data.subscription.monthlyCostUsd != null
           ? Number(data.subscription.monthlyCostUsd)
           : null,
@@ -165,6 +193,7 @@ export function EditSubscriptionDialog({
           ? Number(data.subscription.annualCostUsd)
           : null,
         renewalDate: data.subscription.renewalDate ?? null,
+        renewalDayOfMonth: data.subscription.renewalDayOfMonth ?? null,
         notes: data.subscription.notes ?? null,
         tag: data.subscription.tag ?? null,
         status: data.subscription.status,
@@ -219,7 +248,14 @@ export function EditSubscriptionDialog({
               <Field label="Monthly" value={existing.monthlyCostUsd != null ? `$${existing.monthlyCostUsd}` : null} />
               <Field label="Annual" value={existing.annualCostUsd != null ? `$${existing.annualCostUsd}` : null} />
             </div>
-            <Field label="Renewal date" value={existing.renewalDate} />
+            <Field
+              label="Renewal"
+              value={
+                existing.renewalDayOfMonth != null
+                  ? `Every ${existing.renewalDayOfMonth} of the month`
+                  : existing.renewalDate
+              }
+            />
             <Field label="Status" value={existing.status} />
             <Field label="In 1Password" value={existing.inOnePassword ? "Yes" : "No"} />
             <Field label="Departments" value={existing.departments.join(", ") || null} />
@@ -264,6 +300,29 @@ export function EditSubscriptionDialog({
             <Label htmlFor="sub-url">Website URL</Label>
             <Input id="sub-url" type="url" value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} placeholder="https://…" />
           </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="sub-parent">Nest under</Label>
+            <select
+              id="sub-parent"
+              value={parentId}
+              onChange={(e) => setParentId(e.target.value)}
+              className="block w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-zinc-400 focus:outline-none"
+            >
+              <option value="">— Top-level (no parent)</option>
+              {possibleParents
+                .filter((p) => !existing || p.id !== existing.id)
+                .map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.serviceName || p.name}
+                    {p.ownerEmail ? ` · ${p.ownerEmail}` : ""}
+                  </option>
+                ))}
+            </select>
+            <p className="text-[10px] text-zinc-500">
+              Use this for team-plan seats (e.g. nest each Claude member account under the team-plan owner).
+            </p>
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="sub-monthly">Monthly cost (USD)</Label>
@@ -299,8 +358,56 @@ export function EditSubscriptionDialog({
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="sub-renewal">Renewal date</Label>
-              <Input id="sub-renewal" type="date" value={renewalDate} onChange={(e) => setRenewalDate(e.target.value)} />
+              <Label>Renewal</Label>
+              <div className="inline-flex rounded-md border border-zinc-300 bg-white p-0.5 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setRenewalCadence("date")}
+                  className={
+                    "rounded px-2.5 py-1 font-medium transition " +
+                    (renewalCadence === "date"
+                      ? "bg-zinc-900 text-white"
+                      : "text-zinc-600 hover:bg-zinc-50")
+                  }
+                >
+                  One-time date
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRenewalCadence("monthly")}
+                  className={
+                    "rounded px-2.5 py-1 font-medium transition " +
+                    (renewalCadence === "monthly"
+                      ? "bg-zinc-900 text-white"
+                      : "text-zinc-600 hover:bg-zinc-50")
+                  }
+                >
+                  Every month
+                </button>
+              </div>
+              {renewalCadence === "date" ? (
+                <Input
+                  id="sub-renewal"
+                  type="date"
+                  value={renewalDate}
+                  onChange={(e) => setRenewalDate(e.target.value)}
+                />
+              ) : (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-zinc-600">Every</span>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={31}
+                    step={1}
+                    value={renewalDayOfMonth}
+                    onChange={(e) => setRenewalDayOfMonth(e.target.value)}
+                    placeholder="20"
+                    className="w-20"
+                  />
+                  <span className="text-sm text-zinc-600">of the month</span>
+                </div>
+              )}
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="sub-status">Status</Label>

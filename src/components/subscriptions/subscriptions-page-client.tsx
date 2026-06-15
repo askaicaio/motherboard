@@ -40,6 +40,25 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { EditSubscriptionDialog } from "./edit-subscription-dialog";
 
+/** A row marked for rendering — children get a transient _isChild flag. */
+interface DisplayRow extends SubscriptionRow {
+  _isChild?: boolean;
+}
+
+/** Splice each parent's children right after it for table-like rendering. */
+function flattenWithChildren(
+  parents: SubscriptionRow[],
+  childrenByParent: Map<string, SubscriptionRow[]>,
+): DisplayRow[] {
+  const out: DisplayRow[] = [];
+  for (const p of parents) {
+    out.push(p);
+    const kids = childrenByParent.get(p.id) || [];
+    for (const k of kids) out.push({ ...k, _isChild: true });
+  }
+  return out;
+}
+
 export interface SubscriptionRow {
   id: string;
   externalId: string | null;
@@ -53,9 +72,11 @@ export interface SubscriptionRow {
   monthlyCostUsd: number | null;
   annualCostUsd: number | null;
   renewalDate: string | null;
+  renewalDayOfMonth: number | null;
   notes: string | null;
   tag: string | null;
   status: string;
+  parentId: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -96,19 +117,59 @@ function fmtUsd(n: number | null): string {
   }).format(n);
 }
 
-function fmtRenewal(d: string | null): {
+function ordinal(n: number): string {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
+/** Days from today until the next occurrence of day-N-of-the-month. */
+function daysUntilNextMonthly(dayOfMonth: number): number {
+  const today = new Date();
+  const Y = today.getFullYear();
+  const M = today.getMonth();
+  const D = today.getDate();
+  const lastDayThis = new Date(Y, M + 1, 0).getDate();
+  const lastDayNext = new Date(Y, M + 2, 0).getDate();
+  const clampedThis = Math.min(dayOfMonth, lastDayThis);
+  const target =
+    clampedThis >= D
+      ? new Date(Y, M, clampedThis)
+      : new Date(Y, M + 1, Math.min(dayOfMonth, lastDayNext));
+  return Math.ceil(
+    (target.getTime() - new Date(Y, M, D).getTime()) / (1000 * 60 * 60 * 24),
+  );
+}
+
+function fmtRenewal(
+  d: string | null,
+  dayOfMonth: number | null = null,
+): {
   text: string;
   daysOut: number | null;
+  /** True when this is a monthly-recurring renewal (vs a one-time date). */
+  monthly: boolean;
 } {
-  if (!d) return { text: "—", daysOut: null };
+  // Monthly cadence wins when set — we compute next occurrence on the fly
+  if (dayOfMonth != null && dayOfMonth >= 1 && dayOfMonth <= 31) {
+    return {
+      text: `Every ${ordinal(dayOfMonth)}`,
+      daysOut: daysUntilNextMonthly(dayOfMonth),
+      monthly: true,
+    };
+  }
+  if (!d) return { text: "—", daysOut: null, monthly: false };
   try {
     const parsed = parseISO(d);
-    if (!dateIsValid(parsed)) return { text: d, daysOut: null };
+    if (!dateIsValid(parsed)) return { text: d, daysOut: null, monthly: false };
     const days = differenceInDays(parsed, new Date());
-    return { text: format(parsed, "MMM d, yyyy"), daysOut: days };
+    return {
+      text: format(parsed, "MMM d, yyyy"),
+      daysOut: days,
+      monthly: false,
+    };
   } catch {
-    // parseISO/format can throw on truly malformed input — fall back to raw
-    return { text: d, daysOut: null };
+    return { text: d, daysOut: null, monthly: false };
   }
 }
 
@@ -141,6 +202,33 @@ export function SubscriptionsPageClient({
   const [editing, setEditing] = useState<SubscriptionRow | null>(null);
   const [addOpen, setAddOpen] = useState(false);
 
+  // Index children by parent id so we can render them under their parent
+  // in the table/card/compact views. Filtering happens on parents only —
+  // children always travel with their parent.
+  const childrenByParent = useMemo(() => {
+    const m = new Map<string, SubscriptionRow[]>();
+    for (const r of rows) {
+      if (r.parentId) {
+        const arr = m.get(r.parentId) || [];
+        arr.push(r);
+        m.set(r.parentId, arr);
+      }
+    }
+    // Sort children alphabetically by owner email then name
+    for (const arr of m.values()) {
+      arr.sort((a, b) =>
+        (a.ownerEmail || "").localeCompare(b.ownerEmail || "") ||
+        a.name.localeCompare(b.name),
+      );
+    }
+    return m;
+  }, [rows]);
+
+  const topLevelRows = useMemo(
+    () => rows.filter((r) => !r.parentId),
+    [rows],
+  );
+
   // Derive the universe of departments for the filter dropdown
   const allDepartments = useMemo(() => {
     const set = new Set<string>();
@@ -156,15 +244,18 @@ export function SubscriptionsPageClient({
     return Array.from(set).sort();
   }, [rows]);
 
-  // Apply filters + search
+  // Apply filters + search — over TOP-LEVEL rows only. Children travel
+  // with their parent. (A parent matches if it OR any of its children
+  // match the search query, so searching "operations@" still surfaces
+  // the Claude parent.)
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return rows.filter((r) => {
+    return topLevelRows.filter((r) => {
       if (statusFilter !== "all" && r.status !== statusFilter) return false;
       if (in1pFilter === "yes" && !r.inOnePassword) return false;
       if (in1pFilter === "no" && r.inOnePassword) return false;
       if (renewSoon) {
-        const { daysOut } = fmtRenewal(r.renewalDate);
+        const { daysOut } = fmtRenewal(r.renewalDate, r.renewalDayOfMonth);
         if (daysOut == null || daysOut < 0 || daysOut > 30) return false;
       }
       if (deptFilter.size > 0) {
@@ -172,6 +263,7 @@ export function SubscriptionsPageClient({
         if (!hit) return false;
       }
       if (q) {
+        const kids = childrenByParent.get(r.id) || [];
         const haystack = [
           r.name,
           r.serviceName,
@@ -179,6 +271,9 @@ export function SubscriptionsPageClient({
           r.notes,
           r.tag,
           ...r.departments,
+          // Include child names + owners so searching "operations@" still
+          // surfaces the parent (e.g. Claude doc@) it nests under.
+          ...kids.flatMap((k) => [k.name, k.ownerEmail, k.serviceName]),
         ]
           .filter(Boolean)
           .join(" ")
@@ -187,7 +282,7 @@ export function SubscriptionsPageClient({
       }
       return true;
     });
-  }, [rows, query, statusFilter, in1pFilter, renewSoon, deptFilter]);
+  }, [topLevelRows, query, statusFilter, in1pFilter, renewSoon, deptFilter, childrenByParent]);
 
   // Sort
   const sorted = useMemo(() => {
@@ -272,7 +367,7 @@ export function SubscriptionsPageClient({
     );
     const inOnePw = filtered.filter((r) => r.inOnePassword).length;
     const renewing30 = filtered.filter((r) => {
-      const { daysOut } = fmtRenewal(r.renewalDate);
+      const { daysOut } = fmtRenewal(r.renewalDate, r.renewalDayOfMonth);
       return daysOut != null && daysOut >= 0 && daysOut <= 30;
     }).length;
     return {
@@ -568,13 +663,26 @@ export function SubscriptionsPageClient({
                 </div>
               )}
               {view === "table" && (
-                <TableView items={items} editMode={editMode} onRowClick={(r) => setEditing(r)} onArchive={handleArchive} />
+                <TableView
+                  items={flattenWithChildren(items, childrenByParent)}
+                  editMode={editMode}
+                  onRowClick={(r) => setEditing(r)}
+                  onArchive={handleArchive}
+                />
               )}
               {view === "cards" && (
-                <CardsView items={items} editMode={editMode} onRowClick={(r) => setEditing(r)} />
+                <CardsView
+                  items={flattenWithChildren(items, childrenByParent)}
+                  editMode={editMode}
+                  onRowClick={(r) => setEditing(r)}
+                />
               )}
               {view === "compact" && (
-                <CompactView items={items} editMode={editMode} onRowClick={(r) => setEditing(r)} />
+                <CompactView
+                  items={flattenWithChildren(items, childrenByParent)}
+                  editMode={editMode}
+                  onRowClick={(r) => setEditing(r)}
+                />
               )}
             </section>
           ))}
@@ -588,6 +696,7 @@ export function SubscriptionsPageClient({
         onSaved={handleSaved}
         knownDepartments={allDepartments}
         knownStatuses={allStatuses}
+        possibleParents={topLevelRows}
         readOnly={!editMode}
       />
       <EditSubscriptionDialog
@@ -596,6 +705,7 @@ export function SubscriptionsPageClient({
         onCreated={handleCreated}
         knownDepartments={allDepartments}
         knownStatuses={allStatuses}
+        possibleParents={topLevelRows}
       />
     </div>
   );
@@ -679,8 +789,14 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-function RenewalCell({ date }: { date: string | null }) {
-  const { text, daysOut } = fmtRenewal(date);
+function RenewalCell({
+  date,
+  dayOfMonth,
+}: {
+  date: string | null;
+  dayOfMonth?: number | null;
+}) {
+  const { text, daysOut, monthly } = fmtRenewal(date, dayOfMonth ?? null);
   const tone =
     daysOut == null
       ? "text-zinc-400"
@@ -689,7 +805,11 @@ function RenewalCell({ date }: { date: string | null }) {
       : daysOut <= 30
       ? "text-amber-700 font-medium"
       : "text-zinc-700";
-  return <span className={cn("text-xs", tone)}>{text}</span>;
+  return (
+    <span className={cn("text-xs", tone)} title={monthly && daysOut != null ? `Next: in ${daysOut}d` : undefined}>
+      {text}
+    </span>
+  );
 }
 
 function TableView({
@@ -698,7 +818,7 @@ function TableView({
   onRowClick,
   onArchive,
 }: {
-  items: SubscriptionRow[];
+  items: DisplayRow[];
   editMode: boolean;
   onRowClick: (r: SubscriptionRow) => void;
   onArchive: (r: SubscriptionRow) => void;
@@ -726,15 +846,27 @@ function TableView({
               <tr
                 key={r.id}
                 onClick={() => onRowClick(r)}
-                className="cursor-pointer border-t hover:bg-zinc-50"
+                className={cn(
+                  "cursor-pointer border-t hover:bg-zinc-50",
+                  r._isChild && "bg-zinc-50/40",
+                )}
               >
                 <td className="px-3 py-2 align-top">
-                  {r.isStarred && (
+                  {r._isChild ? (
+                    <span className="ml-2 text-zinc-300 select-none">↳</span>
+                  ) : r.isStarred ? (
                     <Star className="h-3.5 w-3.5 text-amber-500 fill-amber-400" />
-                  )}
+                  ) : null}
                 </td>
-                <td className="px-3 py-2 align-top">
-                  <div className="font-medium text-zinc-900">{r.serviceName || r.name}</div>
+                <td className={cn("px-3 py-2 align-top", r._isChild && "pl-6")}>
+                  <div
+                    className={cn(
+                      "text-zinc-900",
+                      r._isChild ? "text-xs text-zinc-600" : "font-medium",
+                    )}
+                  >
+                    {r.serviceName || r.name}
+                  </div>
                   {r.websiteUrl &&
                     (() => {
                       const host = safeHost(r.websiteUrl);
@@ -772,7 +904,7 @@ function TableView({
                 </td>
                 <td className="px-3 py-2 align-top text-right tabular-nums">{fmtUsd(r.monthlyCostUsd)}</td>
                 <td className="px-3 py-2 align-top text-right tabular-nums text-zinc-600">{fmtUsd(r.annualCostUsd)}</td>
-                <td className="px-3 py-2 align-top"><RenewalCell date={r.renewalDate} /></td>
+                <td className="px-3 py-2 align-top"><RenewalCell date={r.renewalDate} dayOfMonth={r.renewalDayOfMonth} /></td>
                 <td className="px-3 py-2 align-top text-center">
                   {r.inOnePassword ? (
                     <span className="text-emerald-600">✓</span>
@@ -808,13 +940,25 @@ function CardsView({
   items,
   onRowClick,
 }: {
-  items: SubscriptionRow[];
+  items: DisplayRow[];
   editMode: boolean;
   onRowClick: (r: SubscriptionRow) => void;
 }) {
+  // In the card view children are collapsed into the parent card as a
+  // small "Seats" chip list — cleaner than rendering 7 separate cards
+  // for the same Claude team plan.
+  const parentItems = items.filter((r) => !r._isChild);
+  const childrenByParent = new Map<string, SubscriptionRow[]>();
+  for (const r of items) {
+    if (r._isChild && r.parentId) {
+      const arr = childrenByParent.get(r.parentId) || [];
+      arr.push(r);
+      childrenByParent.set(r.parentId, arr);
+    }
+  }
   return (
     <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-      {items.map((r) => (
+      {parentItems.map((r) => (
         <Card
           key={r.id}
           onClick={() => onRowClick(r)}
@@ -852,8 +996,32 @@ function CardsView({
                 <Badge key={d} variant="secondary" className="text-[10px] font-normal">{d}</Badge>
               ))}
             </div>
+            {(() => {
+              const kids = childrenByParent.get(r.id) || [];
+              if (kids.length === 0) return null;
+              return (
+                <div className="space-y-1 border-t pt-2">
+                  <div className="text-[10px] uppercase tracking-wide text-zinc-500">
+                    {kids.length} seat{kids.length === 1 ? "" : "s"}
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {kids.slice(0, 8).map((k) => (
+                      <span
+                        key={k.id}
+                        className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-mono text-zinc-600"
+                      >
+                        {k.ownerEmail?.split("@")[0] ?? k.name}
+                      </span>
+                    ))}
+                    {kids.length > 8 && (
+                      <span className="text-[10px] text-zinc-400">+{kids.length - 8} more</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
             <div className="flex items-center justify-between text-xs text-zinc-500 pt-1 border-t">
-              <RenewalCell date={r.renewalDate} />
+              <RenewalCell date={r.renewalDate} dayOfMonth={r.renewalDayOfMonth} />
               {r.inOnePassword && <span className="text-emerald-600">1P ✓</span>}
             </div>
           </CardContent>
@@ -867,7 +1035,7 @@ function CompactView({
   items,
   onRowClick,
 }: {
-  items: SubscriptionRow[];
+  items: DisplayRow[];
   editMode: boolean;
   onRowClick: (r: SubscriptionRow) => void;
 }) {
@@ -879,9 +1047,14 @@ function CompactView({
             <li
               key={r.id}
               onClick={() => onRowClick(r)}
-              className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-zinc-50"
+              className={cn(
+                "flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-zinc-50",
+                r._isChild && "pl-8 bg-zinc-50/30",
+              )}
             >
-              {r.isStarred ? (
+              {r._isChild ? (
+                <span className="w-3.5 shrink-0 text-zinc-300 text-xs select-none">↳</span>
+              ) : r.isStarred ? (
                 <Star className="h-3.5 w-3.5 text-amber-500 fill-amber-400 shrink-0" />
               ) : (
                 <span className="w-3.5 shrink-0" />
@@ -893,7 +1066,7 @@ function CompactView({
                 </div>
               </div>
               <div className="text-xs tabular-nums text-zinc-700">{fmtUsd(r.monthlyCostUsd)}/mo</div>
-              <RenewalCell date={r.renewalDate} />
+              <RenewalCell date={r.renewalDate} dayOfMonth={r.renewalDayOfMonth} />
               <StatusBadge status={r.status} />
             </li>
           ))}

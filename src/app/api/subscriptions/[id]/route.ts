@@ -19,9 +19,11 @@ const patchSchema = z.object({
   monthlyCostUsd: z.number().nullable().optional(),
   annualCostUsd: z.number().nullable().optional(),
   renewalDate: z.string().nullable().optional(),
+  renewalDayOfMonth: z.number().int().min(1).max(31).nullable().optional(),
   notes: z.string().max(5000).nullable().optional(),
   tag: z.string().max(200).nullable().optional(),
   status: z.string().max(100).optional(),
+  parentId: z.string().uuid().nullable().optional(),
 });
 
 export async function PATCH(
@@ -67,9 +69,15 @@ export async function PATCH(
       body.annualCostUsd != null ? String(body.annualCostUsd) : null;
   if (body.renewalDate !== undefined)
     patch.renewalDate = body.renewalDate || null;
+  if (body.renewalDayOfMonth !== undefined)
+    patch.renewalDayOfMonth = body.renewalDayOfMonth ?? null;
   if (body.notes !== undefined) patch.notes = body.notes?.trim() || null;
   if (body.tag !== undefined) patch.tag = body.tag?.trim() || null;
   if (body.status !== undefined) patch.status = body.status;
+  if (body.parentId !== undefined) {
+    // Don't allow self-reference — would corrupt the tree
+    patch.parentId = body.parentId === id ? null : body.parentId ?? null;
+  }
 
   const [updated] = await db
     .update(subscriptions)
