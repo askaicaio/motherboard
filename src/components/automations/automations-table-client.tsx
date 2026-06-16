@@ -45,12 +45,26 @@ function formatCountdown(ms: number): string {
   return `${pad(h)}:${pad(m)}:${pad(s)}`;
 }
 
+/** Format the Last Runtime value as MM-DD-YYYY, or "-" when empty/invalid.
+ *  Tolerant of both a Date (initial server render) and an ISO string (after a
+ *  sync/poll JSON response). */
+function formatLastRun(value: string | Date | null | undefined): string {
+  if (!value) return "-";
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return "-";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${pad(d.getMonth() + 1)}-${pad(d.getDate())}-${d.getFullYear()}`;
+}
+
 export interface AutomationRow {
   id: string;
   name: string;
   externalUrl: string;
   status: string; // "active" | "paused"
   purpose?: string | null; // optional free-text note
+  // When the automation last ran on its source platform. Sync-only (never set
+  // manually). Date on initial server render, ISO string after a sync/poll.
+  lastRunAt?: string | Date | null;
 }
 
 export function AutomationsTableClient({
@@ -375,6 +389,7 @@ export function AutomationsTableClient({
                   <th className="px-3 py-2 text-left">Link</th>
                   <th className="px-3 py-2 text-left">Status</th>
                   <th className="px-3 py-2 text-left">Purpose</th>
+                  <th className="px-3 py-2 text-left">Last Runtime</th>
                   {editMode && <th className="w-16 px-3 py-2"></th>}
                 </tr>
               </thead>
@@ -382,7 +397,7 @@ export function AutomationsTableClient({
                 {filtered.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={editMode ? 5 : 4}
+                      colSpan={editMode ? 6 : 5}
                       className="px-3 py-16 text-center text-sm text-zinc-500"
                     >
                       {rows.length === 0
@@ -458,6 +473,18 @@ export function AutomationsTableClient({
                           >
                             None
                           </Button>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 align-top">
+                        {/* Last Runtime: sync-filled date (MM-DD-YYYY). A plain
+                            "-" when empty (the column never accepts manual
+                            entry). */}
+                        {r.lastRunAt ? (
+                          <span className="text-xs tabular-nums text-zinc-700">
+                            {formatLastRun(r.lastRunAt)}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-zinc-400">-</span>
                         )}
                       </td>
                       {editMode && (

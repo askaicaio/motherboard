@@ -115,6 +115,9 @@ export function WorkflowDialog({
         externalUrl: data.automation.externalUrl,
         status: data.automation.status,
         purpose: data.automation.purpose,
+        // Sync-only field, carried through so an edit doesn't blank it in the
+        // table (it's not editable here; the API returns the current value).
+        lastRunAt: data.automation.lastRunAt,
       };
       if (isEdit) {
         onSaved?.(row);

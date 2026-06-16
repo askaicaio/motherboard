@@ -1171,6 +1171,10 @@ export const automations = pgTable(
      *  (nullable). Shown via the Purpose column's "Show"/"None" button and
      *  edited in the Add/Edit Workflow dialog. */
     purpose: text("purpose"),
+    /** When this automation last ran on its source platform. Nullable; filled
+     *  only by the sync (Refresh List / auto-refresh), never manually. Shown in
+     *  the "Last Runtime" column formatted MM-DD-YYYY ("-" when null). */
+    lastRunAt: timestamp("last_run_at", { withTimezone: true }),
 
     createdBy: uuid("created_by").references(() => adminUsers.id),
     createdAt: timestamp("created_at", { withTimezone: true })
