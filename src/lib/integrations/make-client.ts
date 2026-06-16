@@ -33,6 +33,8 @@ export interface MakeScenario {
 
 /** A scenario normalized into the shape our sync wants. */
 export interface MakeAutomation {
+  /** Scenario id — needed to fetch its execution logs (last run). */
+  id: number | string;
   /** Scenario name (Column 1 in the table). */
   name: string;
   /** Editor URL — the automation's identity (unique). */
@@ -106,6 +108,7 @@ export async function listMakeAutomations(): Promise<MakeAutomation[]> {
       // Without a team + id we can't build the identity URL — skip it.
       if (s.id == null || s.teamId == null) continue;
       out.push({
+        id: s.id,
         name: (s.name ?? "").trim(),
         url: scenarioUrl(zone, s.teamId, s.id),
         status: s.isActive ? "active" : "paused",
@@ -125,4 +128,32 @@ export async function listMakeAutomations(): Promise<MakeAutomation[]> {
   }
 
   return out;
+}
+
+/**
+ * Fetch a scenario's last-run timestamp from its execution logs.
+ *
+ * Make has no last-run field on the scenario object itself; the most recent
+ * `scenarioLogs` entry (the API returns them newest-first) carries a
+ * `timestamp` (ISO 8601) which is the last execution. Returns that string, or
+ * null when the scenario has no logs (the common case — most scenarios have
+ * never run within Make's retention window) or the request fails. Callers must
+ * treat null as "unknown, leave unchanged", never as "wipe it".
+ */
+export async function getScenarioLastRunAt(
+  scenarioId: number | string,
+): Promise<string | null> {
+  const { token, zone } = getCreds();
+  const headers = buildHeaders(token);
+  const url =
+    `https://${zone}.make.com/api/v2/scenarios/${scenarioId}/logs` +
+    `?pg[limit]=1`;
+
+  const res = await fetch(url, { headers });
+  if (!res.ok) return null;
+
+  const json = (await res.json().catch(() => ({}))) as {
+    scenarioLogs?: { timestamp?: string }[];
+  };
+  return json.scenarioLogs?.[0]?.timestamp ?? null;
 }

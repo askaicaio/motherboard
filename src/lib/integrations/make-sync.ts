@@ -16,7 +16,7 @@
 import { db } from "@/lib/db";
 import { automations } from "@/lib/db/schema";
 import { and, eq } from "drizzle-orm";
-import { listMakeAutomations } from "./make-client";
+import { listMakeAutomations, getScenarioLastRunAt } from "./make-client";
 
 const PLATFORM = "make";
 
@@ -49,12 +49,25 @@ export async function syncMakeAutomations(
     const url = s.url.trim();
     if (!url) continue;
 
+    // Last run: Make only exposes it via per-scenario execution logs, and in
+    // practice only recently-run scenarios have any — all of which are active.
+    // So we fetch logs ONLY for active scenarios (throttled to stay under rate
+    // limits), and treat a missing value as "unknown": we never wipe an
+    // existing timestamp, so a scenario that ran then paused keeps its date.
+    let lastRunAt: Date | null = null;
+    if (s.status === "active") {
+      const ts = await getScenarioLastRunAt(s.id);
+      if (ts) lastRunAt = new Date(ts);
+      await new Promise((r) => setTimeout(r, 40));
+    }
+
     const [existing] = await db
       .select({
         id: automations.id,
         name: automations.name,
         status: automations.status,
         platform: automations.platform,
+        lastRunAt: automations.lastRunAt,
       })
       .from(automations)
       .where(eq(automations.externalUrl, url))
@@ -66,6 +79,7 @@ export async function syncMakeAutomations(
         name: s.name,
         externalUrl: url,
         status: s.status,
+        lastRunAt,
         createdBy: createdBy ?? null,
       });
       created += 1;
@@ -78,6 +92,11 @@ export async function syncMakeAutomations(
     if (existing.status !== s.status) patch.status = s.status;
     // A manual row for the same URL gets adopted under the make platform.
     if (existing.platform !== PLATFORM) patch.platform = PLATFORM;
+    // Advance last_run_at only when we fetched a real, different value; never
+    // overwrite a stored timestamp with null.
+    if (lastRunAt && existing.lastRunAt?.getTime() !== lastRunAt.getTime()) {
+      patch.lastRunAt = lastRunAt;
+    }
 
     if (Object.keys(patch).length > 0) {
       patch.updatedAt = new Date();
