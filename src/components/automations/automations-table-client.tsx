@@ -389,7 +389,7 @@ export function AutomationsTableClient({
                   <th className="px-3 py-2 text-left">Link</th>
                   <th className="px-3 py-2 text-left">Status</th>
                   <th className="px-3 py-2 text-left">Purpose</th>
-                  <th className="px-3 py-2 text-left">Last Runtime</th>
+                  <th className="px-3 py-2 text-center">Last Runtime</th>
                   {editMode && <th className="w-16 px-3 py-2"></th>}
                 </tr>
               </thead>
@@ -475,7 +475,7 @@ export function AutomationsTableClient({
                           </Button>
                         )}
                       </td>
-                      <td className="px-3 py-2 align-top">
+                      <td className="px-3 py-2 align-top text-center">
                         {/* Last Runtime: sync-filled date (MM-DD-YYYY). A plain
                             "-" when empty (the column never accepts manual
                             entry). */}
