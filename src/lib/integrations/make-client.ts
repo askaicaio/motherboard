@@ -131,6 +131,33 @@ export async function listMakeAutomations(): Promise<MakeAutomation[]> {
 }
 
 /**
+ * Live-verify the Make token actually works (used by the Main Page card's
+ * "check status" button). Makes a tiny authenticated request; returns true only
+ * on a 200. Returns false when there's no token configured, the token is
+ * invalid/revoked (401/403), or the request errors. Note: this is binary, a
+ * transient Make outage also reads as false.
+ */
+export async function verifyMakeToken(): Promise<boolean> {
+  let creds;
+  try {
+    creds = getCreds(); // throws when MAKE_API_TOKEN is unset
+  } catch {
+    return false;
+  }
+  const { token, zone, orgId } = creds;
+  try {
+    const res = await fetch(
+      `https://${zone}.make.com/api/v2/scenarios` +
+        `?organizationId=${encodeURIComponent(orgId)}&pg[limit]=1`,
+      { headers: buildHeaders(token) },
+    );
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Fetch a scenario's last-run timestamp from its execution logs.
  *
  * Make has no last-run field on the scenario object itself; the most recent
