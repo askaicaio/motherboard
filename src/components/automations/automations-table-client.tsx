@@ -432,7 +432,7 @@ export function AutomationsTableClient({
                             target="_blank"
                             rel="noreferrer"
                             onClick={(e) => e.stopPropagation()}
-                            className="mt-0.5 inline-flex items-center gap-1 break-all text-xs text-zinc-500 hover:text-zinc-900"
+                            className="mt-0.5 inline-flex items-center gap-1 break-all text-xs text-blue-600 hover:underline"
                           >
                             <ExternalLink className="h-3 w-3 shrink-0" />
                             {r.externalUrl}
