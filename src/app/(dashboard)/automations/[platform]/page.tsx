@@ -59,6 +59,8 @@ export default async function AutomationWebsitePage({
         platform={site.slug}
         label={site.label}
         description={site.description}
+        icon={site.icon}
+        iconColor={site.iconColor}
         initialRows={rows}
         canSync={isSyncablePlatform(site.slug)}
         hasApiKey={platformHasApiKey(site.slug)}

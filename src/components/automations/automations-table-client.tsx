@@ -26,7 +26,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Search, ExternalLink, Workflow, Plus, Pencil, RefreshCw, Clock } from "lucide-react";
+import { Search, ExternalLink, Plus, Pencil, RefreshCw, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { WorkflowDialog } from "./workflow-dialog";
@@ -71,6 +71,8 @@ export function AutomationsTableClient({
   platform,
   label,
   description,
+  icon,
+  iconColor,
   initialRows,
   canSync = false,
   hasApiKey = false,
@@ -79,6 +81,11 @@ export function AutomationsTableClient({
   platform: string;
   label: string;
   description: string;
+  /** Path (under /public) to the website's brand logo. */
+  icon: string;
+  /** Brand colour to tint a monochrome SVG glyph via CSS mask; omit for
+   *  full-colour image icons. Mirrors the Main Page card. */
+  iconColor?: string;
   initialRows: AutomationRow[];
   /** When true, "Refresh List" performs a real sync; otherwise it shows the
    *  temporary placeholder error (platforms whose sync isn't built yet). */
@@ -287,7 +294,33 @@ export function AutomationsTableClient({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <Workflow className="h-5 w-5 text-zinc-500" />
+            {/* Brand logo, same treatment + size as the Main Page card: a
+                monochrome SVG glyph tinted via CSS mask when iconColor is set,
+                otherwise a plain full-colour image. */}
+            {iconColor ? (
+              <span
+                aria-hidden
+                className="h-8 w-8 shrink-0"
+                style={{
+                  backgroundColor: iconColor,
+                  maskImage: `url(${icon})`,
+                  WebkitMaskImage: `url(${icon})`,
+                  maskRepeat: "no-repeat",
+                  WebkitMaskRepeat: "no-repeat",
+                  maskPosition: "center",
+                  WebkitMaskPosition: "center",
+                  maskSize: "contain",
+                  WebkitMaskSize: "contain",
+                }}
+              />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={icon}
+                alt=""
+                className="h-8 w-8 shrink-0 object-contain"
+              />
+            )}
             <h1 className="text-2xl font-semibold tracking-tight">{label}</h1>
           </div>
           <p className="mt-1 text-sm text-zinc-500">{description}</p>
