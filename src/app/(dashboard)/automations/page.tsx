@@ -121,12 +121,16 @@ export default async function AutomationsPage() {
                 </div>
 
                 <div className="mt-auto flex items-center gap-2 border-t pt-3">
-                  {/* The indicator turns green ("API Key Integrated") when this
-                      platform's key is detected server-side, else red ("No API
-                      Integration"). Only the boolean reaches the client; the
-                      secret never does. (Make is wired; the rest default red
-                      until their syncs land.) */}
-                  <CopyApiKeyButton hasApiKey={platformHasApiKey(site.slug)} />
+                  {/* Clickable status button. Seeds from the server-side
+                      presence check (green "API Key Integrated" / red "No API
+                      Integration"); clicking runs a live verify and re-colors
+                      based on whether the key actually works right now. Only the
+                      boolean reaches the client; the secret never does. (Make is
+                      wired; the rest stay red until their syncs land.) */}
+                  <CopyApiKeyButton
+                    platform={site.slug}
+                    hasApiKey={platformHasApiKey(site.slug)}
+                  />
                   <Link
                     href={`/automations/${site.slug}`}
                     className="rounded-md border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50"

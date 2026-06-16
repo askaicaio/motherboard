@@ -1,26 +1,65 @@
 "use client";
 
-// Per-card API-integration STATUS indicator on the Automations Main Page.
+// Per-card API-integration STATUS button on the Automations Main Page.
 // (Formerly a "Copy API Key" button; the clipboard-copy behaviour was removed
-// 2026-06-11 - it no longer copies anything.) Sits to the left of the card's
-// "Open ->" link.
-//   - hasApiKey true  -> green box + green "API Key Integrated" with a check.
-//   - hasApiKey false -> red box + red "No API Integration".
-// Neither state is clickable. Only a boolean reaches the client, never the
-// secret API key itself (keys stay server-side in env vars, per the brief).
+// 2026-06-11.) Sits to the left of the card's "Open ->" link.
+//
+// It's now a CLICKABLE live check. On load it shows the last-known state
+// (green "API Key Integrated" / red "No API Integration") from the server's
+// presence check. Clicking it runs a live verification:
+//   click -> white "Checking API Key Status..." (spinner)
+//         -> green if the platform's key actually works right now, else red.
+// The verification runs server-side (POST /api/automations/check-key); only a
+// boolean ever reaches the client, never the secret key.
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Check, Ban } from "lucide-react";
+import { Check, Ban, Loader2 } from "lucide-react";
 
-export function CopyApiKeyButton({ hasApiKey }: { hasApiKey?: boolean }) {
-  if (hasApiKey) {
+type Status = "checking" | "ok" | "fail";
+
+export function CopyApiKeyButton({
+  platform,
+  hasApiKey,
+}: {
+  platform: string;
+  hasApiKey?: boolean;
+}) {
+  // Seed from the server's presence check; the click does the live verify.
+  const [status, setStatus] = useState<Status>(hasApiKey ? "ok" : "fail");
+
+  async function check() {
+    if (status === "checking") return;
+    setStatus("checking");
+    try {
+      const res = await fetch("/api/automations/check-key", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ platform }),
+      });
+      const data = (await res.json().catch(() => ({}))) as { ok?: boolean };
+      setStatus(res.ok && data.ok ? "ok" : "fail");
+    } catch {
+      setStatus("fail");
+    }
+  }
+
+  if (status === "checking") {
+    return (
+      <Button variant="outline" size="sm" disabled className="flex-1">
+        <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+        Checking API Key Status…
+      </Button>
+    );
+  }
+
+  if (status === "ok") {
     return (
       <Button
         variant="outline"
         size="sm"
-        aria-disabled="true"
-        onClick={(e) => e.preventDefault()}
-        className="flex-1 cursor-default border-green-300 bg-green-50 text-green-700 hover:bg-green-50 hover:text-green-700"
+        onClick={check}
+        className="flex-1 border-green-300 bg-green-50 text-green-700 hover:bg-green-100 hover:text-green-700"
       >
         <Check className="mr-2 h-3.5 w-3.5" />
         API Key Integrated
@@ -32,9 +71,8 @@ export function CopyApiKeyButton({ hasApiKey }: { hasApiKey?: boolean }) {
     <Button
       variant="outline"
       size="sm"
-      aria-disabled="true"
-      onClick={(e) => e.preventDefault()}
-      className="flex-1 cursor-default border-red-300 bg-red-50 text-red-600 hover:bg-red-50 hover:text-red-600"
+      onClick={check}
+      className="flex-1 border-red-300 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-600"
     >
       <Ban className="mr-2 h-3.5 w-3.5" />
       No API Integration
