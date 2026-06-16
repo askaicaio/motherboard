@@ -1,9 +1,9 @@
 "use client";
 
 // Per Website Page, header (auto-refresh toggle + "Refresh List" + edit-mode
-// toggle + "+ New Workflow"), search, and the automations table. Two columns:
-// Name and Link (the link is the automation's identity). Search filters by
-// NAME only.
+// toggle + "+ New Workflow"), search, and the automations table. The Name cell
+// shows the name with the automation's link beneath it (the link is still its
+// identity; it's just no longer a separate column). Search filters by NAME only.
 //
 // Edit mode (the toggle, top-right): when ON it reveals the "+ New Workflow"
 // button and makes table rows clickable (click a row to edit it). When OFF
@@ -377,16 +377,16 @@ export function AutomationsTableClient({
           />
         </div>
 
-        {/* Table, Name/Link headers always render; empty / no-match message
-            sits inside the table body as a full-width row. Rows are clickable
-            only in edit mode (click → edit). */}
+        {/* Table. Headers always render; empty / no-match message sits inside
+            the table body as a full-width row. The link lives under the name
+            in the Name cell (no separate Link column). Rows are clickable only
+            in edit mode (click → edit). */}
         <Card>
           <CardContent className="overflow-x-auto p-0">
             <table className="w-full text-sm">
               <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
                 <tr>
                   <th className="px-3 py-2 text-left">Name</th>
-                  <th className="px-3 py-2 text-left">Link</th>
                   <th className="px-3 py-2 text-left">Status</th>
                   <th className="px-3 py-2 text-left">Purpose</th>
                   <th className="px-3 py-2 text-center">Last Runtime</th>
@@ -397,7 +397,7 @@ export function AutomationsTableClient({
                 {filtered.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={editMode ? 6 : 5}
+                      colSpan={editMode ? 5 : 4}
                       className="px-3 py-16 text-center text-sm text-zinc-500"
                     >
                       {rows.length === 0
@@ -415,24 +415,29 @@ export function AutomationsTableClient({
                         editMode && "cursor-pointer",
                       )}
                     >
-                      <td className="px-3 py-2 align-top font-medium text-zinc-900">
-                        {r.name || (
-                          <span className="font-normal text-zinc-400">
-                            (unnamed)
-                          </span>
-                        )}
-                      </td>
                       <td className="px-3 py-2 align-top">
-                        <a
-                          href={r.externalUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          className="inline-flex items-center gap-1 break-all text-xs text-blue-600 hover:underline"
-                        >
-                          <ExternalLink className="h-3 w-3 shrink-0" />
-                          {r.externalUrl}
-                        </a>
+                        {/* Name on top; the link sits beneath it (subdued),
+                            replacing the old separate Link column. The full URL
+                            is kept (Make's hostname alone is meaningless). */}
+                        <div className="font-medium text-zinc-900">
+                          {r.name || (
+                            <span className="font-normal text-zinc-400">
+                              (unnamed)
+                            </span>
+                          )}
+                        </div>
+                        {r.externalUrl && (
+                          <a
+                            href={r.externalUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="mt-0.5 inline-flex items-center gap-1 break-all text-xs text-zinc-500 hover:text-zinc-900"
+                          >
+                            <ExternalLink className="h-3 w-3 shrink-0" />
+                            {r.externalUrl}
+                          </a>
+                        )}
                       </td>
                       <td className="px-3 py-2 align-top">
                         <span
