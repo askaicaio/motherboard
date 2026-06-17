@@ -11,6 +11,7 @@ import { z } from "zod";
 import { getOptionalAuth } from "@/lib/auth/guard";
 import { isSyncablePlatform } from "@/lib/automations/sites";
 import { syncMakeAutomations, getMakeRows } from "@/lib/integrations/make-sync";
+import { syncN8nAutomations, getN8nRows } from "@/lib/integrations/n8n-sync";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -43,14 +44,20 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Only Make is syncable today; switch here as more platforms land.
+  // Dispatch to the platform's sync engine; add a branch here as each lands.
   try {
+    if (platform === "n8n") {
+      const result = await syncN8nAutomations(user.id);
+      const rows = await getN8nRows();
+      return NextResponse.json({ ok: true, result, rows });
+    }
+    // Default: Make.
     const result = await syncMakeAutomations(user.id);
     const rows = await getMakeRows();
     return NextResponse.json({ ok: true, result, rows });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error(`[Make sync] failed:`, message);
+    console.error(`[${platform} sync] failed:`, message);
     return NextResponse.json({ error: message.slice(0, 500) }, { status: 502 });
   }
 }
