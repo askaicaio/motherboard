@@ -56,6 +56,114 @@ export function workflowUrl(base: string, workflowId: number | string): string {
   return `${base}/workflow/${workflowId}`;
 }
 
+/** A workflow as returned by GET /api/v1/workflows (only the fields we use). */
+interface N8nWorkflow {
+  id: number | string;
+  name?: string;
+  active?: boolean;
+}
+
+/** A workflow normalized into the shape our sync wants (mirrors MakeAutomation). */
+export interface N8nAutomation {
+  /** Workflow id — needed to fetch its executions (last run). */
+  id: number | string;
+  /** Workflow name (Column 1 in the table). */
+  name: string;
+  /** Editor URL — the automation's identity (unique). */
+  url: string;
+  /** "active" | "paused" derived from the workflow's `active` flag. */
+  status: "active" | "paused";
+}
+
+// Page size (n8n caps `limit` at 250) + a hard cap so a misconfiguration
+// can't loop forever.
+const PAGE_SIZE = 100;
+const MAX_WORKFLOWS = 5000;
+
+/**
+ * List every workflow in the n8n instance, normalized for the sync.
+ * Walks all pages via the opaque cursor (n8n returns `nextCursor`; a null/absent
+ * cursor means the last page) until exhausted or the safety cap is hit.
+ */
+export async function listN8nAutomations(): Promise<N8nAutomation[]> {
+  const { apiKey, base } = getCreds();
+  const headers = buildHeaders(apiKey);
+
+  const out: N8nAutomation[] = [];
+  let cursor: string | null = null;
+
+  while (true) {
+    let url = `${base}/api/v1/workflows?limit=${PAGE_SIZE}`;
+    if (cursor) url += `&cursor=${encodeURIComponent(cursor)}`;
+
+    const res = await fetch(url, { headers });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(
+        `n8n workflows request failed (${res.status}): ${text.slice(0, 500)}`,
+      );
+    }
+
+    const json = (await res.json()) as {
+      data?: N8nWorkflow[];
+      nextCursor?: string | null;
+    };
+    const batch = json.data ?? [];
+
+    for (const w of batch) {
+      // Without an id we can't build the identity URL — skip it.
+      if (w.id == null) continue;
+      out.push({
+        id: w.id,
+        name: (w.name ?? "").trim(),
+        url: workflowUrl(base, w.id),
+        status: w.active ? "active" : "paused",
+      });
+    }
+
+    cursor = json.nextCursor ?? null;
+    if (!cursor) break; // last page
+    if (out.length >= MAX_WORKFLOWS) {
+      console.warn(
+        `[n8n] Hit MAX_WORKFLOWS (${MAX_WORKFLOWS}) — truncating sync.`,
+      );
+      break;
+    }
+    // Mild throttle to stay well under rate limits.
+    await new Promise((r) => setTimeout(r, 100));
+  }
+
+  return out;
+}
+
+/**
+ * Fetch a workflow's last-run timestamp from its executions.
+ *
+ * Unlike Make, n8n exposes execution history reliably: the most recent
+ * execution (the API returns them newest-first) carries `stoppedAt`/`startedAt`
+ * (ISO 8601). Returns that string, or null when the workflow has never run or
+ * the request fails. Callers must treat null as "unknown, leave unchanged",
+ * never as "wipe it".
+ */
+export async function getN8nLastRunAt(
+  workflowId: number | string,
+): Promise<string | null> {
+  const { apiKey, base } = getCreds();
+  const headers = buildHeaders(apiKey);
+  const url =
+    `${base}/api/v1/executions` +
+    `?workflowId=${encodeURIComponent(String(workflowId))}&limit=1`;
+
+  const res = await fetch(url, { headers });
+  if (!res.ok) return null;
+
+  const json = (await res.json().catch(() => ({}))) as {
+    data?: { startedAt?: string; stoppedAt?: string }[];
+  };
+  const last = json.data?.[0];
+  return last?.stoppedAt ?? last?.startedAt ?? null;
+}
+
 /**
  * Live-verify the n8n credentials actually work (used by the Main Page card's
  * "check status" button). Makes a tiny authenticated request; returns true only
