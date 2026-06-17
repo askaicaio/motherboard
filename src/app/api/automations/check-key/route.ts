@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getOptionalAuth } from "@/lib/auth/guard";
 import { verifyMakeToken } from "@/lib/integrations/make-client";
+import { verifyN8nToken } from "@/lib/integrations/n8n-client";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -33,6 +34,8 @@ export async function POST(request: NextRequest) {
   let ok = false;
   if (body.platform === "make") {
     ok = await verifyMakeToken();
+  } else if (body.platform === "n8n") {
+    ok = await verifyN8nToken();
   }
   // Other platforms have no live integration yet → ok stays false.
 
