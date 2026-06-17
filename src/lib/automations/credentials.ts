@@ -7,7 +7,10 @@ export function platformHasApiKey(slug: string): boolean {
   switch (slug) {
     case "make":
       return !!process.env.MAKE_API_TOKEN;
-    // n8n / ghl / ghl-b2b / zapier: wired as each platform's sync lands.
+    case "n8n":
+      // Needs BOTH the key and the instance URL to talk to n8n.
+      return !!process.env.N8N_API_KEY && !!process.env.N8N_BASE_URL;
+    // ghl / ghl-b2b / zapier: wired as each platform's sync lands.
     default:
       return false;
   }
