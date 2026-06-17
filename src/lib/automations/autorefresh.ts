@@ -20,13 +20,8 @@ import { appSettings } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 
 const KEY = "automations_autorefresh";
-// ⚠️ TEMPORARY DEV TEST (2026-06-18): lowered from 24h to 1 MINUTE so the n8n
-// auto-refresh toggle can be verified quickly. MUST BE REVERTED to
-// `24 * 60 * 60 * 1000` once testing is done (and the sync-automations cron in
-// vercel.json reverted from every-minute back to */5). Mirrors the Make 1-min
-// test (PR #35 -> reverted by PR #37).
-/** 1 minute — TEMPORARY test cadence. Revert to 24 * 60 * 60 * 1000. */
-export const AUTO_REFRESH_INTERVAL_MS = 60 * 1000;
+/** 24 hours — the once-a-day cadence. */
+export const AUTO_REFRESH_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
 export interface AutoRefreshState {
   enabled: boolean;
