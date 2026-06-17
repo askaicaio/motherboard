@@ -18,6 +18,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAutoRefreshMap, bumpNextRefresh } from "@/lib/automations/autorefresh";
 import { isSyncablePlatform } from "@/lib/automations/sites";
 import { syncMakeAutomations } from "@/lib/integrations/make-sync";
+import { syncN8nAutomations } from "@/lib/integrations/n8n-sync";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -37,6 +38,8 @@ async function runSync(platform: string) {
   switch (platform) {
     case "make":
       return syncMakeAutomations();
+    case "n8n":
+      return syncN8nAutomations();
     default:
       return null;
   }
