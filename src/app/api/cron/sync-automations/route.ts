@@ -19,6 +19,7 @@ import { getAutoRefreshMap, bumpNextRefresh } from "@/lib/automations/autorefres
 import { isSyncablePlatform } from "@/lib/automations/sites";
 import { syncMakeAutomations } from "@/lib/integrations/make-sync";
 import { syncN8nAutomations } from "@/lib/integrations/n8n-sync";
+import { syncGhlAutomations } from "@/lib/integrations/ghl-automations-sync";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -40,6 +41,9 @@ async function runSync(platform: string) {
       return syncMakeAutomations();
     case "n8n":
       return syncN8nAutomations();
+    case "ghl":
+    case "ghl-b2b":
+      return syncGhlAutomations(platform);
     default:
       return null;
   }
