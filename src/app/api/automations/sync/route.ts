@@ -12,6 +12,10 @@ import { getOptionalAuth } from "@/lib/auth/guard";
 import { isSyncablePlatform } from "@/lib/automations/sites";
 import { syncMakeAutomations, getMakeRows } from "@/lib/integrations/make-sync";
 import { syncN8nAutomations, getN8nRows } from "@/lib/integrations/n8n-sync";
+import {
+  syncGhlAutomations,
+  getGhlRows,
+} from "@/lib/integrations/ghl-automations-sync";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -49,6 +53,11 @@ export async function POST(request: NextRequest) {
     if (platform === "n8n") {
       const result = await syncN8nAutomations(user.id);
       const rows = await getN8nRows();
+      return NextResponse.json({ ok: true, result, rows });
+    }
+    if (platform === "ghl" || platform === "ghl-b2b") {
+      const result = await syncGhlAutomations(platform, user.id);
+      const rows = await getGhlRows(platform);
       return NextResponse.json({ ok: true, result, rows });
     }
     // Default: Make.
