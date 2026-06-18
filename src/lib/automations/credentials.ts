@@ -11,8 +11,8 @@ export function platformHasApiKey(slug: string): boolean {
       // Needs BOTH the key and the instance URL to talk to n8n.
       return !!process.env.N8N_API_KEY && !!process.env.N8N_BASE_URL;
     case "ghl":
-      // Main subaccount reuses the Campaigns creds.
-      return !!process.env.GHL_API_TOKEN && !!process.env.GHL_LOCATION_ID;
+      // Main subaccount, dedicated Automations creds (separate from Campaigns).
+      return !!process.env.GHL_MAIN_API_TOKEN && !!process.env.GHL_MAIN_LOCATION_ID;
     case "ghl-b2b":
       // B2B subaccount has its own token + location.
       return !!process.env.GHL_B2B_API_TOKEN && !!process.env.GHL_B2B_LOCATION_ID;

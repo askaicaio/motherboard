@@ -178,9 +178,12 @@ export function bestName(contact: GHLContact): string | null {
 // Automations tab — GHL workflow listing (the two subaccounts)
 // =============================================================
 // The Automations tab tracks GHL workflows across TWO subaccounts, each its
-// own location + Private Integration Token (per the feature brief):
-//   - "ghl"      (main) → reuses the Campaigns creds: GHL_API_TOKEN / GHL_LOCATION_ID
-//   - "ghl-b2b"  (sub)  → its own:                    GHL_B2B_API_TOKEN / GHL_B2B_LOCATION_ID
+// own location + Private Integration Token (per the feature brief). These use
+// their OWN dedicated env vars, kept fully separate from the Campaigns GHL
+// token (GHL_API_TOKEN / GHL_LOCATION_ID) so Automations can never affect the
+// working Campaigns sync:
+//   - "ghl"      (main) → GHL_MAIN_API_TOKEN / GHL_MAIN_LOCATION_ID
+//   - "ghl-b2b"  (sub)  → GHL_B2B_API_TOKEN  / GHL_B2B_LOCATION_ID
 // The token MUST carry the "View Workflows" (workflows.readonly) scope, or the
 // workflows endpoint returns 403. GHL's API does NOT reliably expose per-run
 // history, so the Automations sync tracks NAME + STATUS only (Last Runtime
@@ -193,8 +196,8 @@ function getGhlAutomationCreds(
   let token: string | undefined;
   let locationId: string | undefined;
   if (slug === "ghl") {
-    token = process.env.GHL_API_TOKEN;
-    locationId = process.env.GHL_LOCATION_ID;
+    token = process.env.GHL_MAIN_API_TOKEN;
+    locationId = process.env.GHL_MAIN_LOCATION_ID;
   } else if (slug === "ghl-b2b") {
     token = process.env.GHL_B2B_API_TOKEN;
     locationId = process.env.GHL_B2B_LOCATION_ID;
