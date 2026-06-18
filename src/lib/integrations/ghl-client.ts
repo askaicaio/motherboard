@@ -228,3 +228,68 @@ export async function verifyGhlAutomations(slug: string): Promise<boolean> {
     return false;
   }
 }
+
+/** A workflow as returned by GET /workflows/ (only the fields we use). */
+interface GHLWorkflow {
+  id?: string;
+  name?: string;
+  status?: string;
+}
+
+/** A workflow normalized into the shape our sync wants (mirrors MakeAutomation). */
+export interface GHLAutomation {
+  /** Workflow id on GHL (the external id). */
+  id: string;
+  /** Workflow name (Column 1 in the table). */
+  name: string;
+  /** Deep link to the workflow on GHL — the row's identity (unique). */
+  url: string;
+  /** "active" | "paused" derived from the workflow's `status`. */
+  status: "active" | "paused";
+}
+
+/** Deep link to a workflow in the GHL app — this is the row's identity. */
+export function ghlWorkflowUrl(locationId: string, workflowId: string): string {
+  return `https://app.gohighlevel.com/v2/location/${locationId}/automation/workflows/builder/${workflowId}`;
+}
+
+/**
+ * List every workflow in a GHL subaccount, normalized for the sync. GHL returns
+ * all workflows for a location in a single `{ workflows: [...] }` response (no
+ * cursor pagination on this endpoint). Status maps GHL's `published` -> "active",
+ * anything else (draft/unknown) -> "paused". GHL exposes NO per-run history, so
+ * the sync never sets a last-run (Last Runtime stays "-" for GHL).
+ */
+export async function listGhlAutomations(
+  slug: string,
+): Promise<GHLAutomation[]> {
+  const creds = getGhlAutomationCreds(slug);
+  if (!creds) {
+    throw new Error(`GHL creds for "${slug}" are not configured.`);
+  }
+  const { token, locationId } = creds;
+
+  const res = await fetch(
+    `${BASE}/workflows/?locationId=${encodeURIComponent(locationId)}`,
+    { headers: buildHeaders(token) },
+  );
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(
+      `GHL workflows request failed (${res.status}): ${text.slice(0, 500)}`,
+    );
+  }
+
+  const json = (await res.json()) as { workflows?: GHLWorkflow[] };
+  const out: GHLAutomation[] = [];
+  for (const w of json.workflows ?? []) {
+    if (!w.id) continue; // no id -> can't build the identity URL
+    out.push({
+      id: w.id,
+      name: (w.name ?? "").trim(),
+      url: ghlWorkflowUrl(locationId, w.id),
+      status: w.status === "published" ? "active" : "paused",
+    });
+  }
+  return out;
+}

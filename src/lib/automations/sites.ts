@@ -71,7 +71,12 @@ export function getAutomationSite(slug: string): AutomationSite | undefined {
  * + API route exist). Any platform not in this set keeps the temporary
  * placeholder error on refresh. Add a slug here as its sync lands.
  */
-export const SYNCABLE_PLATFORMS = new Set<string>(["make", "n8n"]);
+export const SYNCABLE_PLATFORMS = new Set<string>([
+  "make",
+  "n8n",
+  "ghl",
+  "ghl-b2b",
+]);
 
 /** True when this platform has a working refresh/sync wired up. */
 export function isSyncablePlatform(slug: string): boolean {
