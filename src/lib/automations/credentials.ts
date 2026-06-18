@@ -10,7 +10,13 @@ export function platformHasApiKey(slug: string): boolean {
     case "n8n":
       // Needs BOTH the key and the instance URL to talk to n8n.
       return !!process.env.N8N_API_KEY && !!process.env.N8N_BASE_URL;
-    // ghl / ghl-b2b / zapier: wired as each platform's sync lands.
+    case "ghl":
+      // Main subaccount reuses the Campaigns creds.
+      return !!process.env.GHL_API_TOKEN && !!process.env.GHL_LOCATION_ID;
+    case "ghl-b2b":
+      // B2B subaccount has its own token + location.
+      return !!process.env.GHL_B2B_API_TOKEN && !!process.env.GHL_B2B_LOCATION_ID;
+    // zapier: wired if/when its sync lands (likely no list API).
     default:
       return false;
   }
