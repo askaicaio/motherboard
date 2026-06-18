@@ -178,16 +178,18 @@ export function bestName(contact: GHLContact): string | null {
 // Automations tab — GHL workflow listing (the two subaccounts)
 // =============================================================
 // The Automations tab tracks GHL workflows across TWO subaccounts, each its
-// own location + Private Integration Token (per the feature brief). These use
-// their OWN dedicated env vars, kept fully separate from the Campaigns GHL
-// token (GHL_API_TOKEN / GHL_LOCATION_ID) so Automations can never affect the
-// working Campaigns sync:
-//   - "ghl"      (main) → GHL_MAIN_API_TOKEN / GHL_MAIN_LOCATION_ID
-//   - "ghl-b2b"  (sub)  → GHL_B2B_API_TOKEN  / GHL_B2B_LOCATION_ID
+// own location + Private Integration Token (per the feature brief). Because
+// GHL caps Private Integration Tokens at 5 per location, the MAIN subaccount
+// REUSES the existing Campaigns token rather than burning a new slot; the b2b
+// subaccount uses its own:
+//   - "ghl"      (main) → GHL_API_TOKEN     / GHL_LOCATION_ID   (shared w/ Campaigns)
+//   - "ghl-b2b"  (sub)  → GHL_B2B_API_TOKEN / GHL_B2B_LOCATION_ID
 // The token MUST carry the "View Workflows" (workflows.readonly) scope, or the
-// workflows endpoint returns 403. GHL's API does NOT reliably expose per-run
-// history, so the Automations sync tracks NAME + STATUS only (Last Runtime
-// stays "-" for GHL) — this is by design (brief §3.2 / §3.4).
+// workflows endpoint returns 403. We only ever READ here, so sharing the
+// Campaigns token (and never changing its value) doesn't affect Campaigns.
+// GHL's API does NOT reliably expose per-run history, so the Automations sync
+// tracks NAME + STATUS only (Last Runtime stays "-" for GHL) — by design
+// (brief §3.2 / §3.4).
 
 /** Per-subaccount creds for the Automations GHL sync. Null when unconfigured. */
 function getGhlAutomationCreds(
@@ -196,8 +198,8 @@ function getGhlAutomationCreds(
   let token: string | undefined;
   let locationId: string | undefined;
   if (slug === "ghl") {
-    token = process.env.GHL_MAIN_API_TOKEN;
-    locationId = process.env.GHL_MAIN_LOCATION_ID;
+    token = process.env.GHL_API_TOKEN;
+    locationId = process.env.GHL_LOCATION_ID;
   } else if (slug === "ghl-b2b") {
     token = process.env.GHL_B2B_API_TOKEN;
     locationId = process.env.GHL_B2B_LOCATION_ID;
