@@ -173,3 +173,58 @@ export function bestName(contact: GHLContact): string | null {
   const joined = `${fn} ${ln}`.trim();
   return joined || null;
 }
+
+// =============================================================
+// Automations tab — GHL workflow listing (the two subaccounts)
+// =============================================================
+// The Automations tab tracks GHL workflows across TWO subaccounts, each its
+// own location + Private Integration Token (per the feature brief). Because
+// GHL caps Private Integration Tokens at 5 per location, the MAIN subaccount
+// REUSES the existing Campaigns token rather than burning a new slot; the b2b
+// subaccount uses its own:
+//   - "ghl"      (main) → GHL_API_TOKEN     / GHL_LOCATION_ID   (shared w/ Campaigns)
+//   - "ghl-b2b"  (sub)  → GHL_B2B_API_TOKEN / GHL_B2B_LOCATION_ID
+// The token MUST carry the "View Workflows" (workflows.readonly) scope, or the
+// workflows endpoint returns 403. We only ever READ here, so sharing the
+// Campaigns token (and never changing its value) doesn't affect Campaigns.
+// GHL's API does NOT reliably expose per-run history, so the Automations sync
+// tracks NAME + STATUS only (Last Runtime stays "-" for GHL) — by design
+// (brief §3.2 / §3.4).
+
+/** Per-subaccount creds for the Automations GHL sync. Null when unconfigured. */
+function getGhlAutomationCreds(
+  slug: string,
+): { token: string; locationId: string } | null {
+  let token: string | undefined;
+  let locationId: string | undefined;
+  if (slug === "ghl") {
+    token = process.env.GHL_API_TOKEN;
+    locationId = process.env.GHL_LOCATION_ID;
+  } else if (slug === "ghl-b2b") {
+    token = process.env.GHL_B2B_API_TOKEN;
+    locationId = process.env.GHL_B2B_LOCATION_ID;
+  }
+  if (!token || !locationId) return null;
+  return { token, locationId };
+}
+
+/**
+ * Live-verify a GHL subaccount's creds actually work for workflows (used by the
+ * Main Page card's "check status" button). Makes a tiny authenticated workflows
+ * request; returns true only on a 200. Returns false when the subaccount is
+ * unconfigured, the token is invalid/revoked, the token lacks the
+ * workflows.readonly scope (403), or the request errors.
+ */
+export async function verifyGhlAutomations(slug: string): Promise<boolean> {
+  const creds = getGhlAutomationCreds(slug);
+  if (!creds) return false;
+  try {
+    const res = await fetch(
+      `${BASE}/workflows/?locationId=${encodeURIComponent(creds.locationId)}`,
+      { headers: buildHeaders(creds.token) },
+    );
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
