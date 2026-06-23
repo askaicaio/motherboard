@@ -18,6 +18,7 @@ import {
   BookOpen,
   Workflow,
   Receipt,
+  Handshake,
   LogOut,
   UserRound,
   ChevronUp,
@@ -33,6 +34,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { canSeeCompanyReports } from "@/lib/auth/permissions";
+import { MANAGEABLE_TABS } from "@/lib/layout/nav";
 import type { Department, AdminRole } from "@/types";
 
 interface NavItem {
@@ -43,29 +45,46 @@ interface NavItem {
   visible?: (role: string | undefined, dept: string | undefined) => boolean;
 }
 
+// Icon per href — kept here (client) while the href/label list lives in the
+// shared registry so the sidebar and the visibility editor never drift.
+const ICONS: Record<string, React.ElementType> = {
+  "/": LayoutDashboard,
+  "/onboarding": List,
+  "/onboarding/new": UserPlus,
+  "/reports": FileText,
+  "/members": Users,
+  "/campaigns": Megaphone,
+  "/automations": Workflow,
+  "/docs": BookOpen,
+  "/subscriptions": Receipt,
+  "/partner-program": Handshake,
+  "/integrations": Plug,
+  "/audit-log": ScrollText,
+  "/settings/rules": Shield,
+  "/settings": Settings,
+};
+
+// Role/department predicates for tabs that gate on more than the
+// per-department visibility config.
+const VISIBLE: Record<
+  string,
+  (role: string | undefined, dept: string | undefined) => boolean
+> = {
+  "/reports": (role, dept) =>
+    canSeeCompanyReports(role as AdminRole, dept as Department),
+};
+
 const navItems: NavItem[] = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/onboarding", label: "Onboarding", icon: List },
-  { href: "/onboarding/new", label: "New Request", icon: UserPlus },
-  {
-    href: "/reports",
-    label: "Company Reports",
-    icon: FileText,
-    visible: (role, dept) =>
-      canSeeCompanyReports(role as AdminRole, dept as Department),
-  },
-  { href: "/members", label: "Members", icon: Users },
-  { href: "/campaigns", label: "Campaigns", icon: Megaphone },
-  { href: "/automations", label: "Automations", icon: Workflow },
-  { href: "/docs", label: "Docs", icon: BookOpen },
-  { href: "/subscriptions", label: "Subscriptions", icon: Receipt },
-  { href: "/integrations", label: "Integrations", icon: Plug },
-  { href: "/audit-log", label: "Audit Log", icon: ScrollText },
-  { href: "/settings/rules", label: "Rules", icon: Shield },
-  { href: "/settings", label: "Settings", icon: Settings },
+  ...MANAGEABLE_TABS.map((t) => ({
+    href: t.href,
+    label: t.label,
+    icon: ICONS[t.href] ?? LayoutDashboard,
+    visible: VISIBLE[t.href],
+  })),
 ];
 
-export function Sidebar() {
+export function Sidebar({ hiddenTabs = [] }: { hiddenTabs?: string[] }) {
   const router = useRouter();
   const pathname = usePathname();
   const { data: session, status } = useSession();
@@ -92,7 +111,12 @@ export function Sidebar() {
   // if someone without access tries to navigate to the URL directly.
   const sessionLoading = status === "loading";
 
+  const hidden = new Set(hiddenTabs);
   const visibleItems = navItems.filter((item) => {
+    // Per-department visibility: a tab hidden for this user's department is
+    // removed. The hiddenTabs list is resolved server-side in the layout and
+    // only applies to non-admin members, so admins never get locked out.
+    if (hidden.has(item.href)) return false;
     if (!item.visible) return true;
     if (sessionLoading) return true; // optimistic during load
     return item.visible(role, department);

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -33,6 +34,7 @@ import {
   Building2,
   UserMinus,
   UserCog,
+  ShieldCheck,
 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -278,7 +280,17 @@ export function MembersPageClient({
           </p>
         </div>
 
-        {!showArchived && canManage && <InviteMemberDialog />}
+        {!showArchived && canManage && (
+          <div className="flex items-center gap-2">
+            <Link href="/members/access">
+              <Button variant="outline" className="gap-2">
+                <ShieldCheck className="h-4 w-4" />
+                Department access
+              </Button>
+            </Link>
+            <InviteMemberDialog />
+          </div>
+        )}
 
         {showArchived && (
           <Button variant="ghost" onClick={() => toggleArchived(false)} className="gap-2">
@@ -742,9 +754,4 @@ function BulkActionsMenu({
     </DropdownMenu>
   );
 }
-
-// Re-export Link for backwards compat with existing imports
-export { default as Link } from "next/link";
-
-// Suppress unused-warnings for kept imports referenced in JSX above
 void UserCog;
