@@ -117,12 +117,20 @@ export default function PartnersLandingPage() {
           <span className="text-lg font-bold tracking-tight text-[#1e1b4b]">
             Chief AI Officer
           </span>
-          <Link
-            href="/partners/apply"
-            className="rounded-lg bg-[#4f46e5] px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#4338ca] focus:outline-none focus:ring-2 focus:ring-[#4f46e5] focus:ring-offset-2"
-          >
-            Apply now
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link
+              href="/partners/resources"
+              className="hidden text-sm font-medium text-slate-600 hover:text-[#4f46e5] sm:inline"
+            >
+              Resources
+            </Link>
+            <Link
+              href="/partners/apply"
+              className="rounded-lg bg-[#4f46e5] px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#4338ca] focus:outline-none focus:ring-2 focus:ring-[#4f46e5] focus:ring-offset-2"
+            >
+              Apply now
+            </Link>
+          </div>
         </div>
       </header>
 

@@ -3,8 +3,12 @@
 // and all partnerPrograms, then hands off to the interactive client.
 
 import { db } from "@/lib/db";
-import { partnerSettings, partnerPrograms } from "@/lib/db/schema";
-import { desc } from "drizzle-orm";
+import {
+  partnerSettings,
+  partnerPrograms,
+  customersIndex,
+} from "@/lib/db/schema";
+import { desc, sql } from "drizzle-orm";
 import { requireAuth } from "@/lib/auth/guard";
 import { SettingsClient } from "@/components/partner-program/settings-client";
 
@@ -24,8 +28,13 @@ export default async function PartnerSettingsPage() {
     .from(partnerPrograms)
     .orderBy(partnerPrograms.name);
 
+  const [{ count: customersIndexCount }] = await db
+    .select({ count: sql<number>`COUNT(*)::int` })
+    .from(customersIndex);
+
   return (
     <SettingsClient
+      customersIndexCount={customersIndexCount}
       settings={
         latest
           ? {

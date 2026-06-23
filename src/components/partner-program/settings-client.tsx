@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Settings, Save, History, Boxes } from "lucide-react";
+import { Settings, Save, History, Boxes, Database } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -76,11 +76,38 @@ const DEFAULTS = {
 export function SettingsClient({
   settings,
   programs,
+  customersIndexCount,
 }: {
   settings: PartnerSettings | null;
   programs: PartnerProgram[];
+  customersIndexCount: number;
 }) {
   const router = useRouter();
+  const [seeding, setSeeding] = useState(false);
+
+  async function seedFromGhl() {
+    setSeeding(true);
+    try {
+      const res = await fetch("/api/partners/customers-import/ghl", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subaccount: "both" }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.error || "GHL pull failed");
+        return;
+      }
+      toast.success(
+        `Pulled ${data.pulledUnique ?? 0} buyers — index now ${data.customersIndexTotal ?? "?"}`,
+      );
+      router.refresh();
+    } catch {
+      toast.error("Network error during GHL pull");
+    } finally {
+      setSeeding(false);
+    }
+  }
 
   const base = settings ?? { ...DEFAULTS, id: "", effectiveFrom: "" };
 
@@ -159,6 +186,30 @@ export function SettingsClient({
           overrides.
         </p>
       </div>
+
+      {/* ─── New-customer gate seed (customers_index) ────────────────────── */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Database className="h-4 w-4 text-zinc-500" />
+            New-customer gate
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-wrap items-center justify-between gap-4">
+          <div className="text-sm text-zinc-600">
+            <span className="font-semibold tabular-nums text-zinc-900">
+              {customersIndexCount.toLocaleString()}
+            </span>{" "}
+            prior buyers indexed. Commissions only pay on genuinely new
+            customers — pull the full buyer list from GHL (both sub-accounts)
+            to keep this current. Safe to re-run; it never overwrites an
+            existing first-purchase date.
+          </div>
+          <Button onClick={seedFromGhl} disabled={seeding} variant="outline">
+            {seeding ? "Pulling…" : "Pull buyers from GHL"}
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* ─── Effective config (append-only versions) ─────────────────────── */}
       <Card>
@@ -349,6 +400,33 @@ function ProgramRow({ program }: { program: PartnerProgram }) {
     program.stripePriceId ?? "",
   );
   const [saving, setSaving] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+
+  const handleStripeSync = async () => {
+    setSyncing(true);
+    try {
+      const res = await fetch(
+        `/api/partners/programs/${program.id}/stripe-sync`,
+        { method: "POST" },
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.error || "Stripe sync failed");
+        return;
+      }
+      if (data.stripePriceId) setStripePriceId(data.stripePriceId);
+      toast.success(
+        data.alreadyWired
+          ? `${program.name} already wired to Stripe`
+          : `Created Stripe product + price for ${program.name}`,
+      );
+      router.refresh();
+    } catch {
+      toast.error("Network error during Stripe sync");
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const handleSave = async () => {
     const trimmedPct = overridePct.trim();
@@ -421,12 +499,27 @@ function ProgramRow({ program }: { program: PartnerProgram }) {
         </div>
       </td>
       <td className="px-3 py-3">
-        <Input
-          placeholder="price_…"
-          value={stripePriceId}
-          onChange={(e) => setStripePriceId(e.target.value)}
-          className="min-w-[160px] font-mono text-xs"
-        />
+        <div className="flex items-center gap-2">
+          <Input
+            placeholder="price_…"
+            value={stripePriceId}
+            onChange={(e) => setStripePriceId(e.target.value)}
+            className="min-w-[150px] font-mono text-xs"
+          />
+          {!program.salesLed && !stripePriceId && (
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={handleStripeSync}
+              disabled={syncing}
+              title="Create the Stripe product + price automatically"
+              className="shrink-0 whitespace-nowrap text-xs"
+            >
+              {syncing ? "…" : "Create in Stripe"}
+            </Button>
+          )}
+        </div>
       </td>
       <td className="px-3 py-3 text-right">
         <Button

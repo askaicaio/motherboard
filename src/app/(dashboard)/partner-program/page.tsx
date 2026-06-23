@@ -22,6 +22,7 @@ import {
   Banknote,
   AlertCircle,
   Settings2,
+  FolderOpen,
   ChevronRight,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -162,6 +163,12 @@ export default async function PartnerProgramPage() {
       icon: AlertCircle,
       label: "Disputes",
       desc: "Partner-submitted conversion disputes",
+    },
+    {
+      href: "/partner-program/resources",
+      icon: FolderOpen,
+      label: "Resources",
+      desc: "Playbook, toolkit & marketing assets for affiliates",
     },
     {
       href: "/partner-program/settings",

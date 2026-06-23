@@ -1727,3 +1727,48 @@ export const partnerDisputesRelations = relations(
     }),
   }),
 );
+
+// ========================================================================
+// Partner Program — marketing resources (affiliate-facing assets)
+// ========================================================================
+// The Playbook, Marketing Toolkit, brand assets, email templates, social
+// posts, banners — anything staff want to make available to affiliates.
+// Either an uploaded file (Vercel Blob → fileUrl) or a linked external
+// asset (externalUrl). Public resources show on the affiliate-facing
+// /partners/resources page.
+// ========================================================================
+
+export const partnerResources = pgTable(
+  "partner_resources",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    title: text("title").notNull(),
+    description: text("description"),
+    /** playbook | toolkit | brand_asset | email_template | social_post | banner | other */
+    category: text("category").notNull().default("other"),
+    /** Uploaded-file URL (Vercel Blob). Null when this is a linked asset. */
+    fileUrl: text("file_url"),
+    /** External link (Google Drive, Canva, etc.). Null when this is an upload. */
+    externalUrl: text("external_url"),
+    fileName: text("file_name"),
+    mimeType: text("mime_type"),
+    sizeBytes: integer("size_bytes"),
+    /** Visible on the public affiliate resources page when true. */
+    isPublic: boolean("is_public").notNull().default(true),
+    sortOrder: integer("sort_order").notNull().default(0),
+
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    createdBy: uuid("created_by").references(() => adminUsers.id),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("idx_partner_resources_category").on(table.category),
+    index("idx_partner_resources_public").on(table.isPublic),
+    index("idx_partner_resources_archived").on(table.archivedAt),
+  ],
+);
