@@ -179,10 +179,11 @@ export function PayoutsClient({
       const data = (await res.json()) as {
         batchId: string;
         totalCents: number;
-        lines: number;
+        lines: { partnerId: string }[];
       };
+      const count = data.lines.length;
       toast.success(
-        `Batch generated — ${data.lines} partner${data.lines === 1 ? "" : "s"}, ${fmtUsd(
+        `Batch generated — ${count} partner${count === 1 ? "" : "s"}, ${fmtUsd(
           data.totalCents,
         )}`,
       );
