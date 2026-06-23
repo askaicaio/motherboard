@@ -23,6 +23,7 @@ import {
   AlertCircle,
   Settings2,
   FolderOpen,
+  ExternalLink,
   ChevronRight,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -62,6 +63,14 @@ function ConversionStatusBadge({ status }: { status: string }) {
 
 export default async function PartnerProgramPage() {
   await requireAuth();
+
+  // Base URL for the public affiliate-facing pages (set
+  // PARTNER_PROGRAM_BASE_URL=https://affiliates.chiefaiofficer.com in Vercel).
+  const publicBase = (
+    process.env.PARTNER_PROGRAM_BASE_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    ""
+  ).replace(/\/$/, "");
 
   // ── Summary stats ──────────────────────────────────────────────────────
 
@@ -219,6 +228,38 @@ export default async function PartnerProgramPage() {
           value={fmtUsd(paidToDateCents)}
         />
       </div>
+
+      {/* Public affiliate-facing pages */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="mb-2 text-xs font-medium uppercase tracking-wide text-zinc-500">
+            Public pages (share with affiliates)
+          </div>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+            {[
+              { href: `${publicBase}/partners`, label: "Landing page", sub: "Marketing + commission table" },
+              { href: `${publicBase}/partners/apply`, label: "Apply to join", sub: "Public application form" },
+              { href: `${publicBase}/partners/resources`, label: "Resources", sub: "Playbook, toolkit, assets" },
+            ].map((l) => (
+              <a
+                key={l.href}
+                href={l.href}
+                target="_blank"
+                rel="noreferrer"
+                className="group flex items-center justify-between rounded-lg border border-zinc-200 px-3 py-2.5 transition hover:border-indigo-300 hover:bg-indigo-50/40"
+              >
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5 text-sm font-medium text-zinc-800">
+                    {l.label}
+                    <ExternalLink className="h-3 w-3 text-zinc-400" />
+                  </div>
+                  <div className="truncate text-[11px] text-zinc-500">{l.sub}</div>
+                </div>
+              </a>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Quick links */}
       <div>

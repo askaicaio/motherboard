@@ -14,6 +14,19 @@ import { eq } from "drizzle-orm";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
+// Customer-facing product descriptions, distilled from the Partner Program
+// reference docs (Landing Page Copy + Playbook). Keyed by program slug.
+const PROGRAM_DESCRIPTIONS: Record<string, string> = {
+  "roi-blueprint":
+    "A focused engagement that builds a clear AI investment thesis — connecting AI initiatives to measurable business outcomes and ROI accountability.",
+  "ai-leadership-certification":
+    "An executive certification that builds the knowledge and credibility leaders need to govern AI strategy, manage risk, and drive responsible adoption.",
+  "caio-certification":
+    "A rigorous executive certification for senior leaders taking formal responsibility for AI strategy, governance, and enterprise-wide AI transformation.",
+  "ai-leadership-kickstart-day":
+    "A concentrated leadership intensive that rapidly orients your executive team around AI strategy and governance fundamentals.",
+};
+
 export async function POST(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -51,6 +64,7 @@ export async function POST(
     if (!productId) {
       const product = await stripe.products.create({
         name: program.name,
+        description: PROGRAM_DESCRIPTIONS[program.slug],
         metadata: { partner_program_slug: program.slug },
       });
       productId = product.id;

@@ -84,6 +84,35 @@ export function SettingsClient({
 }) {
   const router = useRouter();
   const [seeding, setSeeding] = useState(false);
+  const [creatingAll, setCreatingAll] = useState(false);
+
+  // One-click: create the Stripe product + price for every self-serve program
+  // that isn't wired yet. The endpoint is idempotent, so re-running is safe.
+  async function createAllInStripe() {
+    setCreatingAll(true);
+    try {
+      const targets = programs.filter((p) => !p.salesLed && !p.stripePriceId);
+      let ok = 0;
+      let failed = 0;
+      for (const p of targets) {
+        try {
+          const res = await fetch(
+            `/api/partners/programs/${p.id}/stripe-sync`,
+            { method: "POST" },
+          );
+          if (res.ok) ok += 1;
+          else failed += 1;
+        } catch {
+          failed += 1;
+        }
+      }
+      if (failed === 0) toast.success(`Wired ${ok} program${ok === 1 ? "" : "s"} to Stripe`);
+      else toast.error(`${ok} created, ${failed} failed — check the Stripe key scopes`);
+      router.refresh();
+    } finally {
+      setCreatingAll(false);
+    }
+  }
 
   async function seedFromGhl() {
     setSeeding(true);
@@ -294,14 +323,29 @@ export function SettingsClient({
       {/* ─── Programs editor ─────────────────────────────────────────────── */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Boxes className="h-4 w-4 text-zinc-500" />
-            Eligible programs
-          </CardTitle>
-          <p className="mt-1 text-xs text-zinc-500">
-            Toggle availability, set a per-program commission override (blank =
-            use default), and wire up Stripe. Each row saves on its own.
-          </p>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Boxes className="h-4 w-4 text-zinc-500" />
+                Eligible programs
+              </CardTitle>
+              <p className="mt-1 text-xs text-zinc-500">
+                Toggle availability, set a per-program commission override
+                (blank = use default), and wire up Stripe. Each row saves on
+                its own.
+              </p>
+            </div>
+            {programs.some((p) => !p.salesLed && !p.stripePriceId) && (
+              <Button
+                variant="outline"
+                onClick={createAllInStripe}
+                disabled={creatingAll}
+                className="shrink-0 whitespace-nowrap"
+              >
+                {creatingAll ? "Creating…" : "Create all in Stripe"}
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
