@@ -50,11 +50,14 @@ export interface GHLSearchResult {
 }
 
 function getCreds() {
-  const token = process.env.GHL_API_TOKEN;
+  // Accept either GHL_API_TOKEN (canonical) or GHL_API_KEY (what the
+  // .env.local.example template originally advertised). Either works —
+  // existing Vercel setups using GHL_API_KEY don't need re-keying.
+  const token = process.env.GHL_API_TOKEN || process.env.GHL_API_KEY;
   const locationId = process.env.GHL_LOCATION_ID;
   if (!token) {
     throw new Error(
-      "GHL_API_TOKEN is not set. Add it to Vercel env vars (Production).",
+      "GHL credentials missing — set GHL_API_TOKEN (or GHL_API_KEY) in Vercel env vars (Production).",
     );
   }
   if (!locationId) {
