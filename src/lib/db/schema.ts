@@ -12,7 +12,7 @@ import {
   index,
   pgEnum,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 
 // ========================================================================
 // Enums
@@ -1196,3 +1196,530 @@ export const automationsRelations = relations(automations, ({ one }) => ({
     references: [adminUsers.id],
   }),
 }));
+
+// ========================================================================
+// Partner Program (affiliate system)
+// ========================================================================
+// Custom, fully-owned affiliate / referral program. Rules sourced from
+// `#affiliate-files/06.2026 CAIO_Partner_Program_Terms.docx` and the
+// Playbook. Money is integer cents everywhere; rates and windows are
+// config-driven via partner_settings (append-only history), never
+// hardcoded.
+//
+// Architecture mirrors campaigns + campaign_events: partners own
+// attribution events, conversions are the central ledger, and
+// partner_conversion_events is the append-only audit log of lifecycle
+// transitions.
+// ========================================================================
+
+/**
+ * Affiliates themselves. Status lifecycle:
+ *   applied -> approved -> active (the happy path)
+ *   applied -> declined (rejected at intake)
+ *   active  -> suspended / terminated (post-issue actions)
+ */
+export const partners = pgTable(
+  "partners",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    /** 8-char base62 URL-safe code used in ?aff=. Unique. */
+    refCode: text("ref_code").notNull(),
+    name: text("name").notNull(),
+    email: text("email").notNull(),
+    company: text("company"),
+    /** applied | approved | declined | active | suspended | terminated */
+    status: text("status").notNull().default("applied"),
+    /** none | w9 | w8ben | w8bene | invalid — payout blocked unless w9/w8ben/w8bene */
+    taxFormStatus: text("tax_form_status").notNull().default("none"),
+    /** ach | zelle | none */
+    payoutMethod: text("payout_method").notNull().default("none"),
+    /** Free-form per-partner payout instructions (bank routing notes, Zelle handle, etc). Never logged. */
+    payoutDetails: text("payout_details"),
+    /** GHL contact id once we mirror to GHL — populated by the future ghl-affiliate-sync cron. */
+    ghlContactId: text("ghl_contact_id"),
+    /** Free-form admin notes (referral source, special arrangements, etc). */
+    notes: text("notes"),
+
+    appliedAt: timestamp("applied_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    approvedAt: timestamp("approved_at", { withTimezone: true }),
+    approvedBy: uuid("approved_by").references(() => adminUsers.id),
+    declinedAt: timestamp("declined_at", { withTimezone: true }),
+    declineReason: text("decline_reason"),
+
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("uniq_partners_ref_code").on(table.refCode),
+    uniqueIndex("uniq_partners_email").on(table.email),
+    index("idx_partners_status").on(table.status),
+    index("idx_partners_ghl").on(table.ghlContactId),
+  ],
+);
+
+/**
+ * Append-only configuration history. Per-conversion math pulls the
+ * active row AS OF purchased_at:
+ *   WHERE effective_from <= purchased_at
+ *   ORDER BY effective_from DESC LIMIT 1
+ *
+ * Rates stored as text (e.g. "0.10") to avoid float drift; parse to
+ * decimal in application code. Cents fields are integer cents.
+ */
+export const partnerSettings = pgTable(
+  "partner_settings",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    cookieWindowDays: integer("cookie_window_days").notNull().default(60),
+    /** Stored as text to avoid binary float drift, e.g. "0.10" for 10%. */
+    defaultCommissionRate: text("default_commission_rate")
+      .notNull()
+      .default("0.10"),
+    refundWindowDays: integer("refund_window_days").notNull().default(7),
+    payoutTermsDays: integer("payout_terms_days").notNull().default(45),
+    minPayoutCents: integer("min_payout_cents").notNull().default(10000),
+    effectiveFrom: timestamp("effective_from", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    createdBy: uuid("created_by").references(() => adminUsers.id),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("uniq_partner_settings_effective_from").on(table.effectiveFrom),
+  ],
+);
+
+/**
+ * Eligible programs. Seeded with the 6 from the Landing Page Copy.
+ * setup_fee_cents + stripe_fee_passthrough_cents are subtracted from
+ * gross at conversion time per Terms §3.3 — commission basis is NOT
+ * list price.
+ */
+export const partnerPrograms = pgTable(
+  "partner_programs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    name: text("name").notNull(),
+    /** URL-friendly slug for landing-page routes. */
+    slug: text("slug").notNull(),
+    /** List price in cents (display only — not the commission basis). */
+    listValueCents: integer("list_value_cents").notNull(),
+    /** Per-program rate override (nullable — falls back to partner_settings default). */
+    commissionRateOverride: text("commission_rate_override"),
+    /** True when the program closes via conversation (Strategic Oversight, Embedded Fractional CAIO). */
+    salesLed: boolean("sales_led").notNull().default(false),
+    active: boolean("active").notNull().default(true),
+    /** Set when the program is wired into Stripe (self-serve checkout). */
+    stripeProductId: text("stripe_product_id"),
+    stripePriceId: text("stripe_price_id"),
+    /** Non-commissionable setup fee bundled in the list price (e.g. onboarding). */
+    setupFeeCents: integer("setup_fee_cents").notNull().default(0),
+    /** Stripe processing fee passed through to buyer as a line item — non-commissionable per Terms §3.3. */
+    stripeFeePassthroughCents: integer("stripe_fee_passthrough_cents")
+      .notNull()
+      .default(0),
+
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("uniq_partner_programs_slug").on(table.slug),
+    index("idx_partner_programs_active").on(table.active),
+  ],
+);
+
+/** Append-only click log. Cookie window check uses created_at, NOT cookie age. */
+export const partnerClicks = pgTable(
+  "partner_clicks",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    partnerId: uuid("partner_id")
+      .references(() => partners.id, { onDelete: "cascade" })
+      .notNull(),
+    refCode: text("ref_code").notNull(),
+    /** UUID that ties the click to the cookie issued to the browser. */
+    cookieId: uuid("cookie_id").notNull(),
+    ip: text("ip"),
+    userAgent: text("user_agent"),
+    referrer: text("referrer"),
+    landingPath: text("landing_path"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("idx_partner_clicks_partner").on(table.partnerId),
+    index("idx_partner_clicks_cookie").on(table.cookieId),
+    index("idx_partner_clicks_created_at").on(table.createdAt),
+  ],
+);
+
+/**
+ * Attribution events. tracked_link comes from a click; direct_intro is
+ * admin-entered for sales-led deals. is_valid=false when the intro was
+ * logged AFTER the proposal went out (Playbook §13) — kept for audit
+ * but never wins matching.
+ */
+export const partnerAttributionEvents = pgTable(
+  "partner_attribution_events",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    partnerId: uuid("partner_id")
+      .references(() => partners.id, { onDelete: "cascade" })
+      .notNull(),
+    /** tracked_link | direct_intro */
+    type: text("type").notNull(),
+    /** Set when this event originated from a click. */
+    cookieId: uuid("cookie_id"),
+    prospectEmail: text("prospect_email"),
+    prospectName: text("prospect_name"),
+    company: text("company"),
+    sourceDetail: text("source_detail"),
+    /** Anchor for first-attribution-wins. */
+    recordedAt: timestamp("recorded_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    /** When the sales proposal went out — used to validate direct_intro events. */
+    proposalSentAt: timestamp("proposal_sent_at", { withTimezone: true }),
+    /**
+     * False when a direct_intro was logged AFTER proposal_sent_at, or
+     * when admin invalidates the event for any reason. Matching filters
+     * is_valid=true.
+     */
+    isValid: boolean("is_valid").notNull().default(true),
+    notes: text("notes"),
+
+    createdBy: uuid("created_by").references(() => adminUsers.id),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("idx_attribution_partner").on(table.partnerId),
+    index("idx_attribution_email").on(table.prospectEmail),
+    index("idx_attribution_recorded_at").on(table.recordedAt),
+    index("idx_attribution_type").on(table.type),
+  ],
+);
+
+/**
+ * Central commission ledger. Idempotency at the DB level:
+ * unique on (source, external_order_id) so concurrent Stripe webhook
+ * deliveries can't double-insert (ON CONFLICT DO NOTHING).
+ *
+ * Clawbacks are represented as NEW rows with negative commission_cents
+ * pointing back at the original via clawback_of_conversion_id. The
+ * original is flipped to status='reversed'. The next payout batch sums
+ * all earned rows including the negatives — net behavior is automatic.
+ */
+export const partnerConversions = pgTable(
+  "partner_conversions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    /** Nullable until matched — unmatched conversions sit in the admin review queue. */
+    partnerId: uuid("partner_id").references(() => partners.id),
+    attributionEventId: uuid("attribution_event_id").references(
+      () => partnerAttributionEvents.id,
+    ),
+    buyerEmail: text("buyer_email").notNull(),
+    programId: uuid("program_id")
+      .references(() => partnerPrograms.id)
+      .notNull(),
+
+    grossCents: integer("gross_cents").notNull(),
+    /** Tax + processing fees collected separately. */
+    feesCents: integer("fees_cents").notNull().default(0),
+    /** Setup fees, expansion add-ons, etc. flagged non-commissionable per Terms §3.3. */
+    nonCommissionableCents: integer("non_commissionable_cents")
+      .notNull()
+      .default(0),
+    /** gross − fees − non_commissionable. Stored for query simplicity; recomputed on edit. */
+    commissionableCents: integer("commissionable_cents").notNull(),
+    /** May be NEGATIVE for clawback rows. */
+    commissionCents: integer("commission_cents").notNull(),
+    currency: text("currency").notNull().default("USD"),
+
+    externalOrderId: text("external_order_id"),
+    stripeSessionId: text("stripe_session_id"),
+    stripeChargeId: text("stripe_charge_id"),
+    /** stripe | manual | clawback */
+    source: text("source").notNull(),
+
+    purchasedAt: timestamp("purchased_at", { withTimezone: true }).notNull(),
+
+    /** Set at insert time based on customers_index + prior conversions lookup. */
+    isNewCustomer: boolean("is_new_customer").notNull(),
+    /** pending | earned | paid | reversed | rejected */
+    status: text("status").notNull().default("pending"),
+    refundWindowEndsAt: timestamp("refund_window_ends_at", {
+      withTimezone: true,
+    }).notNull(),
+    /** purchased_at + 14d, per Terms §5.4. */
+    disputeWindowEndsAt: timestamp("dispute_window_ends_at", {
+      withTimezone: true,
+    }).notNull(),
+    earnedAt: timestamp("earned_at", { withTimezone: true }),
+    payoutBatchId: uuid("payout_batch_id"),
+
+    /** Internal note — surfaced to staff in the admin UI only. */
+    rejectReason: text("reject_reason"),
+    /** Partner-visible reason — surfaced in disputes. Set explicitly by admin on rejection. */
+    publicRejectReason: text("public_reject_reason"),
+
+    /** Set on clawback rows; FK to the original conversion that's being reversed. */
+    clawbackOfConversionId: uuid("clawback_of_conversion_id"),
+
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("uniq_partner_conversions_source_order")
+      .on(table.source, table.externalOrderId)
+      .where(sql`external_order_id IS NOT NULL`),
+    index("idx_partner_conversions_status").on(table.status),
+    index("idx_partner_conversions_partner").on(table.partnerId),
+    index("idx_partner_conversions_buyer_email").on(table.buyerEmail),
+    index("idx_partner_conversions_refund_ends").on(table.refundWindowEndsAt),
+    index("idx_partner_conversions_payout_batch").on(table.payoutBatchId),
+    index("idx_partner_conversions_clawback_of").on(
+      table.clawbackOfConversionId,
+    ),
+  ],
+);
+
+/**
+ * Append-only audit log of conversion lifecycle. Mirrors the campaign_events
+ * pattern. Every status transition writes a row. We do NOT extend the
+ * existing audit_logs.auditActionEnum because that would force every
+ * partner event onto the same noisy table the onboarding flow uses.
+ */
+export const partnerConversionEvents = pgTable(
+  "partner_conversion_events",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    conversionId: uuid("conversion_id")
+      .references(() => partnerConversions.id, { onDelete: "cascade" })
+      .notNull(),
+    /** e.g. status_changed | clawback_initiated | dispute_opened | manually_matched */
+    eventType: text("event_type").notNull(),
+    fromStatus: text("from_status"),
+    toStatus: text("to_status"),
+    actorId: uuid("actor_id").references(() => adminUsers.id),
+    actorEmail: text("actor_email"),
+    details: jsonb("details").default({}),
+    occurredAt: timestamp("occurred_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("idx_partner_conv_events_conversion").on(table.conversionId),
+    index("idx_partner_conv_events_occurred_at").on(table.occurredAt),
+    index("idx_partner_conv_events_type").on(table.eventType),
+  ],
+);
+
+/**
+ * The new-customer gate (Terms §3.2) source of truth. Seeded by a
+ * one-time CSV import of every prior CAIO buyer (GHL + Circle + Stripe).
+ * Live conversions then keep extending it via ingestConversion's
+ * ON CONFLICT (email) DO NOTHING upsert — first_purchase_at is never
+ * clobbered by re-imports.
+ */
+export const customersIndex = pgTable(
+  "customers_index",
+  {
+    email: text("email").primaryKey(),
+    firstPurchaseAt: timestamp("first_purchase_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    /** ghl | circle | stripe | manual */
+    source: text("source"),
+    notes: text("notes"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+);
+
+export const partnerPayoutBatches = pgTable(
+  "partner_payout_batches",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    /** YYYYMM, e.g. 202607. */
+    periodYyyymm: integer("period_yyyymm").notNull(),
+    generatedAt: timestamp("generated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    /** draft | exported | paid */
+    status: text("status").notNull().default("draft"),
+    totalCents: integer("total_cents").notNull().default(0),
+    /** Optional URL to the exported CSV (e.g. Vercel Blob) once finance has it. */
+    exportUrl: text("export_url"),
+    generatedBy: uuid("generated_by").references(() => adminUsers.id),
+    paidAt: timestamp("paid_at", { withTimezone: true }),
+    paidBy: uuid("paid_by").references(() => adminUsers.id),
+  },
+  (table) => [
+    index("idx_partner_payout_period").on(table.periodYyyymm),
+    index("idx_partner_payout_status").on(table.status),
+  ],
+);
+
+export const partnerDisputes = pgTable(
+  "partner_disputes",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    partnerId: uuid("partner_id")
+      .references(() => partners.id, { onDelete: "cascade" })
+      .notNull(),
+    /** Nullable — partner may file before we've located a matching conversion. */
+    conversionId: uuid("conversion_id").references(() => partnerConversions.id),
+    submittedAt: timestamp("submitted_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    dealCloseDate: timestamp("deal_close_date", { withTimezone: true }),
+    evidence: text("evidence"),
+    /** open | upheld | denied | closed */
+    status: text("status").notNull().default("open"),
+    resolution: text("resolution"),
+    decidedAt: timestamp("decided_at", { withTimezone: true }),
+    decidedBy: uuid("decided_by").references(() => adminUsers.id),
+  },
+  (table) => [
+    index("idx_partner_disputes_partner").on(table.partnerId),
+    index("idx_partner_disputes_status").on(table.status),
+  ],
+);
+
+// ---- Relations ---------------------------------------------------------
+
+export const partnersRelations = relations(partners, ({ many, one }) => ({
+  attributionEvents: many(partnerAttributionEvents),
+  conversions: many(partnerConversions),
+  disputes: many(partnerDisputes),
+  clicks: many(partnerClicks),
+  approver: one(adminUsers, {
+    fields: [partners.approvedBy],
+    references: [adminUsers.id],
+  }),
+}));
+
+export const partnerSettingsRelations = relations(
+  partnerSettings,
+  ({ one }) => ({
+    creator: one(adminUsers, {
+      fields: [partnerSettings.createdBy],
+      references: [adminUsers.id],
+    }),
+  }),
+);
+
+export const partnerProgramsRelations = relations(
+  partnerPrograms,
+  ({ many }) => ({
+    conversions: many(partnerConversions),
+  }),
+);
+
+export const partnerClicksRelations = relations(partnerClicks, ({ one }) => ({
+  partner: one(partners, {
+    fields: [partnerClicks.partnerId],
+    references: [partners.id],
+  }),
+}));
+
+export const partnerAttributionEventsRelations = relations(
+  partnerAttributionEvents,
+  ({ one }) => ({
+    partner: one(partners, {
+      fields: [partnerAttributionEvents.partnerId],
+      references: [partners.id],
+    }),
+    creator: one(adminUsers, {
+      fields: [partnerAttributionEvents.createdBy],
+      references: [adminUsers.id],
+    }),
+  }),
+);
+
+export const partnerConversionsRelations = relations(
+  partnerConversions,
+  ({ one, many }) => ({
+    partner: one(partners, {
+      fields: [partnerConversions.partnerId],
+      references: [partners.id],
+    }),
+    program: one(partnerPrograms, {
+      fields: [partnerConversions.programId],
+      references: [partnerPrograms.id],
+    }),
+    attributionEvent: one(partnerAttributionEvents, {
+      fields: [partnerConversions.attributionEventId],
+      references: [partnerAttributionEvents.id],
+    }),
+    payoutBatch: one(partnerPayoutBatches, {
+      fields: [partnerConversions.payoutBatchId],
+      references: [partnerPayoutBatches.id],
+    }),
+    events: many(partnerConversionEvents),
+  }),
+);
+
+export const partnerConversionEventsRelations = relations(
+  partnerConversionEvents,
+  ({ one }) => ({
+    conversion: one(partnerConversions, {
+      fields: [partnerConversionEvents.conversionId],
+      references: [partnerConversions.id],
+    }),
+    actor: one(adminUsers, {
+      fields: [partnerConversionEvents.actorId],
+      references: [adminUsers.id],
+    }),
+  }),
+);
+
+export const partnerPayoutBatchesRelations = relations(
+  partnerPayoutBatches,
+  ({ many, one }) => ({
+    conversions: many(partnerConversions),
+    generator: one(adminUsers, {
+      fields: [partnerPayoutBatches.generatedBy],
+      references: [adminUsers.id],
+    }),
+  }),
+);
+
+export const partnerDisputesRelations = relations(
+  partnerDisputes,
+  ({ one }) => ({
+    partner: one(partners, {
+      fields: [partnerDisputes.partnerId],
+      references: [partners.id],
+    }),
+    conversion: one(partnerConversions, {
+      fields: [partnerDisputes.conversionId],
+      references: [partnerConversions.id],
+    }),
+    decider: one(adminUsers, {
+      fields: [partnerDisputes.decidedBy],
+      references: [adminUsers.id],
+    }),
+  }),
+);
