@@ -38,6 +38,8 @@ export function proxy(request: NextRequest) {
     pathname.startsWith("/api/stripe/webhook") || // Stripe → us; verifies its own signature
     pathname.startsWith("/api/partners/checkout") || // public checkout-session creation
     pathname.startsWith("/api/partners/apply") || // public application intake
+    pathname.startsWith("/portal") || // partner portal — gates on its OWN partner cookie
+    pathname.startsWith("/api/portal") || // partner portal APIs — self-gated
     pathname.startsWith("/_next") ||
     pathname === "/favicon.ico" ||
     hasStaticExtension
@@ -80,6 +82,6 @@ export const config = {
      * a `.` followed by characters (i.e. a file with extension) is
      * skipped — this handles all public/ static assets in one shot.
      */
-    "/((?!login|welcome|partners|r$|api/auth|api/callbacks|api/welcome|api/inngest|api/cron|api/stripe/webhook|api/partners/checkout|api/partners/apply|_next/static|_next/image|.*\\..*).*)",
+    "/((?!login|welcome|partners|portal|r$|api/auth|api/callbacks|api/welcome|api/inngest|api/cron|api/stripe/webhook|api/partners/checkout|api/partners/apply|api/portal|_next/static|_next/image|.*\\..*).*)",
   ],
 };

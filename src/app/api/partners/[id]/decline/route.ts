@@ -42,6 +42,9 @@ export async function POST(
       status: "declined",
       declinedAt: now,
       declineReason: body.reason?.trim() || null,
+      // Revoke any pending portal set-password/reset token.
+      passwordToken: null,
+      passwordTokenExpiresAt: null,
       updatedAt: now,
     })
     .where(eq(partners.id, id))

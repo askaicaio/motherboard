@@ -25,7 +25,7 @@ export default function PartnerProgramLayout({
             className="inline-flex items-center gap-1 text-sm text-zinc-500 transition-colors hover:text-zinc-900"
           >
             <ArrowLeft className="h-4 w-4" />
-            Partner Program
+            Affiliates
           </Link>
         </div>
       )}

@@ -135,8 +135,8 @@ export default async function PartnerProgramPage() {
     {
       href: "/partner-program/partners",
       icon: Users,
-      label: "Partners",
-      desc: "Manage approved & active partners",
+      label: "Affiliates",
+      desc: "Manage approved & active affiliates",
     },
     {
       href: "/partner-program/applications",
@@ -171,7 +171,7 @@ export default async function PartnerProgramPage() {
       href: "/partner-program/disputes",
       icon: AlertCircle,
       label: "Disputes",
-      desc: "Partner-submitted conversion disputes",
+      desc: "Affiliate-submitted conversion disputes",
     },
     {
       href: "/partner-program/resources",
@@ -194,12 +194,12 @@ export default async function PartnerProgramPage() {
         <div className="flex items-center gap-2">
           <Handshake className="h-5 w-5 text-zinc-500" />
           <h1 className="text-2xl font-semibold tracking-tight">
-            Partner Program
+            Affiliate Program
           </h1>
         </div>
         <p className="mt-1 text-sm text-zinc-500">
-          Affiliate commission overview — active partners, pending commissions,
-          and recent activity.
+          Affiliate commission overview — active affiliates, pending
+          commissions, and recent activity.
         </p>
       </div>
 
@@ -207,7 +207,7 @@ export default async function PartnerProgramPage() {
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <MetricCard
           icon={<Users className="h-4 w-4 text-zinc-400" />}
-          label="Active Partners"
+          label="Active Affiliates"
           value={String(activeCount)}
         />
         <MetricCard
@@ -325,7 +325,7 @@ export default async function PartnerProgramPage() {
                   <tr>
                     <th className="text-left px-4 py-2">Buyer</th>
                     <th className="text-left px-4 py-2">Program</th>
-                    <th className="text-left px-4 py-2">Partner</th>
+                    <th className="text-left px-4 py-2">Affiliate</th>
                     <th className="text-right px-4 py-2">Commission</th>
                     <th className="text-left px-4 py-2">Status</th>
                     <th className="text-left px-4 py-2">Date</th>

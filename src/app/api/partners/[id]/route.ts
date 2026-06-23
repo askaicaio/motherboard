@@ -71,6 +71,11 @@ export async function PATCH(
   if (body.name !== undefined) patch.name = body.name.trim();
   if (body.company !== undefined) patch.company = body.company?.trim() || null;
   if (body.status !== undefined) patch.status = body.status;
+  // Revoke any pending portal set-password/reset token when a partner loses access.
+  if (body.status !== undefined && !["approved", "active"].includes(body.status)) {
+    patch.passwordToken = null;
+    patch.passwordTokenExpiresAt = null;
+  }
   if (body.taxFormStatus !== undefined) patch.taxFormStatus = body.taxFormStatus;
   if (body.payoutMethod !== undefined) patch.payoutMethod = body.payoutMethod;
   if (body.payoutDetails !== undefined)

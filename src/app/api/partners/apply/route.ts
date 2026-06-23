@@ -73,10 +73,10 @@ export async function POST(request: NextRequest) {
   // (a) Confirmation to the applicant
   await sendEmail({
     to: email,
-    subject: "We received your Chief AI Officer partner application",
+    subject: "We received your Chief AI Officer affiliate application",
     html: `
       <p>Hi ${body.name},</p>
-      <p>Thank you for applying to the Chief AI Officer Partner Program! We review every application personally and will be in touch within 3 business days.</p>
+      <p>Thank you for applying to the Chief AI Officer Affiliate Program! We review every application personally and will be in touch within 3 business days.</p>
       <p>Here's a quick recap of what to expect:</p>
       <ul>
         <li><strong>10% flat commission</strong> on every closed deal you refer</li>
@@ -86,15 +86,15 @@ export async function POST(request: NextRequest) {
       <p>If you have any questions in the meantime, feel free to reply to this email.</p>
       <p>— The Chief AI Officer Team</p>
     `,
-    plain: `Hi ${body.name},\n\nThank you for applying to the Chief AI Officer Partner Program! We review every application personally and will be in touch within 3 business days.\n\nQuick overview:\n- 10% flat commission on every closed deal\n- 60-day cookie window\n- Net-45 payouts via ACH or Zelle\n\nQuestions? Just reply to this email.\n\n— The Chief AI Officer Team`,
+    plain: `Hi ${body.name},\n\nThank you for applying to the Chief AI Officer Affiliate Program! We review every application personally and will be in touch within 3 business days.\n\nQuick overview:\n- 10% flat commission on every closed deal\n- 60-day cookie window\n- Net-45 payouts via ACH or Zelle\n\nQuestions? Just reply to this email.\n\n— The Chief AI Officer Team`,
   });
 
   // (b) Admin notification
   await sendEmail({
     to: adminAddress,
-    subject: `New partner application: ${body.name}`,
+    subject: `New affiliate application: ${body.name}`,
     html: `
-      <p>A new partner application was submitted.</p>
+      <p>A new affiliate application was submitted.</p>
       <table style="border-collapse:collapse;font-size:14px;">
         <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Name</td><td>${body.name}</td></tr>
         <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Email</td><td>${email}</td></tr>
@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
       <p><strong>Message:</strong><br/>${body.notes ? body.notes.replace(/\n/g, "<br/>") : "—"}</p>
       <p><a href="${process.env.NEXT_PUBLIC_APP_URL ?? "https://chiefaiofficer.com"}/partner-program/applications">Review in Motherboard →</a></p>
     `,
-    plain: `New partner application\n\nName: ${body.name}\nEmail: ${email}\nCompany: ${body.company ?? "—"}\nWebsite: ${body.website ?? "—"}\n\nMessage:\n${body.notes ?? "—"}\n\nReview: ${process.env.NEXT_PUBLIC_APP_URL ?? "https://chiefaiofficer.com"}/partner-program/applications`,
+    plain: `New affiliate application\n\nName: ${body.name}\nEmail: ${email}\nCompany: ${body.company ?? "—"}\nWebsite: ${body.website ?? "—"}\n\nMessage:\n${body.notes ?? "—"}\n\nReview: ${process.env.NEXT_PUBLIC_APP_URL ?? "https://chiefaiofficer.com"}/partner-program/applications`,
   });
 
   return NextResponse.json({ ok: true });
