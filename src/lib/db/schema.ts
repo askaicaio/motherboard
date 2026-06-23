@@ -1497,9 +1497,13 @@ export const partnerConversions = pgTable(
     index("idx_partner_conversions_buyer_email").on(table.buyerEmail),
     index("idx_partner_conversions_refund_ends").on(table.refundWindowEndsAt),
     index("idx_partner_conversions_payout_batch").on(table.payoutBatchId),
-    index("idx_partner_conversions_clawback_of").on(
-      table.clawbackOfConversionId,
-    ),
+    // UNIQUE (partial): at most one clawback per original conversion. The
+    // DB enforces it even if application logic regresses — a second
+    // concurrent clawback insert raises a violation instead of silently
+    // double-paying. Normal rows (NULL clawback_of) are excluded.
+    uniqueIndex("uniq_partner_conversions_clawback_of")
+      .on(table.clawbackOfConversionId)
+      .where(sql`clawback_of_conversion_id IS NOT NULL`),
   ],
 );
 

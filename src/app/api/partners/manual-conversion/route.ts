@@ -34,7 +34,7 @@ const schema = z.object({
 });
 
 export async function POST(request: NextRequest) {
-  const user = await requireRole("admin");
+  await requireRole("admin");
 
   let body;
   try {
@@ -55,7 +55,11 @@ export async function POST(request: NextRequest) {
     grossCents: body.grossCents,
     feesCents: body.feesCents,
     nonCommissionableCents: body.nonCommissionableCents,
-    externalOrderId: body.externalOrderId ?? `manual:${user.id}:${body.buyerEmail}:${body.grossCents}`,
+    // Pass through an explicit reference (e.g. contract id) when the admin
+    // wants dedupe; otherwise null — the partial unique index leaves manual
+    // rows unconstrained on purpose, so two genuinely distinct same-buyer
+    // deals don't collide on a synthesized key.
+    externalOrderId: body.externalOrderId ?? null,
     source: "manual",
     purchasedAt: body.purchasedAt ? new Date(body.purchasedAt) : new Date(),
     affId: body.affId ?? null,

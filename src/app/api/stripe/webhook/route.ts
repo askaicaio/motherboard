@@ -21,7 +21,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { db } from "@/lib/db";
-import { partnerConversions } from "@/lib/db/schema";
+import { partnerConversions, partnerConversionEvents } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { getStripe, webhookSecret } from "@/lib/integrations/stripe-client";
 import { ingestConversion } from "@/lib/partners/ingest";
@@ -100,25 +100,69 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   });
 }
 
-/** Find the conversion tied to a Stripe charge and reverse/clawback it. */
+/**
+ * Find the conversion tied to a Stripe charge and reverse/clawback it.
+ * The lookup + the reverse-vs-clawback decision + the mutation all happen
+ * inside ONE transaction holding a FOR UPDATE lock on the conversion, so
+ * a concurrent refund + dispute on the same charge serialize and can't
+ * double-reverse or double-clawback.
+ */
 async function handleChargeReversal(chargeId: string, reason: string) {
   if (!chargeId) return;
+  await db.transaction(async (tx) => {
+    const [conv] = await tx
+      .select()
+      .from(partnerConversions)
+      .where(eq(partnerConversions.stripeChargeId, chargeId))
+      .for("update")
+      .limit(1);
+    if (!conv) {
+      console.warn(
+        `[stripe] ${reason}: no conversion for charge ${chargeId} — manual review`,
+      );
+      return;
+    }
+    if (conv.status === "reversed") return; // already terminal
+    if (conv.status === "paid") {
+      await createClawback(conv.id, reason, { actorEmail: "system:stripe" }, tx);
+    } else {
+      await reverseConversion(conv.id, reason, { actorEmail: "system:stripe" }, tx);
+    }
+  });
+}
+
+/**
+ * A PARTIAL refund lowers the commission basis (§3.3) but the event alone
+ * can't tell us how to re-split gross/fees/non-commissionable, so we don't
+ * auto-adjust. Instead we persist a durable review signal: a
+ * partial_refund_review event that (a) shows up in the admin queue and
+ * (b) holds the conversion back from auto-promotion until reconciled.
+ */
+async function flagPartialRefund(charge: Stripe.Charge) {
   const [conv] = await db
     .select()
     .from(partnerConversions)
-    .where(eq(partnerConversions.stripeChargeId, chargeId))
+    .where(eq(partnerConversions.stripeChargeId, charge.id))
     .limit(1);
   if (!conv) {
     console.warn(
-      `[stripe] ${reason}: no conversion for charge ${chargeId} — manual review`,
+      `[stripe] partial refund on charge ${charge.id} — no conversion; manual review`,
     );
     return;
   }
-  if (conv.status === "paid") {
-    await createClawback(conv.id, reason, { actorEmail: "system:stripe" });
-  } else {
-    await reverseConversion(conv.id, reason, { actorEmail: "system:stripe" });
-  }
+  await db.insert(partnerConversionEvents).values({
+    conversionId: conv.id,
+    eventType: "partial_refund_review",
+    fromStatus: conv.status,
+    toStatus: conv.status,
+    actorEmail: "system:stripe",
+    details: {
+      reason: "stripe_partial_refund",
+      amountRefundedCents: charge.amount_refunded,
+      chargeAmountCents: charge.amount,
+      chargeId: charge.id,
+    },
+  });
 }
 
 export async function POST(request: NextRequest) {
@@ -157,14 +201,14 @@ export async function POST(request: NextRequest) {
 
       case "charge.refunded": {
         const charge = event.data.object as Stripe.Charge;
-        // Only act on FULL refunds. Partial refunds change the basis but
-        // we don't auto-reverse the whole commission — flag for admin.
+        // charge.refunded (bool) is true only on a FULL refund. A full
+        // refund voids the whole commission; a partial refund lowers the
+        // basis and needs admin reconciliation (we can't safely re-split
+        // gross/fees/non-commissionable from the event alone).
         if (charge.refunded) {
           await handleChargeReversal(charge.id, "stripe_refund");
         } else {
-          console.warn(
-            `[stripe] partial refund on charge ${charge.id} (refunded ${charge.amount_refunded}/${charge.amount}) — admin review`,
-          );
+          await flagPartialRefund(charge);
         }
         break;
       }

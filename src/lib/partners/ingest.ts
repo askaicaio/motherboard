@@ -23,13 +23,12 @@ import {
   partnerConversionEvents,
   customersIndex,
 } from "@/lib/db/schema";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import {
   getActiveSettings,
   getPartnerByRefCode,
   resolveProgram,
   isNewCustomer,
-  hasPriorCommissionableConversion,
 } from "./queries";
 import {
   computeCommission,
@@ -37,8 +36,11 @@ import {
   resolveRate,
   clickWithinWindow,
   pickFirstAttribution,
+  isDirectIntroValid,
   type AttributionCandidate,
 } from "./rules";
+
+const ELIGIBLE_PARTNER_STATUSES = ["approved", "active"];
 
 export type ConversionSource = "stripe" | "manual" | "clawback";
 
@@ -126,11 +128,33 @@ async function attribute(
       ),
     );
 
+  // Only events whose owning partner is currently approved/active can win
+  // — mirrors tiers 1 & 2. A suspended/terminated partner earns no new
+  // commissions even if a stale event still points at them.
+  const partnerIds = [...new Set(events.map((e) => e.partnerId))];
+  const eligiblePartnerIds = new Set<string>();
+  if (partnerIds.length > 0) {
+    const rows = await db
+      .select({ id: partners.id, status: partners.status })
+      .from(partners)
+      .where(inArray(partners.id, partnerIds));
+    for (const r of rows) {
+      if (ELIGIBLE_PARTNER_STATUSES.includes(r.status)) {
+        eligiblePartnerIds.add(r.id);
+      }
+    }
+  }
+
   const candidates: AttributionCandidate[] = events
+    .filter((e) => eligiblePartnerIds.has(e.partnerId))
     .filter((e) => {
-      // direct_intro is always eligible (it's a documented introduction).
+      if (e.type === "direct_intro") {
+        // Playbook §13: a direct_intro only counts if it was logged BEFORE
+        // the proposal. Recompute from proposal_sent_at rather than trust
+        // the stored is_valid flag (which may be stale/default-true).
+        return isDirectIntroValid(e.recordedAt, e.proposalSentAt);
+      }
       // tracked_link must be within the cookie window of the purchase.
-      if (e.type === "direct_intro") return true;
       return clickWithinWindow(e.recordedAt, cookieWindowDays, input.purchasedAt);
     })
     .map((e) => ({
@@ -185,6 +209,10 @@ export async function ingestConversion(input: IngestInput): Promise<IngestResult
   let rejectReason: string | null = null;
   let publicRejectReason: string | null = null;
 
+  // New-customer gate (§3.2) subsumes first-purchase-only (§3.1): a buyer
+  // with ANY prior CAIO transaction — including a prior referred purchase —
+  // already fails isNewCustomer, so a separate "already_purchased" branch
+  // would be unreachable. One gate, one reason.
   const buyerIsNew = await isNewCustomer(email);
 
   if (!partnerId) {
@@ -195,10 +223,6 @@ export async function ingestConversion(input: IngestInput): Promise<IngestResult
     status = "rejected";
     rejectReason = "not_new_customer";
     publicRejectReason = "Buyer was an existing CAIO customer.";
-  } else if (await hasPriorCommissionableConversion(email)) {
-    status = "rejected";
-    rejectReason = "already_purchased";
-    publicRejectReason = "A prior commissionable purchase already exists for this buyer.";
   }
 
   // --- Commission math (always computed for transparency, even on reject) ---
