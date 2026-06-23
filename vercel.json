@@ -26,6 +26,10 @@
     {
       "path": "/api/cron/promote-pending-to-earned",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/sync-customers-index",
+      "schedule": "0 6 * * *"
     }
   ]
 }

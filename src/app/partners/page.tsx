@@ -1,6 +1,6 @@
 import Link from "next/link";
+import Image from "next/image";
 import {
-  CheckCircle,
   Link2,
   DollarSign,
   Clock,
@@ -9,124 +9,142 @@ import {
   ChevronRight,
   Award,
   TrendingUp,
-  HelpCircle,
+  Handshake,
+  Sparkles,
+  BadgeCheck,
+  ArrowRight,
 } from "lucide-react";
 
+export const metadata = {
+  title: "Partner Program — Chief AI Officer",
+  description:
+    "Earn 10% referring executives and board members to the Chief AI Officer programs. 60-day cookie, Net-45 payouts, no cap on earnings.",
+};
+
 const PROGRAMS = [
-  {
-    name: "ROI Blueprint",
-    listValue: 10_000,
-    commission: 1_000,
-    salesLed: false,
-  },
-  {
-    name: "AI Leadership Certification",
-    listValue: 12_000,
-    commission: 1_200,
-    salesLed: false,
-  },
-  {
-    name: "CAIO Certification",
-    listValue: 12_000,
-    commission: 1_200,
-    salesLed: false,
-  },
-  {
-    name: "AI Leadership Kickstart Day",
-    listValue: 12_000,
-    commission: 1_200,
-    salesLed: false,
-  },
-  {
-    name: "Strategic Oversight",
-    listValue: 43_500,
-    commission: 4_350,
-    salesLed: true,
-  },
-  {
-    name: "Embedded Fractional CAIO",
-    listValue: 54_000,
-    commission: 5_400,
-    salesLed: true,
-  },
+  { name: "ROI Blueprint", listValue: 10_000, commission: 1_000, salesLed: false },
+  { name: "AI Leadership Certification", listValue: 12_000, commission: 1_200, salesLed: false },
+  { name: "CAIO Certification", listValue: 12_000, commission: 1_200, salesLed: false },
+  { name: "AI Leadership Kickstart Day", listValue: 12_000, commission: 1_200, salesLed: false },
+  { name: "Strategic Oversight", listValue: 43_500, commission: 4_350, salesLed: true },
+  { name: "Embedded Fractional CAIO", listValue: 54_000, commission: 5_400, salesLed: true },
 ];
 
-function usd(cents: number) {
-  return (cents / 100).toLocaleString("en-US", {
+function usd(dollars: number) {
+  return dollars.toLocaleString("en-US", {
     style: "currency",
     currency: "USD",
     maximumFractionDigits: 0,
   });
 }
 
+const STATS = [
+  { value: "$5,400", label: "Top commission per referral" },
+  { value: "60 days", label: "Attribution cookie" },
+  { value: "Net-45", label: "Reliable payouts" },
+  { value: "No cap", label: "On total earnings" },
+];
+
+const VALUE_PROPS = [
+  {
+    icon: TrendingUp,
+    title: "High-ticket commissions",
+    body: "Programs run from $10,000 to $54,000. A single referral can earn you up to $5,400 — far beyond typical affiliate payouts.",
+  },
+  {
+    icon: BadgeCheck,
+    title: "A brand executives trust",
+    body: "Chief AI Officer is where leaders go to build a real AI strategy. You're introducing people to something they'll thank you for.",
+  },
+  {
+    icon: Handshake,
+    title: "You just make the intro",
+    body: "Share your link or introduce a prospect directly. We handle the sale, onboarding, and delivery — you earn on the outcome.",
+  },
+];
+
 const STEPS = [
   {
     icon: Award,
     title: "Apply & get your link",
     description:
-      "Fill out a short application. Once approved you'll receive a unique referral link with a 60-day attribution cookie.",
+      "Complete a short application. Once approved, you receive a unique referral link with a 60-day attribution window.",
   },
   {
     icon: Link2,
-    title: "Share it",
+    title: "Share it or introduce",
     description:
-      "Send your link to executives, board members, and leadership teams who are ready to build an AI strategy.",
+      "Send your link to executives and boards, or introduce a prospect directly for the enterprise engagements.",
   },
   {
     icon: DollarSign,
     title: "Earn 10% on first purchase",
     description:
-      "When a new customer completes their first purchase through your link, you earn 10% of the program list price — paid Net-45.",
+      "When a new customer makes their first purchase, you earn 10% — paid Net-45 once the refund window closes.",
   },
 ];
 
 const KEY_TERMS = [
+  { icon: TrendingUp, label: "Commission", value: "10% on first purchase" },
   { icon: Clock, label: "Cookie window", value: "60 days" },
   { icon: Users, label: "Eligible customers", value: "New customers only" },
-  { icon: TrendingUp, label: "Commission", value: "10% on first purchase" },
-  { icon: DollarSign, label: "Payout terms", value: "Net-45" },
-  { icon: ShieldCheck, label: "Minimum payout", value: "$100" },
-  { icon: CheckCircle, label: "Payout methods", value: "ACH or Zelle" },
+  { icon: DollarSign, label: "Payout terms", value: "Net-45, monthly" },
+  { icon: ShieldCheck, label: "Minimum payout", value: "$100 (rolls over)" },
+  { icon: BadgeCheck, label: "Payout methods", value: "ACH or Zelle" },
 ];
 
 const FAQS = [
   {
     q: "How does attribution work?",
-    a: "When someone clicks your referral link, a 60-day cookie is set in their browser. If they purchase any CAIO program within that window, the conversion is attributed to you. Direct introductions (warm handoffs) are also tracked manually by our team.",
+    a: "When someone clicks your referral link, a 60-day cookie is set. If they purchase any eligible CAIO program within that window, the conversion is attributed to you. For enterprise deals, a documented direct introduction — logged before any proposal — is tracked the same way.",
   },
   {
     q: "When do I get paid?",
-    a: "Commission is earned after the 30-day refund window closes. Payment is issued Net-45 from the purchase date via ACH or Zelle. The minimum payout threshold is $100.",
+    a: "A commission becomes earned once the 7-day refund window passes without a refund or chargeback. Earned commissions are paid Net-45 after the end of the month, via ACH or Zelle. Balances under the $100 minimum roll forward to the next cycle.",
+  },
+  {
+    q: "Who counts as a referral?",
+    a: "Commission is paid on the first purchase by a genuinely new customer — someone with no prior CAIO purchase. Renewals, upgrades, and expansions by existing customers are not commissionable.",
   },
   {
     q: "What tax forms are required?",
-    a: "U.S. partners must submit a W-9 before their first payout. International partners must submit a W-8BEN (individuals) or W-8BEN-E (entities). We cannot process payouts until a valid tax form is on file.",
+    a: "U.S. partners submit a W-9 before their first payout; international partners submit a W-8BEN (individuals) or W-8BEN-E (entities). We can't issue a payout until a valid form is on file.",
   },
   {
     q: "Which programs are eligible?",
-    a: "All six CAIO programs are eligible. Sales-led programs (Strategic Oversight, Embedded Fractional CAIO) require a qualified introduction and a deal closed by our team — commission is paid on confirmed closed deals.",
+    a: "All six CAIO programs. The self-serve programs are purchased directly through your link; the sales-led engagements (Strategic Oversight, Embedded Fractional CAIO) are attributed through a qualified introduction and paid when our team closes the deal.",
   },
 ];
 
 export default function PartnersLandingPage() {
   return (
-    <div className="min-h-screen bg-white font-sans antialiased">
-      {/* ─── Nav bar ─── */}
-      <header className="sticky top-0 z-50 border-b border-indigo-100 bg-white/90 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <span className="text-lg font-bold tracking-tight text-[#1e1b4b]">
-            Chief AI Officer
-          </span>
-          <div className="flex items-center gap-4">
+    <div className="min-h-screen bg-white font-sans text-slate-900 antialiased">
+      {/* ─── Nav ─── */}
+      <header className="sticky top-0 z-50 border-b border-slate-100 bg-white/80 backdrop-blur-md">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3.5">
+          <Link href="/partners" className="flex items-center gap-2.5">
+            <Image
+              src="/caio-logo-black.png"
+              alt="Chief AI Officer"
+              width={512}
+              height={512}
+              className="h-8 w-8"
+              priority
+            />
+            <span className="text-base font-semibold tracking-tight text-slate-900">
+              Chief AI Officer
+            </span>
+          </Link>
+          <div className="flex items-center gap-5">
             <Link
               href="/partners/resources"
-              className="hidden text-sm font-medium text-slate-600 hover:text-[#4f46e5] sm:inline"
+              className="hidden text-sm font-medium text-slate-600 transition hover:text-[#4f46e5] sm:inline"
             >
               Resources
             </Link>
             <Link
               href="/partners/apply"
-              className="rounded-lg bg-[#4f46e5] px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#4338ca] focus:outline-none focus:ring-2 focus:ring-[#4f46e5] focus:ring-offset-2"
+              className="rounded-full bg-[#4f46e5] px-5 py-2 text-sm font-semibold text-white shadow-sm shadow-indigo-600/20 transition hover:bg-[#4338ca]"
             >
               Apply now
             </Link>
@@ -135,79 +153,136 @@ export default function PartnersLandingPage() {
       </header>
 
       {/* ─── Hero ─── */}
-      <section className="relative overflow-hidden bg-[#1e1b4b] py-24 text-white">
-        {/* subtle radial gradient accent */}
+      <section className="relative overflow-hidden bg-[#1e1b4b] text-white">
+        {/* layered gradient mesh */}
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 opacity-30"
+          className="pointer-events-none absolute inset-0"
           style={{
             background:
-              "radial-gradient(ellipse 80% 60% at 50% -10%, #4f46e5 0%, transparent 70%)",
+              "radial-gradient(60% 50% at 50% -5%, rgba(99,102,241,0.55) 0%, transparent 60%), radial-gradient(45% 45% at 85% 20%, rgba(79,70,229,0.35) 0%, transparent 60%), radial-gradient(40% 50% at 10% 30%, rgba(67,56,202,0.30) 0%, transparent 60%)",
           }}
         />
-        <div className="relative mx-auto max-w-4xl px-6 text-center">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-indigo-400/30 bg-indigo-500/10 px-4 py-1.5 text-sm font-medium text-indigo-300">
-            <Award className="h-4 w-4" />
-            Partner Program
+        {/* faint grid */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-[0.07]"
+          style={{
+            backgroundImage:
+              "linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px)",
+            backgroundSize: "56px 56px",
+            maskImage:
+              "radial-gradient(ellipse 70% 70% at 50% 30%, black 30%, transparent 75%)",
+          }}
+        />
+
+        <div className="relative mx-auto max-w-4xl px-6 pb-24 pt-20 text-center sm:pt-24">
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-indigo-300/25 bg-indigo-400/10 px-4 py-1.5 text-sm font-medium text-indigo-200">
+            <Sparkles className="h-3.5 w-3.5" />
+            CAIO Partner Program
           </div>
-          <h1 className="mt-4 text-4xl font-extrabold leading-tight tracking-tight sm:text-5xl lg:text-6xl">
-            Earn 10% referring leaders
-            <br />
-            <span className="text-indigo-400">to CAIO</span>
+          <h1 className="text-balance text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-6xl">
+            Earn 10% introducing leaders to{" "}
+            <span className="bg-gradient-to-r from-indigo-300 to-violet-400 bg-clip-text text-transparent">
+              Chief AI Officer
+            </span>
           </h1>
-          <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-indigo-200">
-            Introduce executives and board members to the Chief AI Officer
-            programs. Earn up to{" "}
-            <span className="font-semibold text-white">$5,400 per referral</span>{" "}
-            with a 60-day cookie, Net-45 payouts, and no cap on earnings.
+          <p className="mx-auto mt-6 max-w-2xl text-pretty text-lg leading-relaxed text-indigo-200/90">
+            Introduce executives and boards to the programs shaping how
+            companies adopt AI — and earn up to{" "}
+            <span className="font-semibold text-white">$5,400 per referral</span>,
+            with a 60-day cookie and Net-45 payouts.
           </p>
-          <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+          <div className="mt-9 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
             <Link
               href="/partners/apply"
-              className="inline-flex items-center gap-2 rounded-lg bg-[#4f46e5] px-8 py-3.5 text-base font-semibold text-white shadow-lg transition hover:bg-[#4338ca]"
+              className="group inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-base font-semibold text-[#1e1b4b] shadow-lg shadow-black/20 transition hover:bg-indigo-50"
             >
-              Apply to become a partner
-              <ChevronRight className="h-4 w-4" />
+              Become a partner
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
             </Link>
             <a
               href="#programs"
-              className="inline-flex items-center gap-2 rounded-lg border border-white/20 px-8 py-3.5 text-base font-semibold text-white transition hover:bg-white/5"
+              className="inline-flex items-center gap-2 rounded-full border border-white/20 px-7 py-3.5 text-base font-semibold text-white transition hover:bg-white/5"
             >
-              View commission table
+              See what you earn
             </a>
+          </div>
+
+          {/* stat strip */}
+          <div className="mx-auto mt-16 grid max-w-3xl grid-cols-2 gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/10 sm:grid-cols-4">
+            {STATS.map((s) => (
+              <div key={s.label} className="bg-[#1e1b4b]/60 px-5 py-5 backdrop-blur">
+                <div className="text-2xl font-bold text-white">{s.value}</div>
+                <div className="mt-1 text-[11px] font-medium uppercase tracking-wide text-indigo-300/80">
+                  {s.label}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Why partner ─── */}
+      <section className="bg-white py-24">
+        <div className="mx-auto max-w-6xl px-6">
+          <div className="mx-auto mb-14 max-w-2xl text-center">
+            <h2 className="text-3xl font-bold tracking-tight text-[#1e1b4b] sm:text-4xl">
+              Built for serious referrers
+            </h2>
+            <p className="mt-4 text-lg text-slate-500">
+              High-value programs, a brand executives respect, and a process
+              that does the heavy lifting for you.
+            </p>
+          </div>
+          <div className="grid gap-6 md:grid-cols-3">
+            {VALUE_PROPS.map((v) => {
+              const Icon = v.icon;
+              return (
+                <div
+                  key={v.title}
+                  className="rounded-2xl border border-slate-100 bg-gradient-to-b from-white to-slate-50/60 p-8 shadow-sm transition hover:border-indigo-200 hover:shadow-md"
+                >
+                  <div className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-600/10 ring-1 ring-inset ring-indigo-600/20">
+                    <Icon className="h-6 w-6 text-[#4f46e5]" />
+                  </div>
+                  <h3 className="text-lg font-bold text-[#1e1b4b]">{v.title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-600">
+                    {v.body}
+                  </p>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
 
       {/* ─── How it works ─── */}
-      <section className="bg-white py-20">
+      <section className="bg-[#f7f6fe] py-24">
         <div className="mx-auto max-w-6xl px-6">
-          <div className="mb-12 text-center">
-            <h2 className="text-3xl font-bold tracking-tight text-[#1e1b4b]">
-              How it works
+          <div className="mx-auto mb-14 max-w-2xl text-center">
+            <h2 className="text-3xl font-bold tracking-tight text-[#1e1b4b] sm:text-4xl">
+              From intro to payout in three steps
             </h2>
-            <p className="mt-3 text-base text-gray-500">
-              Three steps from application to your first payout.
-            </p>
           </div>
-          <div className="grid gap-8 sm:grid-cols-3">
+          <div className="relative grid gap-8 sm:grid-cols-3">
+            {/* connecting line */}
+            <div
+              aria-hidden
+              className="absolute left-0 right-0 top-[34px] hidden border-t border-dashed border-indigo-200 sm:block"
+            />
             {STEPS.map((step, i) => {
               const Icon = step.icon;
               return (
-                <div
-                  key={step.title}
-                  className="relative rounded-2xl border border-gray-100 bg-gray-50 p-8 shadow-sm"
-                >
-                  <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-50">
-                    <Icon className="h-6 w-6 text-[#4f46e5]" />
+                <div key={step.title} className="relative text-center sm:text-left">
+                  <div className="relative z-10 mx-auto mb-5 flex h-[68px] w-[68px] items-center justify-center rounded-2xl border border-indigo-100 bg-white shadow-sm sm:mx-0">
+                    <Icon className="h-7 w-7 text-[#4f46e5]" />
+                    <span className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-[#4f46e5] text-xs font-bold text-white shadow">
+                      {i + 1}
+                    </span>
                   </div>
-                  <span className="mb-2 block text-xs font-semibold uppercase tracking-widest text-indigo-400">
-                    Step {i + 1}
-                  </span>
-                  <h3 className="mb-2 text-lg font-bold text-[#1e1b4b]">
-                    {step.title}
-                  </h3>
-                  <p className="text-sm leading-relaxed text-gray-600">
+                  <h3 className="text-lg font-bold text-[#1e1b4b]">{step.title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-600">
                     {step.description}
                   </p>
                 </div>
@@ -218,52 +293,48 @@ export default function PartnersLandingPage() {
       </section>
 
       {/* ─── Commission table ─── */}
-      <section id="programs" className="bg-[#f8f7ff] py-20">
-        <div className="mx-auto max-w-6xl px-6">
-          <div className="mb-12 text-center">
-            <h2 className="text-3xl font-bold tracking-tight text-[#1e1b4b]">
-              Commission schedule
+      <section id="programs" className="bg-white py-24">
+        <div className="mx-auto max-w-5xl px-6">
+          <div className="mx-auto mb-14 max-w-2xl text-center">
+            <h2 className="text-3xl font-bold tracking-tight text-[#1e1b4b] sm:text-4xl">
+              What you earn
             </h2>
-            <p className="mt-3 text-base text-gray-500">
-              10% flat rate on the program list price for every new customer you
-              refer.
+            <p className="mt-4 text-lg text-slate-500">
+              A flat 10% on every new-customer first purchase. No tiers, no
+              decoding.
             </p>
           </div>
-          <div className="overflow-hidden rounded-2xl border border-indigo-100 bg-white shadow-sm">
-            <table className="w-full text-sm">
+
+          <div className="overflow-hidden rounded-2xl border border-slate-200 shadow-sm shadow-indigo-100/50">
+            <table className="w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-indigo-50 bg-[#1e1b4b] text-left text-xs font-semibold uppercase tracking-wider text-indigo-200">
+                <tr className="bg-[#1e1b4b] text-xs font-semibold uppercase tracking-wider text-indigo-200">
                   <th className="px-6 py-4">Program</th>
-                  <th className="px-6 py-4 text-right">List value</th>
-                  <th className="px-6 py-4 text-right">Your commission (10%)</th>
-                  <th className="px-6 py-4 text-center">Type</th>
+                  <th className="px-6 py-4 text-right">Engagement value</th>
+                  <th className="px-6 py-4 text-right">Your commission</th>
+                  <th className="hidden px-6 py-4 text-center sm:table-cell">How it&apos;s referred</th>
                 </tr>
               </thead>
-              <tbody>
-                {PROGRAMS.map((p, i) => (
-                  <tr
-                    key={p.name}
-                    className={
-                      i % 2 === 0 ? "bg-white" : "bg-[#f8f7ff]"
-                    }
-                  >
-                    <td className="px-6 py-4 font-medium text-[#1e1b4b]">
+              <tbody className="divide-y divide-slate-100">
+                {PROGRAMS.map((p) => (
+                  <tr key={p.name} className="bg-white transition hover:bg-indigo-50/40">
+                    <td className="px-6 py-4 font-semibold text-[#1e1b4b]">
                       {p.name}
                     </td>
-                    <td className="px-6 py-4 text-right text-gray-700">
-                      {usd(p.listValue * 100)}
+                    <td className="px-6 py-4 text-right tabular-nums text-slate-600">
+                      {usd(p.listValue)}
                     </td>
-                    <td className="px-6 py-4 text-right font-semibold text-[#4f46e5]">
-                      {usd(p.commission * 100)}
+                    <td className="px-6 py-4 text-right text-base font-bold tabular-nums text-[#4f46e5]">
+                      {usd(p.commission)}
                     </td>
-                    <td className="px-6 py-4 text-center">
+                    <td className="hidden px-6 py-4 text-center sm:table-cell">
                       {p.salesLed ? (
-                        <span className="inline-block rounded-full bg-amber-50 px-3 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-amber-200">
-                          Sales-led
+                        <span className="inline-block rounded-full bg-amber-50 px-3 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-200">
+                          Introduction
                         </span>
                       ) : (
-                        <span className="inline-block rounded-full bg-green-50 px-3 py-0.5 text-xs font-medium text-green-700 ring-1 ring-green-200">
-                          Self-serve
+                        <span className="inline-block rounded-full bg-emerald-50 px-3 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200">
+                          Referral link
                         </span>
                       )}
                     </td>
@@ -272,19 +343,19 @@ export default function PartnersLandingPage() {
               </tbody>
             </table>
           </div>
-          <p className="mt-4 text-center text-xs text-gray-400">
-            Sales-led programs require a qualified introduction and a deal closed
-            by the CAIO team.
+          <p className="mt-4 text-center text-xs text-slate-400">
+            “Introduction” programs are enterprise engagements — attribute them
+            with a documented intro and we close the deal together.
           </p>
         </div>
       </section>
 
       {/* ─── Key terms ─── */}
-      <section className="bg-white py-20">
-        <div className="mx-auto max-w-6xl px-6">
-          <div className="mb-12 text-center">
-            <h2 className="text-3xl font-bold tracking-tight text-[#1e1b4b]">
-              Key terms at a glance
+      <section className="bg-[#f7f6fe] py-24">
+        <div className="mx-auto max-w-5xl px-6">
+          <div className="mx-auto mb-14 max-w-2xl text-center">
+            <h2 className="text-3xl font-bold tracking-tight text-[#1e1b4b] sm:text-4xl">
+              The terms, in plain sight
             </h2>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -293,13 +364,13 @@ export default function PartnersLandingPage() {
               return (
                 <div
                   key={term.label}
-                  className="flex items-start gap-4 rounded-xl border border-gray-100 bg-gray-50 p-5"
+                  className="flex items-start gap-4 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm"
                 >
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-50">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600/10 ring-1 ring-inset ring-indigo-600/15">
                     <Icon className="h-5 w-5 text-[#4f46e5]" />
                   </div>
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                       {term.label}
                     </p>
                     <p className="mt-0.5 text-base font-semibold text-[#1e1b4b]">
@@ -314,72 +385,100 @@ export default function PartnersLandingPage() {
       </section>
 
       {/* ─── FAQ ─── */}
-      <section className="bg-[#f8f7ff] py-20">
-        <div className="mx-auto max-w-4xl px-6">
-          <div className="mb-12 text-center">
-            <h2 className="text-3xl font-bold tracking-tight text-[#1e1b4b]">
-              Frequently asked questions
+      <section className="bg-white py-24">
+        <div className="mx-auto max-w-3xl px-6">
+          <div className="mb-14 text-center">
+            <h2 className="text-3xl font-bold tracking-tight text-[#1e1b4b] sm:text-4xl">
+              Questions, answered
             </h2>
           </div>
-          <div className="space-y-4">
+          <div className="divide-y divide-slate-100 rounded-2xl border border-slate-100 bg-white shadow-sm">
             {FAQS.map((faq) => (
-              <div
-                key={faq.q}
-                className="rounded-xl border border-indigo-100 bg-white p-6 shadow-sm"
-              >
-                <div className="flex items-start gap-3">
-                  <HelpCircle className="mt-0.5 h-5 w-5 shrink-0 text-[#4f46e5]" />
-                  <div>
-                    <p className="font-semibold text-[#1e1b4b]">{faq.q}</p>
-                    <p className="mt-2 text-sm leading-relaxed text-gray-600">
-                      {faq.a}
-                    </p>
-                  </div>
-                </div>
-              </div>
+              <details key={faq.q} className="group px-6 py-5 [&_summary::-webkit-details-marker]:hidden">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold text-[#1e1b4b]">
+                  {faq.q}
+                  <ChevronRight className="h-4 w-4 shrink-0 text-[#4f46e5] transition-transform group-open:rotate-90" />
+                </summary>
+                <p className="mt-3 text-sm leading-relaxed text-slate-600">
+                  {faq.a}
+                </p>
+              </details>
             ))}
           </div>
         </div>
       </section>
 
       {/* ─── Final CTA ─── */}
-      <section className="bg-[#1e1b4b] py-20 text-center text-white">
-        <div className="mx-auto max-w-2xl px-6">
-          <h2 className="text-3xl font-bold tracking-tight">
-            Ready to start earning?
+      <section className="relative overflow-hidden bg-[#1e1b4b] py-24 text-center text-white">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(50% 80% at 50% 120%, rgba(99,102,241,0.5) 0%, transparent 60%)",
+          }}
+        />
+        <div className="relative mx-auto max-w-2xl px-6">
+          <Image
+            src="/caio-logo-white.png"
+            alt="Chief AI Officer"
+            width={512}
+            height={512}
+            className="mx-auto mb-6 h-12 w-12 opacity-95"
+          />
+          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+            Start earning with your network
           </h2>
-          <p className="mt-4 text-lg text-indigo-200">
-            Apply in minutes. Once approved, you&apos;ll receive your unique
-            referral link and can start earning the same day.
+          <p className="mx-auto mt-4 max-w-lg text-lg text-indigo-200">
+            Apply in minutes. Once approved, your referral link is live the same
+            day — and there&apos;s no cap on what you can earn.
           </p>
           <Link
             href="/partners/apply"
-            className="mt-8 inline-flex items-center gap-2 rounded-lg bg-[#4f46e5] px-8 py-3.5 text-base font-semibold text-white shadow-lg transition hover:bg-[#4338ca]"
+            className="mt-8 inline-flex items-center gap-2 rounded-full bg-white px-8 py-3.5 text-base font-semibold text-[#1e1b4b] shadow-lg shadow-black/20 transition hover:bg-indigo-50"
           >
-            Apply to the partner program
-            <ChevronRight className="h-4 w-4" />
+            Apply to the Partner Program
+            <ArrowRight className="h-4 w-4" />
           </Link>
-          <p className="mt-4 text-xs text-indigo-400">
-            No cost to join. Application review within 2 business days.
+          <p className="mt-4 text-xs text-indigo-300/80">
+            No cost to join · Applications reviewed within 2 business days
           </p>
         </div>
       </section>
 
       {/* ─── Footer ─── */}
-      <footer className="border-t border-gray-100 bg-white py-8 text-center text-xs text-gray-400">
-        <p>
-          &copy; {new Date().getFullYear()} Chief AI Officer. All rights
-          reserved.
-        </p>
-        <p className="mt-1">
-          Questions?{" "}
-          <a
-            href="mailto:partners@chiefaiofficer.com"
-            className="text-[#4f46e5] hover:underline"
-          >
-            partners@chiefaiofficer.com
-          </a>
-        </p>
+      <footer className="border-t border-slate-100 bg-white">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 py-8 sm:flex-row">
+          <div className="flex items-center gap-2.5">
+            <Image
+              src="/caio-logo-black.png"
+              alt="Chief AI Officer"
+              width={512}
+              height={512}
+              className="h-6 w-6"
+            />
+            <span className="text-sm font-semibold text-slate-700">
+              Chief AI Officer
+            </span>
+          </div>
+          <div className="flex items-center gap-6 text-sm text-slate-500">
+            <Link href="/partners/resources" className="transition hover:text-[#4f46e5]">
+              Resources
+            </Link>
+            <Link href="/partners/apply" className="transition hover:text-[#4f46e5]">
+              Apply
+            </Link>
+            <a
+              href="mailto:partners@chiefaiofficer.com"
+              className="transition hover:text-[#4f46e5]"
+            >
+              partners@chiefaiofficer.com
+            </a>
+          </div>
+        </div>
+        <div className="border-t border-slate-50 py-4 text-center text-xs text-slate-400">
+          &copy; {new Date().getFullYear()} Chief AI Officer. All rights reserved.
+        </div>
       </footer>
     </div>
   );
