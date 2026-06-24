@@ -11,7 +11,10 @@
 // =============================================================
 
 import { NextRequest, NextResponse } from "next/server";
-import { generatePayoutBatch } from "@/lib/partners/payouts";
+import {
+  generatePayoutBatch,
+  releaseBatchViaConnect,
+} from "@/lib/partners/payouts";
 import { getActiveSettings } from "@/lib/partners/queries";
 
 export const dynamic = "force-dynamic";
@@ -44,7 +47,21 @@ export async function GET(request: NextRequest) {
 
     const period = now.getUTCFullYear() * 100 + (now.getUTCMonth() + 1);
     const result = await generatePayoutBatch(period, null);
-    return NextResponse.json({ ok: true, ...result });
+
+    // Auto-pay Connect-ready affiliates in the freshly generated batch. Wrapped
+    // so a Stripe outage (or Connect not yet enabled) never fails the cron —
+    // non-connected affiliates remain 'earned' for the manual ACH export.
+    let connect = null;
+    try {
+      connect = await releaseBatchViaConnect(result.batchId);
+    } catch (err) {
+      console.error(
+        "[cron/auto-generate-payouts] connect release failed:",
+        err,
+      );
+    }
+
+    return NextResponse.json({ ok: true, ...result, connect });
   } catch (err) {
     // "No partners are eligible" is an expected no-op outcome, not a failure.
     const message = err instanceof Error ? err.message : "failed";

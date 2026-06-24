@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -38,6 +39,12 @@ export interface DisputeRow {
   status: string;
   resolution: string | null;
   decidedAt: string | null;
+}
+
+export interface ProgramOption {
+  id: string;
+  name: string;
+  listValueCents: number;
 }
 
 type Decision = "upheld" | "denied" | "closed";
@@ -79,8 +86,10 @@ function shortId(id: string | null): string {
 
 export function DisputesClient({
   initialDisputes,
+  programs,
 }: {
   initialDisputes: DisputeRow[];
+  programs: ProgramOption[];
 }) {
   const router = useRouter();
   const [rows, setRows] = useState(initialDisputes);
@@ -88,6 +97,8 @@ export function DisputesClient({
   const [decision, setDecision] = useState<Decision>("upheld");
   const [resolution, setResolution] = useState("");
   const [saving, setSaving] = useState(false);
+  const [creditProgramId, setCreditProgramId] = useState("");
+  const [creditAmount, setCreditAmount] = useState("");
 
   const openCount = rows.filter((r) => r.status === "open").length;
 
@@ -95,16 +106,39 @@ export function DisputesClient({
     setActive(r);
     setDecision("upheld");
     setResolution(r.resolution ?? "");
+    setCreditProgramId("");
+    setCreditAmount("");
   };
 
   const handleDecide = async () => {
     if (!active) return;
+
+    const payload: {
+      status: Decision;
+      resolution: string | null;
+      creditProgramId?: string;
+      creditGrossCents?: number;
+    } = { status: decision, resolution: resolution || null };
+
+    // Inline credit is only offered when upholding with a program + amount.
+    let creditedCents: number | null = null;
+    if (decision === "upheld" && creditProgramId && creditAmount.trim()) {
+      const dollars = Number(creditAmount);
+      if (!Number.isFinite(dollars) || dollars < 0) {
+        toast.error("Enter a valid credit amount");
+        return;
+      }
+      creditedCents = Math.round(dollars * 100);
+      payload.creditProgramId = creditProgramId;
+      payload.creditGrossCents = creditedCents;
+    }
+
     setSaving(true);
     try {
       const res = await fetch(`/api/partners/disputes/${active.id}/decide`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: decision, resolution: resolution || null }),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -124,7 +158,11 @@ export function DisputesClient({
             : r,
         ),
       );
-      toast.success(`Dispute marked ${decision}`);
+      toast.success(
+        creditedCents != null
+          ? `Dispute upheld — commission credited`
+          : `Dispute marked ${decision}`,
+      );
       setActive(null);
       router.refresh();
     } finally {
@@ -310,6 +348,65 @@ export function DisputesClient({
                   rows={4}
                 />
               </div>
+
+              {decision === "upheld" && (
+                <div className="space-y-3 rounded-md border border-indigo-100 bg-indigo-50/50 p-3">
+                  <div>
+                    <Label className="text-sm font-medium text-zinc-800">
+                      Credit this affiliate{" "}
+                      <span className="font-normal text-zinc-500">
+                        (optional)
+                      </span>
+                    </Label>
+                    <p className="mt-0.5 text-xs text-zinc-500">
+                      Creates an earned commission that appears in Events and the
+                      next payout — no manual entry needed.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label
+                        htmlFor="credit-program"
+                        className="text-xs uppercase tracking-wide text-zinc-500"
+                      >
+                        Program
+                      </Label>
+                      <Select
+                        value={creditProgramId}
+                        onValueChange={(v) => setCreditProgramId(v ?? "")}
+                      >
+                        <SelectTrigger id="credit-program">
+                          <SelectValue placeholder="Select a program…" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {programs.map((p) => (
+                            <SelectItem key={p.id} value={p.id}>
+                              {p.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label
+                        htmlFor="credit-amount"
+                        className="text-xs uppercase tracking-wide text-zinc-500"
+                      >
+                        Gross amount ($)
+                      </Label>
+                      <Input
+                        id="credit-amount"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="0.00"
+                        value={creditAmount}
+                        onChange={(e) => setCreditAmount(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

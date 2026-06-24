@@ -8,6 +8,7 @@ import { put } from "@vercel/blob";
 import { db } from "@/lib/db";
 import { partners } from "@/lib/db/schema";
 import { sendEmail } from "@/lib/email/sender";
+import { renderBrandedEmail, emailButton } from "@/lib/email/template";
 
 export const maxDuration = 60;
 
@@ -204,10 +205,7 @@ export async function POST(request: NextRequest) {
     : `${reviewBase}/partner-program/applications`;
 
   // (a) Confirmation to the applicant
-  await sendEmail({
-    to: email,
-    subject: "We received your Chief AI Officer affiliate application",
-    html: `
+  const applicantContentHtml = `
       <p>Hi ${body.firstName},</p>
       <p>Thank you for applying to the Chief AI Officer Affiliate Program! We review every application personally and will be in touch within 3 business days.</p>
       <p>Here's a quick recap of what to expect:</p>
@@ -218,15 +216,22 @@ export async function POST(request: NextRequest) {
       </ul>
       <p>If you have any questions in the meantime, feel free to reply to this email.</p>
       <p>— The Chief AI Officer Team</p>
-    `,
+    `;
+  await sendEmail({
+    to: email,
+    subject: "We received your Chief AI Officer affiliate application",
+    html: renderBrandedEmail({
+      heading: "We received your application",
+      contentHtml: applicantContentHtml,
+      preheader:
+        "We review every application personally — expect to hear back within 3 business days.",
+    }),
     plain: `Hi ${body.firstName},\n\nThank you for applying to the Chief AI Officer Affiliate Program! We review every application personally and will be in touch within 3 business days.\n\nQuick overview:\n- 10% flat commission on every closed deal\n- 60-day cookie window\n- Net-45 payouts via ACH or Zelle\n\nQuestions? Just reply to this email.\n\n— The Chief AI Officer Team`,
   });
 
   // (b) Admin notification
-  await sendEmail({
-    to: adminAddress,
-    subject: `New affiliate application: ${name}`,
-    html: `
+  const reviewLink = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://chiefaiofficer.com"}/partner-program/applications`;
+  const adminContentHtml = `
       <p>A new affiliate application was submitted.</p>
       <table style="border-collapse:collapse;font-size:14px;">
         <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Name</td><td>${name}</td></tr>
@@ -236,9 +241,17 @@ export async function POST(request: NextRequest) {
         <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Audience size</td><td>${body.audienceSize}</td></tr>
         <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Tax form</td><td><a href="${taxLink}">${file.name}</a></td></tr>
       </table>
-      <p><a href="${process.env.NEXT_PUBLIC_APP_URL ?? "https://chiefaiofficer.com"}/partner-program/applications">Review in Motherboard →</a></p>
-    `,
-    plain: `New affiliate application\n\nName: ${name}\nEmail: ${email}\nLocation: ${body.city}, ${body.state}, ${body.country}\nHeard via: ${body.howDidYouHear}\nAudience size: ${body.audienceSize}\nTax form: ${taxLink}\n\nReview: ${process.env.NEXT_PUBLIC_APP_URL ?? "https://chiefaiofficer.com"}/partner-program/applications`,
+      ${emailButton("Review in Motherboard →", reviewLink)}
+    `;
+  await sendEmail({
+    to: adminAddress,
+    subject: `New affiliate application: ${name}`,
+    html: renderBrandedEmail({
+      heading: "New affiliate application",
+      contentHtml: adminContentHtml,
+      preheader: `${name} just applied to the affiliate program.`,
+    }),
+    plain: `New affiliate application\n\nName: ${name}\nEmail: ${email}\nLocation: ${body.city}, ${body.state}, ${body.country}\nHeard via: ${body.howDidYouHear}\nAudience size: ${body.audienceSize}\nTax form: ${taxLink}\n\nReview: ${reviewLink}`,
   });
 
   return NextResponse.json({ ok: true });

@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { partners } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { sendEmail } from "@/lib/email/sender";
+import { renderBrandedEmail, emailButton } from "@/lib/email/template";
 
 const TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
@@ -47,18 +48,20 @@ export async function sendPortalPasswordEmail(
       ? "Your CAIO affiliate account is approved. Set a password to access your portal — your referral link, earnings, and payouts."
       : "We received a request to reset your CAIO affiliate portal password. Use the link below to set a new one.";
 
-  const html = `<!DOCTYPE html><html><body style="margin:0;background:#f4f4f5;font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#18181b;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:40px 16px;"><tr><td align="center">
-    <table width="100%" style="max-width:520px;background:#fff;border-radius:12px;overflow:hidden;">
-      <tr><td style="background:#1e1b4b;padding:22px 32px;color:#fff;font-size:16px;font-weight:600;">Chief AI Officer · Affiliate Program</td></tr>
-      <tr><td style="padding:32px;">
-        <h1 style="margin:0 0 14px;font-size:20px;">Hi ${escapeHtml(partner.name)},</h1>
-        <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:#3f3f46;">${intro}</p>
-        <a href="${url}" style="display:inline-block;background:#4f46e5;color:#fff;padding:13px 26px;border-radius:8px;font-weight:600;text-decoration:none;font-size:15px;">${kind === "welcome" ? "Set your password" : "Reset password"} →</a>
-        <p style="margin:24px 0 0;font-size:12px;color:#a1a1aa;line-height:1.6;">This link is valid for 7 days. If you weren't expecting it, you can ignore this email.</p>
-      </td></tr>
-    </table>
-  </td></tr></table></body></html>`;
+  const buttonLabel = kind === "welcome" ? "Set your password" : "Reset password";
+  const contentHtml = `
+        <p>Hi ${escapeHtml(partner.name)},</p>
+        <p>${intro}</p>
+        ${emailButton(`${buttonLabel} →`, url)}
+        <p style="margin-top:24px;font-size:12px;color:#a1a1aa;line-height:1.6;">This link is valid for 7 days. If you weren't expecting it, you can ignore this email.</p>`;
+  const html = renderBrandedEmail({
+    heading: kind === "welcome" ? "Set up your portal" : "Reset your password",
+    contentHtml,
+    preheader:
+      kind === "welcome"
+        ? "Set a password to access your affiliate portal."
+        : "Set a new password — this link is valid for 7 days.",
+  });
 
   const plain = `Hi ${partner.name},\n\n${intro}\n\n${url}\n\nThis link is valid for 7 days.\n\n— Chief AI Officer Affiliate Program`;
 
@@ -75,20 +78,19 @@ export async function sendTempPasswordEmail(
   const intro =
     "Your CAIO affiliate account is approved. Use the temporary password below to sign in to your portal — your referral link, earnings, and payouts.";
 
-  const html = `<!DOCTYPE html><html><body style="margin:0;background:#f4f4f5;font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#18181b;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:40px 16px;"><tr><td align="center">
-    <table width="100%" style="max-width:520px;background:#fff;border-radius:12px;overflow:hidden;">
-      <tr><td style="background:#1e1b4b;padding:22px 32px;color:#fff;font-size:16px;font-weight:600;">Chief AI Officer · Affiliate Program</td></tr>
-      <tr><td style="padding:32px;">
-        <h1 style="margin:0 0 14px;font-size:20px;">Hi ${escapeHtml(partner.name)},</h1>
-        <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:#3f3f46;">${intro}</p>
+  const contentHtml = `
+        <p>Hi ${escapeHtml(partner.name)},</p>
+        <p>${intro}</p>
         <p style="margin:0 0 8px;font-size:13px;color:#71717a;">Your temporary password:</p>
         <p style="margin:0 0 20px;font-size:20px;font-weight:700;letter-spacing:0.5px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:#1e1b4b;">${escapeHtml(tempPassword)}</p>
-        <a href="${loginUrl}" style="display:inline-block;background:#4f46e5;color:#fff;padding:13px 26px;border-radius:8px;font-weight:600;text-decoration:none;font-size:15px;">Sign in to your portal →</a>
-        <p style="margin:24px 0 0;font-size:13px;color:#3f3f46;line-height:1.6;">You'll be asked to choose your own password on first sign-in.</p>
-      </td></tr>
-    </table>
-  </td></tr></table></body></html>`;
+        ${emailButton("Sign in to your portal →", loginUrl)}
+        <p style="margin-top:24px;font-size:13px;color:#3f3f46;line-height:1.6;">You'll be asked to choose your own password on first sign-in.</p>`;
+  const html = renderBrandedEmail({
+    heading: "Your portal password",
+    contentHtml,
+    preheader:
+      "Use the temporary password inside to sign in to your affiliate portal.",
+  });
 
   const plain = `Hi ${partner.name},\n\n${intro}\n\nYour temporary password: ${tempPassword}\n\nSign in: ${loginUrl}\n\nYou'll be asked to choose your own password on first sign-in.\n\n— Chief AI Officer Affiliate Program`;
 

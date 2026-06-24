@@ -256,6 +256,7 @@ function UploadDialog({
   onCreated: (r: ResourceItem) => void;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
+  const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("playbook");
@@ -264,7 +265,6 @@ function UploadDialog({
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    const file = fileRef.current?.files?.[0];
     if (!file) {
       toast.error("Choose a file");
       return;
@@ -295,6 +295,7 @@ function UploadDialog({
       onOpenChange(false);
       setTitle("");
       setDescription("");
+      setFile(null);
       if (fileRef.current) fileRef.current.value = "";
     } finally {
       setSubmitting(false);
@@ -314,7 +315,18 @@ function UploadDialog({
         <form onSubmit={submit} className="space-y-3">
           <div className="space-y-1.5">
             <Label htmlFor="res-file">File</Label>
-            <Input id="res-file" type="file" ref={fileRef} />
+            <input
+              id="res-file"
+              type="file"
+              ref={fileRef}
+              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              className="block w-full cursor-pointer text-sm text-foreground file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-zinc-900 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-white hover:file:bg-zinc-800"
+            />
+            {file && (
+              <p className="text-xs text-muted-foreground">
+                Selected: {file.name} ({Math.round(file.size / 1024)} KB)
+              </p>
+            )}
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="res-title">Title</Label>

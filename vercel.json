@@ -34,6 +34,10 @@
     {
       "path": "/api/cron/auto-generate-payouts",
       "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/sync-ghl-affiliates",
+      "schedule": "0 6 * * *"
     }
   ]
 }

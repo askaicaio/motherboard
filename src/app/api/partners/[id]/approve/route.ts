@@ -11,6 +11,7 @@ import { partners } from "@/lib/db/schema";
 import { requireRole } from "@/lib/auth/guard";
 import { generateRefCode } from "@/lib/partners/rules";
 import { sendEmail } from "@/lib/email/sender";
+import { renderBrandedEmail } from "@/lib/email/template";
 import { eq } from "drizzle-orm";
 
 /** Readable, URL-safe temporary password, e.g. "Caio-a1B2c3D4". */
@@ -109,7 +110,7 @@ export async function POST(
       <p><a href="${loginUrl}">Sign in to your portal →</a></p>
       <p>You'll be asked to choose your own password on first sign-in.</p>`;
 
-    const html = `
+    const contentHtml = `
       <p>Hi ${updated.name},</p>
       <p>Great news — your application to the CAIO Affiliate Program has been approved!</p>
       <p>Your personal referral link is:</p>
@@ -119,6 +120,13 @@ export async function POST(
       ${portalBlockHtml}
       <p>Welcome aboard,<br/>The CAIO Team</p>
     `.trim();
+
+    const html = renderBrandedEmail({
+      heading: "You're approved!",
+      contentHtml,
+      preheader:
+        "Your referral link and temporary portal password are inside.",
+    });
 
     const plain = [
       `Hi ${updated.name},`,

@@ -17,10 +17,12 @@ import { db } from "@/lib/db";
 import {
   partners,
   partnerConversions,
+  partnerConversionEvents,
   partnerPayoutBatches,
 } from "@/lib/db/schema";
 import { and, eq, isNull } from "drizzle-orm";
 import { getActiveSettings } from "./queries";
+import { getStripe } from "@/lib/integrations/stripe-client";
 
 const VALID_TAX_STATUSES = ["w9", "w8ben", "w8bene"];
 
@@ -250,4 +252,151 @@ export async function buildPayoutCsv(batchId: string): Promise<string> {
     );
   }
   return lines.join("\n");
+}
+
+export interface ConnectReleaseSummary {
+  /** Number of affiliates successfully paid via a Stripe transfer. */
+  released: number;
+  /** Total cents transferred across all successful affiliates. */
+  transferredCents: number;
+  /** Affiliates in the batch that weren't Connect-ready (left for manual ACH). */
+  skipped: number;
+  /** Per-affiliate failures — these rows stay 'earned' for manual handling. */
+  errors: Array<{ partnerId: string; email: string; error: string }>;
+}
+
+/**
+ * Pay every Connect-ready affiliate in a generated batch automatically via
+ * Stripe transfers. For each affiliate with stripeConnectStatus === 'ready'
+ * and a stripeConnectAccountId, we sum their earned conversions in the batch
+ * and push a single transfer to their connected account. On success the
+ * affiliate's conversions in the batch flip 'earned' -> 'paid' and an audit
+ * event is appended per conversion.
+ *
+ * Affiliates without Connect (no account / not ready) are SKIPPED and remain
+ * 'earned' so they're still handled by the manual ACH / CSV export flow.
+ *
+ * Per-affiliate try/catch — one failed transfer never aborts the others.
+ * Money is integer cents throughout, mirroring markBatchPaid.
+ */
+export async function releaseBatchViaConnect(
+  batchId: string,
+): Promise<ConnectReleaseSummary> {
+  const summary: ConnectReleaseSummary = {
+    released: 0,
+    transferredCents: 0,
+    skipped: 0,
+    errors: [],
+  };
+
+  // All earned conversions in this batch, joined to their partner's Connect state.
+  const rows = await db
+    .select({
+      conversionId: partnerConversions.id,
+      commissionCents: partnerConversions.commissionCents,
+      status: partnerConversions.status,
+      partnerId: partners.id,
+      email: partners.email,
+      connectAccountId: partners.stripeConnectAccountId,
+      connectStatus: partners.stripeConnectStatus,
+    })
+    .from(partnerConversions)
+    .innerJoin(partners, eq(partnerConversions.partnerId, partners.id))
+    .where(eq(partnerConversions.payoutBatchId, batchId));
+
+  // Aggregate the earned rows per partner.
+  interface ReleaseGroup {
+    partnerId: string;
+    email: string;
+    connectAccountId: string | null;
+    connectStatus: string;
+    amountCents: number;
+    conversionIds: string[];
+  }
+  const byPartner = new Map<string, ReleaseGroup>();
+  for (const r of rows) {
+    if (r.status !== "earned") continue; // only earned rows are payable
+    let g = byPartner.get(r.partnerId);
+    if (!g) {
+      g = {
+        partnerId: r.partnerId,
+        email: r.email,
+        connectAccountId: r.connectAccountId,
+        connectStatus: r.connectStatus,
+        amountCents: 0,
+        conversionIds: [],
+      };
+      byPartner.set(r.partnerId, g);
+    }
+    g.amountCents += r.commissionCents;
+    g.conversionIds.push(r.conversionId);
+  }
+
+  let stripe: ReturnType<typeof getStripe>;
+  try {
+    stripe = getStripe();
+  } catch {
+    // Stripe not configured at all — nothing can be auto-released. Treat every
+    // group as skipped so they fall through to manual ACH.
+    summary.skipped = byPartner.size;
+    return summary;
+  }
+
+  for (const g of byPartner.values()) {
+    // Not Connect-ready, or nothing to pay — leave for manual ACH.
+    if (
+      g.connectStatus !== "ready" ||
+      !g.connectAccountId ||
+      g.amountCents <= 0
+    ) {
+      summary.skipped += 1;
+      continue;
+    }
+
+    try {
+      await stripe.transfers.create({
+        amount: g.amountCents,
+        currency: "usd",
+        destination: g.connectAccountId,
+        transfer_group: `batch_${batchId}`,
+      });
+
+      // Transfer succeeded — flip this affiliate's earned conversions to paid
+      // and append an audit event per conversion. Re-assert status='earned' in
+      // the WHERE so a concurrent run can't double-pay.
+      const now = new Date();
+      await db.transaction(async (tx) => {
+        for (const cid of g.conversionIds) {
+          await tx
+            .update(partnerConversions)
+            .set({ status: "paid", updatedAt: now })
+            .where(
+              and(
+                eq(partnerConversions.id, cid),
+                eq(partnerConversions.status, "earned"),
+              ),
+            );
+          await tx.insert(partnerConversionEvents).values({
+            conversionId: cid,
+            eventType: "status_changed",
+            fromStatus: "earned",
+            toStatus: "paid",
+            details: { batchId, via: "stripe_connect" },
+          });
+        }
+      });
+
+      summary.released += 1;
+      summary.transferredCents += g.amountCents;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "transfer failed";
+      summary.errors.push({
+        partnerId: g.partnerId,
+        email: g.email,
+        error: message,
+      });
+    }
+  }
+
+  return summary;
 }

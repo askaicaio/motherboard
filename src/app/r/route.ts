@@ -22,7 +22,9 @@ import { AFF_COOKIE_NAME, encodeAffCookie } from "@/lib/partners/cookie";
 
 export const dynamic = "force-dynamic";
 
-const DEFAULT_DEST = "https://chiefaiofficer.com";
+const DEFAULT_DEST =
+  process.env.PARTNER_PROGRAM_BASE_URL?.replace(/\/$/, "") ||
+  "https://affiliates.chiefaiofficer.com";
 const ALLOWED_HOST_SUFFIXES = ["chiefaiofficer.com"];
 
 /** Allow only https URLs on an allowlisted host (plus localhost in dev). */

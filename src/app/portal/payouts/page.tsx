@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { partnerConversions, partnerPayoutBatches } from "@/lib/db/schema";
 import { and, eq, sql, desc, isNotNull } from "drizzle-orm";
 import { TaxFormClient } from "@/components/portal/tax-form-client";
+import { ConnectPayoutCard } from "./connect-client";
 import { ShieldCheck, AlertTriangle, Banknote, FileText } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -56,8 +57,14 @@ const METHOD_LABEL: Record<string, string> = {
 
 const VALID_TAX = ["w9", "w8ben", "w8bene"];
 
-export default async function PayoutsPage() {
+export default async function PayoutsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ connect?: string }>;
+}) {
   const partner = await requirePartner();
+  const { connect } = await searchParams;
+  const justReturned = connect === "done";
 
   // Batches this partner has been included in, with THIS partner's summed
   // commission per batch. Scoped to partner.id; only batched conversions.
@@ -208,7 +215,15 @@ export default async function PayoutsPage() {
         )}
       </section>
 
-      {/* Tax form + payout details */}
+      {/* Automatic payouts via Stripe Connect */}
+      <section className="mb-6">
+        <ConnectPayoutCard
+          initialStatus={partner.stripeConnectStatus ?? "none"}
+          justReturned={justReturned}
+        />
+      </section>
+
+      {/* Tax form + payout details — fallback for affiliates who don't connect */}
       <section className="rounded-2xl border border-slate-200 bg-white p-6">
         <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
           <div>

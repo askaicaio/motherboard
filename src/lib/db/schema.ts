@@ -1268,6 +1268,11 @@ export const partners = pgTable(
     /** Seeded/demo affiliate — badged "SAMPLE ONLY" and excluded from admin stats. */
     isSample: boolean("is_sample").notNull().default(false),
 
+    // ---- Stripe Connect (automatic payouts) ----
+    stripeConnectAccountId: text("stripe_connect_account_id"),
+    /** none | onboarding | ready | restricted */
+    stripeConnectStatus: text("stripe_connect_status").notNull().default("none"),
+
     appliedAt: timestamp("applied_at", { withTimezone: true })
       .defaultNow()
       .notNull(),

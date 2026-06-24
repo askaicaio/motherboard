@@ -2,8 +2,8 @@
 // (dispute LEFT JOIN partner) then hands off to the interactive client.
 
 import { db } from "@/lib/db";
-import { partnerDisputes, partners } from "@/lib/db/schema";
-import { desc, eq } from "drizzle-orm";
+import { partnerDisputes, partners, partnerPrograms } from "@/lib/db/schema";
+import { asc, desc, eq, isNull } from "drizzle-orm";
 import { requireAuth } from "@/lib/auth/guard";
 import { DisputesClient } from "@/components/partner-program/disputes-client";
 
@@ -30,8 +30,19 @@ export default async function DisputesPage() {
     .leftJoin(partners, eq(partnerDisputes.partnerId, partners.id))
     .orderBy(desc(partnerDisputes.submittedAt));
 
+  const programs = await db
+    .select({
+      id: partnerPrograms.id,
+      name: partnerPrograms.name,
+      listValueCents: partnerPrograms.listValueCents,
+    })
+    .from(partnerPrograms)
+    .where(isNull(partnerPrograms.archivedAt))
+    .orderBy(asc(partnerPrograms.name));
+
   return (
     <DisputesClient
+      programs={programs}
       initialDisputes={rows.map((d) => ({
         id: d.id,
         partnerId: d.partnerId,
