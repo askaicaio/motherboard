@@ -43,6 +43,7 @@ export default async function PartnersPage() {
         approvedAt: p.approvedAt ? p.approvedAt.toISOString() : null,
         declinedAt: p.declinedAt ? p.declinedAt.toISOString() : null,
         declineReason: p.declineReason,
+        isSample: p.isSample,
         createdAt: p.createdAt.toISOString(),
         updatedAt: p.updatedAt.toISOString(),
       }))}

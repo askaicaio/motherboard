@@ -44,6 +44,7 @@ export default async function PartnerSettingsPage() {
               refundWindowDays: latest.refundWindowDays,
               payoutTermsDays: latest.payoutTermsDays,
               minPayoutCents: latest.minPayoutCents,
+              payoutDayOfMonth: latest.payoutDayOfMonth,
               effectiveFrom: latest.effectiveFrom.toISOString(),
             }
           : null
@@ -60,6 +61,7 @@ export default async function PartnerSettingsPage() {
         stripePriceId: p.stripePriceId,
         setupFeeCents: p.setupFeeCents,
         stripeFeePassthroughCents: p.stripeFeePassthroughCents,
+        isSample: p.isSample,
         archivedAt: p.archivedAt ? p.archivedAt.toISOString() : null,
       }))}
     />

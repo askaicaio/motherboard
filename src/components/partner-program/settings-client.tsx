@@ -39,6 +39,7 @@ export interface PartnerSettings {
   refundWindowDays: number;
   payoutTermsDays: number;
   minPayoutCents: number;
+  payoutDayOfMonth: number;
   effectiveFrom: string;
 }
 
@@ -54,6 +55,8 @@ export interface PartnerProgram {
   stripePriceId: string | null;
   setupFeeCents: number;
   stripeFeePassthroughCents: number;
+  /** Seeded "Test Product ($1)" dummy — shown with a SAMPLE ONLY badge. */
+  isSample?: boolean;
   /** Soft-delete marker (ISO string) — archived programs are grouped/muted. */
   archivedAt?: string | null;
 }
@@ -88,6 +91,7 @@ const DEFAULTS = {
   refundWindowDays: 7,
   payoutTermsDays: 45,
   minPayoutCents: 10000,
+  payoutDayOfMonth: 1,
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -181,6 +185,9 @@ export function SettingsClient({
   const [minPayoutDollars, setMinPayoutDollars] = useState(
     String(base.minPayoutCents / 100),
   );
+  const [payoutDayOfMonth, setPayoutDayOfMonth] = useState(
+    String(base.payoutDayOfMonth),
+  );
   const [savingSettings, setSavingSettings] = useState(false);
 
   const handleSaveSettings = async () => {
@@ -190,6 +197,7 @@ export function SettingsClient({
       refundWindowDays: Number(refundWindowDays),
       payoutTermsDays: Number(payoutTermsDays),
       minPayoutCents: Math.round(Number(minPayoutDollars) * 100),
+      payoutDayOfMonth: Number(payoutDayOfMonth),
     };
     if (
       [
@@ -201,6 +209,14 @@ export function SettingsClient({
       !Number.isFinite(Number(commissionPct))
     ) {
       toast.error("Please enter valid, non-negative numbers.");
+      return;
+    }
+    if (
+      !Number.isInteger(payload.payoutDayOfMonth) ||
+      payload.payoutDayOfMonth < 1 ||
+      payload.payoutDayOfMonth > 28
+    ) {
+      toast.error("Payout day of month must be a whole number from 1 to 28.");
       return;
     }
 
@@ -334,6 +350,13 @@ export function SettingsClient({
               hint="Balance must clear this before payout."
               value={minPayoutDollars}
               onChange={setMinPayoutDollars}
+            />
+            <Field
+              id="payoutDayOfMonth"
+              label="Payout day of month"
+              hint="Day (1–28) the auto-payout batch is generated."
+              value={payoutDayOfMonth}
+              onChange={setPayoutDayOfMonth}
             />
           </div>
           <div className="flex justify-end border-t pt-4">
@@ -781,13 +804,23 @@ function ProgramRow({
   return (
     <tr className={cn("border-t align-top", archived && "bg-zinc-50/40")}>
       <td className="px-3 py-3">
-        <div
-          className={cn(
-            "font-medium",
-            archived ? "text-zinc-500" : "text-zinc-900",
+        <div className="flex items-center gap-2">
+          <span
+            className={cn(
+              "font-medium",
+              archived ? "text-zinc-500" : "text-zinc-900",
+            )}
+          >
+            {program.name}
+          </span>
+          {program.isSample && (
+            <Badge
+              variant="outline"
+              className="border-amber-200 bg-amber-100 text-[10px] font-medium text-amber-800"
+            >
+              SAMPLE ONLY
+            </Badge>
           )}
-        >
-          {program.name}
         </div>
         <div className="font-mono text-[11px] text-zinc-400">{program.slug}</div>
       </td>

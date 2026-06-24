@@ -1265,6 +1265,8 @@ export const partners = pgTable(
     audienceSize: integer("audience_size"),
     /** Full questionnaire payload (platforms, target audience, experience levels, signature, etc.). */
     applicationData: jsonb("application_data").notNull().default({}),
+    /** Seeded/demo affiliate — badged "SAMPLE ONLY" and excluded from admin stats. */
+    isSample: boolean("is_sample").notNull().default(false),
 
     appliedAt: timestamp("applied_at", { withTimezone: true })
       .defaultNow()
@@ -1310,6 +1312,8 @@ export const partnerSettings = pgTable(
     refundWindowDays: integer("refund_window_days").notNull().default(7),
     payoutTermsDays: integer("payout_terms_days").notNull().default(45),
     minPayoutCents: integer("min_payout_cents").notNull().default(10000),
+    /** Day of month (1–28) the auto-payout cron generates the batch. */
+    payoutDayOfMonth: integer("payout_day_of_month").notNull().default(1),
     effectiveFrom: timestamp("effective_from", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -1346,6 +1350,8 @@ export const partnerPrograms = pgTable(
     /** Soft-delete: archived programs disappear from affiliate-facing surfaces but stay for history. */
     archivedAt: timestamp("archived_at", { withTimezone: true }),
     createdBy: uuid("created_by"),
+    /** Dummy/test product — badged "SAMPLE ONLY". */
+    isSample: boolean("is_sample").notNull().default(false),
     /** Set when the program is wired into Stripe (self-serve checkout). */
     stripeProductId: text("stripe_product_id"),
     stripePriceId: text("stripe_price_id"),
@@ -1509,6 +1515,8 @@ export const partnerConversions = pgTable(
 
     /** Set on clawback rows; FK to the original conversion that's being reversed. */
     clawbackOfConversionId: uuid("clawback_of_conversion_id"),
+    /** Seeded sample conversion — excluded from admin stat tiles. */
+    isSample: boolean("is_sample").notNull().default(false),
 
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()

@@ -1,8 +1,10 @@
 // =============================================================
 // Cron: auto-generate the monthly partner payout batch
 // =============================================================
-// Scheduled monthly via vercel.json (1st @ 08:00 UTC). Generates a DRAFT
-// payout batch for the current period using the SAME logic as the manual
+// Scheduled DAILY via vercel.json (08:00 UTC). Each run checks the active
+// settings' payoutDayOfMonth and only generates a batch when today's UTC
+// day-of-month matches — otherwise it's a no-op. Generates a DRAFT payout
+// batch for the current period using the SAME logic as the manual
 // /api/partners/payouts/generate endpoint (generatePayoutBatch). It does
 // NOT mark anything paid — releasing money stays a manual admin click.
 // Mirrors the auth pattern of promote-pending-to-earned.
@@ -10,6 +12,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { generatePayoutBatch } from "@/lib/partners/payouts";
+import { getActiveSettings } from "@/lib/partners/queries";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -26,6 +29,19 @@ export async function GET(request: NextRequest) {
   }
   try {
     const now = new Date();
+
+    // Only run on the configured payout day. The cron fires daily, so every
+    // other day is a deliberate no-op. Default to the 1st if no settings yet.
+    const settings = await getActiveSettings(now);
+    const payoutDay = settings?.payoutDayOfMonth ?? 1;
+    if (now.getUTCDate() !== payoutDay) {
+      return NextResponse.json({
+        ok: true,
+        skipped: true,
+        reason: "not payout day",
+      });
+    }
+
     const period = now.getUTCFullYear() * 100 + (now.getUTCMonth() + 1);
     const result = await generatePayoutBatch(period, null);
     return NextResponse.json({ ok: true, ...result });

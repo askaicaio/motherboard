@@ -27,6 +27,8 @@ export default async function EventsPage() {
       partnerId: partnerConversions.partnerId,
       partnerName: partners.name,
       partnerRefCode: partners.refCode,
+      partnerIsSample: partners.isSample,
+      isSample: partnerConversions.isSample,
       attributionEventId: partnerConversions.attributionEventId,
       buyerEmail: partnerConversions.buyerEmail,
       programId: partnerConversions.programId,
@@ -64,6 +66,7 @@ export default async function EventsPage() {
       id: partnerAttributionEvents.id,
       partnerId: partnerAttributionEvents.partnerId,
       partnerName: partners.name,
+      partnerIsSample: partners.isSample,
       type: partnerAttributionEvents.type,
       prospectEmail: partnerAttributionEvents.prospectEmail,
       prospectName: partnerAttributionEvents.prospectName,
@@ -94,7 +97,12 @@ export default async function EventsPage() {
 
   // Partner + program lists for the action dialogs.
   const partnerList = await db
-    .select({ id: partners.id, name: partners.name, refCode: partners.refCode })
+    .select({
+      id: partners.id,
+      name: partners.name,
+      refCode: partners.refCode,
+      isSample: partners.isSample,
+    })
     .from(partners)
     .orderBy(partners.name);
 
@@ -114,6 +122,8 @@ export default async function EventsPage() {
         partnerId: r.partnerId,
         partnerName: r.partnerName,
         partnerRefCode: r.partnerRefCode,
+        partnerIsSample: r.partnerIsSample ?? false,
+        isSample: r.isSample ?? false,
         attributionEventId: r.attributionEventId,
         buyerEmail: r.buyerEmail,
         programId: r.programId,
@@ -149,6 +159,7 @@ export default async function EventsPage() {
         id: e.id,
         partnerId: e.partnerId,
         partnerName: e.partnerName,
+        partnerIsSample: e.partnerIsSample ?? false,
         type: e.type,
         prospectEmail: e.prospectEmail,
         prospectName: e.prospectName,
@@ -171,6 +182,7 @@ export default async function EventsPage() {
         id: p.id,
         name: p.name,
         refCode: p.refCode,
+        isSample: p.isSample ?? false,
       }))}
       programs={programList.map((p) => ({
         id: p.id,

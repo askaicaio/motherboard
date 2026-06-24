@@ -34,6 +34,7 @@ export interface ApplicationRow {
   notes: string | null;
   appliedAt: string;
   hasTaxForm: boolean;
+  isSample: boolean;
 }
 
 interface Props {
@@ -154,7 +155,16 @@ export function ApplicationsClient({ initialApplications }: Props) {
                   const busy = loadingId === app.id;
                   return (
                     <TableRow key={app.id}>
-                      <TableCell className="font-medium">{app.name}</TableCell>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-1.5">
+                          <span>{app.name}</span>
+                          {app.isSample && (
+                            <Badge className="bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-100">
+                              SAMPLE ONLY
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell className="text-muted-foreground">
                         {app.email}
                       </TableCell>

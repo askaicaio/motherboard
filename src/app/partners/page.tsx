@@ -149,7 +149,10 @@ export default function PartnersLandingPage() {
       {/* ─── Nav ─── */}
       <header className="sticky top-0 z-50 border-b border-slate-100 bg-white/80 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3.5">
-          <Link href="/partners" className="flex items-center gap-2.5">
+          <a
+            href="https://chiefaiofficer.com"
+            className="flex items-center gap-2.5"
+          >
             <Image
               src="/caio-logo-black.png"
               alt="Chief AI Officer"
@@ -161,14 +164,8 @@ export default function PartnersLandingPage() {
             <span className="text-base font-semibold tracking-tight text-slate-900">
               Chief AI Officer
             </span>
-          </Link>
+          </a>
           <div className="flex items-center gap-5">
-            <Link
-              href="/portal/resources"
-              className="hidden text-sm font-medium text-slate-600 transition hover:text-[#4f46e5] sm:inline"
-            >
-              Resources
-            </Link>
             <Link
               href="/portal/login"
               className="hidden text-sm font-medium text-slate-600 transition hover:text-[#4f46e5] sm:inline"
@@ -481,32 +478,91 @@ export default function PartnersLandingPage() {
 
       {/* ─── Footer ─── */}
       <footer className="border-t border-slate-100 bg-white">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 py-8 sm:flex-row">
-          <div className="flex items-center gap-2.5">
-            <Image
-              src="/caio-logo-black.png"
-              alt="Chief AI Officer"
-              width={512}
-              height={512}
-              className="h-6 w-6"
-            />
-            <span className="text-sm font-semibold text-slate-700">
-              Chief AI Officer
-            </span>
-          </div>
-          <div className="flex items-center gap-6 text-sm text-slate-500">
-            <Link href="/portal/resources" className="transition hover:text-[#4f46e5]">
-              Resources
-            </Link>
-            <Link href="/partners/apply" className="transition hover:text-[#4f46e5]">
-              Apply
-            </Link>
+        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-10 px-6 py-12 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Brand */}
+          <div className="lg:col-span-2">
             <a
-              href="mailto:partners@chiefaiofficer.com"
-              className="transition hover:text-[#4f46e5]"
+              href="https://chiefaiofficer.com"
+              className="inline-flex items-center gap-2.5"
             >
-              partners@chiefaiofficer.com
+              <Image
+                src="/caio-logo-black.png"
+                alt="Chief AI Officer"
+                width={512}
+                height={512}
+                className="h-6 w-6"
+              />
+              <span className="text-sm font-semibold text-slate-700">
+                Chief AI Officer
+              </span>
             </a>
+            <p className="mt-3 max-w-xs text-sm leading-relaxed text-slate-500">
+              Earn 10% introducing executives and boards to the programs shaping
+              how companies adopt AI.
+            </p>
+          </div>
+
+          {/* Affiliate program */}
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+              Affiliate program
+            </p>
+            <ul className="mt-4 space-y-2.5 text-sm text-slate-500">
+              <li>
+                <Link href="/partners/apply" className="transition hover:text-[#4f46e5]">
+                  Apply
+                </Link>
+              </li>
+              <li>
+                <Link href="/portal/login" className="transition hover:text-[#4f46e5]">
+                  Sign in
+                </Link>
+              </li>
+              <li>
+                <a
+                  href="mailto:partners@chiefaiofficer.com"
+                  className="transition hover:text-[#4f46e5]"
+                >
+                  partners@chiefaiofficer.com
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          {/* Related links */}
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+              Related links
+            </p>
+            <ul className="mt-4 space-y-2.5 text-sm text-slate-500">
+              <li>
+                <a
+                  href="https://chiefaiofficer.com"
+                  className="transition hover:text-[#4f46e5]"
+                >
+                  Main website
+                </a>
+              </li>
+              <li>
+                {/* TODO: confirm real podcast URL — using /podcast as a placeholder */}
+                <a
+                  href="https://chiefaiofficer.com/podcast"
+                  className="transition hover:text-[#4f46e5]"
+                >
+                  “Using AI at Work” podcast
+                </a>
+              </li>
+              <li>
+                <Link href="/partners/privacy" className="transition hover:text-[#4f46e5]">
+                  Privacy Policy
+                </Link>
+              </li>
+              <li>
+                <Link href="/partners/terms" className="transition hover:text-[#4f46e5]">
+                  Terms &amp; Conditions
+                </Link>
+              </li>
+            </ul>
           </div>
         </div>
         <div className="border-t border-slate-50 py-4 text-center text-xs text-slate-400">

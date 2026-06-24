@@ -50,8 +50,17 @@ export interface PartnerRow {
   approvedAt: string | null;
   declinedAt: string | null;
   declineReason: string | null;
+  isSample: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+function SampleBadge() {
+  return (
+    <span className="inline-flex shrink-0 items-center rounded-full border border-amber-200 bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">
+      SAMPLE ONLY
+    </span>
+  );
 }
 
 const TAX_FORM_OPTIONS = ["none", "w9", "w8ben", "w8bene", "invalid"] as const;
@@ -230,7 +239,12 @@ export function PartnersClient({
                     onClick={() => setSelected(r)}
                     className="cursor-pointer"
                   >
-                    <TableCell className="font-medium">{r.name}</TableCell>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-1.5">
+                        <span>{r.name}</span>
+                        {r.isSample && <SampleBadge />}
+                      </div>
+                    </TableCell>
                     <TableCell className="font-mono text-xs text-zinc-600">
                       {r.email}
                     </TableCell>
@@ -401,6 +415,7 @@ function PartnerDetailDialog({
           <DialogTitle className="flex items-center gap-2">
             {partner?.name}
             {partner && <StatusBadge status={partner.status} />}
+            {partner?.isSample && <SampleBadge />}
           </DialogTitle>
           <DialogDescription className="font-mono text-xs">
             {partner?.email}

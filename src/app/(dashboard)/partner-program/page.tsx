@@ -9,7 +9,7 @@ import {
   partnerPrograms,
 } from "@/lib/db/schema";
 import { requireAuth } from "@/lib/auth/guard";
-import { eq, inArray, sql, desc } from "drizzle-orm";
+import { eq, and, inArray, sql, desc } from "drizzle-orm";
 import {
   Handshake,
   Users,
@@ -72,11 +72,16 @@ export default async function PartnerProgramPage() {
 
   // ── Summary stats ──────────────────────────────────────────────────────
 
-  // Active partners: status in (active, approved)
+  // Active partners: status in (active, approved), excluding samples
   const [{ activeCount }] = await db
     .select({ activeCount: sql<number>`COUNT(*)::int` })
     .from(partners)
-    .where(inArray(partners.status, ["active", "approved"]));
+    .where(
+      and(
+        inArray(partners.status, ["active", "approved"]),
+        eq(partners.isSample, false),
+      ),
+    );
 
   // Pending applications
   const [{ pendingCount }] = await db
@@ -84,29 +89,42 @@ export default async function PartnerProgramPage() {
     .from(partners)
     .where(eq(partners.status, "applied"));
 
-  // Conversions pending review (status = 'pending')
+  // Conversions pending review (status = 'pending'), excluding samples
   const [{ pendingConversionsCount }] = await db
     .select({ pendingConversionsCount: sql<number>`COUNT(*)::int` })
     .from(partnerConversions)
-    .where(eq(partnerConversions.status, "pending"));
+    .where(
+      and(
+        eq(partnerConversions.status, "pending"),
+        eq(partnerConversions.isSample, false),
+      ),
+    );
 
-  // Earned but not yet in a payout batch
+  // Earned but not yet in a payout batch, excluding samples
   const [{ earnedUnpaidCents }] = await db
     .select({
       earnedUnpaidCents: sql<number>`COALESCE(SUM(commission_cents), 0)::int`,
     })
     .from(partnerConversions)
     .where(
-      sql`status = 'earned' AND payout_batch_id IS NULL`,
+      and(
+        sql`status = 'earned' AND payout_batch_id IS NULL`,
+        eq(partnerConversions.isSample, false),
+      ),
     );
 
-  // Paid to date
+  // Paid to date, excluding samples
   const [{ paidToDateCents }] = await db
     .select({
       paidToDateCents: sql<number>`COALESCE(SUM(commission_cents), 0)::int`,
     })
     .from(partnerConversions)
-    .where(eq(partnerConversions.status, "paid"));
+    .where(
+      and(
+        eq(partnerConversions.status, "paid"),
+        eq(partnerConversions.isSample, false),
+      ),
+    );
 
   // Recent conversions — last 8, joined to partner name + program name
   const recentConversions = await db
@@ -116,7 +134,9 @@ export default async function PartnerProgramPage() {
       commissionCents: partnerConversions.commissionCents,
       status: partnerConversions.status,
       purchasedAt: partnerConversions.purchasedAt,
+      isSample: partnerConversions.isSample,
       partnerName: partners.name,
+      partnerIsSample: partners.isSample,
       programName: partnerPrograms.name,
     })
     .from(partnerConversions)
@@ -337,10 +357,19 @@ export default async function PartnerProgramPage() {
                           <span className="text-zinc-400">—</span>
                         )}
                       </td>
-                      <td className="px-4 py-2 text-xs text-zinc-700 max-w-[140px] truncate">
-                        {c.partnerName ?? (
-                          <span className="text-zinc-400">unmatched</span>
-                        )}
+                      <td className="px-4 py-2 text-xs text-zinc-700 max-w-[140px]">
+                        <div className="flex items-center gap-1.5">
+                          <span className="truncate">
+                            {c.partnerName ?? (
+                              <span className="text-zinc-400">unmatched</span>
+                            )}
+                          </span>
+                          {(c.isSample || c.partnerIsSample) && (
+                            <span className="inline-flex shrink-0 items-center rounded-full border border-amber-200 bg-amber-100 px-1.5 py-0.5 text-[9px] font-semibold text-amber-800">
+                              SAMPLE ONLY
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-2 text-right tabular-nums text-xs text-zinc-900">
                         {fmtUsd(c.commissionCents)}

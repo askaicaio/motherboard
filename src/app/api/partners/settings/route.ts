@@ -25,6 +25,9 @@ const createSchema = z.object({
   refundWindowDays: z.number().int().min(0).max(365),
   payoutTermsDays: z.number().int().min(0).max(365),
   minPayoutCents: z.number().int().min(0),
+  // Day of month the auto-payout batch is generated. Capped at 28 so it
+  // exists in every month.
+  payoutDayOfMonth: z.number().int().min(1).max(28),
 });
 
 export async function GET() {
@@ -61,6 +64,7 @@ export async function POST(request: NextRequest) {
       refundWindowDays: body.refundWindowDays,
       payoutTermsDays: body.payoutTermsDays,
       minPayoutCents: body.minPayoutCents,
+      payoutDayOfMonth: body.payoutDayOfMonth,
       effectiveFrom: new Date(),
       createdBy: user.id,
     })

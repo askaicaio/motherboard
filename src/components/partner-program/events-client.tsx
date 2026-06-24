@@ -36,12 +36,18 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -83,6 +89,8 @@ export interface ConversionRow {
   partnerId: string | null;
   partnerName: string | null;
   partnerRefCode: string | null;
+  partnerIsSample: boolean;
+  isSample: boolean;
   attributionEventId: string | null;
   buyerEmail: string;
   programId: string;
@@ -110,6 +118,7 @@ export interface AttributionEventItem {
   id: string;
   partnerId: string;
   partnerName: string | null;
+  partnerIsSample: boolean;
   type: string;
   prospectEmail: string | null;
   prospectName: string | null;
@@ -134,6 +143,7 @@ export interface PartnerOption {
   id: string;
   name: string;
   refCode: string;
+  isSample: boolean;
 }
 export interface ProgramOption {
   id: string;
@@ -215,6 +225,118 @@ function StatusBadge({ status }: { status: ConversionStatus }) {
     >
       {status}
     </span>
+  );
+}
+
+/** Small amber pill flagging a seeded/demo row. */
+function SampleBadge() {
+  return (
+    <span className="ml-1.5 inline-flex items-center rounded-full border border-amber-200 bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">
+      SAMPLE ONLY
+    </span>
+  );
+}
+
+// ─── Searchable partner combobox ──────────────────────────────────────────
+// Type-to-search picker over the affiliate list. Filters case-insensitively
+// on name + ref code, keyboard-navigable (cmdk). `value`/`onChange` carry
+// whatever id the caller keys on (partnerId or refCode), plus an optional
+// "no explicit partner" sentinel rendered as the first row.
+
+function PartnerCombobox({
+  partners,
+  value,
+  onChange,
+  valueKey = "id",
+  placeholder = "Select a partner…",
+  emptyOption,
+  id,
+}: {
+  partners: PartnerOption[];
+  value: string;
+  onChange: (value: string) => void;
+  /** Which field of PartnerOption is used as the selected value. */
+  valueKey?: "id" | "refCode";
+  placeholder?: string;
+  /** Optional first row representing "no explicit partner" (its value is ""). */
+  emptyOption?: string;
+  id?: string;
+}) {
+  const [open, setOpen] = useState(false);
+
+  const selected =
+    value === ""
+      ? null
+      : partners.find((p) => (valueKey === "id" ? p.id : p.refCode) === value);
+
+  const triggerLabel =
+    value === ""
+      ? emptyOption ?? placeholder
+      : selected
+        ? `${selected.name} (${selected.refCode})`
+        : placeholder;
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        id={id}
+        type="button"
+        className={cn(
+          "flex w-full items-center justify-between gap-2 rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-left text-sm",
+          value === "" && !emptyOption && "text-zinc-400",
+        )}
+      >
+        <span className="flex min-w-0 items-center truncate">
+          <span className="truncate">{triggerLabel}</span>
+          {selected?.isSample && <SampleBadge />}
+        </span>
+        <ChevronDown className="h-4 w-4 shrink-0 text-zinc-400" />
+      </PopoverTrigger>
+      <PopoverContent className="w-(--anchor-width) min-w-64 p-0" align="start">
+        <Command
+          filter={(itemValue, search) =>
+            itemValue.toLowerCase().includes(search.toLowerCase()) ? 1 : 0
+          }
+        >
+          <CommandInput placeholder="Search name or ref code…" />
+          <CommandList>
+            <CommandEmpty>No partners found.</CommandEmpty>
+            <CommandGroup>
+              {emptyOption && (
+                <CommandItem
+                  value={emptyOption}
+                  onSelect={() => {
+                    onChange("");
+                    setOpen(false);
+                  }}
+                >
+                  {emptyOption}
+                </CommandItem>
+              )}
+              {partners.map((p) => {
+                const optValue = valueKey === "id" ? p.id : p.refCode;
+                return (
+                  <CommandItem
+                    key={p.id}
+                    value={`${p.name} ${p.refCode}`}
+                    onSelect={() => {
+                      onChange(optValue);
+                      setOpen(false);
+                    }}
+                  >
+                    <span className="truncate">
+                      {p.name}{" "}
+                      <span className="text-zinc-400">({p.refCode})</span>
+                    </span>
+                    {p.isSample && <SampleBadge />}
+                  </CommandItem>
+                );
+              })}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -547,7 +669,12 @@ function ActivitySection({
                     className="cursor-pointer border-t hover:bg-zinc-50"
                   >
                     <td className="px-3 py-2 align-top">
-                      {r.partnerName ?? (
+                      {r.partnerName ? (
+                        <span className="inline-flex items-center">
+                          {r.partnerName}
+                          {(r.partnerIsSample || r.isSample) && <SampleBadge />}
+                        </span>
+                      ) : (
                         <span className="text-zinc-400">— unmatched</span>
                       )}
                     </td>
@@ -672,6 +799,11 @@ function ConversionDetailDialog({
 
   const isUnmatched =
     row.status === "rejected" && row.rejectReason === "unmatched";
+  // Reject only makes sense before a conversion reaches a terminal state.
+  const isFinalStatus =
+    row.status === "paid" ||
+    row.status === "reversed" ||
+    row.status === "rejected";
 
   return (
     <>
@@ -705,7 +837,16 @@ function ConversionDetailDialog({
               <Field label="Program" value={row.programName} />
               <Field
                 label="Affiliate"
-                value={row.partnerName ?? "— unmatched"}
+                value={
+                  row.partnerName ? (
+                    <span className="inline-flex items-center">
+                      {row.partnerName}
+                      {(row.partnerIsSample || row.isSample) && <SampleBadge />}
+                    </span>
+                  ) : (
+                    "— unmatched"
+                  )
+                }
               />
               <Field
                 label="Status"
@@ -760,14 +901,16 @@ function ConversionDetailDialog({
                 Match to partner
               </Button>
             )}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setResolveOpen(true)}
-            >
-              Resolve partial refund
-            </Button>
-            {row.status !== "rejected" && (
+            {!isFinalStatus && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setResolveOpen(true)}
+              >
+                Resolve partial refund
+              </Button>
+            )}
+            {!isFinalStatus && (
               <Button
                 variant="destructive"
                 size="sm"
@@ -851,6 +994,7 @@ function MatchDialog({
         partnerId,
         partnerName: partner?.name ?? row.partnerName,
         partnerRefCode: partner?.refCode ?? row.partnerRefCode,
+        partnerIsSample: partner?.isSample ?? row.partnerIsSample,
         status: data.conversion?.status ?? "pending",
         rejectReason: data.conversion?.rejectReason ?? null,
         publicRejectReason: data.conversion?.publicRejectReason ?? null,
@@ -875,19 +1019,12 @@ function MatchDialog({
         </DialogHeader>
         <div className="space-y-2">
           <Label htmlFor="match-partner">Partner</Label>
-          <select
+          <PartnerCombobox
             id="match-partner"
+            partners={partners}
             value={partnerId}
-            onChange={(e) => setPartnerId(e.target.value)}
-            className="w-full rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-sm"
-          >
-            <option value="">Select a partner…</option>
-            {partners.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name} ({p.refCode})
-              </option>
-            ))}
-          </select>
+            onChange={setPartnerId}
+          />
         </div>
         <DialogFooter>
           <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
@@ -1267,19 +1404,14 @@ function ManualEntryDialog({
           </div>
           <div className="space-y-1">
             <Label htmlFor="manual-aff">Partner (optional)</Label>
-            <select
+            <PartnerCombobox
               id="manual-aff"
+              partners={partners}
               value={affId}
-              onChange={(e) => setAffId(e.target.value)}
-              className="w-full rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-sm"
-            >
-              <option value="">Email-match (no explicit partner)</option>
-              {partners.map((p) => (
-                <option key={p.id} value={p.refCode}>
-                  {p.name} ({p.refCode})
-                </option>
-              ))}
-            </select>
+              onChange={setAffId}
+              valueKey="refCode"
+              emptyOption="Email-match (no explicit partner)"
+            />
           </div>
         </div>
         <DialogFooter>
@@ -1383,7 +1515,12 @@ function AttributionSection({
                 filtered.map((e) => (
                   <TableRow key={e.id}>
                     <TableCell className="font-medium">
-                      {e.partnerName ?? (
+                      {e.partnerName ? (
+                        <span className="inline-flex items-center">
+                          {e.partnerName}
+                          {e.partnerIsSample && <SampleBadge />}
+                        </span>
+                      ) : (
                         <span className="text-zinc-400">—</span>
                       )}
                     </TableCell>
@@ -1531,6 +1668,7 @@ function RecordIntroDialog({
         id: ev.id,
         partnerId: ev.partnerId,
         partnerName: partner?.name ?? null,
+        partnerIsSample: partner?.isSample ?? false,
         type: ev.type,
         prospectEmail: ev.prospectEmail,
         prospectName: ev.prospectName,
@@ -1569,18 +1707,11 @@ function RecordIntroDialog({
         <div className="space-y-4 py-2">
           <div className="space-y-2">
             <Label>Partner</Label>
-            <Select value={partnerId} onValueChange={(v) => setPartnerId(v ?? "")}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a partner…" />
-              </SelectTrigger>
-              <SelectContent>
-                {partners.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.name} ({p.refCode})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <PartnerCombobox
+              partners={partners}
+              value={partnerId}
+              onChange={setPartnerId}
+            />
           </div>
 
           <div className="space-y-2">
