@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Users, CheckCircle, XCircle, Inbox } from "lucide-react";
+import { Users, CheckCircle, XCircle, Inbox, FileText } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { toast } from "sonner";
 
@@ -33,6 +33,7 @@ export interface ApplicationRow {
   company: string | null;
   notes: string | null;
   appliedAt: string;
+  hasTaxForm: boolean;
 }
 
 interface Props {
@@ -176,6 +177,22 @@ export function ApplicationsClient({ initialApplications }: Props) {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
+                          {app.hasTaxForm && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={busy}
+                              onClick={() =>
+                                window.open(
+                                  `/api/partners/${app.id}/tax-form`,
+                                  "_blank",
+                                )
+                              }
+                            >
+                              <FileText className="h-3.5 w-3.5 mr-1" />
+                              Tax form
+                            </Button>
+                          )}
                           <Button
                             size="sm"
                             variant="outline"

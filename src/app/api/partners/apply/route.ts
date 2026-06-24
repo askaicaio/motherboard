@@ -104,15 +104,31 @@ export async function POST(request: NextRequest) {
   const email = body.email.toLowerCase();
   const name = `${body.firstName} ${body.lastName}`.trim();
 
-  // --- Upload the PDF to Vercel Blob (unguessable random path) ---
+  // --- Upload the W-9/W-8BEN PDF ---
+  // Tax forms are sensitive. Prefer the PRIVATE blob store
+  // (TAX_BLOB_READ_WRITE_TOKEN): we store only the pathname and serve it
+  // exclusively through the admin-gated /api/partners/[id]/tax-form route.
+  // Falls back to the public store if the private token isn't configured yet.
+  const taxToken = process.env.TAX_BLOB_READ_WRITE_TOKEN;
+  const taxPathname = `tax-forms/${crypto.randomUUID()}.pdf`;
   let taxFormUrl: string;
   try {
-    const blob = await put(`tax-forms/${crypto.randomUUID()}.pdf`, file, {
-      access: "public",
-      addRandomSuffix: false,
-      contentType: "application/pdf",
-    });
-    taxFormUrl = blob.url;
+    if (taxToken) {
+      await put(taxPathname, file, {
+        access: "private",
+        addRandomSuffix: false,
+        contentType: "application/pdf",
+        token: taxToken,
+      });
+      taxFormUrl = taxPathname; // pathname — not publicly reachable
+    } else {
+      const blob = await put(taxPathname, file, {
+        access: "public",
+        addRandomSuffix: false,
+        contentType: "application/pdf",
+      });
+      taxFormUrl = blob.url;
+    }
   } catch (err) {
     console.error("[partners/apply] Blob upload error:", err);
     return NextResponse.json(
@@ -137,23 +153,28 @@ export async function POST(request: NextRequest) {
   };
 
   // --- Create the partner row ---
+  let newPartnerId: string | null = null;
   try {
-    await db.insert(partners).values({
-      refCode: `pending_${Date.now()}`,
-      name,
-      email,
-      status: "applied",
-      address: body.address,
-      city: body.city,
-      state: body.state,
-      postalCode: body.postalCode,
-      country: body.country,
-      dateOfBirth: body.dateOfBirth,
-      audienceSize: body.audienceSize,
-      taxFormUrl,
-      taxFormName: file.name,
-      applicationData,
-    });
+    const [row] = await db
+      .insert(partners)
+      .values({
+        refCode: `pending_${Date.now()}`,
+        name,
+        email,
+        status: "applied",
+        address: body.address,
+        city: body.city,
+        state: body.state,
+        postalCode: body.postalCode,
+        country: body.country,
+        dateOfBirth: body.dateOfBirth,
+        audienceSize: body.audienceSize,
+        taxFormUrl,
+        taxFormName: file.name,
+        applicationData,
+      })
+      .returning({ id: partners.id });
+    newPartnerId = row?.id ?? null;
   } catch (err: unknown) {
     // Postgres unique violation code = 23505 (duplicate email)
     const pgErr = err as { code?: string };
@@ -173,6 +194,14 @@ export async function POST(request: NextRequest) {
   }
 
   const adminAddress = "partners@chiefaiofficer.com";
+
+  // Tax form is served through the admin-gated route (works for private blobs).
+  const reviewBase = (
+    process.env.NEXT_PUBLIC_APP_URL ?? "https://chiefaiofficer.com"
+  ).replace(/\/$/, "");
+  const taxLink = newPartnerId
+    ? `${reviewBase}/api/partners/${newPartnerId}/tax-form`
+    : `${reviewBase}/partner-program/applications`;
 
   // (a) Confirmation to the applicant
   await sendEmail({
@@ -205,11 +234,11 @@ export async function POST(request: NextRequest) {
         <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Location</td><td>${body.city}, ${body.state}, ${body.country}</td></tr>
         <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Heard via</td><td>${body.howDidYouHear}</td></tr>
         <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Audience size</td><td>${body.audienceSize}</td></tr>
-        <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Tax form</td><td><a href="${taxFormUrl}">${file.name}</a></td></tr>
+        <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Tax form</td><td><a href="${taxLink}">${file.name}</a></td></tr>
       </table>
       <p><a href="${process.env.NEXT_PUBLIC_APP_URL ?? "https://chiefaiofficer.com"}/partner-program/applications">Review in Motherboard →</a></p>
     `,
-    plain: `New affiliate application\n\nName: ${name}\nEmail: ${email}\nLocation: ${body.city}, ${body.state}, ${body.country}\nHeard via: ${body.howDidYouHear}\nAudience size: ${body.audienceSize}\nTax form: ${taxFormUrl}\n\nReview: ${process.env.NEXT_PUBLIC_APP_URL ?? "https://chiefaiofficer.com"}/partner-program/applications`,
+    plain: `New affiliate application\n\nName: ${name}\nEmail: ${email}\nLocation: ${body.city}, ${body.state}, ${body.country}\nHeard via: ${body.howDidYouHear}\nAudience size: ${body.audienceSize}\nTax form: ${taxLink}\n\nReview: ${process.env.NEXT_PUBLIC_APP_URL ?? "https://chiefaiofficer.com"}/partner-program/applications`,
   });
 
   return NextResponse.json({ ok: true });

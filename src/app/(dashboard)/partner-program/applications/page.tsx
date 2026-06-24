@@ -17,6 +17,7 @@ export default async function PartnerApplicationsPage() {
       company: partners.company,
       notes: partners.notes,
       appliedAt: partners.appliedAt,
+      taxFormUrl: partners.taxFormUrl,
     })
     .from(partners)
     .where(eq(partners.status, "applied"))
@@ -31,6 +32,7 @@ export default async function PartnerApplicationsPage() {
         company: r.company ?? null,
         notes: r.notes ?? null,
         appliedAt: r.appliedAt.toISOString(),
+        hasTaxForm: !!r.taxFormUrl,
       }))}
     />
   );
