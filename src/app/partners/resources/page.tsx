@@ -18,7 +18,7 @@ const CATEGORY_ORDER = [
   "other",
 ];
 const CATEGORY_LABELS: Record<string, string> = {
-  playbook: "Partner Playbook",
+  playbook: "Affiliate Playbook",
   toolkit: "Marketing Toolkit",
   brand_asset: "Brand Assets",
   email_template: "Email Templates",
@@ -58,13 +58,13 @@ export default async function PublicResourcesPage() {
             className="inline-flex items-center gap-1.5 text-sm text-indigo-200 hover:text-white"
           >
             <ArrowLeft className="h-4 w-4" />
-            Partner Program
+            Affiliates
           </Link>
           <h1 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl">
-            Partner Resources
+            Affiliate Resources
           </h1>
           <p className="mt-3 max-w-2xl text-indigo-200">
-            Everything you need to promote CAIO and earn — the Partner Playbook,
+            Everything you need to promote CAIO and earn — the Affiliate Playbook,
             the Marketing Toolkit, and ready-to-use assets.
           </p>
         </div>

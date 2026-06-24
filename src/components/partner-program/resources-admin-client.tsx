@@ -120,7 +120,7 @@ export function ResourcesAdminClient({
             </h1>
           </div>
           <p className="mt-1 max-w-2xl text-sm text-zinc-500">
-            Upload the Partner Playbook, Marketing Toolkit, brand assets, email
+            Upload the Affiliate Playbook, Marketing Toolkit, brand assets, email
             templates, and banners. Public ones appear on the affiliate
             resources page at <span className="font-mono">/partners/resources</span>.
           </p>
@@ -318,7 +318,7 @@ function UploadDialog({
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="res-title">Title</Label>
-            <Input id="res-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Partner Playbook" />
+            <Input id="res-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Affiliate Playbook" />
           </div>
           <div className="space-y-1.5">
             <Label>Category</Label>

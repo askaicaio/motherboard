@@ -207,7 +207,7 @@ export function SettingsClient({
         <div className="flex items-center gap-2">
           <Settings className="h-5 w-5 text-zinc-500" />
           <h1 className="text-2xl font-semibold tracking-tight">
-            Partner Program Settings
+            Affiliate Program Settings
           </h1>
         </div>
         <p className="mt-1 text-sm text-zinc-500">

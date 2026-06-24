@@ -108,10 +108,10 @@ export function ApplicationsClient({ initialApplications }: Props) {
         <Users className="h-7 w-7 text-indigo-600 shrink-0" />
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">
-            Partner Applications
+            Affiliate Applications
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Review and action incoming partner program applications.
+            Review and action incoming affiliate program applications.
           </p>
         </div>
         {applications.length > 0 && (

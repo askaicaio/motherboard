@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import { partners } from "@/lib/db/schema";
 import { requireRole } from "@/lib/auth/guard";
 import { generateRefCode } from "@/lib/partners/rules";
+import { issuePasswordToken } from "@/lib/partners/portal-auth";
 import { sendEmail } from "@/lib/email/sender";
 import { eq } from "drizzle-orm";
 
@@ -79,26 +80,44 @@ export async function POST(
   ).replace(/\/$/, "");
   const link = `${base}/r?aff=${updated.refCode}`;
 
+  // Issue a one-time token so the partner can set their portal password.
+  let portalUrl: string | null = null;
+  try {
+    const token = await issuePasswordToken(updated.id);
+    portalUrl = `${base}/portal/set-password?token=${token}`;
+  } catch (err) {
+    console.error("[approve] portal token failed:", err);
+  }
+
+  const portalBlockHtml = portalUrl
+    ? `<p>Set up your affiliate portal to track your clicks, conversions, and payouts:</p>
+       <p><a href="${portalUrl}">Set your portal password →</a></p>`
+    : "";
+
   const html = `
     <p>Hi ${updated.name},</p>
-    <p>Great news — your application to the CAIO Partner Program has been approved!</p>
+    <p>Great news — your application to the CAIO Affiliate Program has been approved!</p>
     <p>Your personal referral link is:</p>
     <p><a href="${link}">${link}</a></p>
     <p>Share it with anyone who could benefit from working with a Chief AI Officer.
     When they engage through your link, you'll earn commission on qualifying sales.</p>
+    ${portalBlockHtml}
     <p>Welcome aboard,<br/>The CAIO Team</p>
   `.trim();
 
   const plain = [
     `Hi ${updated.name},`,
     "",
-    "Great news — your application to the CAIO Partner Program has been approved!",
+    "Great news — your application to the CAIO Affiliate Program has been approved!",
     "",
     "Your personal referral link is:",
     link,
     "",
     "Share it with anyone who could benefit from working with a Chief AI Officer. " +
       "When they engage through your link, you'll earn commission on qualifying sales.",
+    ...(portalUrl
+      ? ["", "Set up your affiliate portal to track clicks, conversions, and payouts:", portalUrl]
+      : []),
     "",
     "Welcome aboard,",
     "The CAIO Team",
@@ -106,7 +125,7 @@ export async function POST(
 
   await sendEmail({
     to: updated.email,
-    subject: "You're approved for the CAIO Partner Program",
+    subject: "You're approved for the CAIO Affiliate Program",
     html,
     plain,
   });

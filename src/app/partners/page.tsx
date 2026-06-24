@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 
 export const metadata = {
-  title: "Partner Program — Chief AI Officer",
+  title: "Affiliate Program — Chief AI Officer",
   description:
     "Earn 10% referring executives and board members to the Chief AI Officer programs. 60-day cookie, Net-45 payouts, no cap on earnings.",
 };
@@ -108,7 +108,7 @@ const FAQS = [
   },
   {
     q: "What tax forms are required?",
-    a: "U.S. partners submit a W-9 before their first payout; international partners submit a W-8BEN (individuals) or W-8BEN-E (entities). We can't issue a payout until a valid form is on file.",
+    a: "U.S. affiliates submit a W-9 before their first payout; international affiliates submit a W-8BEN (individuals) or W-8BEN-E (entities). We can't issue a payout until a valid form is on file.",
   },
   {
     q: "Which programs are eligible?",
@@ -179,7 +179,7 @@ export default function PartnersLandingPage() {
         <div className="relative mx-auto max-w-4xl px-6 pb-24 pt-20 text-center sm:pt-24">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-indigo-300/25 bg-indigo-400/10 px-4 py-1.5 text-sm font-medium text-indigo-200">
             <Sparkles className="h-3.5 w-3.5" />
-            CAIO Partner Program
+            CAIO Affiliate Program
           </div>
           <h1 className="text-balance text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-6xl">
             Earn 10% introducing leaders to{" "}
@@ -198,7 +198,7 @@ export default function PartnersLandingPage() {
               href="/partners/apply"
               className="group inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-base font-semibold text-[#1e1b4b] shadow-lg shadow-black/20 transition hover:bg-indigo-50"
             >
-              Become a partner
+              Become an affiliate
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
             </Link>
             <a
@@ -223,7 +223,7 @@ export default function PartnersLandingPage() {
         </div>
       </section>
 
-      {/* ─── Why partner ─── */}
+      {/* ─── Why affiliate ─── */}
       <section className="bg-white py-24">
         <div className="mx-auto max-w-6xl px-6">
           <div className="mx-auto mb-14 max-w-2xl text-center">
@@ -437,7 +437,7 @@ export default function PartnersLandingPage() {
             href="/partners/apply"
             className="mt-8 inline-flex items-center gap-2 rounded-full bg-white px-8 py-3.5 text-base font-semibold text-[#1e1b4b] shadow-lg shadow-black/20 transition hover:bg-indigo-50"
           >
-            Apply to the Partner Program
+            Apply to the Affiliate Program
             <ArrowRight className="h-4 w-4" />
           </Link>
           <p className="mt-4 text-xs text-indigo-300/80">

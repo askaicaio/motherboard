@@ -1240,6 +1240,16 @@ export const partners = pgTable(
     /** Free-form admin notes (referral source, special arrangements, etc). */
     notes: text("notes"),
 
+    // ---- Partner portal auth (isolated from staff NextAuth) ----
+    /** bcrypt hash for the partner's portal login. Null until they set one. */
+    passwordHash: text("password_hash"),
+    /** One-time token for set-password / reset links (emailed). */
+    passwordToken: text("password_token"),
+    passwordTokenExpiresAt: timestamp("password_token_expires_at", {
+      withTimezone: true,
+    }),
+    portalLastLoginAt: timestamp("portal_last_login_at", { withTimezone: true }),
+
     appliedAt: timestamp("applied_at", { withTimezone: true })
       .defaultNow()
       .notNull(),

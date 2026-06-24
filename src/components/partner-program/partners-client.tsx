@@ -175,16 +175,16 @@ export function PartnersClient({
         <div>
           <div className="flex items-center gap-2">
             <Users className="h-5 w-5 text-zinc-500" />
-            <h1 className="text-2xl font-semibold tracking-tight">Partners</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">Affiliates</h1>
           </div>
           <p className="mt-1 text-sm text-zinc-500">
-            Manage Partner Program affiliates — review applications, approve,
-            and track payout readiness.
+            Manage your affiliates — review applications, approve, and track
+            payout readiness.
           </p>
         </div>
         <Button size="sm" onClick={() => setAddOpen(true)}>
           <Plus className="mr-2 h-3.5 w-3.5" />
-          New partner
+          New affiliate
         </Button>
       </div>
 
@@ -205,7 +205,7 @@ export function PartnersClient({
       {filtered.length === 0 ? (
         <Card>
           <CardContent className="py-16 text-center text-sm text-zinc-500">
-            No partners match your search.
+            No affiliates match your search.
           </CardContent>
         </Card>
       ) : (
@@ -631,7 +631,7 @@ function NewPartnerDialog({
         }),
       });
       if (!res.ok) {
-        toast.error("Failed to create partner");
+        toast.error("Failed to create affiliate");
         return;
       }
       const { partner } = await res.json();
@@ -655,9 +655,9 @@ function NewPartnerDialog({
     >
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>New partner</DialogTitle>
+          <DialogTitle>New affiliate</DialogTitle>
           <DialogDescription>
-            Manually add a partner. They&apos;ll start in the
+            Manually add an affiliate. They&apos;ll start in the
             &ldquo;applied&rdquo; state.
           </DialogDescription>
         </DialogHeader>

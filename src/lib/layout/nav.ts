@@ -23,7 +23,7 @@ export const MANAGEABLE_TABS: ManageableTab[] = [
   { href: "/automations", label: "Automations" },
   { href: "/docs", label: "Docs" },
   { href: "/subscriptions", label: "Subscriptions" },
-  { href: "/partner-program", label: "Partner Program" },
+  { href: "/partner-program", label: "Affiliates" },
   { href: "/integrations", label: "Integrations" },
   { href: "/audit-log", label: "Audit Log" },
   { href: "/settings/rules", label: "Rules" },
