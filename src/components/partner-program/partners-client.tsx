@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -30,7 +31,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Users, Plus, Search, Copy, Check } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Users,
+  Plus,
+  Search,
+  Copy,
+  Check,
+  SlidersHorizontal,
+  ChevronUp,
+  ChevronDown,
+  ChevronsUpDown,
+  FileText,
+  UserMinus,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -46,13 +66,24 @@ export interface PartnerRow {
   payoutDetails: string | null;
   ghlContactId: string | null;
   notes: string | null;
+  isSample: boolean;
+  country: string | null;
+  city: string | null;
+  state: string | null;
+  postalCode: string | null;
+  dateOfBirth: string | null;
+  audienceSize: number | null;
+  applicationData: Record<string, unknown>;
+  taxFormUrl: string | null;
   appliedAt: string | null;
   approvedAt: string | null;
   declinedAt: string | null;
   declineReason: string | null;
-  isSample: boolean;
+  portalLastLoginAt: string | null;
   createdAt: string;
   updatedAt: string;
+  paidCents: number;
+  payoutCount: number;
 }
 
 function SampleBadge() {
@@ -140,6 +171,222 @@ function CopyLinkButton({ link }: { link: string }) {
   );
 }
 
+// ─── Money / format helpers ────────────────────────────────────────────────
+
+function fmtUsd(cents: number): string {
+  const dollars = cents / 100;
+  return dollars.toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: dollars % 1 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+function payoutSummary(p: PartnerRow): string {
+  if (p.payoutCount === 0 && p.paidCents === 0) return "—";
+  const noun = p.payoutCount === 1 ? "payout" : "payouts";
+  return `${fmtUsd(p.paidCents)} · ${p.payoutCount} ${noun}`;
+}
+
+function appStr(data: Record<string, unknown>, key: string): string {
+  const v = data?.[key];
+  if (v == null) return "";
+  if (Array.isArray(v)) return v.filter(Boolean).join(", ");
+  return String(v);
+}
+
+// ─── Column / grouping / sort config ───────────────────────────────────────
+
+type ColumnKey =
+  | "name"
+  | "email"
+  | "company"
+  | "status"
+  | "payouts"
+  | "applied"
+  | "refCode"
+  | "country"
+  | "cityState"
+  | "dateOfBirth"
+  | "audienceSize"
+  | "taxFormStatus"
+  | "payoutMethod"
+  | "platforms"
+  | "targetAudience"
+  | "howDidYouHear"
+  | "profession"
+  | "affiliateExperience"
+  | "aiExperience"
+  | "portalLastLogin"
+  | "referralLink";
+
+type SortKey =
+  | "name"
+  | "email"
+  | "company"
+  | "status"
+  | "applied"
+  | "audienceSize"
+  | "payouts";
+
+interface ColumnDef {
+  key: ColumnKey;
+  label: string;
+  sortKey?: SortKey;
+  /** Right-aligned numeric-ish columns. */
+  align?: "left" | "right";
+}
+
+// Order here is the render order in the table.
+const COLUMN_DEFS: ColumnDef[] = [
+  { key: "name", label: "Name", sortKey: "name" },
+  { key: "email", label: "Email", sortKey: "email" },
+  { key: "company", label: "Company", sortKey: "company" },
+  { key: "status", label: "Status", sortKey: "status" },
+  { key: "payouts", label: "Payouts", sortKey: "payouts" },
+  { key: "applied", label: "Applied", sortKey: "applied" },
+  { key: "refCode", label: "Ref code" },
+  { key: "country", label: "Country" },
+  { key: "cityState", label: "City / State" },
+  { key: "dateOfBirth", label: "Date of birth" },
+  { key: "audienceSize", label: "Audience size", sortKey: "audienceSize", align: "right" },
+  { key: "taxFormStatus", label: "Tax form status" },
+  { key: "payoutMethod", label: "Payout method" },
+  { key: "platforms", label: "Platforms" },
+  { key: "targetAudience", label: "Target audience" },
+  { key: "howDidYouHear", label: "How heard" },
+  { key: "profession", label: "Profession" },
+  { key: "affiliateExperience", label: "Affiliate experience" },
+  { key: "aiExperience", label: "AI experience" },
+  { key: "portalLastLogin", label: "Portal last login" },
+  { key: "referralLink", label: "Referral link" },
+];
+
+const DEFAULT_COLUMNS: ColumnKey[] = [
+  "name",
+  "email",
+  "company",
+  "status",
+  "payouts",
+  "applied",
+];
+
+const COLUMN_STORAGE_KEY = "caio.partners.columns";
+
+// ─── Column-visibility store (localStorage-backed, SSR-safe) ───────────────
+// Modeled with useSyncExternalStore so the persisted prefs are read without a
+// setState-in-effect, and survive reloads.
+
+const DEFAULT_COLUMNS_JSON = JSON.stringify(DEFAULT_COLUMNS);
+
+function readColumnsRaw(): string {
+  if (typeof window === "undefined") return DEFAULT_COLUMNS_JSON;
+  try {
+    const stored = localStorage.getItem(COLUMN_STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored) as string[];
+      const valid = parsed.filter((k) => COLUMN_DEFS.some((c) => c.key === k));
+      if (valid.length) return JSON.stringify(valid);
+    }
+  } catch {
+    /* ignore malformed localStorage */
+  }
+  return DEFAULT_COLUMNS_JSON;
+}
+
+const columnListeners = new Set<() => void>();
+
+function subscribeColumns(cb: () => void): () => void {
+  columnListeners.add(cb);
+  const onStorage = (e: StorageEvent) => {
+    if (e.key === COLUMN_STORAGE_KEY) cb();
+  };
+  window.addEventListener("storage", onStorage);
+  return () => {
+    columnListeners.delete(cb);
+    window.removeEventListener("storage", onStorage);
+  };
+}
+
+function writeColumns(cols: ColumnKey[]) {
+  try {
+    localStorage.setItem(COLUMN_STORAGE_KEY, JSON.stringify(cols));
+  } catch {
+    /* ignore */
+  }
+  columnListeners.forEach((cb) => cb());
+}
+
+function useVisibleColumns(): [Set<ColumnKey>, (key: ColumnKey) => void] {
+  const raw = useSyncExternalStore(
+    subscribeColumns,
+    readColumnsRaw,
+    () => DEFAULT_COLUMNS_JSON,
+  );
+  const set = useMemo(
+    () => new Set(JSON.parse(raw) as ColumnKey[]),
+    [raw],
+  );
+  const toggle = (key: ColumnKey) => {
+    const next = new Set(set);
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    writeColumns([...next]);
+  };
+  return [set, toggle];
+}
+
+// Group order: Active first, then the rest of the lifecycle.
+const GROUP_ORDER = [
+  "active",
+  "applied",
+  "approved",
+  "suspended",
+  "declined",
+  "terminated",
+] as const;
+
+const GROUP_LABELS: Record<string, string> = {
+  active: "Active",
+  applied: "Applied",
+  approved: "Approved",
+  suspended: "Suspended",
+  declined: "Declined",
+  terminated: "Terminated",
+};
+
+function groupRank(status: string): number {
+  const i = GROUP_ORDER.indexOf(status as (typeof GROUP_ORDER)[number]);
+  return i === -1 ? GROUP_ORDER.length : i;
+}
+
+// ─── Sort comparator ───────────────────────────────────────────────────────
+
+function compareBy(a: PartnerRow, b: PartnerRow, key: SortKey): number {
+  switch (key) {
+    case "name":
+      return a.name.localeCompare(b.name);
+    case "email":
+      return a.email.localeCompare(b.email);
+    case "company":
+      return (a.company || "").localeCompare(b.company || "");
+    case "status":
+      return a.status.localeCompare(b.status);
+    case "applied":
+      return (
+        (a.appliedAt ? Date.parse(a.appliedAt) : 0) -
+        (b.appliedAt ? Date.parse(b.appliedAt) : 0)
+      );
+    case "audienceSize":
+      return (a.audienceSize ?? -1) - (b.audienceSize ?? -1);
+    case "payouts":
+      return a.paidCents - b.paidCents;
+    default:
+      return 0;
+  }
+}
+
 export function PartnersClient({
   initialPartners,
   baseUrl,
@@ -152,6 +399,21 @@ export function PartnersClient({
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<PartnerRow | null>(null);
   const [addOpen, setAddOpen] = useState(false);
+
+  const [grouped, setGrouped] = useState(true);
+  const [sortKey, setSortKey] = useState<SortKey>("name");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  const [visibleColumns, toggleColumn] = useVisibleColumns();
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  };
 
   const refLink = (refCode: string) => `${baseUrl}/r?aff=${refCode}`;
 
@@ -167,13 +429,58 @@ export function PartnersClient({
     );
   }, [rows, query]);
 
-  const handleUpdated = (updated: PartnerRow) => {
-    setRows((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
-    setSelected((s) => (s && s.id === updated.id ? updated : s));
+  // Sorted + (optionally) grouped view model.
+  const groups = useMemo(() => {
+    const dir = sortDir === "asc" ? 1 : -1;
+    const sortRows = (list: PartnerRow[]) =>
+      [...list].sort((a, b) => dir * compareBy(a, b, sortKey));
+
+    if (!grouped) {
+      return [{ status: "__all__", label: "All", rows: sortRows(filtered) }];
+    }
+
+    const byStatus = new Map<string, PartnerRow[]>();
+    for (const r of filtered) {
+      const arr = byStatus.get(r.status) ?? [];
+      arr.push(r);
+      byStatus.set(r.status, arr);
+    }
+    return [...byStatus.entries()]
+      .sort((a, b) => groupRank(a[0]) - groupRank(b[0]))
+      .map(([status, list]) => ({
+        status,
+        label: GROUP_LABELS[status] ?? status,
+        rows: sortRows(list),
+      }));
+  }, [filtered, grouped, sortKey, sortDir]);
+
+  const visibleColDefs = useMemo(
+    () => COLUMN_DEFS.filter((c) => visibleColumns.has(c.key)),
+    [visibleColumns],
+  );
+  // +1 for the trailing Actions column.
+  const colSpan = visibleColDefs.length + 1;
+
+  const handleUpdated = (updated: Partial<PartnerRow> & { id: string }) => {
+    // The API returns the raw partner row (no computed tally / applicationData
+    // typing). Merge onto the existing row so computed fields survive.
+    setRows((prev) =>
+      prev.map((r) => (r.id === updated.id ? { ...r, ...updated } : r)),
+    );
+    setSelected((s) =>
+      s && s.id === updated.id ? { ...s, ...updated } : s,
+    );
   };
   const handleCreated = (created: PartnerRow) => {
-    setRows((prev) => [created, ...prev]);
-    toast.success(`Added ${created.name}`);
+    // Manual create returns the raw row; backfill computed defaults.
+    const row: PartnerRow = {
+      ...created,
+      applicationData: created.applicationData ?? {},
+      paidCents: created.paidCents ?? 0,
+      payoutCount: created.payoutCount ?? 0,
+    };
+    setRows((prev) => [row, ...prev]);
+    toast.success(`Added ${row.name}`);
     router.refresh();
   };
 
@@ -208,6 +515,55 @@ export function PartnersClient({
             className="pl-8"
           />
         </div>
+
+        {/* Group control */}
+        <Select
+          value={grouped ? "status" : "none"}
+          onValueChange={(v) => setGrouped(v === "status")}
+        >
+          <SelectTrigger className="h-9 w-[170px] text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="status">Group by status</SelectItem>
+            <SelectItem value="none">All / ungrouped</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {/* Column picker */}
+        <DropdownMenu>
+          <DropdownMenuTrigger>
+            <Button variant="outline" size="sm" className="h-9 gap-1.5 text-xs">
+              <SlidersHorizontal className="h-3.5 w-3.5" />
+              Table settings
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="end"
+            className="max-h-[60vh] w-56 overflow-y-auto"
+          >
+            <div className="px-2 py-1.5 text-[10px] font-medium uppercase tracking-wider text-zinc-500">
+              Show columns
+            </div>
+            <DropdownMenuSeparator />
+            {COLUMN_DEFS.map((col) => (
+              <DropdownMenuItem
+                key={col.key}
+                onSelect={(e) => {
+                  e.preventDefault();
+                  toggleColumn(col.key);
+                }}
+                className="gap-2"
+              >
+                <Checkbox
+                  checked={visibleColumns.has(col.key)}
+                  onCheckedChange={() => toggleColumn(col.key)}
+                />
+                <span>{col.label}</span>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Table */}
@@ -223,51 +579,39 @@ export function PartnersClient({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Company</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Tax form</TableHead>
-                  <TableHead>Payout</TableHead>
-                  <TableHead>Referral link</TableHead>
+                  {visibleColDefs.map((col) => (
+                    <SortableHead
+                      key={col.key}
+                      col={col}
+                      activeSort={sortKey}
+                      sortDir={sortDir}
+                      onSort={handleSort}
+                    />
+                  ))}
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((r) => (
-                  <TableRow
-                    key={r.id}
-                    onClick={() => setSelected(r)}
-                    className="cursor-pointer"
+                {groups.map((g) => (
+                  <GroupSection
+                    key={g.status}
+                    grouped={grouped}
+                    label={g.label}
+                    count={g.rows.length}
+                    colSpan={colSpan}
                   >
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-1.5">
-                        <span>{r.name}</span>
-                        {r.isSample && <SampleBadge />}
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-mono text-xs text-zinc-600">
-                      {r.email}
-                    </TableCell>
-                    <TableCell className="text-zinc-600">
-                      {r.company || <span className="text-zinc-400">—</span>}
-                    </TableCell>
-                    <TableCell>
-                      <StatusBadge status={r.status} />
-                    </TableCell>
-                    <TableCell className="text-xs text-zinc-600">
-                      {TAX_FORM_LABELS[r.taxFormStatus] ?? r.taxFormStatus}
-                    </TableCell>
-                    <TableCell className="text-xs text-zinc-600">
-                      {PAYOUT_LABELS[r.payoutMethod] ?? r.payoutMethod}
-                    </TableCell>
-                    <TableCell onClick={(e) => e.stopPropagation()}>
-                      {r.refCode ? (
-                        <CopyLinkButton link={refLink(r.refCode)} />
-                      ) : (
-                        <span className="text-xs text-zinc-400">—</span>
-                      )}
-                    </TableCell>
-                  </TableRow>
+                    {g.rows.map((r) => (
+                      <PartnerTableRow
+                        key={r.id}
+                        partner={r}
+                        columns={visibleColDefs}
+                        refLink={refLink}
+                        onOpen={() => setSelected(r)}
+                        onUpdated={handleUpdated}
+                        router={router}
+                      />
+                    ))}
+                  </GroupSection>
                 ))}
               </TableBody>
             </Table>
@@ -291,6 +635,413 @@ export function PartnersClient({
   );
 }
 
+// ─── Table head with click-to-sort ─────────────────────────────────────────
+
+function SortableHead({
+  col,
+  activeSort,
+  sortDir,
+  onSort,
+}: {
+  col: ColumnDef;
+  activeSort: SortKey;
+  sortDir: "asc" | "desc";
+  onSort: (key: SortKey) => void;
+}) {
+  const alignRight = col.align === "right";
+  if (!col.sortKey) {
+    return (
+      <TableHead className={cn(alignRight && "text-right")}>
+        {col.label}
+      </TableHead>
+    );
+  }
+  const isActive = activeSort === col.sortKey;
+  return (
+    <TableHead className={cn(alignRight && "text-right")}>
+      <button
+        type="button"
+        onClick={() => onSort(col.sortKey!)}
+        className={cn(
+          "inline-flex items-center gap-1 select-none hover:text-zinc-900",
+          alignRight && "flex-row-reverse",
+          isActive ? "text-zinc-900" : "text-zinc-500",
+        )}
+      >
+        <span>{col.label}</span>
+        {isActive ? (
+          sortDir === "asc" ? (
+            <ChevronUp className="h-3.5 w-3.5" />
+          ) : (
+            <ChevronDown className="h-3.5 w-3.5" />
+          )
+        ) : (
+          <ChevronsUpDown className="h-3.5 w-3.5 opacity-40" />
+        )}
+      </button>
+    </TableHead>
+  );
+}
+
+// ─── Group section header ──────────────────────────────────────────────────
+
+function GroupSection({
+  grouped,
+  label,
+  count,
+  colSpan,
+  children,
+}: {
+  grouped: boolean;
+  label: string;
+  count: number;
+  colSpan: number;
+  children: React.ReactNode;
+}) {
+  return (
+    <>
+      {grouped && (
+        <TableRow className="hover:bg-transparent">
+          <TableCell
+            colSpan={colSpan}
+            className="bg-zinc-50 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-zinc-500"
+          >
+            {label}
+            <span className="ml-2 font-normal normal-case text-zinc-400">
+              {count}
+            </span>
+          </TableCell>
+        </TableRow>
+      )}
+      {children}
+    </>
+  );
+}
+
+// ─── A single affiliate row ────────────────────────────────────────────────
+
+function PartnerTableRow({
+  partner: r,
+  columns,
+  refLink,
+  onOpen,
+  onUpdated,
+  router,
+}: {
+  partner: PartnerRow;
+  columns: ColumnDef[];
+  refLink: (refCode: string) => string;
+  onOpen: () => void;
+  onUpdated: (p: Partial<PartnerRow> & { id: string }) => void;
+  router: ReturnType<typeof useRouter>;
+}) {
+  const cellFor = (key: ColumnKey) => {
+    switch (key) {
+      case "name":
+        return (
+          <TableCell key={key} className="font-medium">
+            <div className="flex items-center gap-1.5">
+              <span>{r.name}</span>
+              {r.isSample && <SampleBadge />}
+            </div>
+          </TableCell>
+        );
+      case "email":
+        return (
+          <TableCell key={key} className="font-mono text-xs text-zinc-600">
+            {r.email}
+          </TableCell>
+        );
+      case "company":
+        return (
+          <TableCell key={key} className="text-zinc-600">
+            {r.company || <span className="text-zinc-400">—</span>}
+          </TableCell>
+        );
+      case "status":
+        return (
+          <TableCell key={key}>
+            <StatusBadge status={r.status} />
+          </TableCell>
+        );
+      case "payouts":
+        return (
+          <TableCell key={key} className="text-xs text-zinc-700">
+            {payoutSummary(r)}
+          </TableCell>
+        );
+      case "applied":
+        return (
+          <TableCell key={key} className="text-xs text-zinc-600">
+            {fmtDate(r.appliedAt)}
+          </TableCell>
+        );
+      case "refCode":
+        return (
+          <TableCell key={key} className="font-mono text-xs text-zinc-600">
+            {r.refCode || "—"}
+          </TableCell>
+        );
+      case "country":
+        return (
+          <TableCell key={key} className="text-xs text-zinc-600">
+            {r.country || "—"}
+          </TableCell>
+        );
+      case "cityState":
+        return (
+          <TableCell key={key} className="text-xs text-zinc-600">
+            {[r.city, r.state].filter(Boolean).join(", ") || "—"}
+          </TableCell>
+        );
+      case "dateOfBirth":
+        return (
+          <TableCell key={key} className="text-xs text-zinc-600">
+            {r.dateOfBirth || "—"}
+          </TableCell>
+        );
+      case "audienceSize":
+        return (
+          <TableCell key={key} className="text-right text-xs text-zinc-600">
+            {r.audienceSize != null
+              ? r.audienceSize.toLocaleString("en-US")
+              : "—"}
+          </TableCell>
+        );
+      case "taxFormStatus":
+        return (
+          <TableCell key={key} className="text-xs text-zinc-600">
+            {TAX_FORM_LABELS[r.taxFormStatus] ?? r.taxFormStatus}
+          </TableCell>
+        );
+      case "payoutMethod":
+        return (
+          <TableCell key={key} className="text-xs text-zinc-600">
+            {PAYOUT_LABELS[r.payoutMethod] ?? r.payoutMethod}
+          </TableCell>
+        );
+      case "platforms":
+        return (
+          <TableCell key={key} className="max-w-[220px] truncate text-xs text-zinc-600">
+            {appStr(r.applicationData, "platforms") || "—"}
+          </TableCell>
+        );
+      case "targetAudience":
+        return (
+          <TableCell key={key} className="max-w-[220px] truncate text-xs text-zinc-600">
+            {appStr(r.applicationData, "targetAudience") || "—"}
+          </TableCell>
+        );
+      case "howDidYouHear":
+        return (
+          <TableCell key={key} className="max-w-[200px] truncate text-xs text-zinc-600">
+            {appStr(r.applicationData, "howDidYouHear") || "—"}
+          </TableCell>
+        );
+      case "profession":
+        return (
+          <TableCell key={key} className="max-w-[200px] truncate text-xs text-zinc-600">
+            {appStr(r.applicationData, "profession") || "—"}
+          </TableCell>
+        );
+      case "affiliateExperience":
+        return (
+          <TableCell key={key} className="text-xs text-zinc-600">
+            {appStr(r.applicationData, "affiliateExperienceLevel") || "—"}
+          </TableCell>
+        );
+      case "aiExperience":
+        return (
+          <TableCell key={key} className="text-xs text-zinc-600">
+            {appStr(r.applicationData, "aiExperienceLevel") || "—"}
+          </TableCell>
+        );
+      case "portalLastLogin":
+        return (
+          <TableCell key={key} className="text-xs text-zinc-600">
+            {fmtDate(r.portalLastLoginAt)}
+          </TableCell>
+        );
+      case "referralLink":
+        return (
+          <TableCell key={key} onClick={(e) => e.stopPropagation()}>
+            {r.refCode ? (
+              <CopyLinkButton link={refLink(r.refCode)} />
+            ) : (
+              <span className="text-xs text-zinc-400">—</span>
+            )}
+          </TableCell>
+        );
+      default:
+        return <TableCell key={key}>—</TableCell>;
+    }
+  };
+
+  return (
+    <TableRow onClick={onOpen} className="cursor-pointer">
+      {columns.map((c) => cellFor(c.key))}
+      <TableCell
+        className="text-right"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <RowActions partner={r} onUpdated={onUpdated} router={router} />
+      </TableCell>
+    </TableRow>
+  );
+}
+
+// ─── Per-row actions (tax form link + offboard) ────────────────────────────
+
+function RowActions({
+  partner,
+  onUpdated,
+  router,
+}: {
+  partner: PartnerRow;
+  onUpdated: (p: Partial<PartnerRow> & { id: string }) => void;
+  router: ReturnType<typeof useRouter>;
+}) {
+  const [offboardOpen, setOffboardOpen] = useState(false);
+  const canOffboard = ["active", "approved", "suspended"].includes(
+    partner.status,
+  );
+
+  return (
+    <div className="inline-flex items-center justify-end gap-1.5">
+      {partner.taxFormUrl && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 gap-1 px-2 text-xs"
+          onClick={() =>
+            window.open(`/api/partners/${partner.id}/tax-form`, "_blank")
+          }
+        >
+          <FileText className="h-3 w-3" />
+          Tax form
+        </Button>
+      )}
+      {canOffboard && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 gap-1 px-2 text-xs text-red-600 hover:text-red-700"
+          onClick={() => setOffboardOpen(true)}
+        >
+          <UserMinus className="h-3 w-3" />
+          Offboard
+        </Button>
+      )}
+      <OffboardDialog
+        partner={partner}
+        open={offboardOpen}
+        onOpenChange={setOffboardOpen}
+        onUpdated={onUpdated}
+        router={router}
+      />
+    </div>
+  );
+}
+
+// ─── Offboard (suspend / terminate) confirm dialog ─────────────────────────
+
+function OffboardDialog({
+  partner,
+  open,
+  onOpenChange,
+  onUpdated,
+  router,
+}: {
+  partner: PartnerRow;
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  onUpdated: (p: Partial<PartnerRow> & { id: string }) => void;
+  router: ReturnType<typeof useRouter>;
+}) {
+  const [busy, setBusy] = useState(false);
+
+  const offboard = async (status: "suspended" | "terminated") => {
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/partners/${partner.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) {
+        toast.error("Failed to update affiliate");
+        return;
+      }
+      const { partner: updated } = await res.json();
+      onUpdated(updated);
+      toast.success(
+        status === "suspended"
+          ? `${partner.name} suspended`
+          : `${partner.name} terminated`,
+      );
+      onOpenChange(false);
+      router.refresh();
+    } catch {
+      toast.error("Failed to update affiliate");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Offboard {partner.name}</DialogTitle>
+          <DialogDescription>
+            Choose how to remove this affiliate from the program. Suspend is
+            reversible (you can reactivate later); Terminate is permanent.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3 text-sm">
+          <div className="rounded-md border border-amber-200 bg-amber-50 p-3">
+            <div className="font-medium text-amber-800">Suspend</div>
+            <p className="mt-0.5 text-xs text-amber-700">
+              Pauses the affiliate. Their portal access is revoked but the
+              account can be reactivated.
+            </p>
+          </div>
+          <div className="rounded-md border border-red-200 bg-red-50 p-3">
+            <div className="font-medium text-red-800">Terminate</div>
+            <p className="mt-0.5 text-xs text-red-700">
+              Permanently ends the relationship. This cannot be undone.
+            </p>
+          </div>
+        </div>
+        <DialogFooter className="flex-wrap gap-2">
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={busy}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="outline"
+            className="text-amber-700 hover:text-amber-800"
+            onClick={() => offboard("suspended")}
+            disabled={busy}
+          >
+            Suspend
+          </Button>
+          <Button
+            className="bg-red-600 text-white hover:bg-red-700"
+            onClick={() => offboard("terminated")}
+            disabled={busy}
+          >
+            Terminate
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ─── Detail + Edit dialog ──────────────────────────────────────────────────
 
 function PartnerDetailDialog({
@@ -302,7 +1053,7 @@ function PartnerDetailDialog({
 }: {
   partner: PartnerRow | null;
   onOpenChange: (open: boolean) => void;
-  onUpdated: (p: PartnerRow) => void;
+  onUpdated: (p: Partial<PartnerRow> & { id: string }) => void;
   refLink: (refCode: string) => string;
   router: ReturnType<typeof useRouter>;
 }) {
@@ -315,6 +1066,7 @@ function PartnerDetailDialog({
   const [saving, setSaving] = useState(false);
   const [busy, setBusy] = useState(false);
   const [declineReason, setDeclineReason] = useState("");
+  const [offboardOpen, setOffboardOpen] = useState(false);
   // Track which partner the form is currently synced to so we re-seed
   // the controlled inputs whenever a different row is opened.
   const [syncedId, setSyncedId] = useState<string | null>(null);
@@ -408,6 +1160,9 @@ function PartnerDetailDialog({
     }
   };
 
+  const canOffboard =
+    !!partner && ["active", "approved", "suspended"].includes(partner.status);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
@@ -427,12 +1182,14 @@ function PartnerDetailDialog({
             {/* Read-only facts */}
             <div className="grid grid-cols-2 gap-3 text-sm">
               <Fact label="Ref code" value={partner.refCode || "—"} mono />
-              <Fact
-                label="Applied"
-                value={fmtDate(partner.appliedAt)}
-              />
+              <Fact label="Applied" value={fmtDate(partner.appliedAt)} />
               <Fact label="Approved" value={fmtDate(partner.approvedAt)} />
               <Fact label="Declined" value={fmtDate(partner.declinedAt)} />
+              <Fact label="Payouts received" value={payoutSummary(partner)} />
+              <Fact
+                label="Portal last login"
+                value={fmtDate(partner.portalLastLoginAt)}
+              />
             </div>
 
             {partner.refCode && (
@@ -444,6 +1201,28 @@ function PartnerDetailDialog({
               </div>
             )}
 
+            {partner.taxFormUrl && (
+              <div>
+                <Label className="text-xs text-zinc-500">Tax form</Label>
+                <div className="mt-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 gap-1 px-2 text-xs"
+                    onClick={() =>
+                      window.open(
+                        `/api/partners/${partner.id}/tax-form`,
+                        "_blank",
+                      )
+                    }
+                  >
+                    <FileText className="h-3 w-3" />
+                    Open tax form
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {/* Applied: approve / decline */}
             {partner.status === "applied" && (
               <div className="rounded-md border border-amber-200 bg-amber-50 p-3 space-y-2">
@@ -451,11 +1230,7 @@ function PartnerDetailDialog({
                   This application is pending review.
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <Button
-                    size="sm"
-                    onClick={handleApprove}
-                    disabled={busy}
-                  >
+                  <Button size="sm" onClick={handleApprove} disabled={busy}>
                     Approve
                   </Button>
                   <Button
@@ -473,6 +1248,26 @@ function PartnerDetailDialog({
                   onChange={(e) => setDeclineReason(e.target.value)}
                   className="text-xs"
                 />
+              </div>
+            )}
+
+            {/* Active/approved: offboard */}
+            {canOffboard && (
+              <div className="rounded-md border border-zinc-200 bg-zinc-50 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="text-xs text-zinc-600">
+                    Remove this affiliate from the program.
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 gap-1 px-2 text-xs text-red-600 hover:text-red-700"
+                    onClick={() => setOffboardOpen(true)}
+                  >
+                    <UserMinus className="h-3 w-3" />
+                    Offboard
+                  </Button>
+                </div>
               </div>
             )}
 
@@ -519,7 +1314,10 @@ function PartnerDetailDialog({
                 </div>
                 <div className="space-y-1.5">
                   <Label>Payout method</Label>
-                  <Select value={payoutMethod} onValueChange={(v) => setPayoutMethod(v ?? "")}>
+                  <Select
+                    value={payoutMethod}
+                    onValueChange={(v) => setPayoutMethod(v ?? "")}
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -569,6 +1367,16 @@ function PartnerDetailDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      {partner && (
+        <OffboardDialog
+          partner={partner}
+          open={offboardOpen}
+          onOpenChange={setOffboardOpen}
+          onUpdated={onUpdated}
+          router={router}
+        />
+      )}
     </Dialog>
   );
 }
