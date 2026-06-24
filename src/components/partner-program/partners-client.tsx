@@ -50,6 +50,7 @@ import {
   ChevronsUpDown,
   FileText,
   UserMinus,
+  Eye,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -902,12 +903,43 @@ function RowActions({
   router: ReturnType<typeof useRouter>;
 }) {
   const [offboardOpen, setOffboardOpen] = useState(false);
+  const [viewing, setViewing] = useState(false);
   const canOffboard = ["active", "approved", "suspended"].includes(
     partner.status,
   );
+  const canView = ["active", "approved"].includes(partner.status);
+
+  async function viewAs() {
+    setViewing(true);
+    try {
+      const res = await fetch(`/api/partners/${partner.id}/view-as`, {
+        method: "POST",
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.error || "Could not open the affiliate's portal.");
+        return;
+      }
+      window.open(data.portalUrl || "/portal", "_blank");
+    } finally {
+      setViewing(false);
+    }
+  }
 
   return (
     <div className="inline-flex items-center justify-end gap-1.5">
+      {canView && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 gap-1 px-2 text-xs"
+          disabled={viewing}
+          onClick={viewAs}
+        >
+          <Eye className="h-3 w-3" />
+          View as
+        </Button>
+      )}
       {partner.taxFormUrl && (
         <Button
           variant="outline"

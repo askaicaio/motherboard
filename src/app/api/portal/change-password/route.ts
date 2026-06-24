@@ -6,9 +6,15 @@ import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { partners } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { getPartnerSession } from "@/lib/partners/session";
+import { getPartnerSession, getImpersonation } from "@/lib/partners/session";
 
 export const dynamic = "force-dynamic";
+
+const readOnly = () =>
+  NextResponse.json(
+    { error: "Read-only while viewing as an affiliate." },
+    { status: 403 },
+  );
 
 const schema = z
   .object({
@@ -25,6 +31,7 @@ export async function POST(request: NextRequest) {
   if (!partner) {
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   }
+  if (await getImpersonation()) return readOnly();
 
   let body;
   try {

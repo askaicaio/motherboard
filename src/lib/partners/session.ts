@@ -17,10 +17,18 @@ import { eq } from "drizzle-orm";
 
 export const PARTNER_COOKIE = "caio_partner";
 const MAX_AGE_SECONDS = 30 * 24 * 60 * 60; // 30 days
+// Share the cookie across *.chiefaiofficer.com so an admin "View as" session set
+// on the staff host carries to the affiliate portal subdomain. Host-only locally.
+const COOKIE_DOMAIN =
+  process.env.NODE_ENV === "production" ? ".chiefaiofficer.com" : undefined;
+// Impersonation sessions are short-lived (admin preview only).
+const IMP_MAX_AGE_SECONDS = 2 * 60 * 60; // 2 hours
 
 interface PartnerToken {
   partnerId: string;
   ts: number;
+  /** True only for admin "View as" impersonation sessions (read-only). */
+  imp?: boolean;
 }
 
 function secret(): string {
@@ -36,8 +44,10 @@ function sign(payloadB64: string): string {
   return createHmac("sha256", secret()).update(payloadB64).digest("base64url");
 }
 
-export function encodePartnerToken(partnerId: string): string {
-  const payload: PartnerToken = { partnerId, ts: Date.now() };
+export function encodePartnerToken(partnerId: string, imp = false): string {
+  const payload: PartnerToken = imp
+    ? { partnerId, ts: Date.now(), imp: true }
+    : { partnerId, ts: Date.now() };
   const b64 = Buffer.from(JSON.stringify(payload)).toString("base64url");
   return `${b64}.${sign(b64)}`;
 }
@@ -76,12 +86,42 @@ export async function setPartnerSession(partnerId: string): Promise<void> {
     sameSite: "lax",
     path: "/",
     maxAge: MAX_AGE_SECONDS,
+    domain: COOKIE_DOMAIN,
+  });
+}
+
+/**
+ * Set an admin "View as" impersonation session for a partner. The imp flag is
+ * inside the HMAC-signed token, so a partner can never forge one. Short-lived.
+ */
+export async function setImpersonationSession(partnerId: string): Promise<void> {
+  const jar = await cookies();
+  jar.set(PARTNER_COOKIE, encodePartnerToken(partnerId, true), {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: IMP_MAX_AGE_SECONDS,
+    domain: COOKIE_DOMAIN,
   });
 }
 
 export async function clearPartnerSession(): Promise<void> {
   const jar = await cookies();
+  // Clear both the domain-scoped and any legacy host-only cookie.
+  jar.set(PARTNER_COOKIE, "", {
+    path: "/",
+    maxAge: 0,
+    domain: COOKIE_DOMAIN,
+  });
   jar.delete(PARTNER_COOKIE);
+}
+
+/** True when the current portal session is an admin impersonation ("View as"). */
+export async function getImpersonation(): Promise<boolean> {
+  const jar = await cookies();
+  const token = decodePartnerToken(jar.get(PARTNER_COOKIE)?.value);
+  return token?.imp === true;
 }
 
 export type PartnerRow = typeof partners.$inferSelect;
@@ -106,9 +146,10 @@ export async function getPartnerSession(): Promise<PartnerRow | null> {
 export async function requirePartner(): Promise<PartnerRow> {
   const partner = await getPartnerSession();
   if (!partner) redirect("/portal/login");
-  // Force a temp-password holder to choose their own password before continuing.
-  // The change-password page itself uses getPartnerSession (not this guard) to
-  // avoid a redirect loop.
-  if (partner.mustChangePassword) redirect("/portal/change-password");
+  // Force a temp-password holder to choose their own password before continuing
+  // — but never during an admin "View as" preview.
+  if (partner.mustChangePassword && !(await getImpersonation())) {
+    redirect("/portal/change-password");
+  }
   return partner;
 }

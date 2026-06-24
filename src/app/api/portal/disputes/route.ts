@@ -6,7 +6,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { partnerDisputes, partnerConversions } from "@/lib/db/schema";
 import { and, eq } from "drizzle-orm";
-import { getPartnerSession } from "@/lib/partners/session";
+import { getPartnerSession, getImpersonation } from "@/lib/partners/session";
 import { disputeWithinWindow } from "@/lib/partners/rules";
 
 export const dynamic = "force-dynamic";
@@ -21,6 +21,12 @@ export async function POST(request: NextRequest) {
   const partner = await getPartnerSession();
   if (!partner) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (await getImpersonation()) {
+    return NextResponse.json(
+      { error: "Read-only while viewing as an affiliate." },
+      { status: 403 },
+    );
   }
 
   let body;
