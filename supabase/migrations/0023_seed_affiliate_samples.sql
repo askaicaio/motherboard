@@ -100,7 +100,7 @@ VALUES
    1200000, 0, 0, 1200000, 120000, 'seed-conv-006', 'stripe',
    now() - interval '9 days', true, 'reversed',
    now() - interval '2 days', now() + interval '5 days', NULL, NULL)
-ON CONFLICT ("source", "external_order_id") DO NOTHING;
+ON CONFLICT ("id") DO NOTHING;
 
 -- ── Disputes ─────────────────────────────────────────────────────────────────
 INSERT INTO "partner_disputes"
