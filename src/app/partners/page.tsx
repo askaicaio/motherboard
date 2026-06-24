@@ -26,7 +26,6 @@ const PROGRAMS = [
   { name: "AI Leadership Certification", listValue: 12_000, commission: 1_200, salesLed: false },
   { name: "CAIO Certification", listValue: 12_000, commission: 1_200, salesLed: false },
   { name: "AI Leadership Kickstart Day", listValue: 12_000, commission: 1_200, salesLed: false },
-  { name: "Strategic Oversight", listValue: 43_500, commission: 4_350, salesLed: true },
   { name: "Embedded Fractional CAIO", listValue: 54_000, commission: 5_400, salesLed: true },
 ];
 
@@ -112,7 +111,35 @@ const FAQS = [
   },
   {
     q: "Which programs are eligible?",
-    a: "All six CAIO programs. The self-serve programs are purchased directly through your link; the sales-led engagements (Strategic Oversight, Embedded Fractional CAIO) are attributed through a qualified introduction and paid when our team closes the deal.",
+    a: "Every CAIO program. The self-serve programs are purchased directly through your link; the sales-led engagement (Embedded Fractional CAIO) is attributed through a qualified introduction and paid when our team closes the deal.",
+  },
+  {
+    q: "How do I get my referral link?",
+    a: "Once your application is approved, your unique referral link is generated automatically and waiting for you in the affiliate portal. You can copy it from your dashboard and start sharing the same day.",
+  },
+  {
+    q: "How are sales-led programs (like Embedded Fractional CAIO) credited?",
+    a: "You make a documented introduction — log it in your portal before any proposal goes out. A CAIO admin records the deal once it closes, and your commission is calculated exactly the same way as a self-serve referral: a flat 10% of the first purchase.",
+  },
+  {
+    q: "What happens if a sale is refunded?",
+    a: "Commissions are only confirmed after the 7-day refund window closes. If a purchase is refunded or charged back during that window, the related commission is reversed and won't be paid out. Refunds after a commission has already been paid are reconciled against your next balance.",
+  },
+  {
+    q: "Is there a cap on earnings?",
+    a: "No. There's no cap on how much you can earn — refer one executive or a hundred, you earn 10% on every qualifying new-customer first purchase.",
+  },
+  {
+    q: "How long does approval take?",
+    a: "We review every application personally to keep the program high-quality, so it usually takes about 3 business days. We'll email you the moment you're approved with a link to set up your portal.",
+  },
+  {
+    q: "Can I see my clicks and conversions?",
+    a: "Yes. Your affiliate portal shows your clicks, attributed conversions, pending and earned commissions, and payout history in real time — so you always know where you stand.",
+  },
+  {
+    q: "What counts as a new customer?",
+    a: "A new customer is someone with no prior CAIO purchase. Commission is paid on their first purchase only — renewals, upgrades, and expansions by existing customers are not commissionable.",
   },
 ];
 
@@ -137,10 +164,16 @@ export default function PartnersLandingPage() {
           </Link>
           <div className="flex items-center gap-5">
             <Link
-              href="/partners/resources"
+              href="/portal/resources"
               className="hidden text-sm font-medium text-slate-600 transition hover:text-[#4f46e5] sm:inline"
             >
               Resources
+            </Link>
+            <Link
+              href="/portal/login"
+              className="hidden text-sm font-medium text-slate-600 transition hover:text-[#4f46e5] sm:inline"
+            >
+              Sign in
             </Link>
             <Link
               href="/partners/apply"
@@ -462,7 +495,7 @@ export default function PartnersLandingPage() {
             </span>
           </div>
           <div className="flex items-center gap-6 text-sm text-slate-500">
-            <Link href="/partners/resources" className="transition hover:text-[#4f46e5]">
+            <Link href="/portal/resources" className="transition hover:text-[#4f46e5]">
               Resources
             </Link>
             <Link href="/partners/apply" className="transition hover:text-[#4f46e5]">

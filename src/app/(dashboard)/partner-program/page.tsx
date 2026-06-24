@@ -16,12 +16,10 @@ import {
   Clock,
   DollarSign,
   CheckCircle2,
-  Link2,
+  Activity,
   FileText,
-  BarChart3,
-  Banknote,
   AlertCircle,
-  Settings2,
+  Settings,
   FolderOpen,
   ExternalLink,
   ChevronRight,
@@ -130,12 +128,12 @@ export default async function PartnerProgramPage() {
     .orderBy(desc(partnerConversions.purchasedAt))
     .limit(8);
 
-  // ── Quick-link cards ───────────────────────────────────────────────────
+  // ── Quick-link cards — exactly four core surfaces ──────────────────────
   const quickLinks = [
     {
       href: "/partner-program/partners",
       icon: Users,
-      label: "Affiliates",
+      label: "Partners",
       desc: "Manage approved & active affiliates",
     },
     {
@@ -146,26 +144,14 @@ export default async function PartnerProgramPage() {
       badge: pendingCount > 0 ? String(pendingCount) : undefined,
     },
     {
-      href: "/partner-program/attribution",
-      icon: Link2,
-      label: "Attribution",
-      desc: "Click & intro attribution events",
-    },
-    {
-      href: "/partner-program/conversions",
-      icon: BarChart3,
-      label: "Conversions",
-      desc: "Commission ledger & status",
+      href: "/partner-program/events",
+      icon: Activity,
+      label: "Events",
+      desc: "Attribution, conversions & payouts pipeline",
       badge:
         pendingConversionsCount > 0
           ? String(pendingConversionsCount)
           : undefined,
-    },
-    {
-      href: "/partner-program/payouts",
-      icon: Banknote,
-      label: "Payouts",
-      desc: "Batch generation & ACH/Zelle export",
     },
     {
       href: "/partner-program/disputes",
@@ -173,34 +159,40 @@ export default async function PartnerProgramPage() {
       label: "Disputes",
       desc: "Affiliate-submitted conversion disputes",
     },
-    {
-      href: "/partner-program/resources",
-      icon: FolderOpen,
-      label: "Resources",
-      desc: "Playbook, toolkit & marketing assets for affiliates",
-    },
-    {
-      href: "/partner-program/settings",
-      icon: Settings2,
-      label: "Settings",
-      desc: "Commission rate, cookie window, payout terms",
-    },
   ];
 
   return (
     <div className="space-y-6 p-6">
       {/* Header */}
-      <div>
-        <div className="flex items-center gap-2">
-          <Handshake className="h-5 w-5 text-zinc-500" />
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Affiliate Program
-          </h1>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <Handshake className="h-5 w-5 text-zinc-500" />
+            <h1 className="text-2xl font-semibold tracking-tight">
+              Affiliate Program
+            </h1>
+          </div>
+          <p className="mt-1 text-sm text-zinc-500">
+            Affiliate commission overview — active affiliates, pending
+            commissions, and recent activity.
+          </p>
         </div>
-        <p className="mt-1 text-sm text-zinc-500">
-          Affiliate commission overview — active affiliates, pending
-          commissions, and recent activity.
-        </p>
+        <div className="flex shrink-0 items-center gap-2">
+          <NextLink
+            href="/partner-program/resources"
+            className="inline-flex items-center gap-2 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+          >
+            <FolderOpen className="h-4 w-4" />
+            Resources
+          </NextLink>
+          <NextLink
+            href="/partner-program/settings"
+            aria-label="Program settings"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
+          >
+            <Settings className="h-4 w-4" />
+          </NextLink>
+        </div>
       </div>
 
       {/* Metric cards */}
@@ -304,7 +296,7 @@ export default async function PartnerProgramPage() {
             Recent Conversions
           </h2>
           <NextLink
-            href="/partner-program/conversions"
+            href="/partner-program/events"
             className="text-xs text-zinc-500 hover:text-zinc-900 hover:underline"
           >
             View all

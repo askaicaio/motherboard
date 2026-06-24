@@ -65,6 +65,36 @@ export async function sendPortalPasswordEmail(
   await sendEmail({ to: partner.email, subject, html, plain });
 }
 
+/** Email a newly-approved affiliate their temporary portal password + login link. */
+export async function sendTempPasswordEmail(
+  partner: { name: string; email: string },
+  tempPassword: string,
+): Promise<void> {
+  const loginUrl = `${portalBaseUrl()}/portal/login`;
+  const subject = "Your CAIO affiliate portal password";
+  const intro =
+    "Your CAIO affiliate account is approved. Use the temporary password below to sign in to your portal — your referral link, earnings, and payouts.";
+
+  const html = `<!DOCTYPE html><html><body style="margin:0;background:#f4f4f5;font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#18181b;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:40px 16px;"><tr><td align="center">
+    <table width="100%" style="max-width:520px;background:#fff;border-radius:12px;overflow:hidden;">
+      <tr><td style="background:#1e1b4b;padding:22px 32px;color:#fff;font-size:16px;font-weight:600;">Chief AI Officer · Affiliate Program</td></tr>
+      <tr><td style="padding:32px;">
+        <h1 style="margin:0 0 14px;font-size:20px;">Hi ${escapeHtml(partner.name)},</h1>
+        <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:#3f3f46;">${intro}</p>
+        <p style="margin:0 0 8px;font-size:13px;color:#71717a;">Your temporary password:</p>
+        <p style="margin:0 0 20px;font-size:20px;font-weight:700;letter-spacing:0.5px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:#1e1b4b;">${escapeHtml(tempPassword)}</p>
+        <a href="${loginUrl}" style="display:inline-block;background:#4f46e5;color:#fff;padding:13px 26px;border-radius:8px;font-weight:600;text-decoration:none;font-size:15px;">Sign in to your portal →</a>
+        <p style="margin:24px 0 0;font-size:13px;color:#3f3f46;line-height:1.6;">You'll be asked to choose your own password on first sign-in.</p>
+      </td></tr>
+    </table>
+  </td></tr></table></body></html>`;
+
+  const plain = `Hi ${partner.name},\n\n${intro}\n\nYour temporary password: ${tempPassword}\n\nSign in: ${loginUrl}\n\nYou'll be asked to choose your own password on first sign-in.\n\n— Chief AI Officer Affiliate Program`;
+
+  await sendEmail({ to: partner.email, subject, html, plain });
+}
+
 function escapeHtml(s: string): string {
   return s
     .replace(/&/g, "&amp;")

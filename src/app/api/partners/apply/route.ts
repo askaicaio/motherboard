@@ -1,24 +1,67 @@
 // POST /api/partners/apply — public, no auth required
-// Creates a partner application row and sends confirmation emails.
+// Parses multipart/form-data (tax-form PDF + JSON payload), uploads the PDF to
+// Vercel Blob, creates an "applied" partner row, and sends confirmation emails.
 
 import { NextRequest, NextResponse } from "next/server";
 import { z, ZodError } from "zod";
+import { put } from "@vercel/blob";
 import { db } from "@/lib/db";
 import { partners } from "@/lib/db/schema";
 import { sendEmail } from "@/lib/email/sender";
 
+export const maxDuration = 60;
+
+const MAX_FILE_BYTES = 10 * 1024 * 1024; // ~10MB
+
 const applySchema = z.object({
-  name: z.string().min(1).max(300),
+  firstName: z.string().min(1).max(150),
+  lastName: z.string().min(1).max(150),
   email: z.string().email().max(300),
-  company: z.string().max(300).optional(),
-  website: z.string().url().max(500).optional(),
-  notes: z.string().max(5000).optional(),
+  address: z.string().min(1).max(500),
+  city: z.string().min(1).max(200),
+  state: z.string().min(1).max(200),
+  postalCode: z.string().min(1).max(50),
+  country: z.string().min(1).max(200),
+  dateOfBirth: z.string().min(1).max(20),
+  howDidYouHear: z.string().min(1).max(200),
+  website: z.string().max(1000).optional().default(""),
+  profession: z.string().min(1).max(5000),
+  promoExperience: z.boolean(),
+  promoExperienceDesc: z.string().max(5000).optional().default(""),
+  affiliateExperienceLevel: z.string().min(1).max(50),
+  aiExperienceLevel: z.string().min(1).max(50),
+  platforms: z.array(z.string().max(100)).min(1),
+  audienceSize: z.coerce.number().int().min(0),
+  targetAudience: z.array(z.string().max(100)).min(1),
+  homeRun: z.string().min(1).max(5000),
+  anythingElse: z.string().min(1).max(5000),
+  signature: z.string().min(1).max(300),
+  company_website: z.string().optional().default(""), // honeypot
 });
 
 export async function POST(request: NextRequest) {
+  // --- Parse multipart form-data ---
+  let formData: FormData;
+  try {
+    formData = await request.formData();
+  } catch {
+    return NextResponse.json(
+      { error: "Invalid request. Expected multipart/form-data." },
+      { status: 400 },
+    );
+  }
+
+  const payloadRaw = formData.get("payload");
+  if (typeof payloadRaw !== "string") {
+    return NextResponse.json(
+      { error: "Missing application payload." },
+      { status: 400 },
+    );
+  }
+
   let body: z.infer<typeof applySchema>;
   try {
-    body = applySchema.parse(await request.json());
+    body = applySchema.parse(JSON.parse(payloadRaw));
   } catch (err) {
     if (err instanceof ZodError) {
       return NextResponse.json(
@@ -26,33 +69,95 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid application payload." },
+      { status: 400 },
+    );
+  }
+
+  // --- Honeypot: silently drop bots ---
+  if (body.company_website && body.company_website.trim() !== "") {
+    return NextResponse.json({ ok: true });
+  }
+
+  // --- Validate the tax-form file ---
+  const file = formData.get("taxForm");
+  if (!(file instanceof File) || file.size === 0) {
+    return NextResponse.json(
+      { error: "A W-9 or W-8BEN tax form (PDF) is required." },
+      { status: 400 },
+    );
+  }
+  if (file.type !== "application/pdf") {
+    return NextResponse.json(
+      { error: "Your tax form must be a PDF file." },
+      { status: 400 },
+    );
+  }
+  if (file.size > MAX_FILE_BYTES) {
+    return NextResponse.json(
+      { error: "Your tax form must be 10MB or smaller." },
+      { status: 400 },
+    );
   }
 
   const email = body.email.toLowerCase();
+  const name = `${body.firstName} ${body.lastName}`.trim();
 
-  // Compose notes from website + message
-  const noteParts: string[] = [];
-  if (body.website) noteParts.push(`Website: ${body.website}`);
-  if (body.notes) noteParts.push(body.notes);
-  const combinedNotes = noteParts.join("\n\n") || null;
+  // --- Upload the PDF to Vercel Blob (unguessable random path) ---
+  let taxFormUrl: string;
+  try {
+    const blob = await put(`tax-forms/${crypto.randomUUID()}.pdf`, file, {
+      access: "public",
+      addRandomSuffix: false,
+      contentType: "application/pdf",
+    });
+    taxFormUrl = blob.url;
+  } catch (err) {
+    console.error("[partners/apply] Blob upload error:", err);
+    return NextResponse.json(
+      { error: "Failed to upload your tax form. Please try again." },
+      { status: 500 },
+    );
+  }
 
+  const applicationData = {
+    howDidYouHear: body.howDidYouHear,
+    website: body.website,
+    profession: body.profession,
+    promoExperience: body.promoExperience,
+    promoExperienceDesc: body.promoExperienceDesc,
+    affiliateExperienceLevel: body.affiliateExperienceLevel,
+    aiExperienceLevel: body.aiExperienceLevel,
+    platforms: body.platforms,
+    targetAudience: body.targetAudience,
+    homeRun: body.homeRun,
+    anythingElse: body.anythingElse,
+    signature: body.signature,
+  };
+
+  // --- Create the partner row ---
   try {
     await db.insert(partners).values({
-      // refCode is required NOT NULL — generate a placeholder that the
-      // approve endpoint will replace with a real base62 code.
       refCode: `pending_${Date.now()}`,
-      name: body.name,
+      name,
       email,
-      company: body.company ?? null,
-      notes: combinedNotes,
       status: "applied",
+      address: body.address,
+      city: body.city,
+      state: body.state,
+      postalCode: body.postalCode,
+      country: body.country,
+      dateOfBirth: body.dateOfBirth,
+      audienceSize: body.audienceSize,
+      taxFormUrl,
+      taxFormName: file.name,
+      applicationData,
     });
   } catch (err: unknown) {
-    // Postgres unique violation code = 23505
+    // Postgres unique violation code = 23505 (duplicate email)
     const pgErr = err as { code?: string };
     if (pgErr?.code === "23505") {
-      // Already applied — return a friendly 200 rather than a 500
       return NextResponse.json({
         ok: true,
         alreadyApplied: true,
@@ -67,15 +172,14 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const adminAddress =
-    process.env.EMAIL_FROM_ADDRESS || "partners@chiefaiofficer.com";
+  const adminAddress = "partners@chiefaiofficer.com";
 
   // (a) Confirmation to the applicant
   await sendEmail({
     to: email,
     subject: "We received your Chief AI Officer affiliate application",
     html: `
-      <p>Hi ${body.name},</p>
+      <p>Hi ${body.firstName},</p>
       <p>Thank you for applying to the Chief AI Officer Affiliate Program! We review every application personally and will be in touch within 3 business days.</p>
       <p>Here's a quick recap of what to expect:</p>
       <ul>
@@ -86,25 +190,26 @@ export async function POST(request: NextRequest) {
       <p>If you have any questions in the meantime, feel free to reply to this email.</p>
       <p>— The Chief AI Officer Team</p>
     `,
-    plain: `Hi ${body.name},\n\nThank you for applying to the Chief AI Officer Affiliate Program! We review every application personally and will be in touch within 3 business days.\n\nQuick overview:\n- 10% flat commission on every closed deal\n- 60-day cookie window\n- Net-45 payouts via ACH or Zelle\n\nQuestions? Just reply to this email.\n\n— The Chief AI Officer Team`,
+    plain: `Hi ${body.firstName},\n\nThank you for applying to the Chief AI Officer Affiliate Program! We review every application personally and will be in touch within 3 business days.\n\nQuick overview:\n- 10% flat commission on every closed deal\n- 60-day cookie window\n- Net-45 payouts via ACH or Zelle\n\nQuestions? Just reply to this email.\n\n— The Chief AI Officer Team`,
   });
 
   // (b) Admin notification
   await sendEmail({
     to: adminAddress,
-    subject: `New affiliate application: ${body.name}`,
+    subject: `New affiliate application: ${name}`,
     html: `
       <p>A new affiliate application was submitted.</p>
       <table style="border-collapse:collapse;font-size:14px;">
-        <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Name</td><td>${body.name}</td></tr>
+        <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Name</td><td>${name}</td></tr>
         <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Email</td><td>${email}</td></tr>
-        <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Company</td><td>${body.company ?? "—"}</td></tr>
-        <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Website</td><td>${body.website ?? "—"}</td></tr>
+        <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Location</td><td>${body.city}, ${body.state}, ${body.country}</td></tr>
+        <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Heard via</td><td>${body.howDidYouHear}</td></tr>
+        <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Audience size</td><td>${body.audienceSize}</td></tr>
+        <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Tax form</td><td><a href="${taxFormUrl}">${file.name}</a></td></tr>
       </table>
-      <p><strong>Message:</strong><br/>${body.notes ? body.notes.replace(/\n/g, "<br/>") : "—"}</p>
       <p><a href="${process.env.NEXT_PUBLIC_APP_URL ?? "https://chiefaiofficer.com"}/partner-program/applications">Review in Motherboard →</a></p>
     `,
-    plain: `New affiliate application\n\nName: ${body.name}\nEmail: ${email}\nCompany: ${body.company ?? "—"}\nWebsite: ${body.website ?? "—"}\n\nMessage:\n${body.notes ?? "—"}\n\nReview: ${process.env.NEXT_PUBLIC_APP_URL ?? "https://chiefaiofficer.com"}/partner-program/applications`,
+    plain: `New affiliate application\n\nName: ${name}\nEmail: ${email}\nLocation: ${body.city}, ${body.state}, ${body.country}\nHeard via: ${body.howDidYouHear}\nAudience size: ${body.audienceSize}\nTax form: ${taxFormUrl}\n\nReview: ${process.env.NEXT_PUBLIC_APP_URL ?? "https://chiefaiofficer.com"}/partner-program/applications`,
   });
 
   return NextResponse.json({ ok: true });

@@ -1249,6 +1249,22 @@ export const partners = pgTable(
       withTimezone: true,
     }),
     portalLastLoginAt: timestamp("portal_last_login_at", { withTimezone: true }),
+    /** Set true when a temp password is issued at approval — first login forces a change. */
+    mustChangePassword: boolean("must_change_password").notNull().default(false),
+
+    // ---- Onboarding questionnaire (apply form) ----
+    /** Private Vercel Blob URL of the uploaded W-9 / W-8BEN PDF. */
+    taxFormUrl: text("tax_form_url"),
+    taxFormName: text("tax_form_name"),
+    dateOfBirth: date("date_of_birth"),
+    address: text("address"),
+    city: text("city"),
+    state: text("state"),
+    postalCode: text("postal_code"),
+    country: text("country"),
+    audienceSize: integer("audience_size"),
+    /** Full questionnaire payload (platforms, target audience, experience levels, signature, etc.). */
+    applicationData: jsonb("application_data").notNull().default({}),
 
     appliedAt: timestamp("applied_at", { withTimezone: true })
       .defaultNow()
@@ -1327,6 +1343,9 @@ export const partnerPrograms = pgTable(
     /** True when the program closes via conversation (Strategic Oversight, Embedded Fractional CAIO). */
     salesLed: boolean("sales_led").notNull().default(false),
     active: boolean("active").notNull().default(true),
+    /** Soft-delete: archived programs disappear from affiliate-facing surfaces but stay for history. */
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    createdBy: uuid("created_by"),
     /** Set when the program is wired into Stripe (self-serve checkout). */
     stripeProductId: text("stripe_product_id"),
     stripePriceId: text("stripe_price_id"),

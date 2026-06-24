@@ -106,5 +106,9 @@ export async function getPartnerSession(): Promise<PartnerRow | null> {
 export async function requirePartner(): Promise<PartnerRow> {
   const partner = await getPartnerSession();
   if (!partner) redirect("/portal/login");
+  // Force a temp-password holder to choose their own password before continuing.
+  // The change-password page itself uses getPartnerSession (not this guard) to
+  // avoid a redirect loop.
+  if (partner.mustChangePassword) redirect("/portal/change-password");
   return partner;
 }

@@ -18,6 +18,13 @@ const STATIC_EXTENSIONS = [
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Host-based routing: on the affiliates subdomain, the ROOT is the
+  // affiliate landing page (rewrite "/" → "/partners").
+  const host = request.headers.get("host") || "";
+  if (host.startsWith("affiliates.") && pathname === "/") {
+    return NextResponse.rewrite(new URL("/partners", request.url));
+  }
+
   // Allow public routes and static assets
   const hasStaticExtension = STATIC_EXTENSIONS.some((ext) =>
     pathname.toLowerCase().endsWith(ext)

@@ -8,7 +8,24 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Settings, Save, History, Boxes, Database } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Settings,
+  Save,
+  History,
+  Boxes,
+  Database,
+  Plus,
+  Archive,
+  RotateCcw,
+} from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -37,6 +54,8 @@ export interface PartnerProgram {
   stripePriceId: string | null;
   setupFeeCents: number;
   stripeFeePassthroughCents: number;
+  /** Soft-delete marker (ISO string) — archived programs are grouped/muted. */
+  archivedAt?: string | null;
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -85,13 +104,19 @@ export function SettingsClient({
   const router = useRouter();
   const [seeding, setSeeding] = useState(false);
   const [creatingAll, setCreatingAll] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
+
+  const activePrograms = programs.filter((p) => !p.archivedAt);
+  const archivedPrograms = programs.filter((p) => !!p.archivedAt);
 
   // One-click: create the Stripe product + price for every self-serve program
   // that isn't wired yet. The endpoint is idempotent, so re-running is safe.
   async function createAllInStripe() {
     setCreatingAll(true);
     try {
-      const targets = programs.filter((p) => !p.salesLed && !p.stripePriceId);
+      const targets = programs.filter(
+        (p) => !p.archivedAt && !p.salesLed && !p.stripePriceId,
+      );
       let ok = 0;
       let failed = 0;
       for (const p of targets) {
@@ -335,16 +360,25 @@ export function SettingsClient({
                 its own.
               </p>
             </div>
-            {programs.some((p) => !p.salesLed && !p.stripePriceId) && (
+            <div className="flex shrink-0 items-center gap-2">
+              {activePrograms.some((p) => !p.salesLed && !p.stripePriceId) && (
+                <Button
+                  variant="outline"
+                  onClick={createAllInStripe}
+                  disabled={creatingAll}
+                  className="whitespace-nowrap"
+                >
+                  {creatingAll ? "Creating…" : "Create all in Stripe"}
+                </Button>
+              )}
               <Button
-                variant="outline"
-                onClick={createAllInStripe}
-                disabled={creatingAll}
-                className="shrink-0 whitespace-nowrap"
+                onClick={() => setAddOpen(true)}
+                className="whitespace-nowrap"
               >
-                {creatingAll ? "Creating…" : "Create all in Stripe"}
+                <Plus className="mr-1.5 h-3.5 w-3.5" />
+                Add product
               </Button>
-            )}
+            </div>
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -357,12 +391,12 @@ export function SettingsClient({
                   <th className="px-3 py-2 text-center">Sales-led</th>
                   <th className="px-3 py-2 text-center">Active</th>
                   <th className="px-3 py-2 text-left">Override %</th>
-                  <th className="px-3 py-2 text-left">Stripe price ID</th>
-                  <th className="w-20 px-3 py-2"></th>
+                  <th className="px-3 py-2 text-left">Stripe IDs</th>
+                  <th className="w-28 px-3 py-2"></th>
                 </tr>
               </thead>
               <tbody>
-                {programs.length === 0 ? (
+                {activePrograms.length === 0 ? (
                   <tr>
                     <td
                       colSpan={7}
@@ -372,14 +406,201 @@ export function SettingsClient({
                     </td>
                   </tr>
                 ) : (
-                  programs.map((p) => <ProgramRow key={p.id} program={p} />)
+                  activePrograms.map((p) => (
+                    <ProgramRow key={p.id} program={p} />
+                  ))
+                )}
+
+                {archivedPrograms.length > 0 && (
+                  <>
+                    <tr className="border-t bg-zinc-50/60">
+                      <td
+                        colSpan={7}
+                        className="px-3 py-2 text-xs font-medium uppercase tracking-wide text-zinc-400"
+                      >
+                        <span className="inline-flex items-center gap-1.5">
+                          <Archive className="h-3 w-3" />
+                          Archived ({archivedPrograms.length}) — hidden from
+                          affiliates
+                        </span>
+                      </td>
+                    </tr>
+                    {archivedPrograms.map((p) => (
+                      <ProgramRow key={p.id} program={p} archived />
+                    ))}
+                  </>
                 )}
               </tbody>
             </table>
           </div>
         </CardContent>
       </Card>
+
+      <AddProductDialog open={addOpen} onOpenChange={setAddOpen} />
     </div>
+  );
+}
+
+// ─── Add product dialog ─────────────────────────────────────────────────────
+
+function AddProductDialog({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const router = useRouter();
+  const [name, setName] = useState("");
+  const [listValueDollars, setListValueDollars] = useState("");
+  const [overridePct, setOverridePct] = useState("");
+  const [salesLed, setSalesLed] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const reset = () => {
+    setName("");
+    setListValueDollars("");
+    setOverridePct("");
+    setSalesLed(false);
+  };
+
+  const handleCreate = async () => {
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      toast.error("Give the program a name.");
+      return;
+    }
+    const listVal = Number(listValueDollars);
+    if (!Number.isFinite(listVal) || listVal < 0) {
+      toast.error("Enter a valid list value.");
+      return;
+    }
+    const trimmedPct = overridePct.trim();
+    if (trimmedPct !== "" && !Number.isFinite(Number(trimmedPct))) {
+      toast.error("Override must be a number or blank.");
+      return;
+    }
+
+    const payload = {
+      name: trimmedName,
+      listValueCents: Math.round(listVal * 100),
+      commissionRateOverride:
+        trimmedPct === "" ? null : pctToRate(trimmedPct),
+      salesLed,
+    };
+
+    setSaving(true);
+    try {
+      const res = await fetch("/api/partners/programs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error || "Failed to create program");
+        return;
+      }
+      toast.success(`Created ${trimmedName}`);
+      reset();
+      onOpenChange(false);
+      router.refresh();
+    } catch {
+      toast.error("Network error creating program");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Add product</DialogTitle>
+          <DialogDescription>
+            Create a new affiliate program. Stripe wiring is done afterwards
+            with the “Create in Stripe” button.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="new-name">Name</Label>
+            <Input
+              id="new-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Strategic Oversight"
+            />
+            <p className="text-xs text-zinc-400">
+              A URL slug is generated automatically from the name.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="new-list-value">List value</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-zinc-500">
+                  $
+                </span>
+                <Input
+                  id="new-list-value"
+                  type="number"
+                  inputMode="decimal"
+                  value={listValueDollars}
+                  onChange={(e) => setListValueDollars(e.target.value)}
+                  className="pl-7"
+                  placeholder="0"
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="new-override">Override %</Label>
+              <div className="relative">
+                <Input
+                  id="new-override"
+                  type="number"
+                  inputMode="decimal"
+                  value={overridePct}
+                  onChange={(e) => setOverridePct(e.target.value)}
+                  className="pr-7"
+                  placeholder="default"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-zinc-500">
+                  %
+                </span>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center justify-between rounded-md border px-3 py-2">
+            <div>
+              <Label htmlFor="new-sales-led" className="cursor-pointer">
+                Sales-led
+              </Label>
+              <p className="text-xs text-zinc-400">
+                Closes via conversation — no self-serve Stripe checkout.
+              </p>
+            </div>
+            <Switch
+              id="new-sales-led"
+              checked={salesLed}
+              onCheckedChange={setSalesLed}
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={saving}
+          >
+            Cancel
+          </Button>
+          <Button onClick={handleCreate} disabled={saving}>
+            {saving ? "Creating…" : "Create product"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -432,7 +653,13 @@ function Field({
 
 // ─── Program row ──────────────────────────────────────────────────────────────
 
-function ProgramRow({ program }: { program: PartnerProgram }) {
+function ProgramRow({
+  program,
+  archived = false,
+}: {
+  program: PartnerProgram;
+  archived?: boolean;
+}) {
   const router = useRouter();
   const [active, setActive] = useState(program.active);
   const [overridePct, setOverridePct] = useState(
@@ -445,6 +672,51 @@ function ProgramRow({ program }: { program: PartnerProgram }) {
   );
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [confirmArchive, setConfirmArchive] = useState(false);
+  const [archiving, setArchiving] = useState(false);
+  const [restoring, setRestoring] = useState(false);
+
+  const handleArchive = async () => {
+    setArchiving(true);
+    try {
+      const res = await fetch(`/api/partners/programs/${program.id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error || "Failed to archive program");
+        return;
+      }
+      toast.success(`Archived ${program.name}`);
+      setConfirmArchive(false);
+      router.refresh();
+    } catch {
+      toast.error("Network error archiving program");
+    } finally {
+      setArchiving(false);
+    }
+  };
+
+  const handleRestore = async () => {
+    setRestoring(true);
+    try {
+      const res = await fetch(
+        `/api/partners/programs/${program.id}/restore`,
+        { method: "POST" },
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error || "Failed to restore program");
+        return;
+      }
+      toast.success(`Restored ${program.name}`);
+      router.refresh();
+    } catch {
+      toast.error("Network error restoring program");
+    } finally {
+      setRestoring(false);
+    }
+  };
 
   const handleStripeSync = async () => {
     setSyncing(true);
@@ -507,12 +779,24 @@ function ProgramRow({ program }: { program: PartnerProgram }) {
   };
 
   return (
-    <tr className="border-t align-top">
+    <tr className={cn("border-t align-top", archived && "bg-zinc-50/40")}>
       <td className="px-3 py-3">
-        <div className="font-medium text-zinc-900">{program.name}</div>
+        <div
+          className={cn(
+            "font-medium",
+            archived ? "text-zinc-500" : "text-zinc-900",
+          )}
+        >
+          {program.name}
+        </div>
         <div className="font-mono text-[11px] text-zinc-400">{program.slug}</div>
       </td>
-      <td className="px-3 py-3 text-right tabular-nums text-zinc-700">
+      <td
+        className={cn(
+          "px-3 py-3 text-right tabular-nums",
+          archived ? "text-zinc-400" : "text-zinc-700",
+        )}
+      >
         {fmtUsdCents(program.listValueCents)}
       </td>
       <td className="px-3 py-3 text-center">
@@ -525,32 +809,47 @@ function ProgramRow({ program }: { program: PartnerProgram }) {
         )}
       </td>
       <td className="px-3 py-3 text-center">
-        <Switch checked={active} onCheckedChange={setActive} />
+        {archived ? (
+          <span className="text-zinc-300">—</span>
+        ) : (
+          <Switch checked={active} onCheckedChange={setActive} />
+        )}
       </td>
       <td className="px-3 py-3">
-        <div className="relative w-24">
-          <Input
-            type="number"
-            inputMode="decimal"
-            placeholder="default"
-            value={overridePct}
-            onChange={(e) => setOverridePct(e.target.value)}
-            className="pr-7"
-          />
-          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-zinc-500">
-            %
+        {archived ? (
+          <span className="text-sm text-zinc-400">
+            {overridePct === "" ? "default" : `${overridePct}%`}
           </span>
-        </div>
+        ) : (
+          <div className="relative w-24">
+            <Input
+              type="number"
+              inputMode="decimal"
+              placeholder="default"
+              value={overridePct}
+              onChange={(e) => setOverridePct(e.target.value)}
+              className="pr-7"
+            />
+            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-zinc-500">
+              %
+            </span>
+          </div>
+        )}
       </td>
+      {/* Stripe IDs are READ-ONLY — managed by the Stripe sync, never hand-edited. */}
       <td className="px-3 py-3">
-        <div className="flex items-center gap-2">
-          <Input
-            placeholder="price_…"
-            value={stripePriceId}
-            onChange={(e) => setStripePriceId(e.target.value)}
-            className="min-w-[150px] font-mono text-xs"
-          />
-          {!program.salesLed && !stripePriceId && (
+        <div className="space-y-1">
+          <div className="font-mono text-[11px] text-zinc-600">
+            <span className="text-zinc-400">product</span>{" "}
+            {program.stripeProductId || (
+              <span className="text-zinc-300">—</span>
+            )}
+          </div>
+          <div className="font-mono text-[11px] text-zinc-600">
+            <span className="text-zinc-400">price</span>{" "}
+            {stripePriceId || <span className="text-zinc-300">—</span>}
+          </div>
+          {!archived && !program.salesLed && !stripePriceId && (
             <Button
               type="button"
               variant="secondary"
@@ -558,22 +857,76 @@ function ProgramRow({ program }: { program: PartnerProgram }) {
               onClick={handleStripeSync}
               disabled={syncing}
               title="Create the Stripe product + price automatically"
-              className="shrink-0 whitespace-nowrap text-xs"
+              className="mt-1 shrink-0 whitespace-nowrap text-xs"
             >
               {syncing ? "…" : "Create in Stripe"}
             </Button>
           )}
+          <p className="text-[10px] text-zinc-400">
+            Managed automatically by Stripe sync.
+          </p>
         </div>
       </td>
       <td className="px-3 py-3 text-right">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleSave}
-          disabled={saving}
-        >
-          {saving ? "…" : "Save"}
-        </Button>
+        {archived ? (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRestore}
+            disabled={restoring}
+            className="whitespace-nowrap"
+          >
+            <RotateCcw className="mr-1.5 h-3 w-3" />
+            {restoring ? "…" : "Restore"}
+          </Button>
+        ) : (
+          <div className="flex items-center justify-end gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSave}
+              disabled={saving}
+            >
+              {saving ? "…" : "Save"}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setConfirmArchive(true)}
+              title="Archive program"
+              className="text-zinc-500 hover:text-red-600"
+            >
+              <Archive className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        )}
+
+        <Dialog open={confirmArchive} onOpenChange={setConfirmArchive}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Archive {program.name}?</DialogTitle>
+              <DialogDescription>
+                It will be hidden from affiliates. You can restore it anytime.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setConfirmArchive(false)}
+                disabled={archiving}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleArchive}
+                disabled={archiving}
+              >
+                {archiving ? "Archiving…" : "Archive"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </td>
     </tr>
   );

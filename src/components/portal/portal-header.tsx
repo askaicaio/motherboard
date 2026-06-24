@@ -11,6 +11,7 @@ const NAV = [
   { href: "/portal/activity", label: "Activity" },
   { href: "/portal/payouts", label: "Payouts" },
   { href: "/portal/disputes", label: "Disputes" },
+  { href: "/portal/resources", label: "Resources" },
 ];
 
 export function PortalHeader({

@@ -60,6 +60,7 @@ export default async function PartnerSettingsPage() {
         stripePriceId: p.stripePriceId,
         setupFeeCents: p.setupFeeCents,
         stripeFeePassthroughCents: p.stripeFeePassthroughCents,
+        archivedAt: p.archivedAt ? p.archivedAt.toISOString() : null,
       }))}
     />
   );

@@ -30,6 +30,10 @@
     {
       "path": "/api/cron/sync-customers-index",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/auto-generate-payouts",
+      "schedule": "0 8 1 * *"
     }
   ]
 }

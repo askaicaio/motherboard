@@ -3,13 +3,24 @@
 // then emails the partner their referral link.
 
 import { NextRequest, NextResponse } from "next/server";
+import { randomBytes } from "crypto";
+import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { partners } from "@/lib/db/schema";
 import { requireRole } from "@/lib/auth/guard";
 import { generateRefCode } from "@/lib/partners/rules";
-import { issuePasswordToken } from "@/lib/partners/portal-auth";
 import { sendEmail } from "@/lib/email/sender";
 import { eq } from "drizzle-orm";
+
+/** Readable, URL-safe temporary password, e.g. "Caio-a1B2c3D4". */
+function generateTempPassword(): string {
+  const suffix = randomBytes(8)
+    .toString("base64url")
+    .replace(/[-_]/g, "")
+    .slice(0, 8)
+    .padEnd(8, "0");
+  return `Caio-${suffix}`;
+}
 
 export async function POST(
   _request: NextRequest,
@@ -29,6 +40,24 @@ export async function POST(
 
   const now = new Date();
 
+  // Generate a temporary password the affiliate uses for their first sign-in.
+  // They're forced to choose their own on first portal login.
+  const tempPassword = generateTempPassword();
+  const passwordHash = await bcrypt.hash(tempPassword, 10);
+
+  // Fields applied on approval, regardless of refCode path.
+  const approvalFields = {
+    status: "active" as const,
+    approvedAt: now,
+    approvedBy: user.id,
+    passwordHash,
+    mustChangePassword: true,
+    // Clear any pending set-password token — temp-password flow supersedes it.
+    passwordToken: null,
+    passwordTokenExpiresAt: null,
+    updatedAt: now,
+  };
+
   // Ensure a refCode exists. It's usually generated at creation, but if it's
   // somehow empty, generate one and retry up to 5x on unique-violation.
   let updated = existing;
@@ -39,13 +68,7 @@ export async function POST(
       try {
         [saved] = await db
           .update(partners)
-          .set({
-            status: "active",
-            refCode: generateRefCode(),
-            approvedAt: now,
-            approvedBy: user.id,
-            updatedAt: now,
-          })
+          .set({ ...approvalFields, refCode: generateRefCode() })
           .where(eq(partners.id, id))
           .returning();
         break;
@@ -61,12 +84,7 @@ export async function POST(
   } else {
     const [saved] = await db
       .update(partners)
-      .set({
-        status: "active",
-        approvedAt: now,
-        approvedBy: user.id,
-        updatedAt: now,
-      })
+      .set(approvalFields)
       .where(eq(partners.id, id))
       .returning();
     updated = saved;
@@ -79,20 +97,13 @@ export async function POST(
     "https://chiefaiofficer.com"
   ).replace(/\/$/, "");
   const link = `${base}/r?aff=${updated.refCode}`;
+  const loginUrl = `${base}/portal/login`;
 
-  // Issue a one-time token so the partner can set their portal password.
-  let portalUrl: string | null = null;
-  try {
-    const token = await issuePasswordToken(updated.id);
-    portalUrl = `${base}/portal/set-password?token=${token}`;
-  } catch (err) {
-    console.error("[approve] portal token failed:", err);
-  }
-
-  const portalBlockHtml = portalUrl
-    ? `<p>Set up your affiliate portal to track your clicks, conversions, and payouts:</p>
-       <p><a href="${portalUrl}">Set your portal password →</a></p>`
-    : "";
+  const portalBlockHtml = `
+    <p>Sign in to your affiliate portal to track your clicks, conversions, and payouts.</p>
+    <p>Your temporary password is: <strong>${tempPassword}</strong></p>
+    <p><a href="${loginUrl}">Sign in to your portal →</a></p>
+    <p>You'll be asked to choose your own password on first sign-in.</p>`;
 
   const html = `
     <p>Hi ${updated.name},</p>
@@ -115,9 +126,11 @@ export async function POST(
     "",
     "Share it with anyone who could benefit from working with a Chief AI Officer. " +
       "When they engage through your link, you'll earn commission on qualifying sales.",
-    ...(portalUrl
-      ? ["", "Set up your affiliate portal to track clicks, conversions, and payouts:", portalUrl]
-      : []),
+    "",
+    "Sign in to your affiliate portal to track clicks, conversions, and payouts.",
+    `Your temporary password is: ${tempPassword}`,
+    loginUrl,
+    "You'll be asked to choose your own password on first sign-in.",
     "",
     "Welcome aboard,",
     "The CAIO Team",
