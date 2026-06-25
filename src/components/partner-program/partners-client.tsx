@@ -51,6 +51,7 @@ import {
   FileText,
   UserMinus,
   Eye,
+  Send,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -904,6 +905,7 @@ function RowActions({
 }) {
   const [offboardOpen, setOffboardOpen] = useState(false);
   const [viewing, setViewing] = useState(false);
+  const [resending, setResending] = useState(false);
   const canOffboard = ["active", "approved", "suspended"].includes(
     partner.status,
   );
@@ -926,6 +928,23 @@ function RowActions({
     }
   }
 
+  async function resendWelcome() {
+    setResending(true);
+    try {
+      const res = await fetch(`/api/partners/${partner.id}/resend-approval`, {
+        method: "POST",
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.error || "Could not resend the welcome email.");
+        return;
+      }
+      toast.success(`Welcome email re-sent to ${partner.email}.`);
+    } finally {
+      setResending(false);
+    }
+  }
+
   return (
     <div className="inline-flex items-center justify-end gap-1.5">
       {canView && (
@@ -938,6 +957,19 @@ function RowActions({
         >
           <Eye className="h-3 w-3" />
           View as
+        </Button>
+      )}
+      {canView && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 gap-1 px-2 text-xs"
+          disabled={resending}
+          onClick={resendWelcome}
+          title="Re-send the welcome email with a fresh temporary password"
+        >
+          <Send className="h-3 w-3" />
+          Resend
         </Button>
       )}
       {partner.taxFormUrl && (

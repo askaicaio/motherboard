@@ -6,7 +6,10 @@
 //   - A partner is only included once their earned-but-unbatched balance
 //     reaches the minimum threshold ($100); under-threshold balances roll
 //     forward to the next cycle.
-//   - Tax form must be valid (w9 / w8ben / w8bene) before any payout.
+//   - A connected Stripe payout account (stripe_connect_status='ready') is
+//     REQUIRED — it's the automatic, compliant rail (collects bank + tax info,
+//     Stripe issues the 1099). Earned balances are held until the affiliate
+//     connects; then the monthly run transfers automatically with zero ops work.
 //   - Negative clawback rows are status='earned' too, so summing earned
 //     rows nets clawbacks automatically.
 //
@@ -23,8 +26,6 @@ import {
 import { and, eq, isNull } from "drizzle-orm";
 import { getActiveSettings } from "./queries";
 import { getStripe } from "@/lib/integrations/stripe-client";
-
-const VALID_TAX_STATUSES = ["w9", "w8ben", "w8bene"];
 
 export interface PayoutLine {
   partnerId: string;
@@ -66,6 +67,7 @@ export async function previewPayout(): Promise<PayoutPreview> {
       payoutMethod: partners.payoutMethod,
       taxFormStatus: partners.taxFormStatus,
       partnerStatus: partners.status,
+      connectStatus: partners.stripeConnectStatus,
     })
     .from(partnerConversions)
     .innerJoin(partners, eq(partnerConversions.partnerId, partners.id))
@@ -77,7 +79,10 @@ export async function previewPayout(): Promise<PayoutPreview> {
     );
 
   // Aggregate per partner.
-  const byPartner = new Map<string, PayoutLine & { partnerStatus: string }>();
+  const byPartner = new Map<
+    string,
+    PayoutLine & { partnerStatus: string; connectStatus: string }
+  >();
   for (const r of rows) {
     let line = byPartner.get(r.partnerId);
     if (!line) {
@@ -91,6 +96,7 @@ export async function previewPayout(): Promise<PayoutPreview> {
         amountCents: 0,
         conversionIds: [],
         partnerStatus: r.partnerStatus,
+        connectStatus: r.connectStatus,
       };
       byPartner.set(r.partnerId, line);
     }
@@ -102,7 +108,7 @@ export async function previewPayout(): Promise<PayoutPreview> {
   const excluded: Array<PayoutLine & { reason: string }> = [];
 
   for (const line of byPartner.values()) {
-    const { partnerStatus, ...payoutLine } = line;
+    const { partnerStatus, connectStatus, ...payoutLine } = line;
     if (payoutLine.amountCents <= 0) {
       // Net-negative (clawback heavy) or zero — carries forward as a debit.
       excluded.push({ ...payoutLine, reason: "non_positive_balance" });
@@ -112,8 +118,11 @@ export async function previewPayout(): Promise<PayoutPreview> {
       excluded.push({ ...payoutLine, reason: "partner_not_active" });
       continue;
     }
-    if (!VALID_TAX_STATUSES.includes(payoutLine.taxFormStatus)) {
-      excluded.push({ ...payoutLine, reason: "tax_form_invalid" });
+    // Stripe Connect is REQUIRED to be paid — it's the only fully-automatic,
+    // compliant rail (collects the affiliate's bank + tax info; Stripe issues
+    // the 1099). Earned balances are held until the affiliate connects.
+    if (connectStatus !== "ready") {
+      excluded.push({ ...payoutLine, reason: "payout_account_not_connected" });
       continue;
     }
     if (payoutLine.amountCents < minPayoutCents) {

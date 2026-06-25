@@ -69,8 +69,7 @@ export default async function PortalDashboardPage() {
   ).replace(/\/$/, "");
   const referralLink = `${base}/r?aff=${partner.refCode}`;
 
-  const needsTaxForm =
-    partner.taxFormStatus === "none" || partner.taxFormStatus === "invalid";
+  const needsPayoutSetup = partner.stripeConnectStatus !== "ready";
 
   const metrics = [
     {
@@ -103,16 +102,18 @@ export default async function PortalDashboardPage() {
         </p>
       </header>
 
-      {needsTaxForm && (
+      {needsPayoutSetup && (
         <Link
           href="/portal/payouts"
           className="mb-6 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 transition hover:bg-amber-100"
         >
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
           <span>
-            <span className="font-semibold">Complete your payout details.</span>{" "}
-            We can&rsquo;t pay out commissions until your tax form is on file.
-            Finish setup on the Payouts page.
+            <span className="font-semibold">
+              Connect your payout account to get paid.
+            </span>{" "}
+            Commissions are paid automatically to your connected account — set it
+            up on the Payouts page so your earnings can be released.
           </span>
         </Link>
       )}
