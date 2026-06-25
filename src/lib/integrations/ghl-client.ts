@@ -190,9 +190,11 @@ export function bestName(contact: GHLContact): string | null {
 // The token MUST carry the "View Workflows" (workflows.readonly) scope, or the
 // workflows endpoint returns 403. We only ever READ here, so sharing the
 // Campaigns token (and never changing its value) doesn't affect Campaigns.
-// GHL's API does NOT reliably expose per-run history, so the Automations sync
-// tracks NAME + STATUS only (Last Runtime stays "-" for GHL) — by design
-// (brief §3.2 / §3.4).
+// GHL's API does NOT expose per-run history, so the sync never sets a last-RUN
+// (Last Runtime stays "-" for GHL) — by design (brief §3.2 / §3.4). It DOES,
+// however, return each workflow's `updatedAt` (last-EDITED) in the same list
+// response (confirmed against the official OpenAPI WorkflowSchema), so the sync
+// tracks NAME + STATUS + LAST EDITED for GHL.
 
 /** Per-subaccount creds for the Automations GHL sync. Null when unconfigured. */
 function getGhlAutomationCreds(
@@ -237,6 +239,10 @@ interface GHLWorkflow {
   id?: string;
   name?: string;
   status?: string;
+  /** ISO 8601 last-edited timestamp. GHL's workflows list DOES return this
+   *  (confirmed against the official OpenAPI spec: WorkflowSchema.updatedAt),
+   *  in the same response — no extra request. */
+  updatedAt?: string;
 }
 
 /** A workflow normalized into the shape our sync wants (mirrors MakeAutomation). */
@@ -249,6 +255,9 @@ export interface GHLAutomation {
   url: string;
   /** "active" | "paused" derived from the workflow's `status`. */
   status: "active" | "paused";
+  /** ISO 8601 last-edited timestamp (workflow `updatedAt`), or null when GHL
+   *  didn't return one. Feeds the "Last Edited" column. */
+  lastEditedAt: string | null;
 }
 
 /** Deep link to a workflow in the GHL app — this is the row's identity. */
@@ -292,6 +301,7 @@ export async function listGhlAutomations(
       name: (w.name ?? "").trim(),
       url: ghlWorkflowUrl(locationId, w.id),
       status: w.status === "published" ? "active" : "paused",
+      lastEditedAt: w.updatedAt ?? null,
     });
   }
   return out;

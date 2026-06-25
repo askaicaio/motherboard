@@ -67,7 +67,8 @@ export interface AutomationRow {
   lastRunAt?: string | Date | null;
   // When the automation was last edited on its source platform. Sync/import-only
   // (never set via the dialog). Date on initial server render, ISO string after
-  // a sync/poll. "-" for platforms without an edit-timestamp source (e.g. GHL).
+  // a sync/poll. Populated for all synced platforms (n8n/GHL `updatedAt`, Make
+  // `lastEdit`); "-" only until a row has been synced or has no value yet.
   lastEditedAt?: string | Date | null;
 }
 
