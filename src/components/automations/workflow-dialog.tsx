@@ -3,8 +3,11 @@
 // Add / Edit Workflow dialog. One component, two modes:
 //  - Add  (no `existing`):  header "Add New Workflow",  button "Add Workflow"
 //  - Edit (with `existing`): header "Edit Workflow",     button "Save changes"
-// Fields mirror the automations table columns (currently Name + Link). Add a
-// labeled field here whenever a new column is added to the table.
+// Fields mirror the EDITABLE automations table columns (Name, Link, Status,
+// Purpose). Add a labeled field here whenever a new *user-editable* column is
+// added. Sync-only / import-only columns (Last Runtime, Last Edited) do NOT get
+// a form field — they are carried through unchanged in the save payload below so
+// editing other fields doesn't blank them.
 // Modeled on the Subscriptions tab's Add/Edit subscription dialog.
 
 import { useState, useEffect } from "react";
@@ -115,9 +118,10 @@ export function WorkflowDialog({
         externalUrl: data.automation.externalUrl,
         status: data.automation.status,
         purpose: data.automation.purpose,
-        // Sync-only field, carried through so an edit doesn't blank it in the
-        // table (it's not editable here; the API returns the current value).
+        // Sync-only fields, carried through so an edit doesn't blank them in the
+        // table (not editable here; the API returns the current values).
         lastRunAt: data.automation.lastRunAt,
+        lastEditedAt: data.automation.lastEditedAt,
       };
       if (isEdit) {
         onSaved?.(row);

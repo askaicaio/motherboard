@@ -58,6 +58,13 @@ export async function syncN8nAutomations(
     if (ts) lastRunAt = new Date(ts);
     await new Promise((r) => setTimeout(r, 40));
 
+    // Last edited: n8n returns `updatedAt` on the workflow object itself (in the
+    // list response above), so no extra request. Same "never wipe with null"
+    // rule as last_run_at.
+    const lastEditedAt: Date | null = w.lastEditedAt
+      ? new Date(w.lastEditedAt)
+      : null;
+
     const [existing] = await db
       .select({
         id: automations.id,
@@ -65,6 +72,7 @@ export async function syncN8nAutomations(
         status: automations.status,
         platform: automations.platform,
         lastRunAt: automations.lastRunAt,
+        lastEditedAt: automations.lastEditedAt,
       })
       .from(automations)
       .where(eq(automations.externalUrl, url))
@@ -77,6 +85,7 @@ export async function syncN8nAutomations(
         externalUrl: url,
         status: w.status,
         lastRunAt,
+        lastEditedAt,
         createdBy: createdBy ?? null,
       });
       created += 1;
@@ -93,6 +102,13 @@ export async function syncN8nAutomations(
     // overwrite a stored timestamp with null.
     if (lastRunAt && existing.lastRunAt?.getTime() !== lastRunAt.getTime()) {
       patch.lastRunAt = lastRunAt;
+    }
+    // Same rule for last_edited_at.
+    if (
+      lastEditedAt &&
+      existing.lastEditedAt?.getTime() !== lastEditedAt.getTime()
+    ) {
+      patch.lastEditedAt = lastEditedAt;
     }
 
     if (Object.keys(patch).length > 0) {
@@ -125,6 +141,7 @@ export async function getN8nRows() {
       status: automations.status,
       purpose: automations.purpose,
       lastRunAt: automations.lastRunAt,
+      lastEditedAt: automations.lastEditedAt,
     })
     .from(automations)
     .where(and(eq(automations.platform, PLATFORM)))

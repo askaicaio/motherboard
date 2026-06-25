@@ -1175,6 +1175,13 @@ export const automations = pgTable(
      *  only by the sync (Refresh List / auto-refresh), never manually. Shown in
      *  the "Last Runtime" column formatted MM-DD-YYYY ("-" when null). */
     lastRunAt: timestamp("last_run_at", { withTimezone: true }),
+    /** When this automation was last EDITED/modified on its source platform
+     *  (distinct from last_run_at). Nullable; filled by the sync (n8n
+     *  `updatedAt`, Make `lastEdit`) or the one-time Zapier CSV import, never
+     *  set through the Add/Edit dialog. Shown in the "Last Edited" column
+     *  formatted MM-DD-YYYY ("-" when null). GHL exposes no edit timestamp so
+     *  it stays null there, same as last_run_at. */
+    lastEditedAt: timestamp("last_edited_at", { withTimezone: true }),
 
     createdBy: uuid("created_by").references(() => adminUsers.id),
     createdAt: timestamp("created_at", { withTimezone: true })

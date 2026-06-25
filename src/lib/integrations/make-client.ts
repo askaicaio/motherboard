@@ -29,6 +29,10 @@ export interface MakeScenario {
   teamId: number | string;
   isActive?: boolean;
   isPaused?: boolean;
+  /** ISO 8601 last-edited timestamp. Make returns this as `lastEdit` on the
+   *  scenario object; captured defensively (null if our account/plan omits it).
+   *  TODO: confirm against a live response (see the Last Edited to-do note). */
+  lastEdit?: string;
 }
 
 /** A scenario normalized into the shape our sync wants. */
@@ -41,6 +45,9 @@ export interface MakeAutomation {
   url: string;
   /** "active" | "paused" derived from isActive. */
   status: "active" | "paused";
+  /** ISO 8601 last-edited timestamp (scenario `lastEdit`), or null when Make
+   *  didn't return one. Feeds the "Last Edited" column. */
+  lastEditedAt: string | null;
 }
 
 function getCreds() {
@@ -112,6 +119,7 @@ export async function listMakeAutomations(): Promise<MakeAutomation[]> {
         name: (s.name ?? "").trim(),
         url: scenarioUrl(zone, s.teamId, s.id),
         status: s.isActive ? "active" : "paused",
+        lastEditedAt: s.lastEdit ?? null,
       });
     }
 

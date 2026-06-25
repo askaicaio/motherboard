@@ -45,10 +45,10 @@ function formatCountdown(ms: number): string {
   return `${pad(h)}:${pad(m)}:${pad(s)}`;
 }
 
-/** Format the Last Runtime value as MM-DD-YYYY, or "-" when empty/invalid.
- *  Tolerant of both a Date (initial server render) and an ISO string (after a
- *  sync/poll JSON response). */
-function formatLastRun(value: string | Date | null | undefined): string {
+/** Format a date cell (Last Runtime / Last Edited) as MM-DD-YYYY, or "-" when
+ *  empty/invalid. Tolerant of both a Date (initial server render) and an ISO
+ *  string (after a sync/poll JSON response). */
+function formatDateCell(value: string | Date | null | undefined): string {
   if (!value) return "-";
   const d = new Date(value);
   if (isNaN(d.getTime())) return "-";
@@ -65,6 +65,10 @@ export interface AutomationRow {
   // When the automation last ran on its source platform. Sync-only (never set
   // manually). Date on initial server render, ISO string after a sync/poll.
   lastRunAt?: string | Date | null;
+  // When the automation was last edited on its source platform. Sync/import-only
+  // (never set via the dialog). Date on initial server render, ISO string after
+  // a sync/poll. "-" for platforms without an edit-timestamp source (e.g. GHL).
+  lastEditedAt?: string | Date | null;
 }
 
 export function AutomationsTableClient({
@@ -423,6 +427,7 @@ export function AutomationsTableClient({
                   <th className="px-3 py-2 text-left">Status</th>
                   <th className="px-3 py-2 text-left">Purpose</th>
                   <th className="px-3 py-2 text-center">Last Runtime</th>
+                  <th className="px-3 py-2 text-center">Last Edited</th>
                   {editMode && <th className="w-16 px-3 py-2"></th>}
                 </tr>
               </thead>
@@ -430,7 +435,7 @@ export function AutomationsTableClient({
                 {filtered.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={editMode ? 5 : 4}
+                      colSpan={editMode ? 6 : 5}
                       className="px-3 py-16 text-center text-sm text-zinc-500"
                     >
                       {rows.length === 0
@@ -519,7 +524,19 @@ export function AutomationsTableClient({
                             entry). */}
                         {r.lastRunAt ? (
                           <span className="text-xs tabular-nums text-zinc-700">
-                            {formatLastRun(r.lastRunAt)}
+                            {formatDateCell(r.lastRunAt)}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-zinc-400">-</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 align-top text-center">
+                        {/* Last Edited: sync/import-filled date (MM-DD-YYYY). A
+                            plain "-" when empty (sync-only, never manual; "-"
+                            for platforms with no edit-timestamp source). */}
+                        {r.lastEditedAt ? (
+                          <span className="text-xs tabular-nums text-zinc-700">
+                            {formatDateCell(r.lastEditedAt)}
                           </span>
                         ) : (
                           <span className="text-xs text-zinc-400">-</span>

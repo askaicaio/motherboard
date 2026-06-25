@@ -61,6 +61,9 @@ interface N8nWorkflow {
   id: number | string;
   name?: string;
   active?: boolean;
+  /** ISO 8601 timestamp of the last edit — n8n returns this on the workflow
+   *  object itself, in the same list response (no extra request needed). */
+  updatedAt?: string;
 }
 
 /** A workflow normalized into the shape our sync wants (mirrors MakeAutomation). */
@@ -73,6 +76,9 @@ export interface N8nAutomation {
   url: string;
   /** "active" | "paused" derived from the workflow's `active` flag. */
   status: "active" | "paused";
+  /** ISO 8601 last-edited timestamp (workflow `updatedAt`), or null when n8n
+   *  didn't return one. Feeds the "Last Edited" column. */
+  lastEditedAt: string | null;
 }
 
 // Page size (n8n caps `limit` at 250) + a hard cap so a misconfiguration
@@ -118,6 +124,7 @@ export async function listN8nAutomations(): Promise<N8nAutomation[]> {
         name: (w.name ?? "").trim(),
         url: workflowUrl(base, w.id),
         status: w.active ? "active" : "paused",
+        lastEditedAt: w.updatedAt ?? null,
       });
     }
 

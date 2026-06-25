@@ -38,6 +38,7 @@ export default async function AutomationWebsitePage({
       status: automations.status,
       purpose: automations.purpose,
       lastRunAt: automations.lastRunAt,
+      lastEditedAt: automations.lastEditedAt,
     })
     .from(automations)
     .where(eq(automations.platform, site.slug))
