@@ -61,6 +61,13 @@ export async function syncMakeAutomations(
       await new Promise((r) => setTimeout(r, 40));
     }
 
+    // Last edited: Make returns `lastEdit` on the scenario object itself (in the
+    // list response), so no extra request. Same "never wipe with null" rule as
+    // last_run_at.
+    const lastEditedAt: Date | null = s.lastEditedAt
+      ? new Date(s.lastEditedAt)
+      : null;
+
     const [existing] = await db
       .select({
         id: automations.id,
@@ -68,6 +75,7 @@ export async function syncMakeAutomations(
         status: automations.status,
         platform: automations.platform,
         lastRunAt: automations.lastRunAt,
+        lastEditedAt: automations.lastEditedAt,
       })
       .from(automations)
       .where(eq(automations.externalUrl, url))
@@ -80,6 +88,7 @@ export async function syncMakeAutomations(
         externalUrl: url,
         status: s.status,
         lastRunAt,
+        lastEditedAt,
         createdBy: createdBy ?? null,
       });
       created += 1;
@@ -96,6 +105,13 @@ export async function syncMakeAutomations(
     // overwrite a stored timestamp with null.
     if (lastRunAt && existing.lastRunAt?.getTime() !== lastRunAt.getTime()) {
       patch.lastRunAt = lastRunAt;
+    }
+    // Same rule for last_edited_at.
+    if (
+      lastEditedAt &&
+      existing.lastEditedAt?.getTime() !== lastEditedAt.getTime()
+    ) {
+      patch.lastEditedAt = lastEditedAt;
     }
 
     if (Object.keys(patch).length > 0) {
@@ -128,6 +144,7 @@ export async function getMakeRows() {
       status: automations.status,
       purpose: automations.purpose,
       lastRunAt: automations.lastRunAt,
+      lastEditedAt: automations.lastEditedAt,
     })
     .from(automations)
     .where(and(eq(automations.platform, PLATFORM)))

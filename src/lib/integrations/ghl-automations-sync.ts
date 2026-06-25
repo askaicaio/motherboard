@@ -113,6 +113,9 @@ export async function getGhlRows(platform: string) {
       status: automations.status,
       purpose: automations.purpose,
       lastRunAt: automations.lastRunAt,
+      // GHL exposes no edit timestamp (same as run history) so this stays null,
+      // but we still select it so the "Last Edited" column renders consistently.
+      lastEditedAt: automations.lastEditedAt,
     })
     .from(automations)
     .where(and(eq(automations.platform, platform)))
