@@ -427,8 +427,8 @@ export function AutomationsTableClient({
                   <th className="px-3 py-2 text-left">Name</th>
                   <th className="px-3 py-2 text-left">Status</th>
                   <th className="px-3 py-2 text-left">Purpose</th>
-                  <th className="px-3 py-2 text-center">Last Runtime</th>
                   <th className="px-3 py-2 text-center">Last Edited</th>
+                  <th className="px-3 py-2 text-center">Last Runtime</th>
                   {editMode && <th className="w-16 px-3 py-2"></th>}
                 </tr>
               </thead>
@@ -520,24 +520,23 @@ export function AutomationsTableClient({
                         )}
                       </td>
                       <td className="px-3 py-2 align-top text-center">
-                        {/* Last Runtime: sync-filled date (MM-DD-YYYY). A plain
-                            "-" when empty (the column never accepts manual
-                            entry). */}
-                        {r.lastRunAt ? (
+                        {/* Last Edited: sync/import-filled date (MM-DD-YYYY). A
+                            plain "-" when empty (sync-only, never manual). */}
+                        {r.lastEditedAt ? (
                           <span className="text-xs tabular-nums text-zinc-700">
-                            {formatDateCell(r.lastRunAt)}
+                            {formatDateCell(r.lastEditedAt)}
                           </span>
                         ) : (
                           <span className="text-xs text-zinc-400">-</span>
                         )}
                       </td>
                       <td className="px-3 py-2 align-top text-center">
-                        {/* Last Edited: sync/import-filled date (MM-DD-YYYY). A
-                            plain "-" when empty (sync-only, never manual; "-"
-                            for platforms with no edit-timestamp source). */}
-                        {r.lastEditedAt ? (
+                        {/* Last Runtime: sync-filled date (MM-DD-YYYY). A plain
+                            "-" when empty (the column never accepts manual
+                            entry). */}
+                        {r.lastRunAt ? (
                           <span className="text-xs tabular-nums text-zinc-700">
-                            {formatDateCell(r.lastEditedAt)}
+                            {formatDateCell(r.lastRunAt)}
                           </span>
                         ) : (
                           <span className="text-xs text-zinc-400">-</span>
