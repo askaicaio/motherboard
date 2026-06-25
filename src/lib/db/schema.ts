@@ -1176,11 +1176,11 @@ export const automations = pgTable(
      *  the "Last Runtime" column formatted MM-DD-YYYY ("-" when null). */
     lastRunAt: timestamp("last_run_at", { withTimezone: true }),
     /** When this automation was last EDITED/modified on its source platform
-     *  (distinct from last_run_at). Nullable; filled by the sync (n8n
+     *  (distinct from last_run_at). Nullable; filled by the sync (n8n + GHL
      *  `updatedAt`, Make `lastEdit`) or the one-time Zapier CSV import, never
      *  set through the Add/Edit dialog. Shown in the "Last Edited" column
-     *  formatted MM-DD-YYYY ("-" when null). GHL exposes no edit timestamp so
-     *  it stays null there, same as last_run_at. */
+     *  formatted MM-DD-YYYY ("-" when null). Unlike last_run_at, GHL DOES expose
+     *  this (workflow `updatedAt`), so it is populated for all synced platforms. */
     lastEditedAt: timestamp("last_edited_at", { withTimezone: true }),
 
     createdBy: uuid("created_by").references(() => adminUsers.id),
