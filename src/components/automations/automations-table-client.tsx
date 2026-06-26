@@ -616,14 +616,14 @@ export function AutomationsTableClient({
                           : "descending"
                         : "none"
                     }
-                    className="sticky top-0 z-10 cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-left shadow-[inset_0_-1px_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700"
+                    className="sticky top-0 z-10 cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700"
                   >
-                    <span className="inline-flex items-center gap-1">
+                    <span className="inline-flex items-center justify-center gap-1">
                       Status
                       <SortArrow active={sortKey === "status"} dir={sortDir} />
                     </span>
                   </th>
-                  <th className="sticky top-0 z-10 whitespace-nowrap bg-zinc-50 px-3 py-2 text-left shadow-[inset_0_-1px_0_0_#e4e4e7]">
+                  <th className="sticky top-0 z-10 whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
                     Purpose
                   </th>
                   <th
@@ -720,7 +720,7 @@ export function AutomationsTableClient({
                           </a>
                         )}
                       </td>
-                      <td className="px-3 py-2 align-top">
+                      <td className="px-3 py-2 text-center align-top">
                         <span
                           className={cn(
                             "text-xs font-medium",
@@ -732,7 +732,7 @@ export function AutomationsTableClient({
                           {r.status === "active" ? "Active" : "Paused"}
                         </span>
                       </td>
-                      <td className="px-3 py-2 align-top">
+                      <td className="px-3 py-2 text-center align-top">
                         {/* Purpose: "Show" opens a read-only popup when there's
                             text; "None" (red, non-clickable) when empty. In edit
                             mode the button is disabled and clicking the row opens
