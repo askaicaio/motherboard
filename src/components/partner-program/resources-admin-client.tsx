@@ -314,19 +314,30 @@ function UploadDialog({
         </DialogHeader>
         <form onSubmit={submit} className="space-y-3">
           <div className="space-y-1.5">
-            <Label htmlFor="res-file">File</Label>
+            <Label>File</Label>
+            {/* Hidden native input triggered by a button — reliable inside modals. */}
             <input
               id="res-file"
-              type="file"
               ref={fileRef}
+              type="file"
+              accept="application/pdf,image/*,.doc,.docx,.ppt,.pptx"
+              className="hidden"
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-              className="block w-full cursor-pointer text-sm text-foreground file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-zinc-900 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-white hover:file:bg-zinc-800"
             />
-            {file && (
-              <p className="text-xs text-muted-foreground">
-                Selected: {file.name} ({Math.round(file.size / 1024)} KB)
-              </p>
-            )}
+            <div className="flex items-center gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => fileRef.current?.click()}
+              >
+                {file ? "Change file" : "Choose file"}
+              </Button>
+              <span className="truncate text-sm text-muted-foreground">
+                {file
+                  ? `${file.name} (${Math.round(file.size / 1024)} KB)`
+                  : "No file chosen"}
+              </span>
+            </div>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="res-title">Title</Label>

@@ -7,6 +7,7 @@ import {
   partners,
   partnerConversions,
   partnerPrograms,
+  partnerDisputes,
 } from "@/lib/db/schema";
 import { requireAuth } from "@/lib/auth/guard";
 import { eq, and, inArray, sql, desc } from "drizzle-orm";
@@ -84,11 +85,24 @@ export default async function PartnerProgramPage() {
       ),
     );
 
-  // Pending applications
+  // Pending applications (exclude samples)
   const [{ pendingCount }] = await db
     .select({ pendingCount: sql<number>`COUNT(*)::int` })
     .from(partners)
-    .where(eq(partners.status, "applied"));
+    .where(and(eq(partners.status, "applied"), eq(partners.isSample, false)));
+
+  // Currently ACTIVE affiliates (status = 'active' only), excluding samples —
+  // surfaced as a green badge on the Partners admin card.
+  const [{ activeAffiliatesCount }] = await db
+    .select({ activeAffiliatesCount: sql<number>`COUNT(*)::int` })
+    .from(partners)
+    .where(and(eq(partners.status, "active"), eq(partners.isSample, false)));
+
+  // Open disputes (partnerDisputes.status = 'open')
+  const [{ openDisputesCount }] = await db
+    .select({ openDisputesCount: sql<number>`COUNT(*)::int` })
+    .from(partnerDisputes)
+    .where(eq(partnerDisputes.status, "open"));
 
   // Conversions pending review (status = 'pending'), excluding samples
   const [{ pendingConversionsCount }] = await db
@@ -150,12 +164,23 @@ export default async function PartnerProgramPage() {
     .limit(8);
 
   // ── Quick-link cards — exactly four core surfaces ──────────────────────
-  const quickLinks = [
+  // `badgeTone` controls the pill color so each surface reads at a glance:
+  // emerald = healthy/active count, amber = needs-attention queue, indigo = neutral.
+  const quickLinks: Array<{
+    href: string;
+    icon: typeof Users;
+    label: string;
+    desc: string;
+    badge?: string;
+    badgeTone?: "emerald" | "amber" | "indigo";
+  }> = [
     {
       href: "/partner-program/partners",
       icon: Users,
       label: "Partners",
       desc: "Manage approved & active affiliates",
+      badge: activeAffiliatesCount > 0 ? String(activeAffiliatesCount) : undefined,
+      badgeTone: "emerald",
     },
     {
       href: "/partner-program/applications",
@@ -163,6 +188,7 @@ export default async function PartnerProgramPage() {
       label: "Applications",
       desc: "Review pending applications",
       badge: pendingCount > 0 ? String(pendingCount) : undefined,
+      badgeTone: "amber",
     },
     {
       href: "/partner-program/events",
@@ -173,12 +199,15 @@ export default async function PartnerProgramPage() {
         pendingConversionsCount > 0
           ? String(pendingConversionsCount)
           : undefined,
+      badgeTone: "amber",
     },
     {
       href: "/partner-program/disputes",
       icon: AlertCircle,
       label: "Disputes",
       desc: "Affiliate-submitted conversion disputes",
+      badge: openDisputesCount > 0 ? String(openDisputesCount) : undefined,
+      badgeTone: "indigo",
     },
   ];
 
@@ -249,45 +278,37 @@ export default async function PartnerProgramPage() {
         />
       </div>
 
-      {/* Public affiliate-facing pages */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="mb-2 text-xs font-medium uppercase tracking-wide text-zinc-500">
-            Public pages (share with affiliates)
-          </div>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-            {[
-              { href: `${publicBase}/partners`, label: "Landing page", sub: "Marketing + commission table" },
-              { href: `${publicBase}/partners/apply`, label: "Apply to join", sub: "Public application form" },
-              { href: `${publicBase}/partners/resources`, label: "Resources", sub: "Playbook, toolkit, assets" },
-            ].map((l) => (
-              <a
-                key={l.href}
-                href={l.href}
-                target="_blank"
-                rel="noreferrer"
-                className="group flex items-center justify-between rounded-lg border border-zinc-200 px-3 py-2.5 transition hover:border-indigo-300 hover:bg-indigo-50/40"
-              >
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1.5 text-sm font-medium text-zinc-800">
-                    {l.label}
-                    <ExternalLink className="h-3 w-3 text-zinc-400" />
-                  </div>
-                  <div className="truncate text-[11px] text-zinc-500">{l.sub}</div>
-                </div>
-              </a>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      {/* Public affiliate-facing pages — slim inline bar (2 items) */}
+      <div className="flex flex-col gap-2 rounded-lg border border-zinc-200 bg-zinc-50/60 px-3 py-2 sm:flex-row sm:items-center">
+        <span className="shrink-0 text-[11px] font-medium uppercase tracking-wide text-zinc-400">
+          Public pages
+        </span>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+          {[
+            { href: `${publicBase}/partners`, label: "Landing page" },
+            { href: `${publicBase}/partners/apply`, label: "Apply to join" },
+          ].map((l) => (
+            <a
+              key={l.href}
+              href={l.href}
+              target="_blank"
+              rel="noreferrer"
+              className="group inline-flex items-center gap-1 text-sm font-medium text-zinc-700 hover:text-indigo-600"
+            >
+              {l.label}
+              <ExternalLink className="h-3 w-3 text-zinc-400 group-hover:text-indigo-500" />
+            </a>
+          ))}
+        </div>
+      </div>
 
-      {/* Quick links */}
+      {/* Quick links — the daily admin workspace (visual priority) */}
       <div>
         <h2 className="mb-3 text-xs font-medium uppercase tracking-wide text-zinc-500">
           Admin Surfaces
         </h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {quickLinks.map(({ href, icon: Icon, label, desc, badge }) => (
+          {quickLinks.map(({ href, icon: Icon, label, desc, badge, badgeTone }) => (
             <NextLink key={href} href={href}>
               <Card className="cursor-pointer hover:shadow-md transition group h-full">
                 <CardContent className="p-4 flex items-start gap-3">
@@ -300,7 +321,17 @@ export default async function PartnerProgramPage() {
                         {label}
                       </span>
                       {badge && (
-                        <span className="inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">
+                        <span
+                          className={cn(
+                            "inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
+                            badgeTone === "emerald" &&
+                              "bg-emerald-100 text-emerald-700",
+                            badgeTone === "indigo" &&
+                              "bg-indigo-100 text-indigo-700",
+                            (badgeTone === "amber" || !badgeTone) &&
+                              "bg-amber-100 text-amber-700",
+                          )}
+                        >
                           {badge}
                         </span>
                       )}

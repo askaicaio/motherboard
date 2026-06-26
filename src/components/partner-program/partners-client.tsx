@@ -198,6 +198,24 @@ function appStr(data: Record<string, unknown>, key: string): string {
   return String(v);
 }
 
+/** Read a jsonb value as a string array, defensively (returns [] otherwise). */
+function appArr(data: Record<string, unknown>, key: string): string[] {
+  const v = data?.[key];
+  if (!Array.isArray(v)) return [];
+  return v.map((x) => String(x)).filter(Boolean);
+}
+
+/** Read a jsonb value as a boolean (handles real booleans + "true"/"yes"). */
+function appBool(data: Record<string, unknown>, key: string): boolean | null {
+  const v = data?.[key];
+  if (v == null) return null;
+  if (typeof v === "boolean") return v;
+  const s = String(v).trim().toLowerCase();
+  if (s === "true" || s === "yes" || s === "1") return true;
+  if (s === "false" || s === "no" || s === "0") return false;
+  return null;
+}
+
 // ─── Column / grouping / sort config ───────────────────────────────────────
 
 type ColumnKey =
@@ -1256,6 +1274,9 @@ function PartnerDetailDialog({
               />
             </div>
 
+            {/* Full application details — everything the applicant submitted */}
+            <ApplicationDetails partner={partner} />
+
             {partner.refCode && (
               <div>
                 <Label className="text-xs text-zinc-500">Referral link</Label>
@@ -1462,6 +1483,200 @@ function Fact({
       <div className={cn("mt-0.5 text-sm text-zinc-800", mono && "font-mono")}>
         {value}
       </div>
+    </div>
+  );
+}
+
+// ─── Full application-details block (read-only) ────────────────────────────
+
+/** A small uppercase-label / value row, matching the dialog's Fact style. */
+function DetailRow({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <div className="text-[11px] uppercase tracking-wide text-zinc-500">
+        {label}
+      </div>
+      <div className="mt-0.5 whitespace-pre-wrap break-words text-sm text-zinc-800">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/** Render a string array as small pills (falls back to nothing if empty). */
+function Pills({ items }: { items: string[] }) {
+  return (
+    <div className="mt-0.5 flex flex-wrap gap-1">
+      {items.map((it) => (
+        <span
+          key={it}
+          className="inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-700"
+        >
+          {it}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function ApplicationDetails({ partner }: { partner: PartnerRow }) {
+  const data = partner.applicationData ?? {};
+
+  // First-class column-derived values.
+  const locationParts = [
+    partner.city,
+    partner.state,
+    partner.postalCode,
+    partner.country,
+  ].filter(Boolean) as string[];
+
+  // applicationData-derived values.
+  const website = appStr(data, "website");
+  const howDidYouHear = appStr(data, "howDidYouHear");
+  const profession = appStr(data, "profession");
+  const promoExperience = appBool(data, "promoExperience");
+  const promoExperienceDesc = appStr(data, "promoExperienceDesc");
+  const affiliateExp = appStr(data, "affiliateExperienceLevel");
+  const aiExp = appStr(data, "aiExperienceLevel");
+  const platforms = appArr(data, "platforms");
+  const targetAudience = appArr(data, "targetAudience");
+  const homeRun = appStr(data, "homeRun");
+  const anythingElse = appStr(data, "anythingElse");
+  const signature = appStr(data, "signature");
+
+  const hasAny =
+    locationParts.length > 0 ||
+    partner.dateOfBirth != null ||
+    partner.audienceSize != null ||
+    !!website ||
+    !!howDidYouHear ||
+    !!profession ||
+    promoExperience != null ||
+    !!promoExperienceDesc ||
+    !!affiliateExp ||
+    !!aiExp ||
+    platforms.length > 0 ||
+    targetAudience.length > 0 ||
+    !!homeRun ||
+    !!anythingElse ||
+    !!signature;
+
+  // Normalize the website into an href.
+  const websiteHref = website
+    ? website.startsWith("http")
+      ? website
+      : `https://${website}`
+    : null;
+
+  return (
+    <div className="space-y-3 border-t pt-4">
+      <div className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+        Application details
+      </div>
+
+      {!hasAny ? (
+        <p className="text-xs italic text-zinc-400">
+          No application details on file.
+        </p>
+      ) : (
+        <div className="space-y-3">
+          {locationParts.length > 0 && (
+            <DetailRow label="Location">
+              {locationParts.join(", ")}
+            </DetailRow>
+          )}
+
+          <div className="grid grid-cols-2 gap-3">
+            {partner.dateOfBirth && (
+              <DetailRow label="Date of birth">{partner.dateOfBirth}</DetailRow>
+            )}
+            {partner.audienceSize != null && (
+              <DetailRow label="Audience size">
+                {partner.audienceSize.toLocaleString("en-US")}
+              </DetailRow>
+            )}
+          </div>
+
+          {websiteHref && (
+            <DetailRow label="Website">
+              <a
+                href={websiteHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 underline hover:text-blue-700"
+              >
+                {website}
+              </a>
+            </DetailRow>
+          )}
+
+          {howDidYouHear && (
+            <DetailRow label="How they heard">{howDidYouHear}</DetailRow>
+          )}
+
+          {profession && (
+            <DetailRow label="Current profession / business">
+              {profession}
+            </DetailRow>
+          )}
+
+          {promoExperience != null && (
+            <DetailRow label="Promotes online courses / digital products?">
+              {promoExperience ? "Yes" : "No"}
+              {promoExperienceDesc && (
+                <span className="mt-1 block text-zinc-600">
+                  {promoExperienceDesc}
+                </span>
+              )}
+            </DetailRow>
+          )}
+
+          <div className="grid grid-cols-2 gap-3">
+            {affiliateExp && (
+              <DetailRow label="Affiliate marketing experience">
+                {affiliateExp}
+              </DetailRow>
+            )}
+            {aiExp && (
+              <DetailRow label="AI experience">{aiExp}</DetailRow>
+            )}
+          </div>
+
+          {platforms.length > 0 && (
+            <DetailRow label="Primary platforms">
+              <Pills items={platforms} />
+            </DetailRow>
+          )}
+
+          {targetAudience.length > 0 && (
+            <DetailRow label="Target audience">
+              <Pills items={targetAudience} />
+            </DetailRow>
+          )}
+
+          {homeRun && (
+            <DetailRow label="What would make this a home run">
+              {homeRun}
+            </DetailRow>
+          )}
+
+          {anythingElse && (
+            <DetailRow label="Anything else">{anythingElse}</DetailRow>
+          )}
+
+          {signature && (
+            <DetailRow label="Signature">
+              <span className="font-medium italic">{signature}</span>
+            </DetailRow>
+          )}
+        </div>
+      )}
     </div>
   );
 }
