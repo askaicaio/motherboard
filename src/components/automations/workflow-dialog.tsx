@@ -174,7 +174,7 @@ export function WorkflowDialog({
           <div className="-mx-1 min-h-0 flex-1 space-y-3 overflow-y-auto px-1 pb-3">
           <div className="space-y-1.5">
             <Label htmlFor="wf-name">Name</Label>
-            <Input
+            <Textarea
               id="wf-name"
               value={name}
               onChange={(e) => {
@@ -182,7 +182,15 @@ export function WorkflowDialog({
                 setError(null);
               }}
               maxLength={300}
+              rows={1}
               placeholder="e.g. New lead → Slack alert"
+              // Grows with content (long names no longer get cut off), same
+              // setup as the Purpose field: `block` overrides the shared
+              // Textarea's base display:flex so `field-sizing-content` works;
+              // `overflow-hidden` + `resize-none` push all growth into the
+              // outer fields scroll area (single scrollbar, no manual grip).
+              // [overflow-wrap:anywhere] breaks over-long unbroken strings.
+              className="block resize-none overflow-hidden [overflow-wrap:anywhere]"
             />
           </div>
           <div className="space-y-1.5">
