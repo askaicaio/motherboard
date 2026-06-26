@@ -12,8 +12,7 @@ import {
   partnerConversionEvents,
 } from "@/lib/db/schema";
 import { requireRole } from "@/lib/auth/guard";
-import { sendEmail } from "@/lib/email/sender";
-import { renderBrandedEmail, emailButton } from "@/lib/email/template";
+import { sendTemplatedEmail } from "@/lib/email/render";
 import { getActiveSettings } from "@/lib/partners/queries";
 import {
   resolveRate,
@@ -21,14 +20,6 @@ import {
   computeWindows,
 } from "@/lib/partners/rules";
 import { eq } from "drizzle-orm";
-
-function portalBaseUrl(): string {
-  return (
-    process.env.PARTNER_PROGRAM_BASE_URL ||
-    process.env.NEXT_PUBLIC_APP_URL ||
-    "https://affiliates.chiefaiofficer.com"
-  ).replace(/\/$/, "");
-}
 
 /**
  * Best-effort decision notification to the affiliate. Never throws — a mail
@@ -43,64 +34,31 @@ async function notifyAffiliate(
   // "closed" is an administrative no-decision — don't email the affiliate.
   if (status === "closed") return;
 
-  const disputesUrl = `${portalBaseUrl()}/portal/disputes`;
-  const firstName = partner.name.split(" ")[0] || "there";
   const upheld = status === "upheld";
+  const firstName = partner.name.split(" ")[0] || "there";
 
-  const subject = upheld
-    ? "Your referral dispute was approved"
-    : "Update on your referral dispute";
-
-  const heading = upheld
-    ? "Your dispute was approved"
-    : "Update on your dispute";
-
-  const outcomeLine = upheld
-    ? "Good news — we reviewed your dispute and approved it."
-    : "We've reviewed your dispute and weren't able to approve it this time.";
-
+  // creditLine: a sentence about the credit when one was created, else "".
   const creditLine =
     upheld && credited
       ? `<p style="margin:0 0 16px;">We've added the earned commission to your account. It now appears in your Events and will be included in your next payout — no further action needed.</p>`
       : "";
 
+  // resolution: the optional "note from our team" block, escaped, else "".
   const resolutionBlock = resolution
     ? `<p style="margin:16px 0;padding:12px 16px;background:#f8fafc;border-left:3px solid #4f46e5;border-radius:4px;color:#334155;"><strong>Note from our team:</strong><br/>${escapeHtml(
         resolution,
       )}</p>`
     : "";
 
-  const html = renderBrandedEmail({
-    heading,
-    preheader: outcomeLine,
-    contentHtml: `
-      <p style="margin:0 0 16px;">Hi ${escapeHtml(firstName)},</p>
-      <p style="margin:0 0 16px;">${outcomeLine}</p>
-      ${creditLine}
-      ${resolutionBlock}
-      ${emailButton("View your disputes", disputesUrl)}
-    `,
-  });
-
-  const plain = [
-    `Hi ${firstName},`,
-    "",
-    outcomeLine,
-    upheld && credited
-      ? "\nWe've added the earned commission to your account. It now appears in your Events and will be included in your next payout — no further action needed."
-      : "",
-    resolution ? `\nNote from our team:\n${resolution}` : "",
-    "",
-    `View your disputes: ${disputesUrl}`,
-    "",
-    "— The Chief AI Officer Affiliate Team",
-  ].join("\n");
-
-  try {
-    await sendEmail({ to: partner.email, subject, html, plain });
-  } catch (err) {
-    console.error("[disputes/decide] notify email failed:", err);
-  }
+  await sendTemplatedEmail(
+    upheld ? "dispute_upheld" : "dispute_denied",
+    partner.email,
+    {
+      name: firstName,
+      resolution: resolutionBlock,
+      creditLine,
+    },
+  );
 }
 
 function escapeHtml(s: string): string {

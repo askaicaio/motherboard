@@ -102,7 +102,12 @@ export default async function PartnerProgramPage() {
   const [{ openDisputesCount }] = await db
     .select({ openDisputesCount: sql<number>`COUNT(*)::int` })
     .from(partnerDisputes)
-    .where(eq(partnerDisputes.status, "open"));
+    .where(
+      and(
+        eq(partnerDisputes.status, "open"),
+        eq(partnerDisputes.isSample, false),
+      ),
+    );
 
   // Conversions pending review (status = 'pending'), excluding samples
   const [{ pendingConversionsCount }] = await db

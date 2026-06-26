@@ -303,10 +303,20 @@ function UploadDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Upload a resource</DialogTitle>
+    <>
+      {/* Rendered OUTSIDE the Base UI Dialog portal so the modal's focus scope
+          can't swallow the native file input's change event. */}
+      <input
+        ref={fileRef}
+        type="file"
+        accept="application/pdf,image/*,.doc,.docx,.ppt,.pptx"
+        className="hidden"
+        onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+      />
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Upload a resource</DialogTitle>
           <DialogDescription>
             PDF, image, or document. Stored on Vercel Blob and downloadable by
             affiliates if public.
@@ -315,15 +325,6 @@ function UploadDialog({
         <form onSubmit={submit} className="space-y-3">
           <div className="space-y-1.5">
             <Label>File</Label>
-            {/* Hidden native input triggered by a button — reliable inside modals. */}
-            <input
-              id="res-file"
-              ref={fileRef}
-              type="file"
-              accept="application/pdf,image/*,.doc,.docx,.ppt,.pptx"
-              className="hidden"
-              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-            />
             <div className="flex items-center gap-3">
               <Button
                 type="button"
@@ -365,8 +366,9 @@ function UploadDialog({
             </Button>
           </DialogFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 

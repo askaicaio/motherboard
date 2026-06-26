@@ -25,6 +25,7 @@ export default async function DisputesPage() {
       status: partnerDisputes.status,
       resolution: partnerDisputes.resolution,
       decidedAt: partnerDisputes.decidedAt,
+      isSample: partnerDisputes.isSample,
     })
     .from(partnerDisputes)
     .leftJoin(partners, eq(partnerDisputes.partnerId, partners.id))
@@ -55,6 +56,7 @@ export default async function DisputesPage() {
         status: d.status,
         resolution: d.resolution,
         decidedAt: d.decidedAt ? d.decidedAt.toISOString() : null,
+        isSample: d.isSample,
       }))}
     />
   );

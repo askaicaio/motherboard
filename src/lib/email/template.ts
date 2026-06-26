@@ -6,15 +6,15 @@
 const SITE = "https://chiefaiofficer.com";
 const AFFILIATES = "https://affiliates.chiefaiofficer.com";
 const LOGO_URL = `${AFFILIATES}/caio-logo-white.png`;
-const ADDRESS = "5700 Harper Dr, Suite 210, Albuquerque, NM 87109, United States";
+const ADDRESS = "2021 Guadalupe Street, Suite 260, Austin, TX 78705, United States";
 
+// Kept short so the row stays on a single line across clients.
 const FOOTER_LINKS: { label: string; href: string }[] = [
   { label: "Certifications", href: `${SITE}/certifications` },
   { label: "Why Us", href: `${SITE}/why-us` },
-  { label: "Blog + Insights", href: `${SITE}/blog` },
-  { label: "Contact", href: `${SITE}/contact` },
+  { label: "Blog", href: `${SITE}/blog` },
   { label: "Community", href: `${SITE}/community` },
-  { label: "Become an Affiliate", href: `${AFFILIATES}/partners` },
+  { label: "Contact", href: `${SITE}/contact` },
 ];
 
 export interface BrandedEmailOptions {
@@ -64,8 +64,8 @@ export function renderBrandedEmail({
       </td></tr>
 
       <!-- Footer -->
-      <tr><td style="background:#fafafa;border-top:1px solid #ececec;padding:22px 32px;border-radius:0;">
-        <div style="line-height:1.9;">${links}</div>
+      <tr><td align="center" style="background:#fafafa;border-top:1px solid #ececec;padding:18px 24px;">
+        <div style="line-height:1.6;text-align:center;white-space:nowrap;">${links}</div>
       </td></tr>
       <tr><td style="background:#0b0b0f;border-radius:0 0 14px 14px;padding:22px 32px;">
         <p style="margin:0 0 6px;font-size:12px;line-height:1.6;color:#a1a1aa;">

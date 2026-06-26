@@ -7,6 +7,7 @@ import { partners } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { sendEmail } from "@/lib/email/sender";
 import { renderBrandedEmail, emailButton } from "@/lib/email/template";
+import { sendTemplatedEmail } from "@/lib/email/render";
 
 const TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
@@ -39,33 +40,33 @@ export async function sendPortalPasswordEmail(
   kind: "welcome" | "reset",
 ): Promise<void> {
   const url = `${portalBaseUrl()}/portal/set-password?token=${token}`;
-  const subject =
-    kind === "welcome"
-      ? "Set up your CAIO affiliate portal"
-      : "Reset your CAIO affiliate portal password";
-  const intro =
-    kind === "welcome"
-      ? "Your CAIO affiliate account is approved. Set a password to access your portal — your referral link, earnings, and payouts."
-      : "We received a request to reset your CAIO affiliate portal password. Use the link below to set a new one.";
 
-  const buttonLabel = kind === "welcome" ? "Set your password" : "Reset password";
+  // The reset path now flows through the editable template system.
+  if (kind === "reset") {
+    await sendTemplatedEmail("password_reset", partner.email, {
+      name: partner.name,
+      resetUrl: url,
+    });
+    return;
+  }
+
+  // Welcome (set-password) still uses its inline branded copy.
+  const intro =
+    "Your CAIO affiliate account is approved. Set a password to access your portal — your referral link, earnings, and payouts.";
   const contentHtml = `
         <p>Hi ${escapeHtml(partner.name)},</p>
         <p>${intro}</p>
-        ${emailButton(`${buttonLabel} →`, url)}
+        ${emailButton("Set your password →", url)}
         <p style="margin-top:24px;font-size:12px;color:#a1a1aa;line-height:1.6;">This link is valid for 7 days. If you weren't expecting it, you can ignore this email.</p>`;
   const html = renderBrandedEmail({
-    heading: kind === "welcome" ? "Set up your portal" : "Reset your password",
+    heading: "Set up your portal",
     contentHtml,
-    preheader:
-      kind === "welcome"
-        ? "Set a password to access your affiliate portal."
-        : "Set a new password — this link is valid for 7 days.",
+    preheader: "Set a password to access your affiliate portal.",
   });
 
   const plain = `Hi ${partner.name},\n\n${intro}\n\n${url}\n\nThis link is valid for 7 days.\n\n— Chief AI Officer Affiliate Program`;
 
-  await sendEmail({ to: partner.email, subject, html, plain });
+  await sendEmail({ to: partner.email, subject: "Set up your CAIO affiliate portal", html, plain });
 }
 
 /** Email a newly-approved affiliate their temporary portal password + login link. */

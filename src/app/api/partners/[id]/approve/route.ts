@@ -10,8 +10,7 @@ import { db } from "@/lib/db";
 import { partners } from "@/lib/db/schema";
 import { requireRole } from "@/lib/auth/guard";
 import { generateRefCode } from "@/lib/partners/rules";
-import { sendEmail } from "@/lib/email/sender";
-import { renderBrandedEmail } from "@/lib/email/template";
+import { sendTemplatedEmail } from "@/lib/email/render";
 import { eq } from "drizzle-orm";
 
 /** Readable, URL-safe temporary password, e.g. "Caio-a1B2c3D4". */
@@ -104,65 +103,15 @@ export async function POST(
     const link = `${base}/r?aff=${updated.refCode}`;
     const loginUrl = `${base}/portal/login`;
 
-    const portalBlockHtml = `
-      <p>Sign in to your affiliate portal to track your clicks, conversions, and payouts.</p>
-      <p>Your temporary password is: <strong>${tempPassword}</strong></p>
-      <p><a href="${loginUrl}">Sign in to your portal →</a></p>
-      <p>You'll be asked to choose your own password on first sign-in.</p>`;
-
-    const contentHtml = `
-      <p>Hi ${updated.name},</p>
-      <p>Great news — your application to the CAIO Affiliate Program has been approved!</p>
-      <p>Your personal referral link is:</p>
-      <p><a href="${link}">${link}</a></p>
-      <p>Share it with anyone who could benefit from working with a Chief AI Officer.
-      When they engage through your link, you'll earn commission on qualifying sales.</p>
-      ${portalBlockHtml}
-      <p>Welcome aboard,<br/>The CAIO Team</p>
-    `.trim();
-
-    const html = renderBrandedEmail({
-      heading: "You're approved!",
-      contentHtml,
-      preheader:
-        "Your referral link and temporary portal password are inside.",
-    });
-
-    const plain = [
-      `Hi ${updated.name},`,
-      "",
-      "Great news — your application to the CAIO Affiliate Program has been approved!",
-      "",
-      "Your personal referral link is:",
-      link,
-      "",
-      "Share it with anyone who could benefit from working with a Chief AI Officer. " +
-        "When they engage through your link, you'll earn commission on qualifying sales.",
-      "",
-      "Sign in to your affiliate portal to track clicks, conversions, and payouts.",
-      `Your temporary password is: ${tempPassword}`,
-      loginUrl,
-      "You'll be asked to choose your own password on first sign-in.",
-      "",
-      "Welcome aboard,",
-      "The CAIO Team",
-    ].join("\n");
-
     // Email is best-effort — never let a mail hiccup fail an approval that the
-    // DB already committed. (The admin can re-send / the partner can reset.)
-    try {
-      await sendEmail({
-        to: updated.email,
-        subject: "You're approved for the CAIO Affiliate Program",
-        html,
-        plain,
-      });
-    } catch (emailErr) {
-      console.error(
-        "[approve] approval saved but email send failed:",
-        emailErr,
-      );
-    }
+    // DB already committed. (sendTemplatedEmail is itself try/catch and never
+    // throws; the admin can re-send / the partner can reset.)
+    await sendTemplatedEmail("approved", updated.email, {
+      name: updated.name,
+      referralLink: link,
+      tempPassword,
+      loginUrl,
+    });
 
     return NextResponse.json({ partner: updated });
   } catch (err) {

@@ -1653,12 +1653,30 @@ export const partnerDisputes = pgTable(
     resolution: text("resolution"),
     decidedAt: timestamp("decided_at", { withTimezone: true }),
     decidedBy: uuid("decided_by").references(() => adminUsers.id),
+    /** Seeded sample dispute — badged "SAMPLE ONLY" and excluded from counts. */
+    isSample: boolean("is_sample").notNull().default(false),
   },
   (table) => [
     index("idx_partner_disputes_partner").on(table.partnerId),
     index("idx_partner_disputes_status").on(table.status),
   ],
 );
+
+/**
+ * Editable email-template overrides. Defaults live in code (the email registry);
+ * a row here overrides the subject / heading / body for a given template key.
+ * Header + footer chrome is NOT editable.
+ */
+export const partnerEmailTemplates = pgTable("partner_email_templates", {
+  key: text("key").primaryKey(),
+  subject: text("subject"),
+  heading: text("heading"),
+  bodyHtml: text("body_html"),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedBy: uuid("updated_by"),
+});
 
 // ---- Relations ---------------------------------------------------------
 

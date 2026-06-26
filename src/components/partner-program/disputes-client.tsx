@@ -39,6 +39,7 @@ export interface DisputeRow {
   status: string;
   resolution: string | null;
   decidedAt: string | null;
+  isSample: boolean;
 }
 
 export interface ProgramOption {
@@ -65,6 +66,14 @@ function StatusBadge({ status }: { status: string }) {
       )}
     >
       {status}
+    </span>
+  );
+}
+
+function SampleBadge() {
+  return (
+    <span className="inline-flex rounded-full border border-amber-200 bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-800">
+      SAMPLE ONLY
     </span>
   );
 }
@@ -233,8 +242,9 @@ export function DisputesClient({
                     className="cursor-pointer border-t hover:bg-zinc-50"
                   >
                     <td className="px-3 py-2 align-top">
-                      <div className="font-medium text-zinc-900">
-                        {r.partnerName || "Unknown partner"}
+                      <div className="flex items-center gap-2 font-medium text-zinc-900">
+                        <span>{r.partnerName || "Unknown partner"}</span>
+                        {r.isSample && <SampleBadge />}
                       </div>
                       {r.partnerEmail && (
                         <div className="text-xs font-mono text-zinc-500">
