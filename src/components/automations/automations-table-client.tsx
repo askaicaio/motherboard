@@ -68,12 +68,13 @@ function formatDateCell(value: string | Date | null | undefined): string {
 type SortKey = "name" | "status" | "lastEditedAt" | "lastRunAt";
 
 /** The ▲/▼ indicator (solid triangle), shown only on the currently-active sort
- *  column. Dark amber/gold so it stands out as the active-sort marker. */
+ *  column in dark amber/gold. The slot is ALWAYS rendered at a fixed width (even
+ *  when inactive/empty) so the column width never shifts when the triangle
+ *  appears or moves to another column. */
 function SortArrow({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {
-  if (!active) return null;
   return (
-    <span className="text-[10px] text-amber-600">
-      {dir === "asc" ? "▲" : "▼"}
+    <span className="inline-block w-3 text-center text-[10px] text-amber-600">
+      {active ? (dir === "asc" ? "▲" : "▼") : ""}
     </span>
   );
 }
