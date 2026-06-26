@@ -423,25 +423,40 @@ export function AutomationsTableClient({
             (max-h + overflow-auto), so only the list scrolls while the toolbar
             and page stay put. Each header cell is `sticky top-0` with an opaque
             bg (so rows don't show through) and an inset bottom-edge shadow that
-            stands in for the row border, which would otherwise scroll away. */}
+            stands in for the row border, which would otherwise scroll away.
+
+            Horizontal scroll + frozen Name column: the table carries a
+            `min-w-[760px]` so once columns exceed the card width it overflows
+            and the existing overflow-auto shows a horizontal scrollbar (drag,
+            Shift+wheel, or trackpad swipe). The first column (Name + its link)
+            is `sticky left-0` on both the header and every body row so the
+            workflow's identity stays in view while scrolling sideways. The
+            top-left "Name" header is the corner: sticky on BOTH axes with the
+            highest z-index (z-20) so it sits above the header row and the
+            frozen column during a diagonal scroll. Layering: corner z-20 >
+            header row / frozen column z-10 > body. */}
         <Card>
           <CardContent className="max-h-[70vh] overflow-auto p-0">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[760px] text-sm">
               <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
                 <tr>
-                  <th className="sticky top-0 z-10 bg-zinc-50 px-3 py-2 text-left shadow-[inset_0_-1px_0_0_#e4e4e7]">
+                  {/* Corner cell: pinned to BOTH the top (header) and the left
+                      (frozen Name column), so it needs the highest z-index plus
+                      both the bottom-edge shadow (header) and the right-edge
+                      shadow (frozen column). */}
+                  <th className="sticky left-0 top-0 z-20 w-[260px] min-w-[260px] max-w-[260px] bg-zinc-50 px-3 py-2 text-left shadow-[inset_0_-1px_0_0_#e4e4e7,inset_-1px_0_0_0_#e4e4e7]">
                     Name
                   </th>
-                  <th className="sticky top-0 z-10 bg-zinc-50 px-3 py-2 text-left shadow-[inset_0_-1px_0_0_#e4e4e7]">
+                  <th className="sticky top-0 z-10 whitespace-nowrap bg-zinc-50 px-3 py-2 text-left shadow-[inset_0_-1px_0_0_#e4e4e7]">
                     Status
                   </th>
-                  <th className="sticky top-0 z-10 bg-zinc-50 px-3 py-2 text-left shadow-[inset_0_-1px_0_0_#e4e4e7]">
+                  <th className="sticky top-0 z-10 whitespace-nowrap bg-zinc-50 px-3 py-2 text-left shadow-[inset_0_-1px_0_0_#e4e4e7]">
                     Purpose
                   </th>
-                  <th className="sticky top-0 z-10 bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
+                  <th className="sticky top-0 z-10 whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
                     Last Edited
                   </th>
-                  <th className="sticky top-0 z-10 bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
+                  <th className="sticky top-0 z-10 whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
                     Last Runtime
                   </th>
                   {editMode && (
@@ -467,14 +482,22 @@ export function AutomationsTableClient({
                       key={r.id}
                       onClick={editMode ? () => setEditing(r) : undefined}
                       className={cn(
-                        "border-t hover:bg-zinc-50",
+                        "group border-t hover:bg-zinc-50",
                         editMode && "cursor-pointer",
                       )}
                     >
-                      <td className="px-3 py-2 align-top">
-                        {/* Name on top; the link sits beneath it (subdued),
-                            replacing the old separate Link column. The full URL
-                            is kept (Make's hostname alone is meaningless). */}
+                      <td className="sticky left-0 z-10 w-[260px] min-w-[260px] max-w-[260px] bg-white px-3 py-2 align-top shadow-[inset_-1px_0_0_0_#e4e4e7] group-hover:bg-zinc-50">
+                        {/* Frozen Name column (sticky left-0): stays in view
+                            during horizontal scroll so the row's identity is
+                            always visible. Needs its own opaque bg (rows are
+                            otherwise transparent over the card) + a matching
+                            group-hover so it doesn't look detached from the
+                            hovered row, and a right-edge shadow to separate it
+                            from the scrolling columns. Name on top; the link
+                            sits beneath it (subdued), replacing the old separate
+                            Link column. The full URL is kept (Make's hostname
+                            alone is meaningless) and wraps within the fixed
+                            260px via break-all. */}
                         <div className="font-medium text-zinc-900">
                           {r.name || (
                             <span className="font-normal text-zinc-400">
