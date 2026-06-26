@@ -114,17 +114,30 @@ const EXPORT_COLUMNS: { header: string; value: (r: AutomationRow) => string }[] 
     },
   ];
 
-/** Escape one CSV field: wrap in double-quotes (doubling internal quotes) when
- *  it contains a comma, quote, or newline. Purpose can contain all three. */
-function csvEscape(value: string): string {
-  return /[",\n\r]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
+/** Flatten a field to a single line: collapse any run of line breaks (and the
+ *  whitespace around them) into ONE space, then trim. Some Purpose notes contain
+ *  real line breaks (e.g. a list of tags typed with Enter); left in, they make
+ *  Excel render that row very tall (a multi-line cell), leaving big white gaps in
+ *  the other columns. Flattening keeps every cell on one line so rows stay even.
+ *  Trade-off: the exported note loses its original line breaks (cosmetic). */
+function flattenToOneLine(value: string): string {
+  return value.replace(/\s*[\r\n]+\s*/g, " ").trim();
 }
 
-/** Serialize rows to a CSV string (CRLF line endings, RFC-4180 style). */
+/** Escape one CSV field: wrap in double-quotes (doubling internal quotes) when
+ *  it contains a comma or quote. (Newlines are flattened out before this, so a
+ *  field never spans multiple lines.) */
+function csvEscape(value: string): string {
+  return /[",]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
+}
+
+/** Serialize rows to a CSV string (CRLF line endings, RFC-4180 style). Every
+ *  field is flattened to a single line first (see flattenToOneLine). */
 function rowsToCsv(rows: AutomationRow[]): string {
-  const header = EXPORT_COLUMNS.map((c) => csvEscape(c.header)).join(",");
+  const cell = (value: string) => csvEscape(flattenToOneLine(value));
+  const header = EXPORT_COLUMNS.map((c) => cell(c.header)).join(",");
   const body = rows.map((r) =>
-    EXPORT_COLUMNS.map((c) => csvEscape(c.value(r))).join(","),
+    EXPORT_COLUMNS.map((c) => cell(c.value(r))).join(","),
   );
   return [header, ...body].join("\r\n");
 }
