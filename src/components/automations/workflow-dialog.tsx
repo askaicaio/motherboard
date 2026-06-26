@@ -190,7 +190,10 @@ export function WorkflowDialog({
               // `overflow-hidden` + `resize-none` push all growth into the
               // outer fields scroll area (single scrollbar, no manual grip).
               // [overflow-wrap:anywhere] breaks over-long unbroken strings.
-              className="block resize-none overflow-hidden [overflow-wrap:anywhere]"
+              // `min-h-9` overrides the shared Textarea's tall `min-h-16` floor
+              // so a short name starts at single-line height (like the old
+              // Input) and only grows when the text actually needs it.
+              className="block min-h-9 resize-none overflow-hidden [overflow-wrap:anywhere]"
             />
           </div>
           <div className="space-y-1.5">
