@@ -67,11 +67,15 @@ function formatDateCell(value: string | Date | null | undefined): string {
 /** Columns the per-website table can be sorted by (Purpose is not sortable). */
 type SortKey = "name" | "status" | "lastEditedAt" | "lastRunAt";
 
-/** The ↑/↓ indicator, shown only on the currently-active sort column. Green to
- *  stand out as the active-sort marker (matches the app's "Active" green). */
+/** The ▲/▼ indicator (solid triangle), shown only on the currently-active sort
+ *  column. Dark amber/gold so it stands out as the active-sort marker. */
 function SortArrow({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {
   if (!active) return null;
-  return <span className="text-green-600">{dir === "asc" ? "↑" : "↓"}</span>;
+  return (
+    <span className="text-[10px] text-amber-600">
+      {dir === "asc" ? "▲" : "▼"}
+    </span>
+  );
 }
 
 export interface AutomationRow {
