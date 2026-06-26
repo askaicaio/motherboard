@@ -67,10 +67,11 @@ function formatDateCell(value: string | Date | null | undefined): string {
 /** Columns the per-website table can be sorted by (Purpose is not sortable). */
 type SortKey = "name" | "status" | "lastEditedAt" | "lastRunAt";
 
-/** The ↑/↓ indicator, shown only on the currently-active sort column. */
+/** The ↑/↓ indicator, shown only on the currently-active sort column. Green to
+ *  stand out as the active-sort marker (matches the app's "Active" green). */
 function SortArrow({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {
   if (!active) return null;
-  return <span className="text-zinc-400">{dir === "asc" ? "↑" : "↓"}</span>;
+  return <span className="text-green-600">{dir === "asc" ? "↑" : "↓"}</span>;
 }
 
 export interface AutomationRow {
@@ -594,7 +595,7 @@ export function AutomationsTableClient({
                           : "descending"
                         : "none"
                     }
-                    className="sticky left-0 top-0 z-20 w-[600px] min-w-[600px] max-w-[600px] cursor-pointer select-none bg-zinc-50 px-3 py-2 text-left shadow-[inset_0_-1px_0_0_#e4e4e7,inset_-1px_0_0_0_#e4e4e7] transition-colors hover:bg-zinc-100 hover:text-zinc-700"
+                    className="sticky left-0 top-0 z-20 w-[600px] min-w-[600px] max-w-[600px] cursor-pointer select-none bg-zinc-50 px-3 py-2 text-left shadow-[inset_0_-1px_0_0_#e4e4e7,inset_-1px_0_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700"
                   >
                     <span className="inline-flex items-center gap-1">
                       Name
@@ -610,7 +611,7 @@ export function AutomationsTableClient({
                           : "descending"
                         : "none"
                     }
-                    className="sticky top-0 z-10 cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-left shadow-[inset_0_-1px_0_0_#e4e4e7] transition-colors hover:bg-zinc-100 hover:text-zinc-700"
+                    className="sticky top-0 z-10 cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-left shadow-[inset_0_-1px_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700"
                   >
                     <span className="inline-flex items-center gap-1">
                       Status
@@ -629,7 +630,7 @@ export function AutomationsTableClient({
                           : "descending"
                         : "none"
                     }
-                    className="sticky top-0 z-10 cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7] transition-colors hover:bg-zinc-100 hover:text-zinc-700"
+                    className="sticky top-0 z-10 cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700"
                   >
                     <span className="inline-flex items-center justify-center gap-1">
                       Last Edited
@@ -648,7 +649,7 @@ export function AutomationsTableClient({
                           : "descending"
                         : "none"
                     }
-                    className="sticky top-0 z-10 cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7] transition-colors hover:bg-zinc-100 hover:text-zinc-700"
+                    className="sticky top-0 z-10 cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700"
                   >
                     <span className="inline-flex items-center justify-center gap-1">
                       Last Runtime
