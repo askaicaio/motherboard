@@ -56,6 +56,15 @@ function formatDateCell(value: string | Date | null | undefined): string {
   return `${pad(d.getMonth() + 1)}-${pad(d.getDate())}-${d.getFullYear()}`;
 }
 
+/** Columns the per-website table can be sorted by (Purpose is not sortable). */
+type SortKey = "name" | "status" | "lastEditedAt" | "lastRunAt";
+
+/** The ↑/↓ indicator, shown only on the currently-active sort column. */
+function SortArrow({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {
+  if (!active) return null;
+  return <span className="text-zinc-400">{dir === "asc" ? "↑" : "↓"}</span>;
+}
+
 export interface AutomationRow {
   id: string;
   name: string;
@@ -108,6 +117,11 @@ export function AutomationsTableClient({
   const [editing, setEditing] = useState<AutomationRow | null>(null);
   // The purpose text shown in the read-only "Show purpose" popup (null = closed).
   const [showingPurpose, setShowingPurpose] = useState<string | null>(null);
+  // Column sorting (client-side, ONE column at a time, two-state toggle).
+  // Defaults to Name ascending (matches the server's name-asc ordering). The
+  // date columns always sink blanks ("-") to the bottom (see the sort below).
+  const [sortKey, setSortKey] = useState<SortKey>("name");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   // "Refresh List" state. On syncable platforms the button calls the real
   // sync; on the rest it shows a temporary placeholder error. `refreshError`
   // holds the red error text (real or placeholder); `refreshing` is the
@@ -180,12 +194,60 @@ export function AutomationsTableClient({
     return () => clearInterval(id);
   }, [countdownElapsed, platform]);
 
-  // Search filters by NAME only (Column 1), deliberately not the link.
+  // Clicking a sortable header: flip the direction if it's already the active
+  // column, otherwise make it the active column starting ascending. Only one
+  // column sorts at a time, so picking a new one clears the previous sort.
+  const toggleSort = (key: SortKey) => {
+    if (key === sortKey) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  };
+
+  // Search filters by NAME only (Column 1), deliberately not the link; the
+  // result is then sorted by the active column. Both are client-side (rows are
+  // already loaded), so it's instant and combines cleanly. rows is never
+  // mutated (we sort a copy). JS sort is stable, so ties keep the prior order.
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return rows;
-    return rows.filter((r) => r.name.toLowerCase().includes(q));
-  }, [rows, query]);
+    const base = q
+      ? rows.filter((r) => r.name.toLowerCase().includes(q))
+      : rows;
+    const dir = sortDir === "asc" ? 1 : -1;
+    const time = (v: string | Date | null | undefined): number | null => {
+      if (!v) return null;
+      const t = new Date(v).getTime();
+      return isNaN(t) ? null : t;
+    };
+    return base.slice().sort((a, b) => {
+      switch (sortKey) {
+        case "name":
+          return (
+            dir *
+            a.name.localeCompare(b.name, undefined, { sensitivity: "base" })
+          );
+        case "status": {
+          // Grouping toggle: asc = Active group first, desc = Active last.
+          const rank = (s: string) => (s === "active" ? 0 : 1);
+          return dir * (rank(a.status) - rank(b.status));
+        }
+        case "lastEditedAt":
+        case "lastRunAt": {
+          // Date sort with blanks ("-") ALWAYS last, regardless of direction.
+          const ta = time(a[sortKey]);
+          const tb = time(b[sortKey]);
+          if (ta === null && tb === null) return 0;
+          if (ta === null) return 1;
+          if (tb === null) return -1;
+          return dir * (ta - tb);
+        }
+        default:
+          return 0;
+      }
+    });
+  }, [rows, query, sortKey, sortDir]);
 
   const handleCreated = (row: AutomationRow) =>
     setRows((prev) => [row, ...prev]);
@@ -444,20 +506,75 @@ export function AutomationsTableClient({
                       (frozen Name column), so it needs the highest z-index plus
                       both the bottom-edge shadow (header) and the right-edge
                       shadow (frozen column). */}
-                  <th className="sticky left-0 top-0 z-20 w-[600px] min-w-[600px] max-w-[600px] bg-zinc-50 px-3 py-2 text-left shadow-[inset_0_-1px_0_0_#e4e4e7,inset_-1px_0_0_0_#e4e4e7]">
-                    Name
+                  <th
+                    onClick={() => toggleSort("name")}
+                    aria-sort={
+                      sortKey === "name"
+                        ? sortDir === "asc"
+                          ? "ascending"
+                          : "descending"
+                        : "none"
+                    }
+                    className="sticky left-0 top-0 z-20 w-[600px] min-w-[600px] max-w-[600px] cursor-pointer select-none bg-zinc-50 px-3 py-2 text-left shadow-[inset_0_-1px_0_0_#e4e4e7,inset_-1px_0_0_0_#e4e4e7] hover:text-zinc-700"
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      Name
+                      <SortArrow active={sortKey === "name"} dir={sortDir} />
+                    </span>
                   </th>
-                  <th className="sticky top-0 z-10 whitespace-nowrap bg-zinc-50 px-3 py-2 text-left shadow-[inset_0_-1px_0_0_#e4e4e7]">
-                    Status
+                  <th
+                    onClick={() => toggleSort("status")}
+                    aria-sort={
+                      sortKey === "status"
+                        ? sortDir === "asc"
+                          ? "ascending"
+                          : "descending"
+                        : "none"
+                    }
+                    className="sticky top-0 z-10 cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-left shadow-[inset_0_-1px_0_0_#e4e4e7] hover:text-zinc-700"
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      Status
+                      <SortArrow active={sortKey === "status"} dir={sortDir} />
+                    </span>
                   </th>
                   <th className="sticky top-0 z-10 whitespace-nowrap bg-zinc-50 px-3 py-2 text-left shadow-[inset_0_-1px_0_0_#e4e4e7]">
                     Purpose
                   </th>
-                  <th className="sticky top-0 z-10 whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
-                    Last Edited
+                  <th
+                    onClick={() => toggleSort("lastEditedAt")}
+                    aria-sort={
+                      sortKey === "lastEditedAt"
+                        ? sortDir === "asc"
+                          ? "ascending"
+                          : "descending"
+                        : "none"
+                    }
+                    className="sticky top-0 z-10 cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7] hover:text-zinc-700"
+                  >
+                    <span className="inline-flex items-center justify-center gap-1">
+                      Last Edited
+                      <SortArrow
+                        active={sortKey === "lastEditedAt"}
+                        dir={sortDir}
+                      />
+                    </span>
                   </th>
-                  <th className="sticky top-0 z-10 whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
-                    Last Runtime
+                  <th
+                    onClick={() => toggleSort("lastRunAt")}
+                    aria-sort={
+                      sortKey === "lastRunAt"
+                        ? sortDir === "asc"
+                          ? "ascending"
+                          : "descending"
+                        : "none"
+                    }
+                    className="sticky top-0 z-10 cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7] hover:text-zinc-700"
+                  >
+                    <span className="inline-flex items-center justify-center gap-1">
+                      Last Runtime
+                      <SortArrow active={sortKey === "lastRunAt"} dir={sortDir} />
+                    </span>
                   </th>
                   {editMode && (
                     <th className="sticky top-0 z-10 w-16 bg-zinc-50 px-3 py-2 shadow-[inset_0_-1px_0_0_#e4e4e7]"></th>
