@@ -26,7 +26,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Search, ExternalLink, Plus, Pencil, RefreshCw, Clock } from "lucide-react";
+import {
+  Search,
+  ExternalLink,
+  Plus,
+  Pencil,
+  RefreshCw,
+  Clock,
+  Download,
+} from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { WorkflowDialog } from "./workflow-dialog";
@@ -79,6 +87,46 @@ export interface AutomationRow {
   // a sync/poll. Populated for all synced platforms (n8n/GHL `updatedAt`, Make
   // `lastEdit`); "-" only until a row has been synced or has no value yet.
   lastEditedAt?: string | Date | null;
+}
+
+// ---------------------------------------------------------------------------
+// CSV export (Approach A): the export keeps its OWN column list, independent of
+// the table JSX. Adding/removing an export column = edit THIS array (one place).
+// ⚠️ Keep this order IN SYNC with the on-screen table column order: whenever the
+// table columns are rearranged, reorder these to match. (Table shows Name with
+// its link underneath; the CSV splits Link into its own 2nd column.) Dates use
+// MM-DD-YYYY (formatDateCell) and export EMPTY when blank, so a re-import never
+// mistakes the display "-" for a value. Status exports the app's own values.
+// ---------------------------------------------------------------------------
+const EXPORT_COLUMNS: { header: string; value: (r: AutomationRow) => string }[] =
+  [
+    { header: "Name", value: (r) => r.name ?? "" },
+    { header: "Link", value: (r) => r.externalUrl ?? "" },
+    { header: "Status", value: (r) => r.status },
+    { header: "Purpose", value: (r) => r.purpose ?? "" },
+    {
+      header: "Last Edited",
+      value: (r) => (r.lastEditedAt ? formatDateCell(r.lastEditedAt) : ""),
+    },
+    {
+      header: "Last Runtime",
+      value: (r) => (r.lastRunAt ? formatDateCell(r.lastRunAt) : ""),
+    },
+  ];
+
+/** Escape one CSV field: wrap in double-quotes (doubling internal quotes) when
+ *  it contains a comma, quote, or newline. Purpose can contain all three. */
+function csvEscape(value: string): string {
+  return /[",\n\r]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
+}
+
+/** Serialize rows to a CSV string (CRLF line endings, RFC-4180 style). */
+function rowsToCsv(rows: AutomationRow[]): string {
+  const header = EXPORT_COLUMNS.map((c) => csvEscape(c.header)).join(",");
+  const body = rows.map((r) =>
+    EXPORT_COLUMNS.map((c) => csvEscape(c.value(r))).join(","),
+  );
+  return [header, ...body].join("\r\n");
 }
 
 export function AutomationsTableClient({
@@ -354,6 +402,24 @@ export function AutomationsTableClient({
     toast.success("Deleted");
   };
 
+  // Export CSV: builds the CSV from ALL rows (not the filtered/sorted view) and
+  // triggers a client-side download. A leading BOM keeps Excel reading it as
+  // UTF-8. Filename: <platform>-automations-MM-DD-YYYY.csv.
+  const handleExportCsv = () => {
+    const csv = rowsToCsv(rows);
+    const blob = new Blob(["﻿" + csv], {
+      type: "text/csv;charset=utf-8;",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${platform}-automations-${formatDateCell(new Date())}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header, title/description on the left; edit-mode toggle and (when
@@ -446,6 +512,19 @@ export function AutomationsTableClient({
               </p>
             )}
           </div>
+
+          {/* Export CSV. A list action (mirror of the import), so it sits with
+              Refresh List. White (outline) button. Exports ALL rows (not the
+              filtered/sorted view); disabled when the table is empty. */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportCsv}
+            disabled={rows.length === 0}
+          >
+            <Download className="mr-2 h-3.5 w-3.5" />
+            Export CSV
+          </Button>
 
           {/* Vertical divider between the list actions (auto-refresh + Refresh
               List) and the editing controls (Edit mode + New Workflow). */}
