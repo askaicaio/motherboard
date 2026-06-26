@@ -419,17 +419,34 @@ export function AutomationsTableClient({
             the table body as a full-width row. The link lives under the name
             in the Name cell (no separate Link column). Rows are clickable only
             in edit mode (click → edit). */}
+        {/* Option B sticky header: the table gets its OWN bounded scroll area
+            (max-h + overflow-auto), so only the list scrolls while the toolbar
+            and page stay put. Each header cell is `sticky top-0` with an opaque
+            bg (so rows don't show through) and an inset bottom-edge shadow that
+            stands in for the row border, which would otherwise scroll away. */}
         <Card>
-          <CardContent className="overflow-x-auto p-0">
+          <CardContent className="max-h-[70vh] overflow-auto p-0">
             <table className="w-full text-sm">
               <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
                 <tr>
-                  <th className="px-3 py-2 text-left">Name</th>
-                  <th className="px-3 py-2 text-left">Status</th>
-                  <th className="px-3 py-2 text-left">Purpose</th>
-                  <th className="px-3 py-2 text-center">Last Edited</th>
-                  <th className="px-3 py-2 text-center">Last Runtime</th>
-                  {editMode && <th className="w-16 px-3 py-2"></th>}
+                  <th className="sticky top-0 z-10 bg-zinc-50 px-3 py-2 text-left shadow-[inset_0_-1px_0_0_#e4e4e7]">
+                    Name
+                  </th>
+                  <th className="sticky top-0 z-10 bg-zinc-50 px-3 py-2 text-left shadow-[inset_0_-1px_0_0_#e4e4e7]">
+                    Status
+                  </th>
+                  <th className="sticky top-0 z-10 bg-zinc-50 px-3 py-2 text-left shadow-[inset_0_-1px_0_0_#e4e4e7]">
+                    Purpose
+                  </th>
+                  <th className="sticky top-0 z-10 bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
+                    Last Edited
+                  </th>
+                  <th className="sticky top-0 z-10 bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
+                    Last Runtime
+                  </th>
+                  {editMode && (
+                    <th className="sticky top-0 z-10 w-16 bg-zinc-50 px-3 py-2 shadow-[inset_0_-1px_0_0_#e4e4e7]"></th>
+                  )}
                 </tr>
               </thead>
               <tbody>
