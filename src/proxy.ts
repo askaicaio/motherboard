@@ -38,8 +38,6 @@ export function proxy(request: NextRequest) {
     pathname.startsWith("/api/welcome") || // public — token-gated activation
     pathname.startsWith("/api/inngest") || // Inngest webhook — verifies its own signatures
     pathname.startsWith("/api/cron") || // Vercel cron — enforces its own CRON_SECRET
-    pathname.startsWith("/api/zapier-webhook-debug") || // TEMP Zapier webhook inspector — public, secret-gated path
-
     // ---- Partner Program PUBLIC surfaces (affiliate-facing) ----
     pathname === "/partners" ||
     pathname.startsWith("/partners/") || // landing, apply, resources, thank-you
@@ -91,6 +89,6 @@ export const config = {
      * a `.` followed by characters (i.e. a file with extension) is
      * skipped — this handles all public/ static assets in one shot.
      */
-    "/((?!login|welcome|partners|portal|r$|api/auth|api/callbacks|api/welcome|api/inngest|api/cron|api/zapier-webhook-debug|api/stripe/webhook|api/partners/checkout|api/partners/apply|api/portal|_next/static|_next/image|.*\\..*).*)",
+    "/((?!login|welcome|partners|portal|r$|api/auth|api/callbacks|api/welcome|api/inngest|api/cron|api/stripe/webhook|api/partners/checkout|api/partners/apply|api/portal|_next/static|_next/image|.*\\..*).*)",
   ],
 };
