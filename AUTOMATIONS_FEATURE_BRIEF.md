@@ -270,6 +270,45 @@ Mirror the Campaigns shape (`campaigns → leads → events` becomes
   the webhook on `src/app/api/campaigns/[id]/webhook/[secret]/route.ts` (it already
   handles tolerant payload parsing + secret auth).
 
+### 3.4a Zapier error detection: confirmed field findings (tested 2026-06-27)
+> Added 2026-06-27 after a live, end-to-end test. This validates the §3.4 Zapier webhook plan above and
+> records exactly what the error payload contains, so a future dev/AI does not have to re-investigate.
+
+**What we tested.** We set up the §3.2 / §3.4 approach for real: a "monitor" Zap using the **Zapier Manager
+"New Zap Error"** trigger, whose action is **Webhooks by Zapier -> POST** to a Motherboard ingest endpoint.
+We forced a deterministic error in a throwaway "victim" Zap (Catch Hook trigger -> a Code by Zapier step
+that throws) and inspected the delivered payload.
+
+**Result: YES, the error webhook identifies the specific erroring Zap and carries an ID + link + message.**
+The real captured payload included:
+- the erroring Zap's **numeric ID** (trigger field `Root Id`; example real value `370497051`),
+- a **link** to the Zap: `https://zapier.com/editor/<id>?source=zapier_manager`,
+- the **error message** (e.g. "Your code had an error... Error: &lt;message&gt;"),
+- the Zap **title**, a **Task History link**, the **failing step** details (`node.*`: step title, action such
+  as `run_javascript_latest`, service such as "Code by Zapier"), and Zapier **account** metadata.
+
+**It maps cleanly onto the data model.** The numeric Zap ID is the SAME identity we already store for Zapier
+rows (`external_url` = `https://zapier.com/editor/<id>/published`), so an incoming error matches its
+`automations` row by that id with no namespace mismatch. The payload then populates an `automation_runs`
+row (`status: 'error'`, `error_message` = the message, `raw_payload` = the full body).
+
+**Gotchas (learned the hard way):**
+- **"New Zap Error" is a POLLING trigger**, not instant. A real error can take a few minutes to arrive.
+- **The in-editor "Find new records" test is unreliable** (it kept returning only Zapier's dummy sample
+  record). What worked: PUBLISH the monitor Zap, fire a real error, and let it deliver live.
+- **Error email notifications must be ON** in the account (Settings -> Notifications, frequency
+  "Immediately"), or the trigger may never fire.
+- **The monitor is itself a Zap = a single point of failure** (it cannot catch its own errors, and it burns
+  a task per error). If this becomes a real feature, consider hardening it: a second/backup monitor Zap plus
+  a "monitor went quiet" heartbeat alert.
+
+**No Zap-free alternative (also checked 2026-06-27).** There is no supported public API to list Zap errors
+or run history without a Zap. Zapier has an *experimental* "Zap runs" endpoint, but it is gated behind
+building + publishing a public integration, OAuth2, and a manual access request to Zapier support (and is
+labelled "not officially supported"). The list-Zaps API (`/v2/zaps`) is similarly gated. So the monitor-Zap
+webhook above remains the only practical, supported route today. The values cited here were captured with a
+temporary "webhook inspector" tool that was built and then fully removed the same day.
+
 ### 3.5 UI (mirror Campaigns + Docs)
 - **`/automations` list page** with a health header: total / active / errored / runs
   today / error rate. Group by platform (or by subaccount). Filters: platform, status,
