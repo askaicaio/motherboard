@@ -558,7 +558,15 @@ export function AutomationsTableClient({
           <div className="relative flex items-center gap-2 text-xs text-zinc-600">
             <Clock className="h-3.5 w-3.5" />
             Auto-refresh list
-            <Switch checked={autoEnabled} onCheckedChange={handleAutoToggle} />
+            {/* ON state is green (not the default black) to match the app's
+                other greens (Active status, "API Key Integrated" card). Scoped
+                to THIS toggle only via className; the shared Switch base is
+                unchanged (Edit mode etc. stay black). OFF stays gray. */}
+            <Switch
+              checked={autoEnabled}
+              onCheckedChange={handleAutoToggle}
+              className="data-checked:bg-green-600"
+            />
             {autoError ? (
               <p
                 role="alert"
