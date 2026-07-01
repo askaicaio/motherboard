@@ -169,6 +169,37 @@ export function AutoHealthCheckToggle({
     return () => clearInterval(id);
   }, [enabled, nextCheckAt]);
 
+  // Access the shared fan-out so the SCHEDULED check is visible: when the timer
+  // fires, run the same all-cards check the manual button does (kept in a ref so
+  // the elapse effect below doesn't churn when the provider value changes).
+  const health = useContext(HealthCheckContext);
+  const runAllRef = useRef(health?.runAll);
+  useEffect(() => {
+    runAllRef.current = health?.runAll;
+  }, [health]);
+
+  // When the countdown elapses: (1) fire the visible fan-out once (every card
+  // shows "Checking API Key Status…" -> green/red, matching the manual button),
+  // then (2) poll for the cron's updated schedule so the countdown re-syncs and
+  // loops. Mirrors the per-website auto-refresh toggle's elapsed-poll.
+  const elapsed = enabled && !!nextCheckAt && remainingMs <= 0;
+  useEffect(() => {
+    if (!elapsed) return;
+    runAllRef.current?.();
+    const id = setInterval(async () => {
+      try {
+        const res = await fetch("/api/automations/health-autocheck");
+        if (!res.ok) return;
+        const { state } = await res.json();
+        setEnabled(!!state?.enabled);
+        setNextCheckAt(state?.nextCheckAt ?? null);
+      } catch {
+        // transient; retry on the next tick
+      }
+    }, 5000);
+    return () => clearInterval(id);
+  }, [elapsed]);
+
   const showError = (msg: string) => {
     setError(msg);
     if (errorTimer.current) clearTimeout(errorTimer.current);
