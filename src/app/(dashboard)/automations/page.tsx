@@ -14,6 +14,10 @@ import { cn } from "@/lib/utils";
 import { AUTOMATION_SITES } from "@/lib/automations/sites";
 import { platformHasApiKey } from "@/lib/automations/credentials";
 import { CopyApiKeyButton } from "@/components/automations/copy-api-key-button";
+import {
+  ApiHealthCheckButton,
+  HealthCheckProvider,
+} from "@/components/automations/api-health-check";
 
 export const dynamic = "force-dynamic";
 
@@ -52,6 +56,7 @@ export default async function AutomationsPage() {
 
   return (
     <div className="space-y-6 p-6">
+      <HealthCheckProvider>
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
@@ -62,6 +67,10 @@ export default async function AutomationsPage() {
             Tracks workflows from different automation websites all in one place.
           </p>
         </div>
+        {/* Top-right toolbar: Step 1 = the manual "API Health Check" button
+            (fans out the per-card live check to all 5 cards at once). The
+            "Auto-API health check" toggle joins it here in Step 2. */}
+        <ApiHealthCheckButton />
       </div>
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
@@ -143,6 +152,7 @@ export default async function AutomationsPage() {
           );
         })}
       </div>
+      </HealthCheckProvider>
     </div>
   );
 }

@@ -15,6 +15,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Check, Ban, Loader2 } from "lucide-react";
+import { useHealthCheckRegistration } from "./api-health-check";
 
 type Status = "checking" | "ok" | "fail";
 
@@ -43,6 +44,11 @@ export function CopyApiKeyButton({
       setStatus("fail");
     }
   }
+
+  // Join the Main Page "API Health Check" fan-out: the global button triggers
+  // this same check on every card at once. No-op when rendered without the
+  // provider (e.g. anywhere else this button is reused).
+  useHealthCheckRegistration(check);
 
   if (status === "checking") {
     return (
