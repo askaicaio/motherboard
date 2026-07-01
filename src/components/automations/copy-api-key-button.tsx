@@ -22,12 +22,19 @@ type Status = "checking" | "ok" | "fail";
 export function CopyApiKeyButton({
   platform,
   hasApiKey,
+  initialOk,
 }: {
   platform: string;
   hasApiKey?: boolean;
+  /** Last stored auto-check result for this platform, when one exists. Seeds the
+   *  green/red state more accurately than the mere presence check; falls back to
+   *  hasApiKey when the auto-check has never run for this platform. */
+  initialOk?: boolean;
 }) {
-  // Seed from the server's presence check; the click does the live verify.
-  const [status, setStatus] = useState<Status>(hasApiKey ? "ok" : "fail");
+  // Seed from the last stored auto-check result if we have one, else fall back
+  // to the server's presence check. The click still does a fresh live verify.
+  const seededOk = initialOk === undefined ? !!hasApiKey : initialOk;
+  const [status, setStatus] = useState<Status>(seededOk ? "ok" : "fail");
 
   async function check() {
     if (status === "checking") return;

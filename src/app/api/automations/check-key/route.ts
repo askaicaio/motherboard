@@ -9,9 +9,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getOptionalAuth } from "@/lib/auth/guard";
-import { verifyMakeToken } from "@/lib/integrations/make-client";
-import { verifyN8nToken } from "@/lib/integrations/n8n-client";
-import { verifyGhlAutomations } from "@/lib/integrations/ghl-client";
+import { verifyPlatform } from "@/lib/automations/verify";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -32,15 +30,8 @@ export async function POST(request: NextRequest) {
     throw err;
   }
 
-  let ok = false;
-  if (body.platform === "make") {
-    ok = await verifyMakeToken();
-  } else if (body.platform === "n8n") {
-    ok = await verifyN8nToken();
-  } else if (body.platform === "ghl" || body.platform === "ghl-b2b") {
-    ok = await verifyGhlAutomations(body.platform);
-  }
-  // Other platforms have no live integration yet → ok stays false.
+  // Live-verify server-side (platforms with no live integration return false).
+  const ok = await verifyPlatform(body.platform);
 
   return NextResponse.json({ ok });
 }
