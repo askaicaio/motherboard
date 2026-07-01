@@ -18,7 +18,6 @@ import {
   ApiHealthCheckButton,
   AutoHealthCheckToggle,
   HealthCheckProvider,
-  LastCheckedCaption,
 } from "@/components/automations/api-health-check";
 import { getHealthState } from "@/lib/automations/health";
 
@@ -162,9 +161,6 @@ export default async function AutomationsPage() {
                     Open →
                   </Link>
                 </div>
-                {/* When the auto-check has run, show when this platform was last
-                    checked (viewer's local time; renders after mount). */}
-                <LastCheckedCaption iso={health.results[site.slug]?.checkedAt} />
               </CardContent>
             </Card>
           );
