@@ -73,15 +73,34 @@ function formatDateCell(value: string | Date | null | undefined): string {
 /** Columns the per-website table can be sorted by (Purpose is not sortable). */
 type SortKey = "name" | "status" | "lastEditedAt" | "lastRunAt";
 
-/** The ▲/▼ indicator (solid triangle), shown only on the currently-active sort
- *  column in dark amber/gold. The slot is ALWAYS rendered at a fixed width (even
- *  when inactive/empty) so the column width never shifts when the triangle
- *  appears or moves to another column. */
+/** Sort indicator next to every sortable column header, always in the SAME
+ *  fixed-width (w-3) slot so the header label never shifts when sorting changes:
+ *   - ACTIVE column: a single dark-amber ▲ (asc) / ▼ (desc) glyph (unchanged).
+ *   - INACTIVE but sortable: two stacked black triangles (up + down), a static
+ *     hint that the column CAN be sorted (replaces the old blank slot).
+ *  Both render at 12px (w-3) wide, so switching the active column never moves the
+ *  header text left or right. */
 function SortArrow({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {
+  if (active) {
+    return (
+      <span className="inline-block w-3 text-center text-[10px] text-amber-600">
+        {dir === "asc" ? "▲" : "▼"}
+      </span>
+    );
+  }
+  // Inactive-but-sortable hint: two black triangles (up + down) in the same w-3
+  // box. An inline SVG (not stacked glyphs) so the two triangles sit tight and
+  // pixel-aligned. viewBox is square + h-3/w-3 = 12px, which stays under the
+  // header label's line box, so it doesn't grow the header row height either.
   return (
-    <span className="inline-block w-3 text-center text-[10px] text-amber-600">
-      {active ? (dir === "asc" ? "▲" : "▼") : ""}
-    </span>
+    <svg
+      aria-hidden
+      viewBox="0 0 12 12"
+      className="inline-block h-3 w-3 fill-zinc-900"
+    >
+      <path d="M6 1 L9 5 H3 Z" />
+      <path d="M6 11 L3 7 H9 Z" />
+    </svg>
   );
 }
 
