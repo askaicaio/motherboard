@@ -37,6 +37,12 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { WorkflowDialog } from "./workflow-dialog";
 
 /** 24 hours in ms — the auto-refresh cadence (client-side copy; the server is
@@ -76,6 +82,55 @@ function SortArrow({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {
     <span className="inline-block w-3 text-center text-[10px] text-amber-600">
       {active ? (dir === "asc" ? "▲" : "▼") : ""}
     </span>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Which table columns each platform's sync (Refresh List + auto-refresh) writes,
+// and therefore may overwrite. Drives the ↻ "synced" marker in the column
+// headers. Kept in step with the actual *-sync.ts behaviour so the on-screen cue
+// can't drift from reality (see make-sync / n8n-sync / ghl-automations-sync):
+//   - Make / n8n:     Name, Status, Last Edited, Last Runtime (full run history).
+//   - GHL / GHL b2b:  Name, Status, Last Edited — NOT Last Runtime (GHL exposes
+//                     no run history, so that column always stays "-").
+//   - Zapier:         no live sync (CSV import only) → nothing is marked.
+// The "name" key also covers the Link shown beneath the name (the sync writes the
+// URL too). Purpose is never synced on any platform, so it never appears here.
+// ⚠️ When a NEW column is added, decide if the sync writes it and update this map
+// (fold into the add-a-column touch-list).
+// ---------------------------------------------------------------------------
+const SYNCED_COLUMNS: Record<string, ReadonlySet<SortKey>> = {
+  make: new Set<SortKey>(["name", "status", "lastEditedAt", "lastRunAt"]),
+  n8n: new Set<SortKey>(["name", "status", "lastEditedAt", "lastRunAt"]),
+  ghl: new Set<SortKey>(["name", "status", "lastEditedAt"]),
+  "ghl-b2b": new Set<SortKey>(["name", "status", "lastEditedAt"]),
+  // zapier omitted on purpose: CSV import only, no synced columns.
+};
+
+/** Fallback for platforms not in the map (e.g. Zapier): nothing is synced. */
+const NO_SYNCED_COLUMNS: ReadonlySet<SortKey> = new Set<SortKey>();
+
+/** The ↻ marker rendered to the LEFT of a synced column's header title. Signals
+ *  that the column is auto-populated by Refresh List / auto-refresh, so manual
+ *  edits to it may be overwritten on the next sync. The hover tooltip opens on
+ *  the ICON ONLY (not the whole header cell); a click on the icon is swallowed
+ *  so it doesn't also toggle the column's sort. */
+function SyncedColumnMarker({ platformLabel }: { platformLabel: string }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        type="button"
+        onClick={(e) => e.stopPropagation()}
+        aria-label={`Synced from ${platformLabel}`}
+        className="inline-flex cursor-help items-center text-zinc-400 hover:text-zinc-600"
+      >
+        <RefreshCw className="h-3 w-3" />
+      </TooltipTrigger>
+      <TooltipContent className="max-w-xs normal-case">
+        Kept in sync from {platformLabel}. Updated by Refresh List; manual edits
+        may be overwritten.
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -426,6 +481,10 @@ export function AutomationsTableClient({
     URL.revokeObjectURL(url);
   };
 
+  // Which columns this platform's sync manages (drives the header ↻ marker).
+  const syncedColumns = SYNCED_COLUMNS[platform] ?? NO_SYNCED_COLUMNS;
+  const isSynced = (key: SortKey) => syncedColumns.has(key);
+
   return (
     <div className="space-y-6">
       {/* Header, title/description on the left; edit-mode toggle and (when
@@ -582,6 +641,7 @@ export function AutomationsTableClient({
             highest z-index (z-20) so it sits above the header row and the
             frozen column during a diagonal scroll. Layering: corner z-20 >
             header row / frozen column z-10 > body. */}
+        <TooltipProvider delay={300}>
         <Card>
           <CardContent className="max-h-[70vh] overflow-auto p-0">
             <table className="w-full min-w-[1100px] text-sm">
@@ -603,6 +663,9 @@ export function AutomationsTableClient({
                     className="sticky left-0 top-0 z-20 w-[600px] min-w-[600px] max-w-[600px] cursor-pointer select-none bg-zinc-50 px-3 py-2 text-left shadow-[inset_0_-1px_0_0_#e4e4e7,inset_-1px_0_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700"
                   >
                     <span className="inline-flex items-center gap-1">
+                      {isSynced("name") && (
+                        <SyncedColumnMarker platformLabel={label} />
+                      )}
                       Name
                       <SortArrow active={sortKey === "name"} dir={sortDir} />
                     </span>
@@ -619,6 +682,9 @@ export function AutomationsTableClient({
                     className="sticky top-0 z-10 cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700"
                   >
                     <span className="inline-flex items-center justify-center gap-1">
+                      {isSynced("status") && (
+                        <SyncedColumnMarker platformLabel={label} />
+                      )}
                       Status
                       <SortArrow active={sortKey === "status"} dir={sortDir} />
                     </span>
@@ -638,6 +704,9 @@ export function AutomationsTableClient({
                     className="sticky top-0 z-10 cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700"
                   >
                     <span className="inline-flex items-center justify-center gap-1">
+                      {isSynced("lastEditedAt") && (
+                        <SyncedColumnMarker platformLabel={label} />
+                      )}
                       Last Edited
                       <SortArrow
                         active={sortKey === "lastEditedAt"}
@@ -657,6 +726,9 @@ export function AutomationsTableClient({
                     className="sticky top-0 z-10 cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700"
                   >
                     <span className="inline-flex items-center justify-center gap-1">
+                      {isSynced("lastRunAt") && (
+                        <SyncedColumnMarker platformLabel={label} />
+                      )}
                       Last Runtime
                       <SortArrow active={sortKey === "lastRunAt"} dir={sortDir} />
                     </span>
@@ -805,6 +877,7 @@ export function AutomationsTableClient({
             </table>
           </CardContent>
         </Card>
+        </TooltipProvider>
       </div>
 
       {/* Add */}
