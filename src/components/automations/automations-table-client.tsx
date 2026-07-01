@@ -136,8 +136,7 @@ function SyncedColumnMarker({
         <RefreshCw className={cn("h-3 w-3", spinning && "animate-spin")} />
       </TooltipTrigger>
       <TooltipContent className="max-w-xs normal-case">
-        Kept in sync from {platformLabel}. Updated by Refresh List; manual edits
-        may be overwritten.
+        Updated by Refresh List. Manual edits may be overwritten.
       </TooltipContent>
     </Tooltip>
   );
