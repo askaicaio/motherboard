@@ -16,8 +16,11 @@ import { platformHasApiKey } from "@/lib/automations/credentials";
 import { CopyApiKeyButton } from "@/components/automations/copy-api-key-button";
 import {
   ApiHealthCheckButton,
+  AutoHealthCheckToggle,
   HealthCheckProvider,
+  LastCheckedCaption,
 } from "@/components/automations/api-health-check";
+import { getHealthState } from "@/lib/automations/health";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +32,10 @@ interface PlatformStats {
 
 export default async function AutomationsPage() {
   await requireAuth();
+
+  // Last stored Auto-API health check results (per platform) + the toggle's
+  // state, so the cards seed their status from the last scheduled check.
+  const health = await getHealthState();
 
   // Count automations per platform & status in one grouped query, then fold
   // into per-platform totals for the cards.
@@ -67,10 +74,17 @@ export default async function AutomationsPage() {
             Tracks workflows from different automation websites all in one place.
           </p>
         </div>
-        {/* Top-right toolbar: Step 1 = the manual "API Health Check" button
-            (fans out the per-card live check to all 5 cards at once). The
-            "Auto-API health check" toggle joins it here in Step 2. */}
-        <ApiHealthCheckButton />
+        {/* Top-right toolbar, mirroring the per-website order
+            [auto toggle] [manual action]: the "Auto-API health check" toggle
+            (24h timer, stored results) + the manual "API Health Check" button
+            (fans the per-card live check out to all 5 cards at once). */}
+        <div className="flex items-center gap-3">
+          <AutoHealthCheckToggle
+            initialEnabled={health.enabled}
+            initialNextCheckAt={health.nextCheckAt}
+          />
+          <ApiHealthCheckButton />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
@@ -139,6 +153,7 @@ export default async function AutomationsPage() {
                   <CopyApiKeyButton
                     platform={site.slug}
                     hasApiKey={platformHasApiKey(site.slug)}
+                    initialOk={health.results[site.slug]?.ok}
                   />
                   <Link
                     href={`/automations/${site.slug}`}
@@ -147,6 +162,9 @@ export default async function AutomationsPage() {
                     Open →
                   </Link>
                 </div>
+                {/* When the auto-check has run, show when this platform was last
+                    checked (viewer's local time; renders after mount). */}
+                <LastCheckedCaption iso={health.results[site.slug]?.checkedAt} />
               </CardContent>
             </Card>
           );
