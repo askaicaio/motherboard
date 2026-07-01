@@ -114,8 +114,16 @@ const NO_SYNCED_COLUMNS: ReadonlySet<SortKey> = new Set<SortKey>();
  *  that the column is auto-populated by Refresh List / auto-refresh, so manual
  *  edits to it may be overwritten on the next sync. The hover tooltip opens on
  *  the ICON ONLY (not the whole header cell); a click on the icon is swallowed
- *  so it doesn't also toggle the column's sort. */
-function SyncedColumnMarker({ platformLabel }: { platformLabel: string }) {
+ *  so it doesn't also toggle the column's sort. When `spinning` is true (a manual
+ *  Refresh List sync is in flight) the icon spins, mirroring the Refresh List
+ *  button's own spinner so the two read as the same action. */
+function SyncedColumnMarker({
+  platformLabel,
+  spinning = false,
+}: {
+  platformLabel: string;
+  spinning?: boolean;
+}) {
   return (
     <Tooltip>
       <TooltipTrigger
@@ -124,7 +132,7 @@ function SyncedColumnMarker({ platformLabel }: { platformLabel: string }) {
         aria-label={`Synced from ${platformLabel}`}
         className="inline-flex cursor-help items-center text-zinc-400 hover:text-zinc-600"
       >
-        <RefreshCw className="h-3 w-3" />
+        <RefreshCw className={cn("h-3 w-3", spinning && "animate-spin")} />
       </TooltipTrigger>
       <TooltipContent className="max-w-xs normal-case">
         Kept in sync from {platformLabel}. Updated by Refresh List; manual edits
@@ -664,7 +672,7 @@ export function AutomationsTableClient({
                   >
                     <span className="inline-flex items-center gap-1">
                       {isSynced("name") && (
-                        <SyncedColumnMarker platformLabel={label} />
+                        <SyncedColumnMarker platformLabel={label} spinning={refreshing} />
                       )}
                       Name
                       <SortArrow active={sortKey === "name"} dir={sortDir} />
@@ -683,7 +691,7 @@ export function AutomationsTableClient({
                   >
                     <span className="inline-flex items-center justify-center gap-1">
                       {isSynced("status") && (
-                        <SyncedColumnMarker platformLabel={label} />
+                        <SyncedColumnMarker platformLabel={label} spinning={refreshing} />
                       )}
                       Status
                       <SortArrow active={sortKey === "status"} dir={sortDir} />
@@ -705,7 +713,7 @@ export function AutomationsTableClient({
                   >
                     <span className="inline-flex items-center justify-center gap-1">
                       {isSynced("lastEditedAt") && (
-                        <SyncedColumnMarker platformLabel={label} />
+                        <SyncedColumnMarker platformLabel={label} spinning={refreshing} />
                       )}
                       Last Edited
                       <SortArrow
@@ -727,7 +735,7 @@ export function AutomationsTableClient({
                   >
                     <span className="inline-flex items-center justify-center gap-1">
                       {isSynced("lastRunAt") && (
-                        <SyncedColumnMarker platformLabel={label} />
+                        <SyncedColumnMarker platformLabel={label} spinning={refreshing} />
                       )}
                       Last Runtime
                       <SortArrow active={sortKey === "lastRunAt"} dir={sortDir} />
