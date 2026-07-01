@@ -215,6 +215,11 @@ export function AutoHealthCheckToggle({
     setNextCheckAt(
       checked ? new Date(Date.now() + HEALTH_DAY_MS).toISOString() : null,
     );
+    // Seed the countdown to the full interval in the SAME update so `elapsed`
+    // isn't briefly true from a stale remainingMs (0 from when the toggle was
+    // off) — otherwise a check would fire the instant the toggle turns on. It
+    // must WAIT for the countdown to elapse.
+    setRemainingMs(checked ? HEALTH_DAY_MS : 0);
     try {
       const res = await fetch("/api/automations/health-autocheck", {
         method: "POST",
