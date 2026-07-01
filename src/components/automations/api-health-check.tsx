@@ -117,8 +117,9 @@ export function ApiHealthCheckButton() {
 // platform, including ones with no key).
 // ---------------------------------------------------------------------------
 
-/** 24h in ms — client mirror of the server cadence (server is source of truth). */
-const HEALTH_DAY_MS = 24 * 60 * 60 * 1000;
+/** ⚠️ TEMPORARY DEV TEST (2026-07-01): 1 MINUTE to match the server test cadence
+ *  so the optimistic countdown lines up. REVERT to `24 * 60 * 60 * 1000` after. */
+const HEALTH_DAY_MS = 60 * 1000;
 
 /** Format ms remaining as HH:MM:SS (clamped at 0). */
 function formatHealthCountdown(ms: number): string {
