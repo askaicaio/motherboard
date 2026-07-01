@@ -22,9 +22,13 @@ import { AFF_COOKIE_NAME, encodeAffCookie } from "@/lib/partners/cookie";
 
 export const dynamic = "force-dynamic";
 
+// Where an affiliate's bare /r?aff=CODE link sends a PROSPECT by default: the
+// book-a-call page (set AFFILIATE_BOOKING_URL to your GHL booking/funnel URL).
+// The aff code is appended as ?aff_id=… so GHL can capture it into the contact.
 const DEFAULT_DEST =
+  process.env.AFFILIATE_BOOKING_URL?.replace(/\/$/, "") ||
   process.env.PARTNER_PROGRAM_BASE_URL?.replace(/\/$/, "") ||
-  "https://affiliates.chiefaiofficer.com";
+  "https://chiefaiofficer.com";
 const ALLOWED_HOST_SUFFIXES = ["chiefaiofficer.com"];
 
 /** Allow only https URLs on an allowlisted host (plus localhost in dev). */
