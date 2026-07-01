@@ -113,10 +113,12 @@ const NO_SYNCED_COLUMNS: ReadonlySet<SortKey> = new Set<SortKey>();
 /** The ↻ marker rendered to the LEFT of a synced column's header title. Signals
  *  that the column is auto-populated by Refresh List / auto-refresh, so manual
  *  edits to it may be overwritten on the next sync. The hover tooltip opens on
- *  the ICON ONLY (not the whole header cell); a click on the icon is swallowed
- *  so it doesn't also toggle the column's sort. When `spinning` is true (a manual
- *  Refresh List sync is in flight) the icon spins, mirroring the Refresh List
- *  button's own spinner so the two read as the same action. */
+ *  the ICON ONLY (not the whole header cell). A click on the icon is NOT
+ *  swallowed: it bubbles up to the header <th> so clicking the icon still
+ *  toggles the column's sort like the rest of the header (the icon sits inside
+ *  the sortable header, so blocking it would create a dead zone). When `spinning`
+ *  is true (a manual Refresh List sync is in flight) the icon spins, mirroring
+ *  the Refresh List button's own spinner so the two read as the same action. */
 function SyncedColumnMarker({
   platformLabel,
   spinning = false,
@@ -128,9 +130,8 @@ function SyncedColumnMarker({
     <Tooltip>
       <TooltipTrigger
         type="button"
-        onClick={(e) => e.stopPropagation()}
         aria-label={`Synced from ${platformLabel}`}
-        className="inline-flex cursor-help items-center text-zinc-400 hover:text-zinc-600"
+        className="inline-flex cursor-pointer items-center text-zinc-400 hover:text-zinc-600"
       >
         <RefreshCw className={cn("h-3 w-3", spinning && "animate-spin")} />
       </TooltipTrigger>
