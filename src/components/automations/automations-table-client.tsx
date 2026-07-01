@@ -281,6 +281,11 @@ export function AutomationsTableClient({
   );
   const [autoError, setAutoError] = useState<string | null>(null);
   const autoErrorTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Latest `handleRefresh`, so the countdown-elapsed effect (declared above it)
+  // can trigger a real sync without depending on its identity.
+  const handleRefreshRef = useRef<
+    ((opts?: { silent?: boolean }) => void) | null
+  >(null);
 
   // Clear any pending timers if the component unmounts.
   useEffect(() => {
@@ -308,6 +313,12 @@ export function AutomationsTableClient({
   const countdownElapsed = autoEnabled && !!nextRefreshAt && remainingMs <= 0;
   useEffect(() => {
     if (!countdownElapsed) return;
+    // Run the sync ourselves so the timed refresh is VISIBLE — this spins the
+    // ↻ synced-column icons + the Refresh List button, same as a manual click,
+    // just silently (no toast). The cron also runs it server-side; both are
+    // idempotent upserts, and handleRefresh's own in-flight guard prevents
+    // overlap with a manual refresh. Fires once when the countdown elapses.
+    handleRefreshRef.current?.({ silent: true });
     const id = setInterval(async () => {
       try {
         const [stateRes, rowsRes] = await Promise.all([
@@ -398,10 +409,14 @@ export function AutomationsTableClient({
     refreshTimer.current = setTimeout(() => setRefreshError(null), 5000);
   };
 
-  const handleRefresh = async () => {
+  // `silent` (used by the scheduled auto-refresh) does the same sync + spinner
+  // but suppresses the success toast and the error text — it's an automatic
+  // background refresh, not a user click.
+  const handleRefresh = async (opts?: { silent?: boolean }) => {
+    const silent = opts?.silent ?? false;
     // Platforms without a real sync keep the temporary placeholder error.
     if (!canSync) {
-      showRefreshError("Couldn't refresh. Live syncing isn't set up yet.");
+      if (!silent) showRefreshError("Couldn't refresh. Live syncing isn't set up yet.");
       return;
     }
 
@@ -419,19 +434,28 @@ export function AutomationsTableClient({
       if (!res.ok) throw new Error(data?.error || "Refresh failed.");
 
       if (Array.isArray(data.rows)) setRows(data.rows);
-      const r = data.result;
-      const summary =
-        r && (r.created || r.updated)
-          ? `Synced. ${r.created} added, ${r.updated} updated.`
-          : "List is up to date.";
-      toast.success(summary);
+      if (!silent) {
+        const r = data.result;
+        const summary =
+          r && (r.created || r.updated)
+            ? `Synced. ${r.created} added, ${r.updated} updated.`
+            : "List is up to date.";
+        toast.success(summary);
+      }
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Refresh failed.";
-      showRefreshError(message);
+      if (!silent) {
+        const message = err instanceof Error ? err.message : "Refresh failed.";
+        showRefreshError(message);
+      }
     } finally {
       setRefreshing(false);
     }
   };
+  // Keep the ref pointing at the latest handleRefresh for the elapsed effect
+  // (updated in an effect, not during render).
+  useEffect(() => {
+    handleRefreshRef.current = handleRefresh;
+  });
 
   // Red error under the auto-refresh toggle, fading after 5s (the standing
   // default for transient error texts).
@@ -591,7 +615,7 @@ export function AutomationsTableClient({
           <div className="relative">
             <Button
               size="sm"
-              onClick={handleRefresh}
+              onClick={() => handleRefresh()}
               disabled={refreshing}
               className={cn(
                 refreshError &&
