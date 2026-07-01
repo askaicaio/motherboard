@@ -20,7 +20,6 @@ import {
   useEffect,
   useRef,
   useState,
-  useSyncExternalStore,
 } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -117,9 +116,8 @@ export function ApiHealthCheckButton() {
 // platform, including ones with no key).
 // ---------------------------------------------------------------------------
 
-/** ⚠️ TEMPORARY DEV TEST (2026-07-01): 1 MINUTE to match the server test cadence
- *  so the optimistic countdown lines up. REVERT to `24 * 60 * 60 * 1000` after. */
-const HEALTH_DAY_MS = 60 * 1000;
+/** 24h in ms — client mirror of the server cadence (server is source of truth). */
+const HEALTH_DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Format ms remaining as HH:MM:SS (clamped at 0). */
 function formatHealthCountdown(ms: number): string {
@@ -264,36 +262,3 @@ export function AutoHealthCheckToggle({
   );
 }
 
-/** Format an ISO timestamp in the viewer's LOCAL time, or "" if absent/invalid. */
-function formatCheckedLocal(iso?: string): string {
-  if (!iso) return "";
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return "";
-  return d.toLocaleString(undefined, {
-    month: "2-digit",
-    day: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-/** No-op subscribe: the value never changes after mount, we only need the
- *  server-vs-client snapshot split. */
-const emptySubscribe = () => () => {};
-
-/** Tiny caption under a card's status button showing when the last stored
- *  auto-check ran, in the viewer's LOCAL time. Local formatting differs between
- *  server (UTC) and client, so it's computed via useSyncExternalStore: "" on the
- *  server / first paint (no hydration mismatch), the local string on the client. */
-export function LastCheckedCaption({ iso }: { iso?: string }) {
-  const text = useSyncExternalStore(
-    emptySubscribe,
-    () => formatCheckedLocal(iso),
-    () => "",
-  );
-  if (!text) return null;
-  return (
-    <p className="text-[10px] text-zinc-400">Last health check: {text}</p>
-  );
-}
