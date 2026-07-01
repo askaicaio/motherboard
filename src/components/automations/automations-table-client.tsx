@@ -479,6 +479,11 @@ export function AutomationsTableClient({
     setAutoError(null);
     setAutoEnabled(checked);
     setNextRefreshAt(checked ? new Date(Date.now() + DAY_MS).toISOString() : null);
+    // Seed the countdown to the full interval in the SAME update so
+    // `countdownElapsed` isn't briefly true from a stale remainingMs (0 from when
+    // the toggle was off) — otherwise a refresh would fire the instant the toggle
+    // turns on. It must WAIT for the countdown to elapse.
+    setRemainingMs(checked ? DAY_MS : 0);
 
     try {
       const res = await fetch("/api/automations/autorefresh", {
