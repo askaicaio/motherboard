@@ -106,7 +106,8 @@ export default async function AutomationsPage() {
               className="h-full transition-shadow hover:shadow-md"
             >
               <CardContent className="flex h-full flex-col gap-3 p-5">
-                <div className="flex items-center gap-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2">
                   {/* Per-card website logo. Monochrome SVG glyphs are tinted to
                       the brand colour via a CSS mask; full-colour icons (the GHL
                       favicon) render as a plain image in their own colours. */}
@@ -135,6 +136,16 @@ export default async function AutomationsPage() {
                     />
                   )}
                   <h3 className="text-xl font-medium">{site.label}</h3>
+                  </div>
+                  {/* Open: opens this website's per-website page. Moved to the
+                      top-right of the card (was bottom-right next to the API
+                      status button). */}
+                  <Link
+                    href={`/automations/${site.slug}`}
+                    className="shrink-0 rounded-md border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+                  >
+                    Open →
+                  </Link>
                 </div>
                 {/* Description sits directly under the website name. */}
                 <p className="text-sm text-zinc-600">{site.description}</p>
@@ -178,6 +189,8 @@ export default async function AutomationsPage() {
                   <Stat label="Paused" value={stats.paused} />
                 </div>
 
+                {/* Status button row. With "Open" moved to the top-right, the
+                    API status button (flex-1) now fills the full card width. */}
                 <div className="mt-auto flex items-center gap-2 border-t pt-3">
                   {/* Clickable status button. Seeds from the server-side
                       presence check (green "API Key Integrated" / red "No API
@@ -190,12 +203,6 @@ export default async function AutomationsPage() {
                     hasApiKey={platformHasApiKey(site.slug)}
                     initialOk={health.results[site.slug]?.ok}
                   />
-                  <Link
-                    href={`/automations/${site.slug}`}
-                    className="rounded-md border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
-                  >
-                    Open →
-                  </Link>
                 </div>
               </CardContent>
             </Card>
