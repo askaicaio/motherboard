@@ -449,6 +449,12 @@ export function AutomationsTableClient({
       }
     } finally {
       setRefreshing(false);
+      if (silent) {
+        // Auto-refresh (timed): re-anchor the countdown so it loops immediately
+        // instead of sticking on "Refreshing soon…" until the cron + poll reset
+        // it. Same interval the server cron uses, so the two stay aligned.
+        setNextRefreshAt(new Date(Date.now() + DAY_MS).toISOString());
+      }
     }
   };
   // Keep the ref pointing at the latest handleRefresh for the elapsed effect
