@@ -23,8 +23,10 @@ import { appSettings } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 
 const KEY = "automations_health";
-/** 24 hours — the auto health-check cadence (user choice 2026-07-01). */
-export const AUTO_HEALTH_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
+/** ⚠️ TEMPORARY DEV TEST (2026-07-01): 1 MINUTE so the scheduled health check /
+ *  its looping countdown can be watched live. REVERT to `24 * 60 * 60 * 1000`
+ *  (24h) right after the test. */
+export const AUTO_HEALTH_CHECK_INTERVAL_MS = 60 * 1000;
 
 /** One platform's last check outcome. */
 export interface HealthResult {
