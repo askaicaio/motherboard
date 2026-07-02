@@ -45,9 +45,9 @@ import {
 } from "@/components/ui/tooltip";
 import { WorkflowDialog } from "./workflow-dialog";
 
-/** ⚠️ TEMPORARY DEV TEST (2026-07-01): 1 MINUTE to match the server test cadence
- *  so the optimistic countdown lines up. REVERT to `24 * 60 * 60 * 1000` after. */
-const DAY_MS = 60 * 1000;
+/** 24 hours in ms — the auto-refresh cadence (client-side copy; the server is
+ *  the source of truth, this is only for the instant optimistic countdown). */
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Format milliseconds remaining as HH:MM:SS (clamped at 0). */
 function formatCountdown(ms: number): string {
