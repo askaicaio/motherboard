@@ -25,8 +25,10 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Activity, Clock, Loader2 } from "lucide-react";
 
-/** A single card's check, wrapped to resolve when its verify finishes. */
-type CheckFn = () => Promise<void>;
+/** A single card's check; resolves with its result so the fan-out can persist
+ *  them (or void if the card skipped, e.g. already checking). */
+type CheckResult = { platform: string; ok: boolean };
+type CheckFn = () => Promise<CheckResult | void>;
 
 interface HealthCheckContextValue {
   /** Register a card's check; returns an unregister cleanup. */
@@ -59,11 +61,25 @@ export function HealthCheckProvider({
   const runAll = useCallback(() => {
     if (running || registry.current.size === 0) return;
     setRunning(true);
-    // Each card's check resolves independently; wait for all so the button's
-    // "Checking…" clears only once every card has settled.
-    void Promise.all([...registry.current].map((fn) => fn())).finally(() =>
-      setRunning(false),
-    );
+    // Each card's check resolves with its result; wait for all (so "Checking…"
+    // clears only once every card has settled), then PERSIST the batch in ONE
+    // write so the status survives a page reload. Without this, a manual check is
+    // ephemeral and the cards re-seed from the presence check on reload. One
+    // batched write (not per-card) avoids a read-modify-write race on the shared
+    // health state.
+    void Promise.all([...registry.current].map((fn) => fn()))
+      .then((settled) => {
+        const results = settled.filter((r): r is CheckResult => !!r);
+        if (results.length === 0) return;
+        return fetch("/api/automations/health-results", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ results }),
+        }).catch(() => {
+          // best-effort persistence; the on-screen result is still updated
+        });
+      })
+      .finally(() => setRunning(false));
   }, [running]);
 
   return (
