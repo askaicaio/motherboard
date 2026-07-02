@@ -533,6 +533,31 @@ export function AutomationsTableClient({
     }
   };
 
+  // ⚠️ TEMPORARY DEV TEST: force auto-refresh ON, bypassing the live-verify gate
+  // (via the route's `force` flag), so we can force a FAULTY platform's toggle on
+  // and then confirm a health check turns it back off. REMOVE this + the "Dev
+  // Test X" button + the route's `force` flag once verified.
+  const handleForceOn = async () => {
+    setAutoError(null);
+    try {
+      const res = await fetch("/api/automations/autorefresh", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ platform, enabled: true, force: true }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || "Couldn't force-enable.");
+      const next = data.state?.nextRefreshAt ?? null;
+      setAutoEnabled(!!data.state?.enabled);
+      setNextRefreshAt(next);
+      setRemainingMs(next ? new Date(next).getTime() - Date.now() : 0);
+    } catch (err) {
+      showAutoError(
+        err instanceof Error ? err.message : "Couldn't force-enable.",
+      );
+    }
+  };
+
   // Hard delete, permanently removes the row after a confirm.
   const handleDelete = async (row: AutomationRow) => {
     const label = row.name || "this automation";
@@ -607,6 +632,17 @@ export function AutomationsTableClient({
           <p className="mt-1 text-sm text-zinc-500">{description}</p>
         </div>
         <div className="flex items-center gap-3">
+          {/* ⚠️ TEMPORARY DEV TEST button: force auto-refresh ON (bypasses the
+              live-verify gate) to test that a health check turns it off when
+              faulty. REMOVE this once verified. */}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleForceOn}
+            className="border-amber-400 text-amber-700 hover:bg-amber-50 hover:text-amber-700"
+          >
+            Dev Test X
+          </Button>
           {/* Auto-refresh mode (Option A). Far left of the toolbar, styled
               like the Edit mode toggle but with a clock icon. When ON, a
               countdown to the next scheduled refresh shows under it; turning
@@ -614,14 +650,15 @@ export function AutomationsTableClient({
           <div className="relative flex items-center gap-2 text-xs text-zinc-600">
             <Clock className="h-3.5 w-3.5" />
             Auto-refresh list
-            {/* ON state is green (not the default black) to match the app's
-                other greens (Active status, "API Key Integrated" card). Scoped
-                to THIS toggle only via className; the shared Switch base is
-                unchanged (Edit mode etc. stay black). OFF stays gray. */}
+            {/* ON = green, OFF = red (user 2026-07-01) — green matches the app's
+                other greens (Active status, "API Key Integrated"), red flags that
+                auto-refresh is not running. Scoped to THIS toggle only via
+                className; the shared Switch base is unchanged (Edit mode etc.
+                stay black/gray). */}
             <Switch
               checked={autoEnabled}
               onCheckedChange={handleAutoToggle}
-              className="data-checked:bg-green-600"
+              className="data-checked:bg-green-600 data-unchecked:bg-red-600"
             />
             {autoError ? (
               <p

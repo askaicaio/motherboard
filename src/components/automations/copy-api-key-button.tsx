@@ -37,9 +37,14 @@ export function CopyApiKeyButton({
   const seededOk = initialOk === undefined ? !!hasApiKey : initialOk;
   const [status, setStatus] = useState<Status>(seededOk ? "ok" : "fail");
 
-  // Returns { platform, ok } so the fan-out can persist the batch (the click
-  // still updates this card's own state live).
-  async function check(): Promise<{ platform: string; ok: boolean } | void> {
+  // Returns { platform, ok } so the fan-out can persist the batch. `persist`
+  // (a STANDALONE click on this one card) saves its own result immediately, so
+  // that check also triggers the same server-side follow-ups as the fan-out
+  // (e.g. turning off this platform's auto-refresh when it's now faulty). The
+  // fan-out calls this WITHOUT persist and batches the save itself.
+  async function check(opts?: {
+    persist?: boolean;
+  }): Promise<{ platform: string; ok: boolean } | void> {
     if (status === "checking") return;
     setStatus("checking");
     let ok = false;
@@ -55,6 +60,15 @@ export function CopyApiKeyButton({
       ok = false;
     }
     setStatus(ok ? "ok" : "fail");
+    if (opts?.persist) {
+      void fetch("/api/automations/health-results", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ results: [{ platform, ok }] }),
+      }).catch(() => {
+        // best-effort; the on-screen result is still updated
+      });
+    }
     return { platform, ok };
   }
 
@@ -77,7 +91,7 @@ export function CopyApiKeyButton({
       <Button
         variant="outline"
         size="sm"
-        onClick={check}
+        onClick={() => check({ persist: true })}
         className="flex-1 border-green-300 bg-green-50 text-green-700 hover:bg-green-100 hover:text-green-700"
       >
         <Check className="mr-2 h-3.5 w-3.5" />
@@ -90,7 +104,7 @@ export function CopyApiKeyButton({
     <Button
       variant="outline"
       size="sm"
-      onClick={check}
+      onClick={() => check({ persist: true })}
       className="flex-1 border-red-300 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-600"
     >
       <Ban className="mr-2 h-3.5 w-3.5" />
