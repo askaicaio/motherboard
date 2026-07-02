@@ -25,9 +25,7 @@ import { getAutoRefreshMap, setAutoRefresh } from "./autorefresh";
 
 const KEY = "automations_health";
 /** 24 hours — the auto health-check cadence (user choice 2026-07-01). */
-// DEV TEST (temporary): 1-minute cadence to watch the countdown fire live.
-// REVERT to `24 * 60 * 60 * 1000` after verifying.
-export const AUTO_HEALTH_CHECK_INTERVAL_MS = 60 * 1000;
+export const AUTO_HEALTH_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
 /** One platform's last check outcome. */
 export interface HealthResult {

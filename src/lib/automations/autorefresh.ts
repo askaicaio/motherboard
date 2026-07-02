@@ -21,9 +21,7 @@ import { eq } from "drizzle-orm";
 
 const KEY = "automations_autorefresh";
 /** 24 hours — the once-a-day cadence. */
-// DEV TEST (temporary): 1-minute cadence to watch the countdown fire live.
-// REVERT to `24 * 60 * 60 * 1000` after verifying.
-export const AUTO_REFRESH_INTERVAL_MS = 60 * 1000;
+export const AUTO_REFRESH_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
 export interface AutoRefreshState {
   enabled: boolean;
