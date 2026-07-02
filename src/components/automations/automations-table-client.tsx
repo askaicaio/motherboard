@@ -295,6 +295,13 @@ export function AutomationsTableClient({
   const handleRefreshRef = useRef<
     ((opts?: { silent?: boolean }) => void) | null
   >(null);
+  // Latest nextRefreshAt, read by the countdown-elapsed effect to re-verify the
+  // countdown REALLY reached zero before firing (guards against a stale
+  // remainingMs during rapid toggling — see that effect).
+  const nextRefreshAtRef = useRef(nextRefreshAt);
+  // Monotonic id per toggle click, so an out-of-order / stale server response
+  // can't clobber the state set by a newer toggle.
+  const autoReqSeq = useRef(0);
 
   // Clear any pending timers if the component unmounts.
   useEffect(() => {
@@ -316,12 +323,24 @@ export function AutomationsTableClient({
     return () => clearInterval(id);
   }, [autoEnabled, nextRefreshAt]);
 
+  // Keep the latest nextRefreshAt in a ref for the elapsed effect's re-verify
+  // guard. Declared BEFORE that effect so it updates first in the same commit.
+  useEffect(() => {
+    nextRefreshAtRef.current = nextRefreshAt;
+  }, [nextRefreshAt]);
+
   // Once the countdown elapses, the cron refreshes within its interval. Poll
   // for the new schedule + refreshed rows so an open tab stays in sync. Gated
   // on a boolean (not remainingMs) so it doesn't re-subscribe every tick.
   const countdownElapsed = autoEnabled && !!nextRefreshAt && remainingMs <= 0;
   useEffect(() => {
     if (!countdownElapsed) return;
+    // Re-verify against the ACTUAL target time before firing. Rapid on/off
+    // toggling can leave countdownElapsed briefly true off a STALE remainingMs
+    // (a 0 left from a prior OFF) even though nextRefreshAt is ~24h out; only
+    // fire once the countdown has genuinely reached zero.
+    const target = nextRefreshAtRef.current;
+    if (target && new Date(target).getTime() - Date.now() > 0) return;
     // Run the sync ourselves so the timed refresh is VISIBLE — this spins the
     // ↻ synced-column icons + the Refresh List button, same as a manual click,
     // just silently (no toast). The cron also runs it server-side; both are
@@ -495,6 +514,7 @@ export function AutomationsTableClient({
     // present-but-faulty key, so a brief on-then-off is expected in that case).
     const prevEnabled = autoEnabled;
     const prevNext = nextRefreshAt;
+    const seq = ++autoReqSeq.current;
     setAutoError(null);
     setAutoEnabled(checked);
     setNextRefreshAt(checked ? new Date(Date.now() + DAY_MS).toISOString() : null);
@@ -511,10 +531,16 @@ export function AutomationsTableClient({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || "Couldn't update auto-refresh.");
+      // Ignore this response if a newer toggle has since fired (rapid on/off):
+      // its optimistic state is the truth, and applying a stale response here
+      // could re-enable + re-anchor after the user settled on OFF.
+      if (seq !== autoReqSeq.current) return;
       // Reconcile with the server's canonical state (exact nextRefreshAt).
       setAutoEnabled(!!data.state?.enabled);
       setNextRefreshAt(data.state?.nextRefreshAt ?? null);
     } catch (err) {
+      // A newer toggle superseded this one; leave the latest state as-is.
+      if (seq !== autoReqSeq.current) return;
       // Roll back the optimistic change and surface the error.
       setAutoEnabled(prevEnabled);
       setNextRefreshAt(prevNext);
