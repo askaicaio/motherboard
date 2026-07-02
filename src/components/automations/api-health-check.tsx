@@ -178,12 +178,14 @@ export function AutoHealthCheckToggle({
 
   // When the countdown elapses: (1) fire the visible fan-out once (every card
   // shows "Checking API Key Status…" -> green/red, matching the manual button),
-  // then (2) poll for the cron's updated schedule so the countdown re-syncs and
-  // loops. Mirrors the per-website auto-refresh toggle's elapsed-poll.
+  // then (2) re-anchor the countdown so it loops IMMEDIATELY instead of sticking
+  // on "Checking soon…" until the cron + poll reset it. Same interval the server
+  // cron uses, so the two stay aligned. The poll below is a backstop reconcile.
   const elapsed = enabled && !!nextCheckAt && remainingMs <= 0;
   useEffect(() => {
     if (!elapsed) return;
     runAllRef.current?.();
+    setNextCheckAt(new Date(Date.now() + HEALTH_DAY_MS).toISOString());
     const id = setInterval(async () => {
       try {
         const res = await fetch("/api/automations/health-autocheck");
