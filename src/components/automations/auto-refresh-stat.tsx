@@ -10,7 +10,7 @@
 //   OFF -> red X (no countdown text)
 
 import { useEffect, useState } from "react";
-import { Check, RefreshCw, X } from "lucide-react";
+import { Check, Clock, X } from "lucide-react";
 
 /** Format milliseconds remaining as HH:MM:SS (clamped at 0). Matches the
  *  per-website page's countdown formatting. */
@@ -50,7 +50,7 @@ export function AutoRefreshStat({
 
   return (
     <div className="flex items-center gap-1.5 text-sm font-medium">
-      <RefreshCw className="h-3.5 w-3.5 shrink-0 text-zinc-500" aria-hidden />
+      <Clock className="h-3.5 w-3.5 shrink-0 text-zinc-500" aria-hidden />
       <span>Auto-refresh list:</span>
       {enabled ? (
         <span className="flex items-center gap-1 text-zinc-600">
