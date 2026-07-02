@@ -153,7 +153,7 @@ export default async function AutomationsPage() {
                 {/* Top-of-card status stats (left) + Error History button
                     (right). Stats: auto-refresh state, then "Days since last
                     Error", both above the Total/Active/Paused row. */}
-                <div className="flex items-center justify-between gap-3 border-t pt-3">
+                <div className="flex items-end justify-between gap-3 border-t pt-3">
                   <div className="flex flex-col gap-2">
                     {/* Auto-refresh state (label + live countdown / off X).
                         Reads the same stored state the per-website toggle
@@ -179,7 +179,7 @@ export default async function AutomationsPage() {
                   </Link>
                 </div>
 
-                <div className="grid grid-cols-3 gap-2 border-t pt-3">
+                <div className="grid grid-cols-4 gap-2 border-t pt-3">
                   <Stat label="Total" value={stats.total} />
                   <Stat
                     label="Active"
@@ -187,6 +187,15 @@ export default async function AutomationsPage() {
                     valueClassName="text-green-600"
                   />
                   <Stat label="Paused" value={stats.paused} />
+                  {/* Errors count. PLACEHOLDER: stuck at 0 for now, error
+                      tracking doesn't exist yet so nothing feeds this. The
+                      number is always red. Wire the real total in once error
+                      tracking lands. */}
+                  <Stat
+                    label="Errors"
+                    value={0}
+                    valueClassName="text-red-600"
+                  />
                 </div>
 
                 {/* Status button row. With "Open" moved to the top-right, the
