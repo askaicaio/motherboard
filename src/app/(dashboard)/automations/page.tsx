@@ -161,12 +161,11 @@ export default async function AutomationsPage() {
                     Error", both above the Total/Active/Paused row. */}
                 <div className="flex items-end justify-between gap-3 border-t pt-3">
                   <div className="flex flex-col gap-2">
-                    {/* Auto-refresh state (label + live countdown / off X).
-                        Reads the same stored state the per-website toggle
-                        writes; display-only here. */}
+                    {/* Auto-refresh on/off state (green check / red X). Reads
+                        the same stored state the per-website toggle writes;
+                        display-only here. */}
                     <AutoRefreshStat
                       enabled={autoRefreshMap[site.slug]?.enabled ?? false}
-                      nextRefreshAt={autoRefreshMap[site.slug]?.nextRefreshAt ?? null}
                     />
                     {/* Days since last Error. PLACEHOLDER: stuck at 0 for now,
                         error tracking doesn't exist yet so nothing feeds this.
