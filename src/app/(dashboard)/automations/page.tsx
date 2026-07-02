@@ -106,40 +106,48 @@ export default async function AutomationsPage() {
               className="h-full transition-shadow hover:shadow-md"
             >
               <CardContent className="flex h-full flex-col gap-3 p-5">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                  {/* Per-card website logo. Monochrome SVG glyphs are tinted to
-                      the brand colour via a CSS mask; full-colour icons (the GHL
-                      favicon) render as a plain image in their own colours. */}
-                  {site.iconColor ? (
-                    <span
-                      aria-hidden
-                      className="h-8 w-8 shrink-0"
-                      style={{
-                        backgroundColor: site.iconColor,
-                        maskImage: `url(${site.icon})`,
-                        WebkitMaskImage: `url(${site.icon})`,
-                        maskRepeat: "no-repeat",
-                        WebkitMaskRepeat: "no-repeat",
-                        maskPosition: "center",
-                        WebkitMaskPosition: "center",
-                        maskSize: "contain",
-                        WebkitMaskSize: "contain",
-                      }}
-                    />
-                  ) : (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={site.icon}
-                      alt=""
-                      className="h-8 w-8 shrink-0 object-contain"
-                    />
-                  )}
-                  <h3 className="text-xl font-medium">{site.label}</h3>
+                {/* Header: website title + description on the left, "Open"
+                    button on the right. Row is bottom-aligned so "Open" sits
+                    inline with the description line. */}
+                <div className="flex items-end justify-between gap-2">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      {/* Per-card website logo. Monochrome SVG glyphs are tinted
+                          to the brand colour via a CSS mask; full-colour icons
+                          (the GHL favicon) render as a plain image. */}
+                      {site.iconColor ? (
+                        <span
+                          aria-hidden
+                          className="h-8 w-8 shrink-0"
+                          style={{
+                            backgroundColor: site.iconColor,
+                            maskImage: `url(${site.icon})`,
+                            WebkitMaskImage: `url(${site.icon})`,
+                            maskRepeat: "no-repeat",
+                            WebkitMaskRepeat: "no-repeat",
+                            maskPosition: "center",
+                            WebkitMaskPosition: "center",
+                            maskSize: "contain",
+                            WebkitMaskSize: "contain",
+                          }}
+                        />
+                      ) : (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={site.icon}
+                          alt=""
+                          className="h-8 w-8 shrink-0 object-contain"
+                        />
+                      )}
+                      <h3 className="text-xl font-medium">{site.label}</h3>
+                    </div>
+                    {/* Description sits directly under the website name. */}
+                    <p className="mt-1 text-sm text-zinc-600">
+                      {site.description}
+                    </p>
                   </div>
-                  {/* Open: opens this website's per-website page. Moved to the
-                      top-right of the card (was bottom-right next to the API
-                      status button). */}
+                  {/* Open: opens this website's per-website page. Bottom-right,
+                      inline with the description line. */}
                   <Link
                     href={`/automations/${site.slug}`}
                     className="shrink-0 rounded-md border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
@@ -147,8 +155,6 @@ export default async function AutomationsPage() {
                     Open →
                   </Link>
                 </div>
-                {/* Description sits directly under the website name. */}
-                <p className="text-sm text-zinc-600">{site.description}</p>
 
                 {/* Top-of-card status stats (left) + Error History button
                     (right). Stats: auto-refresh state, then "Days since last
