@@ -26,9 +26,10 @@ export function CopyApiKeyButton({
 }: {
   platform: string;
   hasApiKey?: boolean;
-  /** Last stored auto-check result for this platform, when one exists. Seeds the
-   *  green/red state more accurately than the mere presence check; falls back to
-   *  hasApiKey when the auto-check has never run for this platform. */
+  /** Last stored health-check result for this platform (manual "API Health
+   *  Check" or the auto cron), when one exists. Seeds the green/red state more
+   *  accurately than the mere presence check; falls back to hasApiKey when no
+   *  check has been recorded for this platform yet. */
   initialOk?: boolean;
 }) {
   // Seed from the last stored auto-check result if we have one, else fall back
@@ -36,9 +37,12 @@ export function CopyApiKeyButton({
   const seededOk = initialOk === undefined ? !!hasApiKey : initialOk;
   const [status, setStatus] = useState<Status>(seededOk ? "ok" : "fail");
 
-  async function check() {
+  // Returns { platform, ok } so the fan-out can persist the batch (the click
+  // still updates this card's own state live).
+  async function check(): Promise<{ platform: string; ok: boolean } | void> {
     if (status === "checking") return;
     setStatus("checking");
+    let ok = false;
     try {
       const res = await fetch("/api/automations/check-key", {
         method: "POST",
@@ -46,10 +50,12 @@ export function CopyApiKeyButton({
         body: JSON.stringify({ platform }),
       });
       const data = (await res.json().catch(() => ({}))) as { ok?: boolean };
-      setStatus(res.ok && data.ok ? "ok" : "fail");
+      ok = !!(res.ok && data.ok);
     } catch {
-      setStatus("fail");
+      ok = false;
     }
+    setStatus(ok ? "ok" : "fail");
+    return { platform, ok };
   }
 
   // Join the Main Page "API Health Check" fan-out: the global button triggers
