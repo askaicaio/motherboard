@@ -75,6 +75,8 @@ export async function previewPayout(): Promise<PayoutPreview> {
       and(
         eq(partnerConversions.status, "earned"),
         isNull(partnerConversions.payoutBatchId),
+        // Never pay out seeded sample conversions.
+        eq(partnerConversions.isSample, false),
       ),
     );
 
