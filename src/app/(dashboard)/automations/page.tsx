@@ -14,12 +14,14 @@ import { cn } from "@/lib/utils";
 import { AUTOMATION_SITES } from "@/lib/automations/sites";
 import { platformHasApiKey } from "@/lib/automations/credentials";
 import { CopyApiKeyButton } from "@/components/automations/copy-api-key-button";
+import { AutoRefreshStat } from "@/components/automations/auto-refresh-stat";
 import {
   ApiHealthCheckButton,
   AutoHealthCheckToggle,
   HealthCheckProvider,
 } from "@/components/automations/api-health-check";
 import { getHealthState } from "@/lib/automations/health";
+import { getAutoRefreshMap } from "@/lib/automations/autorefresh";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +37,11 @@ export default async function AutomationsPage() {
   // Last stored Auto-API health check results (per platform) + the toggle's
   // state, so the cards seed their status from the last scheduled check.
   const health = await getHealthState();
+
+  // Per-platform auto-refresh state (enabled + nextRefreshAt), so each card can
+  // show its "Auto-refresh list:" stat with a live countdown. Same stored
+  // app-setting the per-website toggle writes; the card is display-only.
+  const autoRefreshMap = await getAutoRefreshMap();
 
   // Count automations per platform & status in one grouped query, then fold
   // into per-platform totals for the cards.
@@ -131,6 +138,16 @@ export default async function AutomationsPage() {
                 </div>
                 {/* Description sits directly under the website name. */}
                 <p className="text-sm text-zinc-600">{site.description}</p>
+
+                {/* Topmost stat: this platform's auto-refresh state (label +
+                    live countdown / off X). Reads the same stored state the
+                    per-website toggle writes; display-only here. */}
+                <div className="border-t pt-3">
+                  <AutoRefreshStat
+                    enabled={autoRefreshMap[site.slug]?.enabled ?? false}
+                    nextRefreshAt={autoRefreshMap[site.slug]?.nextRefreshAt ?? null}
+                  />
+                </div>
 
                 <div className="grid grid-cols-3 gap-2 border-t pt-3">
                   <Stat label="Total" value={stats.total} />
