@@ -24,6 +24,10 @@ export function proxy(request: NextRequest) {
   if (host.startsWith("affiliates.") && pathname === "/") {
     return NextResponse.rewrite(new URL("/partners", request.url));
   }
+  // On the roadmap subdomain, the ROOT is the event/roadmap landing page.
+  if (host.startsWith("roadmap.") && pathname === "/") {
+    return NextResponse.rewrite(new URL("/roadmap", request.url));
+  }
 
   // Allow public routes and static assets
   const hasStaticExtension = STATIC_EXTENSIONS.some((ext) =>
@@ -43,6 +47,8 @@ export function proxy(request: NextRequest) {
     pathname.startsWith("/partners/") || // landing, apply, resources, thank-you
     pathname === "/r" || // affiliate click tracker (NOT /reports — exact match)
     pathname === "/enroll" || // public customer checkout (self-serve programs)
+    pathname.startsWith("/roadmap") || // public event/roadmap landing page
+    pathname.startsWith("/api/lead") || // public roadmap lead capture (Resend + GHL)
     pathname.startsWith("/api/stripe/webhook") || // Stripe → us; verifies its own signature
     pathname.startsWith("/api/partners/checkout") || // public checkout-session creation
     pathname.startsWith("/api/partners/apply") || // public application intake
@@ -90,6 +96,6 @@ export const config = {
      * a `.` followed by characters (i.e. a file with extension) is
      * skipped — this handles all public/ static assets in one shot.
      */
-    "/((?!login|welcome|partners|portal|enroll|r$|api/auth|api/callbacks|api/welcome|api/inngest|api/cron|api/stripe/webhook|api/partners/checkout|api/partners/apply|api/portal|_next/static|_next/image|.*\\..*).*)",
+    "/((?!login|welcome|partners|portal|enroll|roadmap|r$|api/auth|api/callbacks|api/welcome|api/inngest|api/cron|api/stripe/webhook|api/partners/checkout|api/partners/apply|api/lead|api/portal|_next/static|_next/image|.*\\..*).*)",
   ],
 };
