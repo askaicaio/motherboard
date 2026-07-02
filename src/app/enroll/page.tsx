@@ -27,7 +27,9 @@ export default async function EnrollPage({
 
   const initialRef = fromUrl || fromCookie || "";
 
-  const bookingUrl = process.env.AFFILIATE_BOOKING_URL || "";
+  const bookingUrl =
+    process.env.AFFILIATE_BOOKING_URL ||
+    "https://api.leadconnectorhq.com/widget/bookings/meetcaiodani";
 
   const programs = await db
     .select({

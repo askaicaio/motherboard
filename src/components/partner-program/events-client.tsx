@@ -75,6 +75,8 @@ import {
   Loader2,
   AlertTriangle,
   Info,
+  MoreHorizontal,
+  Sparkles,
 } from "lucide-react";
 import { format, parseISO, isValid as dateIsValid } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -659,6 +661,7 @@ function ActivitySection({
                   <th className="text-right px-3 py-2">Commission</th>
                   <th className="text-left px-3 py-2">Status</th>
                   <th className="text-left px-3 py-2">Purchased</th>
+                  <th className="w-10 px-3 py-2" />
                 </tr>
               </thead>
               <tbody>
@@ -694,6 +697,9 @@ function ActivitySection({
                     <td className="px-3 py-2 align-top text-xs text-zinc-600">
                       {fmtDate(r.purchasedAt)}
                     </td>
+                    <td className="px-3 py-2 align-top">
+                      <RowActionsMenu row={r} onUpdated={upsertRow} />
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -723,6 +729,86 @@ function ActivitySection({
         }}
       />
     </div>
+  );
+}
+
+/**
+ * Per-row "…" actions menu for the Activity ledger. Currently exposes the
+ * admin-only "Mark earned now" action, which skips the 7-day refund window
+ * for a PENDING conversion (mainly for testing payouts). The item is only
+ * enabled for pending rows.
+ */
+function RowActionsMenu({
+  row,
+  onUpdated,
+}: {
+  row: ConversionRow;
+  onUpdated: (updated: ConversionRow) => void;
+}) {
+  const [marking, setMarking] = useState(false);
+  const isPending = row.status === "pending";
+
+  const markEarned = async () => {
+    setMarking(true);
+    try {
+      const res = await fetch(
+        `/api/partners/conversions/${row.id}/mark-earned`,
+        { method: "POST" },
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.error || "Failed to mark earned");
+        return;
+      }
+      onUpdated({
+        ...row,
+        status: "earned",
+        earnedAt: data.conversion?.earnedAt ?? new Date().toISOString(),
+      });
+      toast.success("Conversion marked earned");
+    } catch {
+      toast.error("Network error");
+    } finally {
+      setMarking(false);
+    }
+  };
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        onClick={(e) => e.stopPropagation()}
+        className="inline-flex h-7 w-7 items-center justify-center rounded-md text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 disabled:opacity-50 cursor-pointer"
+        aria-label="Row actions"
+        disabled={marking}
+      >
+        {marking ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <MoreHorizontal className="h-4 w-4" />
+        )}
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        align="end"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <DropdownMenuItem
+          disabled={!isPending || marking}
+          onSelect={(e) => {
+            e.preventDefault();
+            void markEarned();
+          }}
+        >
+          <Sparkles className="mr-2 h-3.5 w-3.5" />
+          Mark earned now
+        </DropdownMenuItem>
+        {isPending && (
+          <DropdownMenuLabel className="max-w-56 whitespace-normal text-[10px] font-normal leading-snug text-zinc-400">
+            Skips the 7-day refund window and moves this conversion straight to
+            earned.
+          </DropdownMenuLabel>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 

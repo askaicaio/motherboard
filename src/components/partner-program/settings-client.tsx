@@ -436,10 +436,10 @@ export function SettingsClient({
 
                 {archivedPrograms.length > 0 && (
                   <>
-                    <tr className="border-t bg-zinc-50/60">
+                    <tr className="border-t bg-zinc-100/70">
                       <td
                         colSpan={7}
-                        className="px-3 py-2 text-xs font-medium uppercase tracking-wide text-zinc-400"
+                        className="px-3 py-2 text-xs font-medium uppercase tracking-wide text-zinc-400/90"
                       >
                         <span className="inline-flex items-center gap-1.5">
                           <Archive className="h-3 w-3" />
@@ -802,8 +802,13 @@ function ProgramRow({
   };
 
   return (
-    <tr className={cn("border-t align-top", archived && "bg-zinc-50/40")}>
-      <td className="px-3 py-3">
+    <tr
+      className={cn(
+        "border-t align-top",
+        archived && "bg-zinc-100/60 text-zinc-400 grayscale",
+      )}
+    >
+      <td className={cn("px-3 py-3", archived && "opacity-60")}>
         <div className="flex items-center gap-2">
           <span
             className={cn(
@@ -827,12 +832,12 @@ function ProgramRow({
       <td
         className={cn(
           "px-3 py-3 text-right tabular-nums",
-          archived ? "text-zinc-400" : "text-zinc-700",
+          archived ? "text-zinc-400 opacity-60" : "text-zinc-700",
         )}
       >
         {fmtUsdCents(program.listValueCents)}
       </td>
-      <td className="px-3 py-3 text-center">
+      <td className={cn("px-3 py-3 text-center", archived && "opacity-60")}>
         {program.salesLed ? (
           <Badge variant="secondary" className="text-[10px] font-normal">
             Sales-led
@@ -870,7 +875,7 @@ function ProgramRow({
         )}
       </td>
       {/* Stripe IDs are READ-ONLY — managed by the Stripe sync, never hand-edited. */}
-      <td className="px-3 py-3">
+      <td className={cn("px-3 py-3", archived && "opacity-60")}>
         <div className="space-y-1">
           <div className="font-mono text-[11px] text-zinc-600">
             <span className="text-zinc-400">product</span>{" "}
@@ -907,7 +912,7 @@ function ProgramRow({
             size="sm"
             onClick={handleRestore}
             disabled={restoring}
-            className="whitespace-nowrap"
+            className="whitespace-nowrap opacity-100 grayscale-0"
           >
             <RotateCcw className="mr-1.5 h-3 w-3" />
             {restoring ? "…" : "Restore"}

@@ -370,6 +370,13 @@ export async function releaseBatchViaConnect(
         currency: "usd",
         destination: g.connectAccountId,
         transfer_group: `batch_${batchId}`,
+        description: `CAIO affiliate commission — ${g.email}`,
+        metadata: {
+          affiliate_email: g.email,
+          partner_id: g.partnerId,
+          batch_id: batchId,
+          conversions: String(g.conversionIds.length),
+        },
       });
 
       // Transfer succeeded — flip this affiliate's earned conversions to paid

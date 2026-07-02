@@ -27,8 +27,7 @@ export const dynamic = "force-dynamic";
 // The aff code is appended as ?aff_id=… so GHL can capture it into the contact.
 const DEFAULT_DEST =
   process.env.AFFILIATE_BOOKING_URL?.replace(/\/$/, "") ||
-  process.env.PARTNER_PROGRAM_BASE_URL?.replace(/\/$/, "") ||
-  "https://chiefaiofficer.com";
+  "https://api.leadconnectorhq.com/widget/bookings/meetcaiodani";
 const ALLOWED_HOST_SUFFIXES = ["chiefaiofficer.com"];
 
 /** Allow only https URLs on an allowlisted host (plus localhost in dev). */
