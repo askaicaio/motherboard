@@ -139,14 +139,23 @@ export default async function AutomationsPage() {
                 {/* Description sits directly under the website name. */}
                 <p className="text-sm text-zinc-600">{site.description}</p>
 
-                {/* Topmost stat: this platform's auto-refresh state (label +
-                    live countdown / off X). Reads the same stored state the
-                    per-website toggle writes; display-only here. */}
-                <div className="border-t pt-3">
+                {/* Top-of-card status stats: auto-refresh state, then "Days
+                    since last Error", both above the Total/Active/Paused row. */}
+                <div className="flex flex-col gap-2 border-t pt-3">
+                  {/* Auto-refresh state (label + live countdown / off X). Reads
+                      the same stored state the per-website toggle writes;
+                      display-only here. */}
                   <AutoRefreshStat
                     enabled={autoRefreshMap[site.slug]?.enabled ?? false}
                     nextRefreshAt={autoRefreshMap[site.slug]?.nextRefreshAt ?? null}
                   />
+                  {/* Days since last Error. PLACEHOLDER: stuck at 0 for now —
+                      error tracking doesn't exist yet, so nothing feeds this.
+                      The count number is always red; the label is default
+                      color. Wire the real value in once error tracking lands. */}
+                  <p className="text-sm font-medium">
+                    Days since last Error: <span className="text-red-600">0</span> days
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-3 gap-2 border-t pt-3">
