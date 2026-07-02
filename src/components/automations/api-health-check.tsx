@@ -163,6 +163,13 @@ export function AutoHealthCheckToggle({
   );
   const [error, setError] = useState<string | null>(null);
   const errorTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Latest nextCheckAt, read by the elapsed effect to re-verify the countdown
+  // REALLY reached zero before firing (guards against a stale remainingMs during
+  // rapid toggling — see that effect).
+  const nextCheckAtRef = useRef(nextCheckAt);
+  // Monotonic id per toggle click, so an out-of-order / stale server response
+  // can't clobber the state set by a newer toggle.
+  const healthReqSeq = useRef(0);
 
   useEffect(() => {
     return () => {
@@ -183,6 +190,12 @@ export function AutoHealthCheckToggle({
     return () => clearInterval(id);
   }, [enabled, nextCheckAt]);
 
+  // Keep the latest nextCheckAt in a ref for the elapsed effect's re-verify
+  // guard. Declared BEFORE that effect so it updates first in the same commit.
+  useEffect(() => {
+    nextCheckAtRef.current = nextCheckAt;
+  }, [nextCheckAt]);
+
   // Access the shared fan-out so the SCHEDULED check is visible: when the timer
   // fires, run the same all-cards check the manual button does (kept in a ref so
   // the elapse effect below doesn't churn when the provider value changes).
@@ -200,6 +213,12 @@ export function AutoHealthCheckToggle({
   const elapsed = enabled && !!nextCheckAt && remainingMs <= 0;
   useEffect(() => {
     if (!elapsed) return;
+    // Re-verify against the ACTUAL target time before firing. Rapid on/off
+    // toggling can leave `elapsed` briefly true off a STALE remainingMs (a 0
+    // left from a prior OFF) even though nextCheckAt is ~24h out; only fire once
+    // the countdown has genuinely reached zero.
+    const target = nextCheckAtRef.current;
+    if (target && new Date(target).getTime() - Date.now() > 0) return;
     runAllRef.current?.();
     setNextCheckAt(new Date(Date.now() + HEALTH_DAY_MS).toISOString());
     const id = setInterval(async () => {
@@ -226,6 +245,7 @@ export function AutoHealthCheckToggle({
     // Optimistic: flip + anchor the countdown immediately, reconcile after.
     const prevEnabled = enabled;
     const prevNext = nextCheckAt;
+    const seq = ++healthReqSeq.current;
     setError(null);
     setEnabled(checked);
     setNextCheckAt(
@@ -244,9 +264,15 @@ export function AutoHealthCheckToggle({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || "Couldn't update.");
+      // Ignore this response if a newer toggle has since fired (rapid on/off):
+      // its optimistic state is the truth, and applying a stale response here
+      // could re-enable + re-anchor after the user settled on OFF.
+      if (seq !== healthReqSeq.current) return;
       setEnabled(!!data.state?.enabled);
       setNextCheckAt(data.state?.nextCheckAt ?? null);
     } catch (err) {
+      // A newer toggle superseded this one; leave the latest state as-is.
+      if (seq !== healthReqSeq.current) return;
       setEnabled(prevEnabled);
       setNextCheckAt(prevNext);
       showError(err instanceof Error ? err.message : "Couldn't update.");
