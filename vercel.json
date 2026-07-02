@@ -21,7 +21,7 @@
     },
     {
       "path": "/api/cron/sync-automations",
-      "schedule": "* * * * *"
+      "schedule": "*/5 * * * *"
     },
     {
       "path": "/api/cron/promote-pending-to-earned",

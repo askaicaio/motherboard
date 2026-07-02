@@ -472,88 +472,44 @@ export function AutomationsTableClient({
   };
 
   const handleAutoToggle = async (checked: boolean) => {
-    setAutoError(null);
-
-    // Turning OFF: optimistic (instant); reconcile / roll back after.
-    if (!checked) {
-      const prevEnabled = autoEnabled;
-      const prevNext = nextRefreshAt;
-      setAutoEnabled(false);
-      setNextRefreshAt(null);
-      setRemainingMs(0);
-      try {
-        const res = await fetch("/api/automations/autorefresh", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ platform, enabled: false }),
-        });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          throw new Error(data?.error || "Couldn't update auto-refresh.");
-        }
-      } catch (err) {
-        setAutoEnabled(prevEnabled);
-        setNextRefreshAt(prevNext);
-        showAutoError(
-          err instanceof Error ? err.message : "Couldn't update auto-refresh.",
-        );
-      }
-      return;
-    }
-
-    // Turning ON: block instantly when there's no key at all.
-    if (!hasApiKey) {
+    // Turning ON requires an API integration; block instantly if there's no key.
+    if (checked && !hasApiKey) {
       showAutoError("Can't auto-refresh. This website has no API integration yet.");
       return; // leave the switch off (it's controlled by autoEnabled)
     }
-    // The key may be present but revoked/faulty, so enabling is deliberately NOT
-    // optimistic: the server live-verifies the integration and we flip the switch
-    // ON only if it actually works, so a faulty integration never even briefly
-    // shows the toggle as on. A red error shows if it can't be enabled.
+
+    // Optimistic: flip the switch + countdown IMMEDIATELY so it responds to the
+    // click with no delay (matches the health toggle). The server call runs in
+    // the background — on enable it live-verifies the integration; we reconcile
+    // on success, or roll back + show a red error on failure (e.g. a
+    // present-but-faulty key, so a brief on-then-off is expected in that case).
+    const prevEnabled = autoEnabled;
+    const prevNext = nextRefreshAt;
+    setAutoError(null);
+    setAutoEnabled(checked);
+    setNextRefreshAt(checked ? new Date(Date.now() + DAY_MS).toISOString() : null);
+    // Seed the countdown to the full interval in the SAME update so
+    // `countdownElapsed` isn't briefly true from a stale remainingMs (which would
+    // fire a refresh the instant it turns on).
+    setRemainingMs(checked ? DAY_MS : 0);
+
     try {
       const res = await fetch("/api/automations/autorefresh", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ platform, enabled: true }),
+        body: JSON.stringify({ platform, enabled: checked }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || "Couldn't update auto-refresh.");
-      const next = data.state?.nextRefreshAt ?? null;
+      // Reconcile with the server's canonical state (exact nextRefreshAt).
       setAutoEnabled(!!data.state?.enabled);
-      setNextRefreshAt(next);
-      // Seed the countdown from the server's nextRefreshAt in the SAME update as
-      // enabling, so `countdownElapsed` isn't briefly true from a stale
-      // remainingMs (which would fire a refresh the instant it turns on).
-      setRemainingMs(next ? new Date(next).getTime() - Date.now() : 0);
+      setNextRefreshAt(data.state?.nextRefreshAt ?? null);
     } catch (err) {
-      // Stays off; surface why.
+      // Roll back the optimistic change and surface the error.
+      setAutoEnabled(prevEnabled);
+      setNextRefreshAt(prevNext);
       showAutoError(
         err instanceof Error ? err.message : "Couldn't update auto-refresh.",
-      );
-    }
-  };
-
-  // ⚠️ TEMPORARY DEV TEST: force auto-refresh ON, bypassing the live-verify gate
-  // (via the route's `force` flag), so we can force a FAULTY platform's toggle on
-  // and then confirm a health check turns it back off. REMOVE this + the "Dev
-  // Test X" button + the route's `force` flag once verified.
-  const handleForceOn = async () => {
-    setAutoError(null);
-    try {
-      const res = await fetch("/api/automations/autorefresh", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ platform, enabled: true, force: true }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.error || "Couldn't force-enable.");
-      const next = data.state?.nextRefreshAt ?? null;
-      setAutoEnabled(!!data.state?.enabled);
-      setNextRefreshAt(next);
-      setRemainingMs(next ? new Date(next).getTime() - Date.now() : 0);
-    } catch (err) {
-      showAutoError(
-        err instanceof Error ? err.message : "Couldn't force-enable.",
       );
     }
   };
@@ -632,17 +588,6 @@ export function AutomationsTableClient({
           <p className="mt-1 text-sm text-zinc-500">{description}</p>
         </div>
         <div className="flex items-center gap-3">
-          {/* ⚠️ TEMPORARY DEV TEST button: force auto-refresh ON (bypasses the
-              live-verify gate) to test that a health check turns it off when
-              faulty. REMOVE this once verified. */}
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleForceOn}
-            className="border-amber-400 text-amber-700 hover:bg-amber-50 hover:text-amber-700"
-          >
-            Dev Test X
-          </Button>
           {/* Auto-refresh mode (Option A). Far left of the toolbar, styled
               like the Edit mode toggle but with a clock icon. When ON, a
               countdown to the next scheduled refresh shows under it; turning

@@ -35,14 +35,7 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ state });
 }
 
-const postSchema = z.object({
-  platform: z.string(),
-  enabled: z.boolean(),
-  // ⚠️ TEMPORARY DEV TEST flag: skip the gate + live verify so the "Dev Test X"
-  // button can force auto-refresh ON even for a faulty platform (to test that a
-  // health check then turns it OFF). REMOVE with that button once verified.
-  force: z.boolean().optional(),
-});
+const postSchema = z.object({ platform: z.string(), enabled: z.boolean() });
 
 export async function POST(request: NextRequest) {
   const user = await getOptionalAuth();
@@ -64,8 +57,8 @@ export async function POST(request: NextRequest) {
   const { platform, enabled } = body;
 
   // Gate: only allow turning ON when the platform can actually sync AND its
-  // credential works right now. (⚠️ `force` skips this — temporary dev test.)
-  if (enabled && !body.force) {
+  // credential works right now.
+  if (enabled) {
     if (!isSyncablePlatform(platform) || !platformHasApiKey(platform)) {
       return NextResponse.json({ error: NO_INTEGRATION_ERROR }, { status: 400 });
     }
