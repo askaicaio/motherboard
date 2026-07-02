@@ -71,7 +71,7 @@ function formatDateCell(value: string | Date | null | undefined): string {
 }
 
 /** Columns the per-website table can be sorted by (Purpose is not sortable). */
-type SortKey = "name" | "status" | "lastEditedAt" | "lastRunAt";
+type SortKey = "name" | "status" | "lastEditedAt" | "lastRunAt" | "lastErrorAt";
 
 /** Sort indicator next to every sortable column header, always in the SAME
  *  fixed-width (w-3) slot so the header label never shifts when sorting changes:
@@ -175,6 +175,11 @@ export interface AutomationRow {
   // a sync/poll. Populated for all synced platforms (n8n/GHL `updatedAt`, Make
   // `lastEdit`); "-" only until a row has been synced or has no value yet.
   lastEditedAt?: string | Date | null;
+  // Latest error date found by an integration for this automation. PLACEHOLDER:
+  // error tracking doesn't exist yet, so nothing feeds this and every row shows
+  // "-". Wire it to a real per-automation "last error at" once error tracking
+  // lands. Rendered in RED (unlike the other date columns).
+  lastErrorAt?: string | Date | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -199,6 +204,10 @@ const EXPORT_COLUMNS: { header: string; value: (r: AutomationRow) => string }[] 
     {
       header: "Last Runtime",
       value: (r) => (r.lastRunAt ? formatDateCell(r.lastRunAt) : ""),
+    },
+    {
+      header: "Last Error",
+      value: (r) => (r.lastErrorAt ? formatDateCell(r.lastErrorAt) : ""),
     },
   ];
 
@@ -381,7 +390,8 @@ export function AutomationsTableClient({
           return dir * (rank(a.status) - rank(b.status));
         }
         case "lastEditedAt":
-        case "lastRunAt": {
+        case "lastRunAt":
+        case "lastErrorAt": {
           // Date sort with blanks ("-") ALWAYS last, regardless of direction.
           const ta = time(a[sortKey]);
           const tb = time(b[sortKey]);
@@ -705,7 +715,7 @@ export function AutomationsTableClient({
             stands in for the row border, which would otherwise scroll away.
 
             Horizontal scroll + frozen Name column: the table carries a
-            `min-w-[1100px]` so once columns exceed the card width it overflows
+            `min-w-[1250px]` so once columns exceed the card width it overflows
             and the existing overflow-auto shows a horizontal scrollbar (drag,
             Shift+wheel, or trackpad swipe). The first column (Name + its link)
             is `sticky left-0` on both the header and every body row so the
@@ -717,7 +727,7 @@ export function AutomationsTableClient({
         <TooltipProvider delay={300}>
         <Card>
           <CardContent className="max-h-[70vh] overflow-auto p-0">
-            <table className="w-full min-w-[1100px] text-sm">
+            <table className="w-full min-w-[1250px] text-sm">
               <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
                 <tr>
                   {/* Corner cell: pinned to BOTH the top (header) and the left
@@ -806,6 +816,25 @@ export function AutomationsTableClient({
                       <SortArrow active={sortKey === "lastRunAt"} dir={sortDir} />
                     </span>
                   </th>
+                  <th
+                    onClick={() => toggleSort("lastErrorAt")}
+                    aria-sort={
+                      sortKey === "lastErrorAt"
+                        ? sortDir === "asc"
+                          ? "ascending"
+                          : "descending"
+                        : "none"
+                    }
+                    className="sticky top-0 z-10 cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700"
+                  >
+                    <span className="inline-flex items-center justify-center gap-1">
+                      {isSynced("lastErrorAt") && (
+                        <SyncedColumnMarker platformLabel={label} spinning={refreshing} />
+                      )}
+                      Last Error
+                      <SortArrow active={sortKey === "lastErrorAt"} dir={sortDir} />
+                    </span>
+                  </th>
                   {editMode && (
                     <th className="sticky top-0 z-10 w-16 bg-zinc-50 px-3 py-2 shadow-[inset_0_-1px_0_0_#e4e4e7]"></th>
                   )}
@@ -815,7 +844,7 @@ export function AutomationsTableClient({
                 {filtered.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={editMode ? 6 : 5}
+                      colSpan={editMode ? 7 : 6}
                       className="px-3 py-16 text-center text-sm text-zinc-500"
                     >
                       {rows.length === 0
@@ -924,6 +953,18 @@ export function AutomationsTableClient({
                         {r.lastRunAt ? (
                           <span className="text-xs tabular-nums text-zinc-700">
                             {formatDateCell(r.lastRunAt)}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-zinc-400">-</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 align-top text-center">
+                        {/* Last Error: latest error date (MM-DD-YYYY), rendered
+                            in RED. PLACEHOLDER: nothing feeds this yet (no error
+                            tracking), so it's always "-" for now. */}
+                        {r.lastErrorAt ? (
+                          <span className="text-xs tabular-nums text-red-600">
+                            {formatDateCell(r.lastErrorAt)}
                           </span>
                         ) : (
                           <span className="text-xs text-zinc-400">-</span>
