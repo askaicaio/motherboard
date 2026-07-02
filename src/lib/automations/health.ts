@@ -21,6 +21,7 @@
 import { db } from "@/lib/db";
 import { appSettings } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { getAutoRefreshMap, setAutoRefresh } from "./autorefresh";
 
 const KEY = "automations_health";
 /** 24 hours — the auto health-check cadence (user choice 2026-07-01). */
@@ -102,8 +103,14 @@ export async function setAutoHealthCheck(
 }
 
 /**
- * Store a batch of per-platform results (from a scheduled run) with the current
- * time as checkedAt, merging over any existing results.
+ * Store a batch of per-platform results (from a manual or scheduled check) with
+ * the current time as checkedAt, merging over any existing results.
+ *
+ * Side effect: any platform now detected FAULTY (ok === false) has its
+ * per-website auto-refresh turned OFF if it was on — its scheduled refresh can't
+ * run anyway, and turning it off makes that visible to the user (the toggle
+ * shows off next time they open that platform's page). Turning it back on is
+ * blocked (with an error) until the integration verifies again.
  */
 export async function recordHealthResults(
   oks: Record<string, boolean>,
@@ -115,6 +122,18 @@ export async function recordHealthResults(
     results[platform] = { ok, checkedAt };
   }
   await writeState({ ...cur, results });
+
+  // Disable auto-refresh for any platform that just came back faulty (only if
+  // it's currently on, to avoid pointless writes).
+  const faulty = Object.entries(oks)
+    .filter(([, ok]) => !ok)
+    .map(([platform]) => platform);
+  if (faulty.length > 0) {
+    const arMap = await getAutoRefreshMap();
+    for (const platform of faulty) {
+      if (arMap[platform]?.enabled) await setAutoRefresh(platform, false);
+    }
+  }
 }
 
 /**

@@ -3,19 +3,25 @@
 // POST /api/automations/autorefresh — toggle it on/off ({ platform, enabled }).
 //
 // Turning ON is blocked unless the platform has a real sync AND an API
-// credential configured (the per-website toggle surfaces this as a red error).
+// credential that ACTUALLY WORKS right now (a live verify, not just the env-var
+// presence — a key can be present but revoked). The per-website toggle surfaces
+// either case as a red error.
 
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getOptionalAuth } from "@/lib/auth/guard";
 import { isSyncablePlatform } from "@/lib/automations/sites";
 import { platformHasApiKey } from "@/lib/automations/credentials";
+import { verifyPlatform } from "@/lib/automations/verify";
 import { getAutoRefreshFor, setAutoRefresh } from "@/lib/automations/autorefresh";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 30;
 
 const NO_INTEGRATION_ERROR =
   "Can't auto-refresh. This website has no API integration yet.";
+const FAULTY_INTEGRATION_ERROR =
+  "Can't auto-refresh. This website's API integration isn't working.";
 
 export async function GET(request: NextRequest) {
   const user = await getOptionalAuth();
@@ -50,9 +56,17 @@ export async function POST(request: NextRequest) {
 
   const { platform, enabled } = body;
 
-  // Gate: only allow turning ON when the platform can actually sync.
-  if (enabled && (!isSyncablePlatform(platform) || !platformHasApiKey(platform))) {
-    return NextResponse.json({ error: NO_INTEGRATION_ERROR }, { status: 400 });
+  // Gate: only allow turning ON when the platform can actually sync AND its
+  // credential works right now.
+  if (enabled) {
+    if (!isSyncablePlatform(platform) || !platformHasApiKey(platform)) {
+      return NextResponse.json({ error: NO_INTEGRATION_ERROR }, { status: 400 });
+    }
+    // Live-verify: the key may be present but revoked/faulty. Block if it fails.
+    const ok = await verifyPlatform(platform);
+    if (!ok) {
+      return NextResponse.json({ error: FAULTY_INTEGRATION_ERROR }, { status: 400 });
+    }
   }
 
   const state = await setAutoRefresh(platform, enabled, user.id);

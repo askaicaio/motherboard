@@ -472,43 +472,64 @@ export function AutomationsTableClient({
   };
 
   const handleAutoToggle = async (checked: boolean) => {
-    // Turning ON requires an API integration; block it and show the error.
-    if (checked && !hasApiKey) {
+    setAutoError(null);
+
+    // Turning OFF: optimistic (instant); reconcile / roll back after.
+    if (!checked) {
+      const prevEnabled = autoEnabled;
+      const prevNext = nextRefreshAt;
+      setAutoEnabled(false);
+      setNextRefreshAt(null);
+      setRemainingMs(0);
+      try {
+        const res = await fetch("/api/automations/autorefresh", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ platform, enabled: false }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data?.error || "Couldn't update auto-refresh.");
+        }
+      } catch (err) {
+        setAutoEnabled(prevEnabled);
+        setNextRefreshAt(prevNext);
+        showAutoError(
+          err instanceof Error ? err.message : "Couldn't update auto-refresh.",
+        );
+      }
+      return;
+    }
+
+    // Turning ON: block instantly when there's no key at all.
+    if (!hasApiKey) {
       showAutoError("Can't auto-refresh. This website has no API integration yet.");
       return; // leave the switch off (it's controlled by autoEnabled)
     }
-
-    // Optimistic: flip the switch + countdown immediately so it feels instant;
-    // the server call runs in the background and we reconcile / roll back after.
-    const prevEnabled = autoEnabled;
-    const prevNext = nextRefreshAt;
-    setAutoError(null);
-    setAutoEnabled(checked);
-    setNextRefreshAt(checked ? new Date(Date.now() + DAY_MS).toISOString() : null);
-    // Seed the countdown to the full interval in the SAME update so
-    // `countdownElapsed` isn't briefly true from a stale remainingMs (0 from when
-    // the toggle was off) — otherwise a refresh would fire the instant the toggle
-    // turns on. It must WAIT for the countdown to elapse.
-    setRemainingMs(checked ? DAY_MS : 0);
-
+    // The key may be present but revoked/faulty, so enabling is deliberately NOT
+    // optimistic: the server live-verifies the integration and we flip the switch
+    // ON only if it actually works, so a faulty integration never even briefly
+    // shows the toggle as on. A red error shows if it can't be enabled.
     try {
       const res = await fetch("/api/automations/autorefresh", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ platform, enabled: checked }),
+        body: JSON.stringify({ platform, enabled: true }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || "Couldn't update auto-refresh.");
-      // Reconcile with the server's canonical state (exact nextRefreshAt).
+      const next = data.state?.nextRefreshAt ?? null;
       setAutoEnabled(!!data.state?.enabled);
-      setNextRefreshAt(data.state?.nextRefreshAt ?? null);
+      setNextRefreshAt(next);
+      // Seed the countdown from the server's nextRefreshAt in the SAME update as
+      // enabling, so `countdownElapsed` isn't briefly true from a stale
+      // remainingMs (which would fire a refresh the instant it turns on).
+      setRemainingMs(next ? new Date(next).getTime() - Date.now() : 0);
     } catch (err) {
-      // Roll back the optimistic change and surface the error.
-      setAutoEnabled(prevEnabled);
-      setNextRefreshAt(prevNext);
-      const message =
-        err instanceof Error ? err.message : "Couldn't update auto-refresh.";
-      showAutoError(message);
+      // Stays off; surface why.
+      showAutoError(
+        err instanceof Error ? err.message : "Couldn't update auto-refresh.",
+      );
     }
   };
 
