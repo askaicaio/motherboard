@@ -79,6 +79,19 @@ function firstLog(body: unknown): LogEntry | null {
     : null;
 }
 
+/** First DLQ entry from whatever key the list uses (unknown wrapper — try the
+ *  common ones + a bare array). */
+function firstDlqEntry(body: unknown): LogEntry | null {
+  if (Array.isArray(body)) return (body[0] as LogEntry) ?? null;
+  const b = body as Record<string, unknown> | undefined;
+  if (!b) return null;
+  for (const key of ["dlqs", "incompleteExecutions", "data", "items"]) {
+    const arr = b[key];
+    if (Array.isArray(arr) && arr.length > 0) return arr[0] as LogEntry;
+  }
+  return null;
+}
+
 export async function GET(request: NextRequest) {
   const user = await getOptionalAuth();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -150,8 +163,36 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  // DLQ (incomplete executions) — the likely MESSAGE source (`reason`). Requires
+  // the dlqs:read scope (was 401 before). Probe org-wide, by org id, and by the
+  // sample scenario to see the shape + whether it surfaces real errors. If org
+  // -wide returns entries, also dump the first one's logs (the failure detail).
+  const orgId = process.env.MAKE_ORG_ID || "1193307";
+  await sleep(1000);
+  const dlqOrgWide = await raw(`${base}/dlqs`);
+  await sleep(1000);
+  const dlqByOrg = await raw(`${base}/dlqs?organizationId=${orgId}`);
+  await sleep(1000);
+  const dlqByScenario = sampleScenarioId
+    ? await raw(`${base}/dlqs?scenarioId=${sampleScenarioId}`)
+    : { note: "no sample scenario" };
+
+  // If any DLQ list returned entries, dump the first entry's detail + logs.
+  const firstDlq =
+    firstDlqEntry((dlqOrgWide as { body?: unknown }).body) ??
+    firstDlqEntry((dlqByOrg as { body?: unknown }).body) ??
+    firstDlqEntry((dlqByScenario as { body?: unknown }).body);
+  let dlqDetail: unknown = { note: "no DLQ entries found to detail" };
+  if (firstDlq?.id) {
+    await sleep(1000);
+    const detail = await raw(`${base}/dlqs/${String(firstDlq.id)}`);
+    await sleep(1000);
+    const logs = await raw(`${base}/dlqs/${String(firstDlq.id)}/logs`);
+    dlqDetail = { dlqEntry: firstDlq, detail, logs };
+  }
+
   return NextResponse.json({
-    note: "TEMP inspector (hunt) — raw Make responses. Paste this entire JSON back to Claude.",
+    note: "TEMP inspector (hunt+dlq) — raw Make responses. Paste this entire JSON back to Claude.",
     hunted,
     errorScenarioId,
     errorEntry,
@@ -159,5 +200,9 @@ export async function GET(request: NextRequest) {
     sampleScenarioId,
     sampleLogs,
     sampleExecDetail,
+    dlqOrgWide,
+    dlqByOrg,
+    dlqByScenario,
+    dlqDetail,
   });
 }
