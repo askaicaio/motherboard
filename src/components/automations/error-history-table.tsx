@@ -10,8 +10,8 @@
 //
 // Columns: Name (frozen; the automation's link sits BENEATH the name in the
 // same cell, exactly like the Per Website Page table — not a separate column) ·
-// Error Message (left-aligned, wraps full sentences) · Error Date (red,
-// MM-DD-YYYY).
+// Error Date (red, MM-DD-YYYY) · Error Message (left-aligned, wraps full
+// sentences).
 // Key difference from the Per Website Page table: that table is one row per
 // automation (deduped by link identity); THIS one is ONE ROW PER ERROR EVENT
 // (not deduped), so the same automation can appear on many rows.
@@ -79,11 +79,11 @@ export function ErrorHistoryTable({
               <th className="sticky left-0 top-0 z-20 w-[600px] min-w-[600px] max-w-[600px] bg-zinc-50 px-3 py-2 text-left shadow-[inset_0_-1px_0_0_#e4e4e7,inset_-1px_0_0_0_#e4e4e7]">
                 Name
               </th>
-              <th className="sticky top-0 z-10 bg-zinc-50 px-3 py-2 text-left shadow-[inset_0_-1px_0_0_#e4e4e7]">
-                Error Message
-              </th>
               <th className="sticky top-0 z-10 whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
                 Error Date
+              </th>
+              <th className="sticky top-0 z-10 bg-zinc-50 px-3 py-2 text-left shadow-[inset_0_-1px_0_0_#e4e4e7]">
+                Error Message
               </th>
             </tr>
           </thead>
@@ -130,6 +130,17 @@ export function ErrorHistoryTable({
                       </a>
                     )}
                   </td>
+                  <td className="px-3 py-2 align-top text-center">
+                    {/* Error Date: red MM-DD-YYYY, matching the "Last Error"
+                        column's visual format. */}
+                    {r.errorAt ? (
+                      <span className="text-xs tabular-nums text-red-600">
+                        {formatDateCell(r.errorAt)}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-zinc-400">-</span>
+                    )}
+                  </td>
                   <td className="px-3 py-2 align-top text-left">
                     {/* Error Message: the integration's error description,
                         LEFT-aligned. Wraps (whitespace-normal + break-words) so
@@ -140,17 +151,6 @@ export function ErrorHistoryTable({
                     {r.errorMessage ? (
                       <span className="whitespace-normal break-words text-xs text-zinc-700">
                         {r.errorMessage}
-                      </span>
-                    ) : (
-                      <span className="text-xs text-zinc-400">-</span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2 align-top text-center">
-                    {/* Error Date: red MM-DD-YYYY, matching the "Last Error"
-                        column's visual format. */}
-                    {r.errorAt ? (
-                      <span className="text-xs tabular-nums text-red-600">
-                        {formatDateCell(r.errorAt)}
                       </span>
                     ) : (
                       <span className="text-xs text-zinc-400">-</span>
