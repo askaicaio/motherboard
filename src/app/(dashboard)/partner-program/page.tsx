@@ -25,6 +25,7 @@ import {
   ExternalLink,
   ChevronRight,
   Mail,
+  FlaskConical,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -239,6 +240,13 @@ export default async function PartnerProgramPage() {
           >
             <FolderOpen className="h-4 w-4" />
             Resources
+          </NextLink>
+          <NextLink
+            href="/partner-program/testing"
+            className="inline-flex items-center gap-1.5 rounded-md px-2 py-2 text-sm font-medium text-zinc-500 hover:text-zinc-900"
+          >
+            <FlaskConical className="h-4 w-4" />
+            Testing guide
           </NextLink>
           <NextLink
             href="/partner-program/emails"

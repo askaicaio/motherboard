@@ -15,10 +15,99 @@ import {
   ArrowRight,
 } from "lucide-react";
 
-export const metadata = {
-  title: "Affiliate Program — Chief AI Officer",
+import type { Metadata } from "next";
+
+const SITE_URL = "https://affiliates.chiefaiofficer.com";
+
+export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
+  title:
+    "CAIO Affiliate Program — Earn 10% Referring AI Leadership Programs",
   description:
-    "Earn 10% referring executives and board members to the Chief AI Officer programs. 60-day cookie, Net-45 payouts, no cap on earnings.",
+    "Earn 10% commissions (up to $5,400 per referral) introducing executives to Chief AI Officer programs. 60-day cookie, Net-45 payouts, no cap on earnings.",
+  keywords: [
+    "affiliate program",
+    "AI consulting affiliate",
+    "refer AI leadership",
+    "AI leadership program affiliate",
+    "Chief AI Officer affiliate",
+    "high-ticket affiliate program",
+    "AI strategy referral program",
+    "executive education affiliate",
+  ],
+  alternates: {
+    canonical: "https://affiliates.chiefaiofficer.com/",
+  },
+  openGraph: {
+    title:
+      "CAIO Affiliate Program — Earn 10% Referring AI Leadership Programs",
+    description:
+      "Earn 10% commissions (up to $5,400 per referral) introducing executives to Chief AI Officer programs. 60-day cookie, Net-45 payouts, no cap on earnings.",
+    url: "https://affiliates.chiefaiofficer.com/",
+    siteName: "Chief AI Officer",
+    type: "website",
+    images: [
+      {
+        url: "/caio-logo-purple.png",
+        width: 512,
+        height: 512,
+        alt: "Chief AI Officer Affiliate Program",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title:
+      "CAIO Affiliate Program — Earn 10% Referring AI Leadership Programs",
+    description:
+      "Earn 10% commissions (up to $5,400 per referral) introducing executives to Chief AI Officer programs. 60-day cookie, Net-45 payouts.",
+    images: ["/caio-logo-purple.png"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+};
+
+const JSON_LD = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://chiefaiofficer.com/#organization",
+      name: "Chief AI Officer",
+      url: "https://chiefaiofficer.com",
+      logo: "https://affiliates.chiefaiofficer.com/caio-logo-purple.png",
+      description:
+        "Chief AI Officer runs the programs shaping how executives and boards adopt AI strategy.",
+    },
+    {
+      "@type": "WebPage",
+      "@id": "https://affiliates.chiefaiofficer.com/#webpage",
+      url: "https://affiliates.chiefaiofficer.com/",
+      name: "CAIO Affiliate Program — Earn 10% Referring AI Leadership Programs",
+      description:
+        "Earn 10% commissions (up to $5,400 per referral) introducing executives to Chief AI Officer programs. 60-day cookie, Net-45 payouts, no cap on earnings.",
+      isPartOf: { "@id": "https://chiefaiofficer.com/#organization" },
+      primaryImageOfPage:
+        "https://affiliates.chiefaiofficer.com/caio-logo-purple.png",
+    },
+    {
+      "@type": "Offer",
+      name: "CAIO Affiliate Program",
+      description:
+        "Earn a flat 10% commission on every new-customer first purchase across all Chief AI Officer programs, up to $5,400 per referral.",
+      url: "https://affiliates.chiefaiofficer.com/",
+      category: "Affiliate Program",
+      priceCurrency: "USD",
+      eligibleQuantity: {
+        "@type": "QuantitativeValue",
+        value: 10,
+        unitText: "PERCENT",
+      },
+      offeredBy: { "@id": "https://chiefaiofficer.com/#organization" },
+    },
+  ],
 };
 
 const PROGRAMS = [
@@ -146,6 +235,10 @@ const FAQS = [
 export default function PartnersLandingPage() {
   return (
     <div className="min-h-screen bg-white font-sans text-slate-900 antialiased">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
+      />
       {/* ─── Nav ─── */}
       <header className="sticky top-0 z-50 border-b border-slate-100 bg-white/80 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3.5">
