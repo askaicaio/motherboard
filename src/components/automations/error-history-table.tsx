@@ -82,7 +82,10 @@ export function ErrorHistoryTable({
               <th className="sticky top-0 z-10 whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
                 Error Date
               </th>
-              <th className="sticky top-0 z-10 bg-zinc-50 px-3 py-2 text-left shadow-[inset_0_-1px_0_0_#e4e4e7]">
+              {/* Error Message is the "greedy" column (w-full): it soaks up all
+                  the leftover table width, so the auto-width Error Date column
+                  hugs its short date content instead of splitting the slack. */}
+              <th className="sticky top-0 z-10 w-full bg-zinc-50 px-3 py-2 text-left shadow-[inset_0_-1px_0_0_#e4e4e7]">
                 Error Message
               </th>
             </tr>
@@ -132,11 +135,9 @@ export function ErrorHistoryTable({
                   </td>
                   <td className="px-3 py-2 align-top text-center">
                     {/* Error Date: red MM-DD-YYYY, matching the "Last Error"
-                        column's visual format. Auto width (no fixed width), to
-                        match the Per Website Page date columns. NOTE: while the
-                        Error Message column is empty (placeholder), auto-layout
-                        gives this column extra slack so it looks wide; it
-                        self-corrects once real error messages fill that column. */}
+                        column's visual format. No fixed width — it hugs its short
+                        date content because the Error Message column is greedy
+                        (w-full) and soaks up all the leftover table width. */}
                     {r.errorAt ? (
                       <span className="text-xs tabular-nums text-red-600">
                         {formatDateCell(r.errorAt)}
