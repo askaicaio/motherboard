@@ -46,14 +46,11 @@ export default function RoadmapPage() {
   const bookingBaseUrl =
     process.env.NEXT_PUBLIC_BOOKING_CALENDAR_URL ||
     "https://api.leadconnectorhq.com/widget/bookings/meetcaiodani";
-  const roadmapPdfUrl =
-    process.env.NEXT_PUBLIC_ROADMAP_PDF_URL || "/four-stages-roadmap.pdf";
 
   return (
     <RoadmapClient
       fontClassName={`${instrumentSerif.variable} ${inter.variable}`}
       bookingBaseUrl={bookingBaseUrl}
-      roadmapPdfUrl={roadmapPdfUrl}
       heroHeadline={HERO_HEADLINE}
       heroSubhead={HERO_SUBHEAD}
       heroCta={HERO_CTA}

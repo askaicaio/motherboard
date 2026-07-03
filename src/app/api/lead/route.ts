@@ -13,6 +13,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { z, ZodError } from "zod";
+import { ROADMAP_PDF_BASE64, ROADMAP_PDF_FILENAME } from "@/lib/roadmap-pdf";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -33,11 +34,10 @@ type Lead = z.infer<typeof leadSchema>;
 // --- (1) Send the roadmap email via Resend ---------------------------------
 async function sendRoadmapEmail(email: string, firstName?: string): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY;
-  const pdfUrl = process.env.NEXT_PUBLIC_ROADMAP_PDF_URL || "/four-stages-roadmap.pdf";
 
   if (!apiKey || apiKey === "re_your_api_key") {
     // Development / unconfigured: log instead of sending.
-    console.log(`[lead] Would send roadmap email to ${email} (link: ${pdfUrl})`);
+    console.log(`[lead] Would email the roadmap (as an attachment) to ${email}`);
     return;
   }
 
@@ -48,17 +48,11 @@ async function sendRoadmapEmail(email: string, firstName?: string): Promise<void
       <p style="font-size: 16px; line-height: 1.5;">
         Thanks for your interest in the <strong>Four Stages of AI Adoption</strong> roadmap.
         It's the same framework we use with executives to move from experimentation to
-        enterprise-wide AI leverage — here's your copy.
+        enterprise-wide AI leverage — <strong>your copy is attached to this email</strong>.
       </p>
-      <p style="text-align: center; margin: 32px 0;">
-        <a href="${pdfUrl}"
-           style="display: inline-block; background: #2563eb; color: #ffffff; text-decoration: none; padding: 14px 28px; border-radius: 8px; font-size: 16px; font-weight: 600;">
-          Download the roadmap
-        </a>
-      </p>
-      <p style="font-size: 14px; line-height: 1.5; color: #475569;">
-        If the button doesn't work, copy and paste this link into your browser:<br />
-        <a href="${pdfUrl}" style="color: #2563eb;">${pdfUrl}</a>
+      <p style="font-size: 16px; line-height: 1.5;">
+        When you're ready, book a short call and our team will map the four stages to your
+        business and show you the fastest path to the next stage.
       </p>
       <p style="font-size: 14px; line-height: 1.5; color: #475569; margin-top: 24px;">
         — The Chief AI Officer team
@@ -66,6 +60,7 @@ async function sendRoadmapEmail(email: string, firstName?: string): Promise<void
     </div>
   `;
 
+  // The PDF is delivered ONLY as an attachment — there is no public URL to share.
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
@@ -77,6 +72,9 @@ async function sendRoadmapEmail(email: string, firstName?: string): Promise<void
       to: [email],
       subject: "Your Four Stages of AI Adoption roadmap",
       html,
+      attachments: [
+        { filename: ROADMAP_PDF_FILENAME, content: ROADMAP_PDF_BASE64 },
+      ],
     }),
   });
 
@@ -88,11 +86,14 @@ async function sendRoadmapEmail(email: string, firstName?: string): Promise<void
 
 // --- (2) Upsert the contact into GoHighLevel -------------------------------
 async function upsertGhlContact(lead: Lead): Promise<void> {
-  const pit = process.env.GHL_PIT;
+  const pit =
+    process.env.GHL_PIT ||
+    process.env.GHL_B2B_API_TOKEN ||
+    process.env.GHL_API_TOKEN;
 
-  // Be defensive: if the private integration token is missing, skip gracefully.
+  // Be defensive: if no integration token is available, skip gracefully.
   if (!pit) {
-    console.warn("[lead] GHL_PIT not configured — skipping GHL upsert.");
+    console.warn("[lead] No GHL token configured — skipping GHL upsert.");
     return;
   }
 

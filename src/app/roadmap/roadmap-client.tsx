@@ -6,7 +6,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 interface RoadmapClientProps {
   fontClassName: string;
   bookingBaseUrl: string;
-  roadmapPdfUrl: string;
   heroHeadline: string;
   heroSubhead: string;
   heroCta: string;
@@ -62,7 +61,6 @@ const STAGES = [
 export default function RoadmapClient({
   fontClassName,
   bookingBaseUrl,
-  roadmapPdfUrl,
   heroHeadline,
   heroSubhead,
   heroCta,
@@ -330,7 +328,7 @@ export default function RoadmapClient({
         </section>
 
         {/* ─────────────────── 6. SECONDARY CAPTURE (email) ─────────────────── */}
-        <EmailCapture roadmapPdfUrl={roadmapPdfUrl} utm={utm} />
+        <EmailCapture utm={utm} />
 
         {/* ─────────────────── 7. CREDIBILITY (light) ─────────────────── */}
         <section className="px-6 py-16 sm:px-8 sm:py-20">
@@ -376,13 +374,7 @@ export default function RoadmapClient({
 }
 
 // ── Secondary capture form ──────────────────────────────────────────────────
-function EmailCapture({
-  roadmapPdfUrl,
-  utm,
-}: {
-  roadmapPdfUrl: string;
-  utm: Utm;
-}) {
+function EmailCapture({ utm }: { utm: Utm }) {
   const [email, setEmail] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -437,18 +429,14 @@ function EmailCapture({
           {status === "done" ? (
             <div className="mt-5">
               <p className="text-[1.02rem] leading-relaxed text-slate-700">
-                You&apos;re all set — the roadmap is on its way to your inbox.
-                You can also grab it right now:
+                You&apos;re all set — check your inbox. The Four Stages roadmap is
+                attached to an email we just sent to{" "}
+                <span className="font-semibold text-[var(--navy)]">{email}</span>.
               </p>
-              <a
-                href={roadmapPdfUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                download
-                className="mt-5 inline-flex w-full items-center justify-center rounded-xl bg-[var(--accent)] px-6 py-3.5 text-base font-semibold text-white shadow-md transition hover:bg-[var(--accent-hover)] active:scale-[0.99] sm:w-auto"
-              >
-                Download the roadmap (PDF)
-              </a>
+              <p className="mt-2 text-sm text-slate-500">
+                Don&apos;t see it in a minute or two? Check your spam or promotions
+                folder.
+              </p>
             </div>
           ) : (
             <>
