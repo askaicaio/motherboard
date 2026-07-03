@@ -152,8 +152,13 @@ export default function RoadmapClient({
                 priority
                 className="h-7 w-7 sm:h-8 sm:w-8"
               />
-              <span className="text-[0.82rem] font-semibold tracking-tight text-[var(--navy)]">
-                Chief AI Officer
+              <span className="flex flex-col leading-tight">
+                <span className="text-[0.82rem] font-semibold tracking-tight text-[var(--navy)]">
+                  Chief AI Officer
+                </span>
+                <span className="text-[0.58rem] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">
+                  In partnership with Scaling Up
+                </span>
               </span>
             </a>
             <button
@@ -465,8 +470,13 @@ export default function RoadmapClient({
                 height={28}
                 className="h-7 w-7"
               />
-              <span className="text-sm font-semibold tracking-tight text-[var(--navy)]">
-                Chief AI Officer
+              <span className="flex flex-col leading-tight text-left">
+                <span className="text-sm font-semibold tracking-tight text-[var(--navy)]">
+                  Chief AI Officer
+                </span>
+                <span className="text-[0.6rem] font-medium uppercase tracking-[0.14em] text-slate-400">
+                  In partnership with Scaling Up
+                </span>
               </span>
             </div>
             <p className="text-sm text-slate-500">roadmap.chiefaiofficer.com</p>
