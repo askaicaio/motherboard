@@ -41,9 +41,39 @@ export default async function AutomationErrorHistoryPage({
       </Link>
 
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {site.label} Error History
-        </h1>
+        <div className="flex items-center gap-2">
+          {/* Website brand logo to the LEFT of the title, same treatment as the
+              Per Website Page header + the Main Page card: a monochrome SVG
+              glyph tinted to the brand colour via CSS mask when iconColor is
+              set, otherwise a plain full-colour image. */}
+          {site.iconColor ? (
+            <span
+              aria-hidden
+              className="h-8 w-8 shrink-0"
+              style={{
+                backgroundColor: site.iconColor,
+                maskImage: `url(${site.icon})`,
+                WebkitMaskImage: `url(${site.icon})`,
+                maskRepeat: "no-repeat",
+                WebkitMaskRepeat: "no-repeat",
+                maskPosition: "center",
+                WebkitMaskPosition: "center",
+                maskSize: "contain",
+                WebkitMaskSize: "contain",
+              }}
+            />
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={site.icon}
+              alt=""
+              className="h-8 w-8 shrink-0 object-contain"
+            />
+          )}
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {site.label} Error History
+          </h1>
+        </div>
         <p className="mt-1 text-sm text-zinc-500">
           Error history for {site.label} automations.
         </p>
