@@ -1,18 +1,19 @@
 // =============================================================
-// TEMPORARY inspector — Make error-data shape discovery (GENTLE)
+// TEMPORARY inspector — Make error-data shape discovery (HUNT)
 // =============================================================
 // GET /api/automations/inspect-errors[?scenarioId=NNN]
 //
-// Dumps RAW Make API responses so we can see the exact shape of error data
-// (how an errored execution is flagged in the logs, where the message lives)
-// BEFORE writing the capture parser. Admin-only. Read-only.
+// Dumps RAW Make API responses so we can see the exact shape of an ERRORED
+// execution (how it's flagged + where the message lives) BEFORE writing the
+// capture parser. Admin-only. Read-only. Gentle (delays + 429 backoff).
 //
-// GENTLE: Make's org rate limit is low, so this makes only a handful of calls
-// with delays + a 429 backoff (an earlier 30-scenario scan tripped the limit).
-// DLQ is intentionally NOT called (the token lacks dlqs:read).
+// What we already learned: a scenarioLogs entry has `status` (1=success), a
+// short `id` + a prefixed `imtId`, and a `timestamp`. The executions endpoint
+// wants the SHORT `id` (imtId 400s). DLQ is out (token lacks dlqs:read).
 //
-// Best used with an errored scenario: /api/automations/inspect-errors?scenarioId=NNN
-// (find the id in that automation's Make link: .../scenarios/<id>/edit).
+// This version HUNTS: it scans recently-run Make scenarios for a status=3
+// (error) hit and dumps the first real error entry + its execution detail (via
+// the short id). Also dumps a chosen scenario's logs + first execution detail.
 //
 // ⚠️ THROWAWAY: delete this route once the Make error capture is built.
 // =============================================================
@@ -21,7 +22,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getOptionalAuth } from "@/lib/auth/guard";
 import { db } from "@/lib/db";
 import { automations } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { and, desc, eq, isNotNull } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -36,7 +37,6 @@ function makeHeaders(): HeadersInit {
   };
 }
 
-/** Fetch a URL, returning its raw parsed body + status. One 429 backoff+retry. */
 async function raw(url: string): Promise<{
   url: string;
   status?: number;
@@ -48,7 +48,7 @@ async function raw(url: string): Promise<{
     try {
       const res = await fetch(url, { headers: makeHeaders() });
       if (res.status === 429 && attempt === 0) {
-        await sleep(5000); // rate limited — wait once, then retry
+        await sleep(5000);
         continue;
       }
       const text = await res.text();
@@ -66,83 +66,98 @@ async function raw(url: string): Promise<{
   return { url, error: "rate limited (429) after retry" };
 }
 
-/** Pull the numeric scenario id from a Make editor URL (.../scenarios/<id>/edit). */
 function scenarioIdFromUrl(u: string): string | null {
   const m = u.match(/\/scenarios\/(\d+)\//);
   return m ? m[1] : null;
 }
 
+type LogEntry = Record<string, unknown>;
+function firstLog(body: unknown): LogEntry | null {
+  const b = body as { scenarioLogs?: LogEntry[] } | undefined;
+  return Array.isArray(b?.scenarioLogs) && b!.scenarioLogs!.length > 0
+    ? b!.scenarioLogs![0]
+    : null;
+}
+
 export async function GET(request: NextRequest) {
   const user = await getOptionalAuth();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!process.env.MAKE_API_TOKEN) {
     return NextResponse.json({ error: "MAKE_API_TOKEN not set" }, { status: 400 });
   }
 
   const base = `https://${ZONE}.make.com/api/v2`;
-  let scenarioId = request.nextUrl.searchParams.get("scenarioId");
+  const paramId = request.nextUrl.searchParams.get("scenarioId");
 
-  // No explicit scenario: gently scan a FEW stored Make automations (big delays)
-  // to find the first with any logs. This is only to reveal the log-entry shape;
-  // for a real ERROR shape, pass ?scenarioId= of a scenario you know errored.
-  const scanned: { scenarioId: string; hasLogs: boolean; status?: number }[] = [];
-  if (!scenarioId) {
-    const rows = await db
+  // Candidate scenarios to hunt: recently-run first (lastRunAt not null), which
+  // are the ones with logs; fall back to any make automations if none.
+  let rows = await db
+    .select({ externalUrl: automations.externalUrl })
+    .from(automations)
+    .where(and(eq(automations.platform, "make"), isNotNull(automations.lastRunAt)))
+    .orderBy(desc(automations.lastRunAt))
+    .limit(12);
+  if (rows.length === 0) {
+    rows = await db
       .select({ externalUrl: automations.externalUrl })
       .from(automations)
-      .where(eq(automations.platform, "make"));
-    const ids = rows
-      .map((r) => scenarioIdFromUrl(r.externalUrl))
-      .filter((v): v is string => !!v);
+      .where(eq(automations.platform, "make"))
+      .limit(12);
+  }
+  const candidateIds = rows
+    .map((r) => scenarioIdFromUrl(r.externalUrl))
+    .filter((v): v is string => !!v);
 
-    for (const id of ids.slice(0, 5)) {
-      const probe = await raw(`${base}/scenarios/${id}/logs?pg[limit]=1`);
-      const body = probe.body as { scenarioLogs?: unknown[] } | undefined;
-      const hasLogs = Array.isArray(body?.scenarioLogs) && body!.scenarioLogs!.length > 0;
-      scanned.push({ scenarioId: id, hasLogs, status: probe.status });
-      if (hasLogs) {
-        scenarioId = id;
-        break;
-      }
-      await sleep(1500);
+  // HUNT for a status=3 (error) entry across the candidates.
+  const hunted: { scenarioId: string; errorCount: number; status?: number }[] = [];
+  let errorScenarioId: string | null = null;
+  let errorEntry: LogEntry | null = null;
+  for (const id of candidateIds) {
+    const probe = await raw(`${base}/scenarios/${id}/logs?pg[limit]=3&status=3`);
+    const body = probe.body as { scenarioLogs?: LogEntry[] } | undefined;
+    const errs = Array.isArray(body?.scenarioLogs) ? body!.scenarioLogs! : [];
+    hunted.push({ scenarioId: id, errorCount: errs.length, status: probe.status });
+    if (errs.length > 0) {
+      errorScenarioId = id;
+      errorEntry = errs[0];
+      break;
     }
-    if (!scenarioId && ids.length > 0) scenarioId = ids[0];
+    await sleep(1200);
   }
 
-  if (!scenarioId) {
-    return NextResponse.json({ note: "No Make scenarios found to inspect.", scanned });
+  // Scenario to dump a general sample from: explicit param > the error one > first candidate.
+  const sampleScenarioId = paramId || errorScenarioId || candidateIds[0] || null;
+
+  await sleep(1000);
+  const sampleLogs = sampleScenarioId
+    ? await raw(`${base}/scenarios/${sampleScenarioId}/logs?pg[limit]=5`)
+    : { note: "no scenario to sample" };
+  await sleep(1000);
+  const sampleFirst = firstLog((sampleLogs as { body?: unknown }).body);
+  const sampleExecDetail =
+    sampleScenarioId && sampleFirst?.id
+      ? await raw(
+          `${base}/scenarios/${sampleScenarioId}/executions/${String(sampleFirst.id)}`,
+        )
+      : { note: "no short id on first sample log entry", sampleFirst };
+
+  // If we found a real error, dump its execution detail via the SHORT id.
+  let errorExecDetail: unknown = { note: "no error entry found while hunting" };
+  if (errorScenarioId && errorEntry?.id) {
+    await sleep(1000);
+    errorExecDetail = await raw(
+      `${base}/scenarios/${errorScenarioId}/executions/${String(errorEntry.id)}`,
+    );
   }
-
-  // A few gentle calls for the chosen scenario.
-  const logsUnfiltered = await raw(`${base}/scenarios/${scenarioId}/logs?pg[limit]=10`);
-  await sleep(1500);
-  const logsErrorFiltered = await raw(
-    `${base}/scenarios/${scenarioId}/logs?pg[limit]=10&status=3`,
-  );
-  await sleep(1500);
-
-  // First execution id from the unfiltered logs -> fetch its detail (where the
-  // error name/message/module likely live).
-  const logsBody = logsUnfiltered.body as
-    | { scenarioLogs?: Record<string, unknown>[] }
-    | undefined;
-  const firstEntry = logsBody?.scenarioLogs?.[0] ?? null;
-  const execIdVal = firstEntry
-    ? firstEntry.imtId ?? firstEntry.id ?? firstEntry.executionId
-    : null;
-  const executionDetail =
-    execIdVal != null
-      ? await raw(`${base}/scenarios/${scenarioId}/executions/${String(execIdVal)}`)
-      : { note: "No execution id found in the first log entry.", firstEntry };
 
   return NextResponse.json({
-    note: "TEMP inspector (gentle) — raw Make responses. Paste this entire JSON back to Claude. Tip: for an ERROR shape, re-run with ?scenarioId=<id of a scenario that errored>.",
-    inspectedScenarioId: scenarioId,
-    scanned,
-    logsUnfiltered,
-    logsErrorFiltered,
-    executionDetail,
+    note: "TEMP inspector (hunt) — raw Make responses. Paste this entire JSON back to Claude.",
+    hunted,
+    errorScenarioId,
+    errorEntry,
+    errorExecDetail,
+    sampleScenarioId,
+    sampleLogs,
+    sampleExecDetail,
   });
 }
