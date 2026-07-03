@@ -8,7 +8,9 @@
 // the "Name" column frozen (sticky left-0) so the automation's identity stays
 // in view while scrolling sideways. Only the COLUMNS differ from that table.
 //
-// Columns (3): Name (frozen) · Link · Error Date (red, MM-DD-YYYY).
+// Columns: Name (frozen; the automation's link sits BENEATH the name in the
+// same cell, exactly like the Per Website Page table — not a separate column) ·
+// Error Date (red, MM-DD-YYYY).
 // Key difference from the Per Website Page table: that table is one row per
 // automation (deduped by link identity); THIS one is ONE ROW PER ERROR EVENT
 // (not deduped), so the same automation can appear on many rows.
@@ -73,9 +75,6 @@ export function ErrorHistoryTable({
               <th className="sticky left-0 top-0 z-20 w-[600px] min-w-[600px] max-w-[600px] bg-zinc-50 px-3 py-2 text-left shadow-[inset_0_-1px_0_0_#e4e4e7,inset_-1px_0_0_0_#e4e4e7]">
                 Name
               </th>
-              <th className="sticky top-0 z-10 bg-zinc-50 px-3 py-2 text-left shadow-[inset_0_-1px_0_0_#e4e4e7]">
-                Link
-              </th>
               <th className="sticky top-0 z-10 whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
                 Error Date
               </th>
@@ -85,7 +84,7 @@ export function ErrorHistoryTable({
             {sorted.length === 0 ? (
               <tr>
                 <td
-                  colSpan={3}
+                  colSpan={2}
                   className="px-3 py-16 text-center text-sm text-zinc-500"
                 >
                   No error history yet. Error tracking for this website has not
@@ -98,8 +97,12 @@ export function ErrorHistoryTable({
                   {/* Frozen Name column (sticky left-0), same treatment as the
                       Per Website Page table: opaque bg + group-hover so it
                       doesn't look detached from the hovered row, + a right-edge
-                      shadow separating it from the scrolling columns. NOT deduped
-                      — the same automation may repeat (one row per error). */}
+                      shadow separating it from the scrolling column. Name on top;
+                      the automation's link sits BENEATH it (subdued), same as the
+                      Per Website Page table — not a separate column. The full URL
+                      is kept and wraps within the fixed 600px via break-all. NOT
+                      deduped — the same automation may repeat (one row per
+                      error). */}
                   <td className="sticky left-0 z-10 w-[600px] min-w-[600px] max-w-[600px] bg-white px-3 py-2 align-top shadow-[inset_-1px_0_0_0_#e4e4e7] group-hover:bg-zinc-50">
                     <div className="font-medium text-zinc-900">
                       {r.name || (
@@ -108,23 +111,16 @@ export function ErrorHistoryTable({
                         </span>
                       )}
                     </div>
-                  </td>
-                  <td className="px-3 py-2 align-top">
-                    {/* Link: same canonical full-URL presentation as the Per
-                        Website Page table (blue, external-link icon, break-all
-                        within the column). */}
-                    {r.externalUrl ? (
+                    {r.externalUrl && (
                       <a
                         href={r.externalUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-1 break-all text-xs text-blue-600 hover:underline"
+                        className="mt-0.5 inline-flex items-center gap-1 break-all text-xs text-blue-600 hover:underline"
                       >
                         <ExternalLink className="h-3 w-3 shrink-0" />
                         {r.externalUrl}
                       </a>
-                    ) : (
-                      <span className="text-xs text-zinc-400">-</span>
                     )}
                   </td>
                   <td className="px-3 py-2 align-top text-center">
