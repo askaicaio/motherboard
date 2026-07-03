@@ -23,7 +23,7 @@ import {
   partnerConversionEvents,
   partnerPayoutBatches,
 } from "@/lib/db/schema";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { getActiveSettings } from "./queries";
 import { getStripe } from "@/lib/integrations/stripe-client";
 
@@ -292,6 +292,16 @@ export interface ConnectReleaseSummary {
  */
 export async function releaseBatchViaConnect(
   batchId: string,
+  opts?: {
+    /**
+     * When true, and no earned rows remain in the batch after the release,
+     * stamp the batch itself as `paid`. Used by the manual "Send payout now"
+     * button so the batch status reflects reality. The cron path passes no
+     * opts and intentionally leaves the batch as a draft.
+     */
+    finalizeBatch?: boolean;
+    actor?: { actorId?: string | null };
+  },
 ): Promise<ConnectReleaseSummary> {
   const summary: ConnectReleaseSummary = {
     released: 0,
@@ -305,6 +315,7 @@ export async function releaseBatchViaConnect(
     .select({
       conversionId: partnerConversions.id,
       commissionCents: partnerConversions.commissionCents,
+      currency: partnerConversions.currency,
       status: partnerConversions.status,
       partnerId: partners.id,
       email: partners.email,
@@ -315,29 +326,37 @@ export async function releaseBatchViaConnect(
     .innerJoin(partners, eq(partnerConversions.partnerId, partners.id))
     .where(eq(partnerConversions.payoutBatchId, batchId));
 
-  // Aggregate the earned rows per partner.
+  // Aggregate the earned rows per (partner, currency). Keying on currency too
+  // means a single Stripe transfer never mixes currencies — amounts are minor
+  // units of THAT currency, so summing across currencies would be meaningless.
+  // In practice the program is USD-only, but this stays correct if a non-USD
+  // conversion ever lands.
   interface ReleaseGroup {
     partnerId: string;
     email: string;
+    currency: string;
     connectAccountId: string | null;
     connectStatus: string;
     amountCents: number;
     conversionIds: string[];
   }
-  const byPartner = new Map<string, ReleaseGroup>();
+  const byGroup = new Map<string, ReleaseGroup>();
   for (const r of rows) {
     if (r.status !== "earned") continue; // only earned rows are payable
-    let g = byPartner.get(r.partnerId);
+    const currency = (r.currency || "USD").toUpperCase();
+    const key = `${r.partnerId}::${currency}`;
+    let g = byGroup.get(key);
     if (!g) {
       g = {
         partnerId: r.partnerId,
         email: r.email,
+        currency,
         connectAccountId: r.connectAccountId,
         connectStatus: r.connectStatus,
         amountCents: 0,
         conversionIds: [],
       };
-      byPartner.set(r.partnerId, g);
+      byGroup.set(key, g);
     }
     g.amountCents += r.commissionCents;
     g.conversionIds.push(r.conversionId);
@@ -349,11 +368,11 @@ export async function releaseBatchViaConnect(
   } catch {
     // Stripe not configured at all — nothing can be auto-released. Treat every
     // group as skipped so they fall through to manual ACH.
-    summary.skipped = byPartner.size;
+    summary.skipped = byGroup.size;
     return summary;
   }
 
-  for (const g of byPartner.values()) {
+  for (const g of byGroup.values()) {
     // Not Connect-ready, or nothing to pay — leave for manual ACH.
     if (
       g.connectStatus !== "ready" ||
@@ -365,19 +384,29 @@ export async function releaseBatchViaConnect(
     }
 
     try {
-      await stripe.transfers.create({
-        amount: g.amountCents,
-        currency: "usd",
-        destination: g.connectAccountId,
-        transfer_group: `batch_${batchId}`,
-        description: `CAIO affiliate commission — ${g.email}`,
-        metadata: {
-          affiliate_email: g.email,
-          partner_id: g.partnerId,
-          batch_id: batchId,
-          conversions: String(g.conversionIds.length),
+      await stripe.transfers.create(
+        {
+          amount: g.amountCents,
+          currency: g.currency.toLowerCase(),
+          destination: g.connectAccountId,
+          transfer_group: `batch_${batchId}`,
+          description: `CAIO affiliate commission — ${g.email}`,
+          metadata: {
+            affiliate_email: g.email,
+            partner_id: g.partnerId,
+            batch_id: batchId,
+            conversions: String(g.conversionIds.length),
+          },
         },
-      });
+        {
+          // Deterministic per (batch, partner, currency): a retry, double-click,
+          // or timeout-then-resend within Stripe's 24h idempotency window
+          // returns the ORIGINAL transfer instead of sending a second one. The
+          // amount for this group is fixed (sum of that partner's earned rows in
+          // the batch), so the request never diverges from the first attempt.
+          idempotencyKey: `payout_${batchId}_${g.partnerId}_${g.currency}`,
+        },
+      );
 
       // Transfer succeeded — flip this affiliate's earned conversions to paid
       // and append an audit event per conversion. Re-assert status='earned' in
@@ -413,6 +442,32 @@ export async function releaseBatchViaConnect(
         email: g.email,
         error: message,
       });
+    }
+  }
+
+  // Manual "Send payout now": if the batch is now fully settled (no earned
+  // rows remain), stamp the batch itself paid so its status reflects reality.
+  // Skipped (not-connected) or errored rows stay 'earned', so the batch is
+  // only finalized when every line actually cleared.
+  if (opts?.finalizeBatch) {
+    const [{ remaining }] = await db
+      .select({ remaining: sql<number>`count(*)::int` })
+      .from(partnerConversions)
+      .where(
+        and(
+          eq(partnerConversions.payoutBatchId, batchId),
+          eq(partnerConversions.status, "earned"),
+        ),
+      );
+    if (remaining === 0) {
+      await db
+        .update(partnerPayoutBatches)
+        .set({
+          status: "paid",
+          paidAt: new Date(),
+          paidBy: opts.actor?.actorId ?? null,
+        })
+        .where(eq(partnerPayoutBatches.id, batchId));
     }
   }
 

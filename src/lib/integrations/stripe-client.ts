@@ -33,3 +33,19 @@ export function getStripe(): Stripe {
 export function webhookSecret(): string | null {
   return process.env.STRIPE_WEBHOOK_SECRET || null;
 }
+
+export type StripeMode = "test" | "live" | "unset";
+
+/**
+ * Detect whether the configured Stripe key is a TEST or LIVE key, purely from
+ * its prefix (sk_test_/rk_test_ vs sk_live_/rk_live_). Returns "unset" when no
+ * key is configured. Never throws — safe to call from any server component to
+ * render a "TEST / LIVE" indicator.
+ */
+export function stripeMode(): StripeMode {
+  const key = stripeSecret();
+  if (!key) return "unset";
+  if (key.includes("_test_")) return "test";
+  if (key.includes("_live_")) return "live";
+  return "unset";
+}

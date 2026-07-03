@@ -12,6 +12,7 @@
 // mode ("practice mode"), so real cards are never charged.
 
 import { requireAuth } from "@/lib/auth/guard";
+import { stripeMode } from "@/lib/integrations/stripe-client";
 import {
   FlaskConical,
   ShieldCheck,
@@ -210,6 +211,8 @@ function Callout({
 export default async function AffiliateTestingGuidePage() {
   await requireAuth();
 
+  const mode = stripeMode();
+
   return (
     <div className="mx-auto max-w-3xl space-y-10 p-6">
       {/* Header */}
@@ -268,6 +271,44 @@ export default async function AffiliateTestingGuidePage() {
             </p>
           </CardContent>
         </Card>
+
+        {/* Live mode reflects the actual Stripe key, so a tester can confirm
+            it's safe before running the money steps. */}
+        {mode === "live" ? (
+          <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-800">
+            <div className="flex items-center gap-2 font-semibold text-red-900">
+              <AlertTriangle className="h-4 w-4" />
+              Payments are LIVE right now
+            </div>
+            <p className="mt-1.5">
+              Real cards will be charged and real payouts will send. Do{" "}
+              <strong>not</strong> run the money steps (Part&nbsp;2) while
+              you&apos;re in this mode.
+            </p>
+          </div>
+        ) : mode === "test" ? (
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+            <div className="flex items-center gap-2 font-semibold text-emerald-900">
+              <ShieldCheck className="h-4 w-4" />
+              Payments are in practice mode right now
+            </div>
+            <p className="mt-1.5">
+              You&apos;re clear to run everything below — no real card is charged
+              and no real money is sent.
+            </p>
+          </div>
+        ) : (
+          <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-600">
+            <div className="flex items-center gap-2 font-semibold text-zinc-700">
+              <AlertTriangle className="h-4 w-4" />
+              The payment system isn&apos;t connected yet
+            </div>
+            <p className="mt-1.5">
+              The money steps (Part&nbsp;2) won&apos;t run until it&apos;s set
+              up. Part&nbsp;1 and Part&nbsp;3 still work.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Before you start */}

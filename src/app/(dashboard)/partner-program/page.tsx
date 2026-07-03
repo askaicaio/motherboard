@@ -31,6 +31,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import NextLink from "next/link";
 import { format } from "date-fns";
+import { stripeMode } from "@/lib/integrations/stripe-client";
 
 export const dynamic = "force-dynamic";
 
@@ -227,6 +228,7 @@ export default async function PartnerProgramPage() {
             <h1 className="text-2xl font-semibold tracking-tight">
               Affiliate Program
             </h1>
+            <StripeModeBadge />
           </div>
           <p className="mt-1 text-sm text-zinc-500">
             Affiliate commission overview — active affiliates, pending
@@ -441,6 +443,43 @@ export default async function PartnerProgramPage() {
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * Small pill showing whether payments run against Stripe TEST or LIVE keys.
+ * Read from the key prefix at request time — no network call. Amber = test
+ * (safe to experiment), emerald = live (real money), zinc = not configured.
+ */
+function StripeModeBadge() {
+  const mode = stripeMode();
+  const config = {
+    test: {
+      label: "Stripe · Test mode",
+      className: "border-amber-200 bg-amber-50 text-amber-700",
+      title: "Payments are in Stripe test mode — no real cards are charged.",
+    },
+    live: {
+      label: "Stripe · Live",
+      className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+      title: "Payments are LIVE — real cards are charged and real payouts send.",
+    },
+    unset: {
+      label: "Stripe · not connected",
+      className: "border-zinc-200 bg-zinc-100 text-zinc-500",
+      title: "No Stripe key is configured yet.",
+    },
+  }[mode];
+  return (
+    <span
+      title={config.title}
+      className={cn(
+        "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+        config.className,
+      )}
+    >
+      {config.label}
+    </span>
   );
 }
 

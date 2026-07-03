@@ -77,6 +77,7 @@ import {
   Info,
   MoreHorizontal,
   Sparkles,
+  Send,
 } from "lucide-react";
 import { format, parseISO, isValid as dateIsValid } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -1909,6 +1910,8 @@ function PayoutsSection({ initialBatches }: { initialBatches: BatchRow[] }) {
   const [generating, setGenerating] = useState(false);
   const [markTarget, setMarkTarget] = useState<BatchRow | null>(null);
   const [marking, setMarking] = useState(false);
+  const [sendTarget, setSendTarget] = useState<BatchRow | null>(null);
+  const [sending, setSending] = useState(false);
 
   const loadPreview = async () => {
     setPreviewing(true);
@@ -1960,6 +1963,71 @@ function PayoutsSection({ initialBatches }: { initialBatches: BatchRow[] }) {
     }
   };
 
+  const confirmSend = async () => {
+    if (!sendTarget) return;
+    const batchId = sendTarget.id;
+    setSending(true);
+    try {
+      const res = await fetch(`/api/partners/payouts/${batchId}/send`, {
+        method: "POST",
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        released?: number;
+        transferredCents?: number;
+        skipped?: number;
+        errors?: unknown[];
+      };
+      if (!res.ok) {
+        toast.error(data.error || "Failed to send payouts");
+        return;
+      }
+      const released = data.released ?? 0;
+      const transferred = data.transferredCents ?? 0;
+      const skipped = data.skipped ?? 0;
+      const errCount = Array.isArray(data.errors) ? data.errors.length : 0;
+      if (released > 0) {
+        toast.success(
+          `Sent ${fmtUsd(transferred)} to ${released} affiliate${
+            released === 1 ? "" : "s"
+          }` +
+            (skipped ? ` · ${skipped} not connected yet` : "") +
+            (errCount ? ` · ${errCount} failed` : ""),
+        );
+      } else if (errCount > 0) {
+        toast.error(
+          `No transfers went through — ${errCount} failed. Check Stripe.`,
+        );
+      } else {
+        toast.message(
+          skipped
+            ? `Nothing sent — ${skipped} affiliate${
+                skipped === 1 ? "" : "s"
+              } haven't connected a payout account yet.`
+            : "Nothing to send — no connected, earned balances in this batch.",
+        );
+      }
+      // When every line cleared (nothing skipped or errored), the server
+      // finalizes the batch to paid — mirror that locally so the row updates
+      // without a hard reload. Partial sends stay actionable.
+      if (skipped === 0 && errCount === 0) {
+        setBatches((prev) =>
+          prev.map((b) =>
+            b.id === batchId
+              ? { ...b, status: "paid", paidAt: new Date().toISOString() }
+              : b,
+          ),
+        );
+      }
+      setSendTarget(null);
+      router.refresh();
+    } catch {
+      toast.error("Failed to send payouts");
+    } finally {
+      setSending(false);
+    }
+  };
+
   const confirmMarkPaid = async () => {
     if (!markTarget) return;
     setMarking(true);
@@ -1999,8 +2067,10 @@ function PayoutsSection({ initialBatches }: { initialBatches: BatchRow[] }) {
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <p className="max-w-2xl text-sm text-zinc-500">
           Batches are auto-generated monthly. Preview the next run, generate a
-          batch on demand, then export and release it. Releasing money is always
-          a manual click. Net-45 terms.
+          batch on demand, then either <strong>Send payout now</strong> to
+          transfer money via Stripe to each connected affiliate, or{" "}
+          <strong>Mark paid</strong> to settle a batch in-app without moving
+          money. Net-45 terms.
         </p>
         <div className="flex items-center gap-2">
           <Button
@@ -2212,14 +2282,20 @@ function PayoutsSection({ initialBatches }: { initialBatches: BatchRow[] }) {
                             Export CSV
                           </a>
                           {b.status !== "paid" && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => setMarkTarget(b)}
-                            >
-                              <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
-                              Mark paid
-                            </Button>
+                            <>
+                              <Button size="sm" onClick={() => setSendTarget(b)}>
+                                <Send className="mr-1.5 h-3.5 w-3.5" />
+                                Send payout now
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setMarkTarget(b)}
+                              >
+                                <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
+                                Mark paid
+                              </Button>
+                            </>
                           )}
                         </div>
                       </td>
@@ -2266,6 +2342,48 @@ function PayoutsSection({ initialBatches }: { initialBatches: BatchRow[] }) {
                 <CheckCircle2 className="mr-2 h-3.5 w-3.5" />
               )}
               Mark paid
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!sendTarget}
+        onOpenChange={(o) => {
+          if (!o && !sending) setSendTarget(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Send payouts now?</DialogTitle>
+            <DialogDescription>
+              {sendTarget && (
+                <>
+                  This transfers money through Stripe to every connected
+                  affiliate in the {fmtPeriod(sendTarget.periodYyyymm)} batch (
+                  {fmtUsd(sendTarget.totalCents)}) and marks their commissions
+                  paid. Affiliates who haven&apos;t connected a payout account
+                  are skipped and left for a later run. This can&apos;t be
+                  undone.
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setSendTarget(null)}
+              disabled={sending}
+            >
+              Cancel
+            </Button>
+            <Button onClick={confirmSend} disabled={sending}>
+              {sending ? (
+                <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Send className="mr-2 h-3.5 w-3.5" />
+              )}
+              Send payouts
             </Button>
           </DialogFooter>
         </DialogContent>
