@@ -143,23 +143,19 @@ export default function RoadmapClient({
         {/* ─────────────────── HEADER ─────────────────── */}
         <header className="sticky top-0 z-30 border-b border-[var(--hair)]/70 bg-[var(--paper)]/85 backdrop-blur-md">
           <div className="mx-auto flex h-16 max-w-3xl items-center justify-between px-[var(--edge)]">
-            <a href="#top" className="flex items-center gap-2.5" aria-label="Chief AI Officer">
+            <a
+              href="#top"
+              className="flex items-center"
+              aria-label="Chief AI Officer, in partnership with Scaling Up"
+            >
               <Image
-                src="/caio-logo-black.png"
-                alt="Chief AI Officer"
-                width={32}
-                height={32}
+                src="/caio-scalingup.png"
+                alt="Chief AI Officer — in partnership with Scaling Up"
+                width={4000}
+                height={1000}
                 priority
-                className="h-7 w-7 sm:h-8 sm:w-8"
+                className="h-8 w-auto sm:h-9"
               />
-              <span className="flex flex-col leading-tight">
-                <span className="text-[0.82rem] font-semibold tracking-tight text-[var(--navy)]">
-                  Chief AI Officer
-                </span>
-                <span className="text-[0.58rem] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">
-                  In partnership with Scaling Up
-                </span>
-              </span>
             </a>
             <button
               type="button"
@@ -462,22 +458,14 @@ export default function RoadmapClient({
         {/* ─────────────────── 8. FOOTER ─────────────────── */}
         <footer className="border-t border-[var(--hair)] bg-white px-[var(--edge)] py-12">
           <div className="mx-auto flex max-w-2xl flex-col items-center gap-4 text-center">
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center">
               <Image
-                src="/caio-logo-black.png"
-                alt="Chief AI Officer"
-                width={28}
-                height={28}
-                className="h-7 w-7"
+                src="/caio-scalingup.png"
+                alt="Chief AI Officer — in partnership with Scaling Up"
+                width={4000}
+                height={1000}
+                className="h-9 w-auto"
               />
-              <span className="flex flex-col leading-tight text-left">
-                <span className="text-sm font-semibold tracking-tight text-[var(--navy)]">
-                  Chief AI Officer
-                </span>
-                <span className="text-[0.6rem] font-medium uppercase tracking-[0.14em] text-slate-400">
-                  In partnership with Scaling Up
-                </span>
-              </span>
             </div>
             <p className="text-sm text-slate-500">roadmap.chiefaiofficer.com</p>
             <p className="text-xs text-slate-400">
