@@ -3,15 +3,19 @@
 // route serves all five websites; the slug is validated against
 // AUTOMATION_SITES (unknown slug -> 404).
 //
-// FIRST SLICE: this is a shell. Error tracking doesn't exist yet (no runs /
-// errors are stored), so the page shows a header + an empty-state placeholder.
-// The real error log / timeline lands once error events are captured.
+// The page shows a header + the 3-column error log table (Name · Link · Error
+// Date), chronological with the latest errors on top.
+//
+// PLACEHOLDER: error tracking doesn't exist yet (no runs / errors are stored),
+// so the table renders empty (no `rows` passed) and shows its empty state. The
+// real error events land once error capture is built.
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/auth/guard";
 import { ArrowLeft } from "lucide-react";
 import { getAutomationSite } from "@/lib/automations/sites";
+import { ErrorHistoryTable } from "@/components/automations/error-history-table";
 
 export const dynamic = "force-dynamic";
 
@@ -45,15 +49,11 @@ export default async function AutomationErrorHistoryPage({
         </p>
       </div>
 
-      {/* Placeholder empty state. Error tracking isn't built yet, so there's
-          nothing to show. Replace with the real error log / timeline once
-          error events are captured. */}
-      <div className="rounded-lg border border-dashed border-zinc-200 p-10 text-center">
-        <p className="text-sm text-zinc-500">
-          No error history yet. Error tracking for this website has not been set
-          up.
-        </p>
-      </div>
+      {/* Error log table (3 columns: Name · Link · Error Date), chronological
+          with the latest errors on top. PLACEHOLDER: error tracking isn't built
+          yet, so no rows are passed and the table shows its empty state. Feed
+          the per-error-event list into `rows` once error capture lands. */}
+      <ErrorHistoryTable />
     </div>
   );
 }
