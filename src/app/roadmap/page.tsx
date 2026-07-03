@@ -13,6 +13,7 @@ import RoadmapClient from "./roadmap-client";
  */
 
 // Display / accent — Instrument Serif, italic. Single (non-variable) weight.
+// Used only for the single hero display headline as a premium editorial accent.
 const instrumentSerif = Instrument_Serif({
   weight: "400",
   style: "italic",
@@ -21,7 +22,7 @@ const instrumentSerif = Instrument_Serif({
   variable: "--font-roadmap-serif",
 });
 
-// Body — Inter.
+// Body + headings — Inter (clean, executive, matches the CAIO funnel).
 const inter = Inter({
   subsets: ["latin"],
   display: "swap",
@@ -31,9 +32,9 @@ const inter = Inter({
 // ── EDITABLE COPY CONSTANTS ───────────────────────────────────────────────
 const HERO_HEADLINE = "You've seen the first two stages. Here are all four.";
 const HERO_SUBHEAD =
-  "Get your Four Stages of AI Adoption roadmap — and have our team map it to your business on a short call.";
+  "Get your Four Stages of AI Adoption roadmap — and have our team map it to your business on a short, private call.";
 const HERO_CTA = "Book your roadmap call";
-const HERO_TRUST = "For leaders who saw Chris Daigle speak.";
+const HERO_TRUST = "For the leaders who just saw Chris Daigle speak.";
 
 export const metadata: Metadata = {
   title: "The Four Stages of AI Adoption — Chief AI Officer",
@@ -45,7 +46,7 @@ export const metadata: Metadata = {
 export default function RoadmapPage() {
   const bookingBaseUrl =
     process.env.NEXT_PUBLIC_BOOKING_CALENDAR_URL ||
-    "https://api.leadconnectorhq.com/widget/bookings/meetcaiodani";
+    "https://api.leadconnectorhq.com/widget/booking/UPZT7IA9XbWWcjm5oFCz";
 
   return (
     <RoadmapClient

@@ -37,11 +37,15 @@ import { eq, and, or, sql } from "drizzle-orm";
 const BASE = "https://services.leadconnectorhq.com";
 const API_VERSION = "2021-07-28";
 const AFFILIATE_TAG = "affiliate-partner";
+/** Tag applied to a BUYER contact when their purchase is attributed to an affiliate. */
+const REFERRAL_TAG = "affiliate-referral";
 
 /** Custom field unique keys expected in the B2B subaccount (see header note). */
 const CF_REF_CODE = "affiliate_ref_code";
 const CF_STATUS = "affiliate_status";
 const CF_LIFETIME_PAID = "affiliate_lifetime_paid_usd";
+/** Buyer-side custom field: which affiliate referred this buyer. */
+const CF_REFERRING_AFFILIATE = "referring_affiliate";
 
 export interface GhlSyncSummary {
   synced: number;
@@ -281,4 +285,109 @@ export async function syncAllAffiliates(): Promise<GhlSyncSummary> {
   }
 
   return { synced, skipped, errors };
+}
+
+/**
+ * Sync a CONVERTED referral to GHL by upserting the BUYER's contact into the
+ * B2B subaccount, tagged "affiliate-referral" so the team sees the referral in
+ * the CRM. Carries the referring affiliate as custom fields + a structured note.
+ *
+ * This is the conversion-side counterpart to syncAffiliateToGhl (which mirrors
+ * the affiliate partner themselves). Here the contact is the CUSTOMER who bought.
+ *
+ * FULLY DEFENSIVE: never throws. Missing creds → { ok:false, skipped:true }.
+ * Any network / API failure is caught and returned as { ok:false } so callers
+ * can fire this best-effort without guarding the critical path.
+ */
+export async function syncConversionToGhl(input: {
+  buyerEmail: string;
+  affiliateName: string | null;
+  affiliateRefCode: string | null;
+  programName: string | null;
+  commissionCents: number;
+}): Promise<{ ok: boolean; skipped?: boolean; reason?: string }> {
+  try {
+    const creds = getCreds();
+    if (!creds) {
+      return {
+        ok: false,
+        skipped: true,
+        reason:
+          "GHL_B2B_LOCATION_ID and/or GHL_B2B_API_TOKEN (or GHL_API_TOKEN) not set",
+      };
+    }
+    const { token, locationId } = creds;
+
+    const buyerEmail = (input.buyerEmail || "").trim();
+    if (!buyerEmail) {
+      return { ok: false, skipped: true, reason: "no buyerEmail" };
+    }
+
+    const affiliateName = input.affiliateName?.trim() || null;
+    const refCode = input.affiliateRefCode?.trim() || null;
+    const programName = input.programName?.trim() || null;
+
+    // Custom fields may need `id` vs `key` — GHL v2 accepts either in the
+    // [{ key | id, field_value }] array form. We use the `key` form (unique
+    // keys must be pre-created in the subaccount); unknown keys are silently
+    // ignored by GHL, so the note below carries the same data as a safety net.
+    const body: Record<string, unknown> = {
+      locationId,
+      email: buyerEmail,
+      tags: [REFERRAL_TAG],
+      source: "Affiliate referral",
+      customFields: [
+        { key: CF_REFERRING_AFFILIATE, field_value: affiliateName ?? "" },
+        { key: CF_REF_CODE, field_value: refCode ?? "" },
+      ],
+    };
+
+    const res = await fetch(`${BASE}/contacts/upsert`, {
+      method: "POST",
+      headers: buildHeaders(token),
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      console.warn(
+        `[ghl-affiliate-sync] conversion upsert failed (${res.status}) for ${buyerEmail}: ${text.slice(0, 300)}`,
+      );
+      return { ok: false, reason: `upsert failed (${res.status})` };
+    }
+
+    const json = (await res.json().catch(() => ({}))) as {
+      contact?: { id?: string };
+      id?: string;
+    };
+    const contactId = json.contact?.id ?? json.id ?? null;
+
+    // Attach a structured note summarizing the referral (best-effort — the
+    // custom fields already carry the core data).
+    if (contactId) {
+      const noteBody = `Referred by ${affiliateName ?? "unknown affiliate"} (${
+        refCode ?? "no ref code"
+      }) — ${programName ?? "unknown program"}, commission ${centsToUsd(
+        input.commissionCents ?? 0,
+      )}`;
+      try {
+        await fetch(`${BASE}/contacts/${contactId}/notes`, {
+          method: "POST",
+          headers: buildHeaders(token),
+          body: JSON.stringify({ body: noteBody }),
+        });
+      } catch (err) {
+        console.warn(
+          `[ghl-affiliate-sync] conversion note attach failed for ${buyerEmail}:`,
+          err,
+        );
+      }
+    }
+
+    return { ok: true };
+  } catch (err) {
+    // Never throw — this is fired best-effort from the ingest critical path.
+    console.warn("[ghl-affiliate-sync] syncConversionToGhl error:", err);
+    return { ok: false, reason: "unexpected error" };
+  }
 }

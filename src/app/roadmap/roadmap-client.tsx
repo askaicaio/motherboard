@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+import Script from "next/script";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -29,6 +31,9 @@ const UTM_KEYS = [
 ] as const;
 
 const UTM_STORAGE_KEY = "roadmap_utm";
+
+// GHL embed script — makes the booking widget size/behave correctly.
+const GHL_EMBED_SCRIPT = "https://link.msgsndr.com/js/form_embed.js";
 
 // ── Content (verbatim) ──────────────────────────────────────────────────────
 const STAGES = [
@@ -120,39 +125,76 @@ export default function RoadmapClient({
           // Scope fonts to this page root so they don't leak into the app.
           fontFamily:
             "var(--font-roadmap-sans), ui-sans-serif, system-ui, sans-serif",
-          // Palette tokens (deep navy/blue + one warm accent).
-          "--navy": "#0b1437",
-          "--blue": "#2f4fd8",
-          "--accent": "#e8823a",
-          "--accent-hover": "#d97324",
-          "--ink": "#0b1437",
-          "--paper": "#faf8f4",
+          // ── Editorial / executive palette (no orange anywhere) ──
+          "--navy": "#0f172a", // deep slate-navy — primary ink + dark CTA
+          "--indigo": "#1e1b4b", // deep indigo for gradient depth
+          "--blue": "#2563eb", // restrained blue accent for links/eyebrows
+          "--ink": "#0f172a",
+          "--muted": "#475569", // slate body text
+          "--paper": "#fbfbfd", // near-white off-white background
+          "--hair": "#e7e9ef", // hairline divider
         } as React.CSSProperties
       }
     >
-      <main className="min-h-screen bg-[var(--paper)] text-[var(--ink)] antialiased">
+      {/* GHL embed script — required for the booking widget to size correctly. */}
+      <Script src={GHL_EMBED_SCRIPT} strategy="afterInteractive" />
+
+      <main className="min-h-screen bg-[var(--paper)] text-[var(--ink)] antialiased [--edge:1.5rem] sm:[--edge:2rem]">
+        {/* ─────────────────── HEADER ─────────────────── */}
+        <header className="sticky top-0 z-30 border-b border-[var(--hair)]/70 bg-[var(--paper)]/85 backdrop-blur-md">
+          <div className="mx-auto flex h-16 max-w-3xl items-center justify-between px-[var(--edge)]">
+            <a href="#top" className="flex items-center gap-2.5" aria-label="Chief AI Officer">
+              <Image
+                src="/caio-logo-black.png"
+                alt="Chief AI Officer"
+                width={32}
+                height={32}
+                priority
+                className="h-7 w-7 sm:h-8 sm:w-8"
+              />
+              <span className="text-[0.82rem] font-semibold tracking-tight text-[var(--navy)]">
+                Chief AI Officer
+              </span>
+            </a>
+            <button
+              type="button"
+              onClick={scrollToBooking}
+              className="hidden items-center rounded-full bg-[var(--navy)] px-4 py-2 text-[0.82rem] font-semibold text-white transition hover:bg-[var(--indigo)] active:scale-[0.98] sm:inline-flex"
+            >
+              Book a call
+            </button>
+          </div>
+        </header>
+
+        <span id="top" className="sr-only" />
+
         {/* ─────────────────── 1. HERO ─────────────────── */}
-        <section className="relative flex min-h-[100svh] flex-col overflow-hidden px-6 pt-10 pb-8 sm:min-h-0 sm:px-8 sm:pt-16 sm:pb-20">
+        <section className="relative flex min-h-[calc(100svh-4rem)] flex-col overflow-hidden px-[var(--edge)] pt-8 pb-10 sm:min-h-0 sm:pt-20 sm:pb-24">
           <div
             aria-hidden
             className="pointer-events-none absolute inset-0"
             style={{
               background:
-                "radial-gradient(120% 80% at 50% -10%, rgba(47,79,216,0.10) 0%, transparent 55%)",
+                "radial-gradient(115% 70% at 50% -8%, rgba(37,99,235,0.08) 0%, transparent 60%)",
             }}
           />
           <div className="relative mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center">
-            {/* Eyebrow wordmark */}
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--blue)]">
-              Chief AI Officer
-            </p>
+            {/* Eyebrow */}
+            <div className="flex items-center gap-2.5 anim-rise" style={{ animationDelay: "0ms" }}>
+              <span className="h-px w-6 bg-[var(--blue)]/50" aria-hidden />
+              <p className="text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-[var(--blue)]">
+                The Four Stages of AI Adoption
+              </p>
+            </div>
 
             {/* Headline — Instrument Serif italic + navy→blue gradient */}
             <h1
-              className="mt-5 text-balance text-[2.6rem] italic leading-[1.02] tracking-tight sm:text-6xl"
+              className="anim-rise mt-5 text-balance text-[2.55rem] italic leading-[1.03] tracking-[-0.01em] sm:text-[3.75rem]"
               style={{
+                animationDelay: "60ms",
                 fontFamily: "var(--font-roadmap-serif), Georgia, serif",
-                backgroundImage: "linear-gradient(135deg, #0b1437 0%, #2f4fd8 95%)",
+                backgroundImage:
+                  "linear-gradient(135deg, #0f172a 0%, #1e1b4b 45%, #2563eb 100%)",
                 WebkitBackgroundClip: "text",
                 backgroundClip: "text",
                 color: "transparent",
@@ -161,54 +203,84 @@ export default function RoadmapClient({
               {heroHeadline}
             </h1>
 
-            <p className="mt-6 max-w-xl text-pretty text-[1.05rem] leading-relaxed text-slate-600 sm:text-lg">
+            <p
+              className="anim-rise mt-6 max-w-xl text-pretty text-[1.06rem] leading-relaxed text-[var(--muted)] sm:text-lg"
+              style={{ animationDelay: "120ms" }}
+            >
               {heroSubhead}
             </p>
 
-            {/* Primary CTA — thumb-reachable, visible without scroll at 375px */}
-            <div className="mt-8">
+            {/* Primary CTA — DARK button, thumb-reachable, visible without scroll */}
+            <div
+              className="anim-rise mt-8 flex flex-col gap-3 sm:flex-row sm:items-center"
+              style={{ animationDelay: "180ms" }}
+            >
               <button
                 type="button"
                 onClick={scrollToBooking}
-                className="inline-flex w-full items-center justify-center rounded-xl bg-[var(--accent)] px-8 py-4 text-base font-semibold text-white shadow-lg shadow-[var(--accent)]/25 transition hover:bg-[var(--accent-hover)] active:scale-[0.99] sm:w-auto"
+                className="group inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--navy)] px-8 py-4 text-base font-semibold text-white shadow-[0_10px_30px_-10px_rgba(15,23,42,0.55)] transition hover:bg-[var(--indigo)] active:scale-[0.99] sm:w-auto"
               >
                 {heroCta}
+                <span
+                  aria-hidden
+                  className="transition-transform duration-200 group-hover:translate-x-0.5"
+                >
+                  →
+                </span>
               </button>
+              <p className="text-sm text-slate-500 sm:ml-1">{heroTrust}</p>
             </div>
+          </div>
 
-            <p className="mt-5 text-sm text-slate-500">{heroTrust}</p>
+          {/* Subtle scroll affordance */}
+          <div
+            aria-hidden
+            className="anim-fade relative mx-auto mt-10 hidden w-full max-w-2xl sm:block"
+            style={{ animationDelay: "260ms" }}
+          >
+            <div className="h-px w-full bg-[var(--hair)]" />
           </div>
         </section>
 
         {/* ─────────────────── 2. THE FOUR STAGES ─────────────────── */}
-        <section className="px-6 py-16 sm:px-8 sm:py-24">
+        <section className="border-t border-[var(--hair)] px-[var(--edge)] py-16 sm:py-24">
           <div className="mx-auto max-w-2xl">
+            <SectionLabel>The ladder</SectionLabel>
             <h2
-              className="text-balance text-3xl italic leading-tight tracking-tight text-[var(--navy)] sm:text-4xl"
+              className="mt-3 text-balance text-3xl italic leading-tight tracking-[-0.01em] text-[var(--navy)] sm:text-[2.5rem]"
               style={{ fontFamily: "var(--font-roadmap-serif), Georgia, serif" }}
             >
               The four stages of AI adoption
             </h2>
-            <p className="mt-3 text-slate-600">
+            <p className="mt-3 max-w-lg text-[1.02rem] leading-relaxed text-[var(--muted)]">
               Place yourself on the ladder — most teams are further down than
               they think.
             </p>
 
-            <ol className="mt-10 flex flex-col gap-4">
-              {STAGES.map((s) => (
+            <ol className="mt-10 flex flex-col gap-3.5">
+              {STAGES.map((s, i) => (
                 <li
                   key={s.n}
-                  className="relative rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm"
+                  className="group relative overflow-hidden rounded-2xl border border-[var(--hair)] bg-white p-6 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-shadow hover:shadow-[0_12px_32px_-16px_rgba(15,23,42,0.25)]"
                 >
+                  {/* left accent that intensifies down the ladder */}
+                  <span
+                    aria-hidden
+                    className="absolute inset-y-0 left-0 w-1"
+                    style={{
+                      background: "var(--blue)",
+                      opacity: 0.2 + i * 0.26,
+                    }}
+                  />
                   <div className="flex items-start gap-4">
                     <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--navy)] text-lg font-semibold text-white tabular-nums">
                       {s.n}
                     </span>
                     <div className="min-w-0">
-                      <h3 className="text-lg font-semibold text-[var(--navy)]">
+                      <h3 className="text-lg font-semibold tracking-tight text-[var(--navy)]">
                         {s.name}
                       </h3>
-                      <p className="mt-2 text-[0.95rem] leading-relaxed text-slate-600">
+                      <p className="mt-2 text-[0.95rem] leading-relaxed text-[var(--muted)]">
                         {s.desc}
                       </p>
                       <p className="mt-3 text-[0.95rem] leading-relaxed text-slate-700">
@@ -226,30 +298,37 @@ export default function RoadmapClient({
         </section>
 
         {/* ─────────────────── 3. WHAT YOU GET ─────────────────── */}
-        <section className="bg-white px-6 py-16 sm:px-8 sm:py-24">
+        <section className="border-t border-[var(--hair)] bg-white px-[var(--edge)] py-16 sm:py-24">
           <div className="mx-auto max-w-2xl">
+            <SectionLabel>What you get</SectionLabel>
             <h2
-              className="text-3xl italic tracking-tight text-[var(--navy)] sm:text-4xl"
+              className="mt-3 text-3xl italic tracking-[-0.01em] text-[var(--navy)] sm:text-[2.5rem]"
               style={{ fontFamily: "var(--font-roadmap-serif), Georgia, serif" }}
             >
-              What you get
+              A map, and a guide to read it
             </h2>
-            <div className="mt-8 grid gap-5 sm:grid-cols-2">
-              <div className="rounded-2xl border border-slate-200/80 bg-[var(--paper)] p-6">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--blue)]">
+            <div className="mt-8 grid gap-4 sm:grid-cols-2">
+              <div className="rounded-2xl border border-[var(--hair)] bg-[var(--paper)] p-6">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--blue)]/10 text-[var(--blue)]">
+                  <MapIcon />
+                </span>
+                <p className="mt-4 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--blue)]">
                   The roadmap
                 </p>
-                <p className="mt-3 text-[0.98rem] leading-relaxed text-slate-700">
+                <p className="mt-2 text-[0.98rem] leading-relaxed text-slate-700">
                   The Four Stages of AI Adoption, laid out end to end — a clear
                   map of where AI value comes from and what separates each stage
                   from the next.
                 </p>
               </div>
-              <div className="rounded-2xl border border-slate-200/80 bg-[var(--paper)] p-6">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--blue)]">
+              <div className="rounded-2xl border border-[var(--hair)] bg-[var(--paper)] p-6">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--blue)]/10 text-[var(--blue)]">
+                  <CompassIcon />
+                </span>
+                <p className="mt-4 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--blue)]">
                   The call
                 </p>
-                <p className="mt-3 text-[0.98rem] leading-relaxed text-slate-700">
+                <p className="mt-2 text-[0.98rem] leading-relaxed text-slate-700">
                   Our team maps the four stages to <em>your</em> business,
                   pinpoints exactly where you are today, and shows the fastest
                   path to the next stage.
@@ -260,30 +339,43 @@ export default function RoadmapClient({
         </section>
 
         {/* ─────────────────── 4. HOW IT WORKS ─────────────────── */}
-        <section className="px-6 py-16 sm:px-8 sm:py-24">
+        <section className="border-t border-[var(--hair)] px-[var(--edge)] py-16 sm:py-24">
           <div className="mx-auto max-w-2xl">
+            <SectionLabel>How it works</SectionLabel>
             <h2
-              className="text-3xl italic tracking-tight text-[var(--navy)] sm:text-4xl"
+              className="mt-3 text-3xl italic tracking-[-0.01em] text-[var(--navy)] sm:text-[2.5rem]"
               style={{ fontFamily: "var(--font-roadmap-serif), Georgia, serif" }}
             >
-              How it works
+              Three steps, about twenty minutes
             </h2>
-            <ol className="mt-8 flex flex-col gap-4">
+            <ol className="mt-8 flex flex-col gap-3">
               {[
-                "Book a short call",
-                "Get your Four Stages roadmap",
-                "We map it to your business, live",
+                {
+                  t: "Book a short call",
+                  d: "Pick a time from the calendar below.",
+                },
+                {
+                  t: "Get your Four Stages roadmap",
+                  d: "Yours to keep, in your inbox.",
+                },
+                {
+                  t: "We map it to your business, live",
+                  d: "Leave knowing your exact next stage.",
+                },
               ].map((step, i) => (
                 <li
                   key={i}
-                  className="flex items-center gap-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm"
+                  className="flex items-start gap-4 rounded-2xl border border-[var(--hair)] bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
                 >
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--blue)]/10 text-sm font-semibold text-[var(--blue)] tabular-nums">
                     {i + 1}
                   </span>
-                  <span className="text-[1.02rem] font-medium text-[var(--navy)]">
-                    {step}
-                  </span>
+                  <div className="min-w-0 pt-0.5">
+                    <p className="text-[1.02rem] font-semibold tracking-tight text-[var(--navy)]">
+                      {step.t}
+                    </p>
+                    <p className="mt-0.5 text-sm text-[var(--muted)]">{step.d}</p>
+                  </div>
                 </li>
               ))}
             </ol>
@@ -294,25 +386,32 @@ export default function RoadmapClient({
         <section
           ref={bookingRef}
           id="booking"
-          className="scroll-mt-4 bg-[var(--navy)] px-4 py-16 sm:px-8 sm:py-24"
+          className="scroll-mt-16 border-t border-[var(--hair)] bg-[var(--navy)] px-[var(--edge)] py-16 sm:py-24"
+          style={{
+            backgroundImage:
+              "radial-gradient(120% 80% at 50% -10%, rgba(37,99,235,0.22) 0%, transparent 55%)",
+          }}
         >
-          <div className="mx-auto max-w-3xl">
+          <div className="mx-auto max-w-2xl">
             <div className="text-center">
+              <p className="text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-blue-300/90">
+                Reserve your call
+              </p>
               <h2
-                className="text-3xl italic tracking-tight text-white sm:text-4xl"
+                className="mt-3 text-3xl italic tracking-[-0.01em] text-white sm:text-[2.5rem]"
                 style={{
                   fontFamily: "var(--font-roadmap-serif), Georgia, serif",
                 }}
               >
                 Book your roadmap call
               </h2>
-              <p className="mx-auto mt-3 max-w-lg text-slate-300">
+              <p className="mx-auto mt-3 max-w-md text-[1.02rem] leading-relaxed text-slate-300">
                 Pick a time that works. It&apos;s short, and you&apos;ll leave
                 knowing your next stage.
               </p>
             </div>
 
-            <div className="mt-8 overflow-hidden rounded-2xl bg-white shadow-xl">
+            <div className="mt-8 overflow-hidden rounded-2xl bg-white shadow-[0_30px_60px_-25px_rgba(0,0,0,0.6)]">
               {/* min-height reserves space to avoid CLS while the iframe loads */}
               <iframe
                 key={bookingSrc}
@@ -330,46 +429,138 @@ export default function RoadmapClient({
         {/* ─────────────────── 6. SECONDARY CAPTURE (email) ─────────────────── */}
         <EmailCapture utm={utm} />
 
-        {/* ─────────────────── 7. CREDIBILITY (light) ─────────────────── */}
-        <section className="px-6 py-16 sm:px-8 sm:py-20">
-          <div className="mx-auto max-w-2xl text-center">
-            <p className="text-[1.05rem] leading-relaxed text-slate-700">
-              Led by{" "}
-              <strong className="font-semibold text-[var(--navy)]">
-                Chris Daigle
-              </strong>
-              , CEO and keynote speaker on enterprise AI adoption.
-            </p>
-            <p className="mt-3 text-sm text-slate-500">
+        {/* ─────────────────── 7. CREDIBILITY (Chris Daigle) ─────────────────── */}
+        <section className="border-t border-[var(--hair)] px-[var(--edge)] py-16 sm:py-20">
+          <div className="mx-auto max-w-2xl">
+            <figure className="rounded-3xl border border-[var(--hair)] bg-white p-8 text-center shadow-[0_1px_2px_rgba(15,23,42,0.04)] sm:p-10">
+              <blockquote className="text-pretty text-[1.15rem] leading-relaxed text-[var(--navy)] sm:text-[1.3rem]">
+                &ldquo;Most companies aren&apos;t behind on AI. They&apos;re just
+                stuck between stages — and can&apos;t see the next one.&rdquo;
+              </blockquote>
+              <figcaption className="mt-6 flex flex-col items-center gap-1">
+                <span className="text-sm font-semibold tracking-tight text-[var(--navy)]">
+                  Chris Daigle
+                </span>
+                <span className="text-sm text-[var(--muted)]">
+                  CEO, Chief AI Officer · keynote speaker on enterprise AI
+                  adoption
+                </span>
+              </figcaption>
+            </figure>
+            <p className="mt-6 text-center text-sm text-slate-500">
               Trusted by leaders turning AI experiments into measurable business
               results.
             </p>
-            {/* Optional placeholder logo row */}
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-x-8 gap-y-4 opacity-50">
-              {["ACME", "NORTHWIND", "GLOBEX", "INITECH"].map((logo) => (
-                <span
-                  key={logo}
-                  className="text-sm font-semibold tracking-[0.15em] text-slate-400"
-                >
-                  {logo}
-                </span>
-              ))}
-            </div>
           </div>
         </section>
 
         {/* ─────────────────── 8. FOOTER ─────────────────── */}
-        <footer className="border-t border-slate-200/80 bg-white px-6 py-10 sm:px-8">
-          <div className="mx-auto flex max-w-2xl flex-col items-center gap-2 text-center">
-            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[var(--blue)]">
-              Chief AI Officer
-            </p>
+        <footer className="border-t border-[var(--hair)] bg-white px-[var(--edge)] py-12">
+          <div className="mx-auto flex max-w-2xl flex-col items-center gap-4 text-center">
+            <div className="flex items-center gap-2.5">
+              <Image
+                src="/caio-logo-black.png"
+                alt="Chief AI Officer"
+                width={28}
+                height={28}
+                className="h-7 w-7"
+              />
+              <span className="text-sm font-semibold tracking-tight text-[var(--navy)]">
+                Chief AI Officer
+              </span>
+            </div>
             <p className="text-sm text-slate-500">roadmap.chiefaiofficer.com</p>
-            <p className="text-xs text-slate-400">© 2026 Chief AI Officer</p>
+            <p className="text-xs text-slate-400">
+              © {new Date().getFullYear()} Chief AI Officer. All rights reserved.
+            </p>
           </div>
         </footer>
       </main>
+
+      {/* Scoped entrance motion — respects prefers-reduced-motion. */}
+      <style jsx global>{`
+        @keyframes roadmapRise {
+          from {
+            opacity: 0;
+            transform: translateY(12px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        @keyframes roadmapFade {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+        .anim-rise {
+          animation: roadmapRise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+        .anim-fade {
+          animation: roadmapFade 0.8s ease both;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .anim-rise,
+          .anim-fade {
+            animation: none !important;
+          }
+        }
+      `}</style>
     </div>
+  );
+}
+
+// ── Small presentational helpers ─────────────────────────────────────────────
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-2.5">
+      <span className="h-px w-6 bg-[var(--blue)]/50" aria-hidden />
+      <p className="text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-[var(--blue)]">
+        {children}
+      </p>
+    </div>
+  );
+}
+
+function MapIcon() {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="m9 4 6 2 5-2v14l-5 2-6-2-5 2V6z" />
+      <path d="M9 4v14M15 6v14" />
+    </svg>
+  );
+}
+
+function CompassIcon() {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <circle cx="12" cy="12" r="9" />
+      <path d="m15.5 8.5-2 5-5 2 2-5z" />
+    </svg>
   );
 }
 
@@ -405,9 +596,7 @@ function EmailCapture({ utm }: { utm: Utm }) {
         setStatus("done");
         return;
       }
-      setErrorMsg(
-        data?.error || "Something went wrong. Please try again.",
-      );
+      setErrorMsg(data?.error || "Something went wrong. Please try again.");
       setStatus("error");
     } catch {
       setErrorMsg("Network error. Please check your connection and try again.");
@@ -416,31 +605,46 @@ function EmailCapture({ utm }: { utm: Utm }) {
   }
 
   return (
-    <section className="bg-white px-6 py-16 sm:px-8 sm:py-20">
+    <section className="border-t border-[var(--hair)] bg-white px-[var(--edge)] py-16 sm:py-20">
       <div className="mx-auto max-w-xl">
-        <div className="rounded-2xl border border-slate-200/80 bg-[var(--paper)] p-6 shadow-sm sm:p-8">
+        <div className="rounded-3xl border border-[var(--hair)] bg-[var(--paper)] p-6 shadow-[0_1px_2px_rgba(15,23,42,0.04)] sm:p-8">
+          <SectionLabel>Or by email</SectionLabel>
           <h2
-            className="text-2xl italic tracking-tight text-[var(--navy)] sm:text-3xl"
+            className="mt-3 text-2xl italic tracking-[-0.01em] text-[var(--navy)] sm:text-[1.9rem]"
             style={{ fontFamily: "var(--font-roadmap-serif), Georgia, serif" }}
           >
-            Prefer the roadmap by email?
+            Prefer the roadmap in your inbox?
           </h2>
 
           {status === "done" ? (
-            <div className="mt-5">
-              <p className="text-[1.02rem] leading-relaxed text-slate-700">
-                You&apos;re all set — check your inbox. The Four Stages roadmap is
-                attached to an email we just sent to{" "}
-                <span className="font-semibold text-[var(--navy)]">{email}</span>.
-              </p>
-              <p className="mt-2 text-sm text-slate-500">
-                Don&apos;t see it in a minute or two? Check your spam or promotions
-                folder.
-              </p>
+            <div
+              className="anim-rise mt-5 rounded-2xl border border-[var(--hair)] bg-white p-5"
+              role="status"
+              aria-live="polite"
+            >
+              <div className="flex items-start gap-3">
+                <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--blue)]/10 text-[var(--blue)]">
+                  <CheckIcon />
+                </span>
+                <div>
+                  <p className="text-[1.02rem] leading-relaxed text-slate-700">
+                    You&apos;re all set — check your inbox. The Four Stages
+                    roadmap is attached to an email we just sent to{" "}
+                    <span className="font-semibold text-[var(--navy)]">
+                      {email}
+                    </span>
+                    .
+                  </p>
+                  <p className="mt-2 text-sm text-slate-500">
+                    Don&apos;t see it in a minute or two? Check your spam or
+                    promotions folder.
+                  </p>
+                </div>
+              </div>
             </div>
           ) : (
             <>
-              <p className="mt-2 text-sm text-slate-600">
+              <p className="mt-2 text-sm text-[var(--muted)]">
                 We&apos;ll send the Four Stages roadmap straight to your inbox.
               </p>
               <form onSubmit={handleSubmit} className="mt-5 flex flex-col gap-3">
@@ -451,7 +655,7 @@ function EmailCapture({ utm }: { utm: Utm }) {
                     onChange={(e) => setFirstName(e.target.value)}
                     placeholder="First name (optional)"
                     autoComplete="given-name"
-                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-[0.95rem] text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[var(--blue)] focus:ring-2 focus:ring-[var(--blue)]/20"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-[0.95rem] text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[var(--blue)] focus:ring-2 focus:ring-[var(--blue)]/20"
                   />
                   <input
                     type="text"
@@ -459,7 +663,7 @@ function EmailCapture({ utm }: { utm: Utm }) {
                     onChange={(e) => setLastName(e.target.value)}
                     placeholder="Last name (optional)"
                     autoComplete="family-name"
-                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-[0.95rem] text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[var(--blue)] focus:ring-2 focus:ring-[var(--blue)]/20"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-[0.95rem] text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[var(--blue)] focus:ring-2 focus:ring-[var(--blue)]/20"
                   />
                 </div>
                 <input
@@ -469,25 +673,48 @@ function EmailCapture({ utm }: { utm: Utm }) {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@company.com"
                   autoComplete="email"
-                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-[0.95rem] text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[var(--blue)] focus:ring-2 focus:ring-[var(--blue)]/20"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-[0.95rem] text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[var(--blue)] focus:ring-2 focus:ring-[var(--blue)]/20"
                 />
 
                 {status === "error" && errorMsg && (
-                  <p className="text-sm text-red-600">{errorMsg}</p>
+                  <p className="text-sm text-red-600" role="alert">
+                    {errorMsg}
+                  </p>
                 )}
 
                 <button
                   type="submit"
                   disabled={status === "submitting"}
-                  className="inline-flex w-full items-center justify-center rounded-xl bg-[var(--navy)] px-6 py-3.5 text-base font-semibold text-white shadow-md transition hover:bg-[#12204f] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex w-full items-center justify-center rounded-xl bg-[var(--navy)] px-6 py-3.5 text-base font-semibold text-white shadow-[0_10px_30px_-12px_rgba(15,23,42,0.55)] transition hover:bg-[var(--indigo)] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {status === "submitting" ? "Sending…" : "Send me the roadmap"}
                 </button>
+                <p className="text-center text-xs text-slate-400">
+                  No spam. Unsubscribe anytime.
+                </p>
               </form>
             </>
           )}
         </div>
       </div>
     </section>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M20 6 9 17l-5-5" />
+    </svg>
   );
 }

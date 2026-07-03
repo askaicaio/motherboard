@@ -39,6 +39,7 @@ import {
   isDirectIntroValid,
   type AttributionCandidate,
 } from "./rules";
+import { syncConversionToGhl } from "@/lib/integrations/ghl-affiliate-sync";
 
 const ELIGIBLE_PARTNER_STATUSES = ["approved", "active"];
 
@@ -325,6 +326,35 @@ export async function ingestConversion(input: IngestInput): Promise<IngestResult
       source: input.source,
     })
     .onConflictDoNothing({ target: customersIndex.email });
+
+  // --- Conversion → GHL tagging (BEST-EFFORT, off the critical path) ---
+  // When a real earn is attributed to a partner, mirror the BUYER into the B2B
+  // GHL subaccount tagged "affiliate-referral" so the team sees the referral in
+  // the CRM. Only for genuine earns: attributed (partnerId), not a clawback,
+  // and not rejected. Never awaited-blocking, never allowed to fail ingestion.
+  if (partnerId && input.source !== "clawback" && status !== "rejected") {
+    try {
+      // Fetch the partner's name/refCode cheaply (not otherwise in scope).
+      const [partnerRow] = await db
+        .select({ name: partners.name, refCode: partners.refCode })
+        .from(partners)
+        .where(eq(partners.id, partnerId))
+        .limit(1);
+
+      void syncConversionToGhl({
+        buyerEmail: email,
+        affiliateName: partnerRow?.name ?? null,
+        affiliateRefCode: partnerRow?.refCode ?? null,
+        programName: program.name ?? null,
+        commissionCents,
+      }).catch((err) => {
+        console.warn("[ingest] syncConversionToGhl failed:", err);
+      });
+    } catch (err) {
+      // Fetching partner info or kicking off the sync must never break ingest.
+      console.warn("[ingest] conversion→GHL best-effort sync errored:", err);
+    }
+  }
 
   return {
     ok: true,
