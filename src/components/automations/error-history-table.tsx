@@ -10,7 +10,8 @@
 //
 // Columns: Name (frozen; the automation's link sits BENEATH the name in the
 // same cell, exactly like the Per Website Page table — not a separate column) ·
-// Error Date (red, MM-DD-YYYY).
+// Error Message (left-aligned, wraps full sentences) · Error Date (red,
+// MM-DD-YYYY).
 // Key difference from the Per Website Page table: that table is one row per
 // automation (deduped by link identity); THIS one is ONE ROW PER ERROR EVENT
 // (not deduped), so the same automation can appear on many rows.
@@ -28,6 +29,9 @@ export interface ErrorHistoryRow {
   id: string;
   name: string;
   externalUrl: string;
+  /** The integration's error description for this event (a sentence-length
+   *  message). PLACEHOLDER: nothing feeds it yet, so cells show "-". */
+  errorMessage?: string | null;
   errorAt: string | Date | null;
 }
 
@@ -66,7 +70,7 @@ export function ErrorHistoryTable({
   return (
     <Card>
       <CardContent className="max-h-[70vh] overflow-auto p-0">
-        <table className="w-full min-w-[1250px] text-sm">
+        <table className="w-full min-w-[1400px] text-sm">
           <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
             <tr>
               {/* Corner cell: pinned to BOTH the top (header) and the left
@@ -74,6 +78,9 @@ export function ErrorHistoryTable({
                   right-edge shadows and the highest z-index. */}
               <th className="sticky left-0 top-0 z-20 w-[600px] min-w-[600px] max-w-[600px] bg-zinc-50 px-3 py-2 text-left shadow-[inset_0_-1px_0_0_#e4e4e7,inset_-1px_0_0_0_#e4e4e7]">
                 Name
+              </th>
+              <th className="sticky top-0 z-10 bg-zinc-50 px-3 py-2 text-left shadow-[inset_0_-1px_0_0_#e4e4e7]">
+                Error Message
               </th>
               <th className="sticky top-0 z-10 whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
                 Error Date
@@ -84,7 +91,7 @@ export function ErrorHistoryTable({
             {sorted.length === 0 ? (
               <tr>
                 <td
-                  colSpan={2}
+                  colSpan={3}
                   className="px-3 py-16 text-center text-sm text-zinc-500"
                 >
                   No error history yet. Error tracking for this website has not
@@ -121,6 +128,21 @@ export function ErrorHistoryTable({
                         <ExternalLink className="h-3 w-3 shrink-0" />
                         {r.externalUrl}
                       </a>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 align-top text-left">
+                    {/* Error Message: the integration's error description,
+                        LEFT-aligned. Wraps (whitespace-normal + break-words) so
+                        full sentences read tactfully instead of being clipped or
+                        blowing out the row width; the row grows to fit. A very
+                        long single "word"/URL still breaks rather than overflow.
+                        PLACEHOLDER: nothing feeds this yet, so it's always "-". */}
+                    {r.errorMessage ? (
+                      <span className="whitespace-normal break-words text-xs text-zinc-700">
+                        {r.errorMessage}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-zinc-400">-</span>
                     )}
                   </td>
                   <td className="px-3 py-2 align-top text-center">
