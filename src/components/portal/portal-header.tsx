@@ -34,13 +34,13 @@ export function PortalHeader({
       <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-3">
         <Link href={partner ? "/portal" : "/partners"} className="flex items-center gap-2.5">
           <Image
-            src="/caio-logo-black.png"
-            alt="Chief AI Officer"
-            width={512}
-            height={512}
-            className="h-7 w-7"
+            src="/caio-scalingup.png"
+            alt="Chief AI Officer — in partnership with Scaling Up"
+            width={4000}
+            height={1000}
+            className="h-6 w-auto"
           />
-          <span className="text-sm font-semibold tracking-tight">
+          <span className="hidden border-l border-slate-200 pl-2.5 text-sm font-semibold tracking-tight text-slate-500 sm:inline">
             Affiliate Portal
           </span>
         </Link>

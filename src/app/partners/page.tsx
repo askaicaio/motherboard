@@ -244,19 +244,17 @@ export default function PartnersLandingPage() {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3.5">
           <a
             href="https://chiefaiofficer.com"
-            className="flex items-center gap-2.5"
+            className="flex items-center"
+            aria-label="Chief AI Officer — in partnership with Scaling Up"
           >
             <Image
-              src="/caio-logo-black.png"
-              alt="Chief AI Officer"
-              width={512}
-              height={512}
-              className="h-8 w-8"
+              src="/caio-scalingup.png"
+              alt="Chief AI Officer — in partnership with Scaling Up"
+              width={4000}
+              height={1000}
+              className="h-9 w-auto sm:h-10"
               priority
             />
-            <span className="text-base font-semibold tracking-tight text-slate-900">
-              Chief AI Officer
-            </span>
           </a>
           <div className="flex items-center gap-5">
             <Link
@@ -543,11 +541,11 @@ export default function PartnersLandingPage() {
         />
         <div className="relative mx-auto max-w-2xl px-6">
           <Image
-            src="/caio-logo-white.png"
-            alt="Chief AI Officer"
-            width={512}
-            height={512}
-            className="mx-auto mb-6 h-12 w-12 opacity-95"
+            src="/caio-scalingup-white.png"
+            alt="Chief AI Officer — in partnership with Scaling Up"
+            width={4000}
+            height={1000}
+            className="mx-auto mb-6 h-10 w-auto opacity-95"
           />
           <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
             Start earning with your network
@@ -576,18 +574,16 @@ export default function PartnersLandingPage() {
           <div className="lg:col-span-2">
             <a
               href="https://chiefaiofficer.com"
-              className="inline-flex items-center gap-2.5"
+              className="inline-flex items-center"
+              aria-label="Chief AI Officer — in partnership with Scaling Up"
             >
               <Image
-                src="/caio-logo-black.png"
-                alt="Chief AI Officer"
-                width={512}
-                height={512}
-                className="h-6 w-6"
+                src="/caio-scalingup.png"
+                alt="Chief AI Officer — in partnership with Scaling Up"
+                width={4000}
+                height={1000}
+                className="h-7 w-auto"
               />
-              <span className="text-sm font-semibold text-slate-700">
-                Chief AI Officer
-              </span>
             </a>
             <p className="mt-3 max-w-xs text-sm leading-relaxed text-slate-500">
               Earn 10% introducing executives and boards to the programs shaping

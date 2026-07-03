@@ -203,11 +203,11 @@ export default function PartnerApplyPage() {
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center mb-4">
             <Image
-              src="/caio-logo-black.png"
-              alt="Chief AI Officer"
-              width={512}
-              height={512}
-              className="h-12 w-12"
+              src="/caio-scalingup.png"
+              alt="Chief AI Officer — in partnership with Scaling Up"
+              width={4000}
+              height={1000}
+              className="h-9 w-auto"
             />
           </div>
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">

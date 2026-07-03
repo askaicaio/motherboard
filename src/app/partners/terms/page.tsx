@@ -17,19 +17,17 @@ export default function AffiliateTermsPage() {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3.5">
           <a
             href="https://chiefaiofficer.com"
-            className="flex items-center gap-2.5"
+            className="flex items-center"
+            aria-label="Chief AI Officer — in partnership with Scaling Up"
           >
             <Image
-              src="/caio-logo-black.png"
-              alt="Chief AI Officer"
-              width={512}
-              height={512}
-              className="h-8 w-8"
+              src="/caio-scalingup.png"
+              alt="Chief AI Officer — in partnership with Scaling Up"
+              width={4000}
+              height={1000}
+              className="h-8 w-auto"
               priority
             />
-            <span className="text-base font-semibold tracking-tight text-slate-900">
-              Chief AI Officer
-            </span>
           </a>
           <div className="flex items-center gap-5">
             <Link
@@ -227,18 +225,16 @@ function LegalFooter() {
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 py-8 sm:flex-row">
         <a
           href="https://chiefaiofficer.com"
-          className="flex items-center gap-2.5"
+          className="flex items-center"
+          aria-label="Chief AI Officer — in partnership with Scaling Up"
         >
           <Image
-            src="/caio-logo-black.png"
-            alt="Chief AI Officer"
-            width={512}
-            height={512}
-            className="h-6 w-6"
+            src="/caio-scalingup.png"
+            alt="Chief AI Officer — in partnership with Scaling Up"
+            width={4000}
+            height={1000}
+            className="h-6 w-auto"
           />
-          <span className="text-sm font-semibold text-slate-700">
-            Chief AI Officer
-          </span>
         </a>
         <div className="flex items-center gap-6 text-sm text-slate-500">
           <Link href="/partners" className="transition hover:text-[#4f46e5]">
