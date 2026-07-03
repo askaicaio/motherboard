@@ -6,8 +6,10 @@
 //   2) We still export metadata with robots noindex/nofollow so that — in the
 //      unlikely event a URL leaks — Google won't index or follow it.
 //
-// This is a static walkthrough (no DB reads). It documents how to test the full
-// affiliate user + money journey end-to-end in Stripe TEST mode.
+// This is a static walkthrough (no DB reads). It is written for non-technical
+// teammates: it describes what an affiliate (and what we, the admins) actually
+// SEE at each step, in plain English. The payment side runs in Stripe's test
+// mode ("practice mode"), so real cards are never charged.
 
 import { requireAuth } from "@/lib/auth/guard";
 import {
@@ -18,7 +20,6 @@ import {
   CreditCard,
   Workflow,
   AlertTriangle,
-  Info,
   ArrowLeft,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -32,14 +33,44 @@ export const metadata = {
 
 export const dynamic = "force-dynamic";
 
+// Where the public affiliate-facing pages live. Hard-coded to the production
+// affiliate domain so every link here works no matter where you open the guide.
+const AFF = "https://affiliates.chiefaiofficer.com";
+
 // ── Small presentational helpers ─────────────────────────────────────────────
 
-/** Inline monospace token for literal values (routes, cards, env vars, codes). */
+/** Inline monospace token for literal values a tester types or reads
+ *  (referral codes, the test card number, dollar amounts). */
 function Mono({ children }: { children: React.ReactNode }) {
   return (
     <code className="rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-[12px] text-zinc-800">
       {children}
     </code>
+  );
+}
+
+/** A clickable link. Internal app pages open in place; anything starting with
+ *  http opens in a new tab. Always visibly underlined so it's obviously a link. */
+function GuideLink({
+  href,
+  children,
+}: {
+  href: string;
+  children: React.ReactNode;
+}) {
+  const cls =
+    "font-medium text-indigo-600 underline decoration-indigo-300 underline-offset-2 transition hover:text-indigo-700 hover:decoration-indigo-500";
+  if (/^https?:\/\//.test(href)) {
+    return (
+      <a href={href} target="_blank" rel="noopener noreferrer" className={cls}>
+        {children}
+      </a>
+    );
+  }
+  return (
+    <NextLink href={href} className={cls}>
+      {children}
+    </NextLink>
   );
 }
 
@@ -67,6 +98,20 @@ function Step({
         ) : null}
       </div>
     </li>
+  );
+}
+
+/** "What you should see" line — the confirmation for a step. */
+function SeeThis({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="mt-1.5 flex gap-1.5 text-sm text-emerald-700">
+      <span aria-hidden className="mt-px">
+        ✓
+      </span>
+      <span>
+        <span className="font-medium">You should see:</span> {children}
+      </span>
+    </p>
   );
 }
 
@@ -113,7 +158,7 @@ function Callout({
   children,
 }: {
   tone: "amber" | "sky" | "emerald";
-  icon: typeof Info;
+  icon: typeof ShieldCheck;
   title: string;
   children: React.ReactNode;
 }) {
@@ -191,71 +236,70 @@ export default async function AffiliateTestingGuidePage() {
               </span>
             </div>
             <p className="mt-1 text-sm text-zinc-500">
-              How to test the full affiliate journey. Do all of this in Stripe{" "}
-              <strong className="font-semibold text-zinc-700">TEST mode</strong>{" "}
-              — no real money moves.
+              A plain-English walkthrough of everything an affiliate — and you,
+              the admin — will experience, from applying all the way to getting
+              paid. The payment side runs in a safe{" "}
+              <strong className="font-semibold text-zinc-700">
+                practice mode
+              </strong>{" "}
+              (test mode), so real cards are never charged and no real money is
+              paid out.
             </p>
           </div>
         </div>
 
         {/* Demo login */}
         <Card className="border-zinc-200">
-          <CardContent className="flex flex-col gap-1 p-4 sm:flex-row sm:items-center sm:justify-between">
-            <span className="text-xs font-medium uppercase tracking-wide text-zinc-400">
-              Demo affiliate login
-            </span>
-            <div className="flex flex-wrap items-center gap-2">
-              <Mono>demo@chiefaiofficer.com</Mono>
-              <span className="text-zinc-300">/</span>
-              <Mono>CaioDemo2026!</Mono>
+          <CardContent className="space-y-2 p-4">
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+              <span className="text-xs font-medium uppercase tracking-wide text-zinc-400">
+                Demo affiliate login
+              </span>
+              <div className="flex flex-wrap items-center gap-2">
+                <Mono>demo@chiefaiofficer.com</Mono>
+                <span className="text-zinc-300">/</span>
+                <Mono>CaioDemo2026!</Mono>
+              </div>
             </div>
+            <p className="text-xs leading-relaxed text-zinc-500">
+              Use this whenever a step says &quot;sign in as the demo
+              affiliate&quot; — mostly in Part&nbsp;2. In Part&nbsp;1 you can
+              instead approve a brand-new applicant to see the full flow.
+            </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Prerequisites */}
+      {/* Before you start */}
       <Section
         icon={ListChecks}
         eyebrow="Before you start"
-        title="Prerequisites"
-        desc="Confirm the environment is wired up. Skipping these is the usual reason a test 'silently' fails."
+        title="The short version"
+        desc="You don't need to set anything up. Here's all you need to know."
       >
-        <Callout tone="sky" icon={ShieldCheck} title="Environment checklist">
+        <Callout tone="sky" icon={ShieldCheck} title="Three things to know">
           <ul className="space-y-2.5">
             <li className="flex gap-2">
-              <span className="text-sky-400">▢</span>
+              <span className="text-sky-400">1.</span>
               <span>
-                Stripe is in <strong>TEST mode</strong> and the app&apos;s{" "}
-                <Mono>STRIPE_SECRET_KEY</Mono> (or <Mono>STRIPE_API_KEY</Mono>)
-                is the <Mono>sk_test_…</Mono> key.
+                <strong>Everything is already connected.</strong> You don&apos;t
+                have to configure anything — just follow the steps.
               </span>
             </li>
             <li className="flex gap-2">
-              <span className="text-sky-400">▢</span>
+              <span className="text-sky-400">2.</span>
               <span>
-                A TEST-mode Stripe webhook points at{" "}
-                <Mono>/api/stripe/webhook</Mono>, and{" "}
-                <Mono>STRIPE_WEBHOOK_SECRET</Mono> is that test webhook&apos;s
-                signing secret.{" "}
-                <em className="text-sky-700">
-                  Without this, the payment succeeds but the conversion
-                  won&apos;t auto-appear.
-                </em>
+                You&apos;ll use the <strong>demo affiliate login</strong> above,
+                plus a <strong>practice card number</strong> we give you in
+                Part&nbsp;2 (no real card needed).
               </span>
             </li>
             <li className="flex gap-2">
-              <span className="text-sky-400">▢</span>
+              <span className="text-sky-400">3.</span>
               <span>
-                Vercel Blob connected (public <Mono>affiliates-system</Mono> +
-                private <Mono>affiliates-tax-forms</Mono>{" "}
-                <Mono>TAX_BLOB_READ_WRITE_TOKEN</Mono>).
-              </span>
-            </li>
-            <li className="flex gap-2">
-              <span className="text-sky-400">▢</span>
-              <span>
-                GHL: <Mono>GHL_B2B_API_TOKEN</Mono> +{" "}
-                <Mono>GHL_B2B_LOCATION_ID</Mono> set.
+                It&apos;s all <strong>practice mode</strong> — our payment system
+                is running in test mode, so nothing charges a real card or sends
+                real money to anyone.
               </span>
             </li>
           </ul>
@@ -266,37 +310,75 @@ export default async function AffiliateTestingGuidePage() {
       <Section
         icon={UserRound}
         eyebrow="Part 1"
-        title="Affiliate user journey"
-        desc="Apply → approve → sign in → explore the portal."
+        title="What a new affiliate experiences"
+        desc="Apply → get approved → sign in → look around the portal."
       >
         <Card>
           <CardContent className="p-5">
-            <ol className="space-y-4">
-              <Step n={1} title="Apply">
-                Go to <Mono>/partners/apply</Mono>, fill the form, upload any PDF
-                as the tax form, submit → you land on the thank-you page; the
-                applicant gets a confirmation email and <Mono>partners@</Mono>{" "}
-                gets a notification.
+            <ol className="space-y-5">
+              <Step n={1} title="They apply">
+                Open the{" "}
+                <GuideLink href={`${AFF}/partners/apply`}>
+                  affiliate application form
+                </GuideLink>{" "}
+                (this is exactly what a potential affiliate sees), fill it in,
+                attach any PDF where it asks for a tax form, and submit.
+                <SeeThis>
+                  a friendly &quot;Thanks for applying&quot; page. The applicant
+                  gets a confirmation email, and{" "}
+                  <Mono>partners@chiefaiofficer.com</Mono> gets a heads-up that
+                  someone applied.
+                </SeeThis>
               </Step>
-              <Step n={2} title="Approve">
-                Affiliates → Applications → Approve the applicant. They flip to{" "}
-                <strong>Active</strong> and get an email with a temporary
-                password. (The &quot;Tax form&quot; button on the application
-                opens the uploaded PDF.)
+
+              <Step n={2} title="You approve them">
+                In Motherboard (this admin site you&apos;re on right now), open{" "}
+                <GuideLink href="/partner-program/applications">
+                  Affiliate Program → Applications
+                </GuideLink>
+                , find the applicant, and click <strong>Approve</strong>. (The{" "}
+                <strong>Tax form</strong> button on their application opens the
+                PDF they uploaded, so you can check it.)
+                <SeeThis>
+                  they flip to <strong>Active</strong> and automatically get a
+                  welcome email with a <strong>temporary password</strong>.
+                </SeeThis>
               </Step>
-              <Step n={3} title="Portal sign-in">
-                <Mono>/portal/login</Mono> with the temp password → you&apos;re
-                forced to set a new password → land on the dashboard (referral
-                link + stats).
+
+              <Step n={3} title="They sign in">
+                They go to the{" "}
+                <GuideLink href={`${AFF}/portal/login`}>
+                  affiliate portal sign-in
+                </GuideLink>{" "}
+                and log in with that temporary password.
+                <SeeThis>
+                  they&apos;re asked to choose their own password, and then land
+                  on their dashboard — with their personal referral link and
+                  their earnings so far.
+                </SeeThis>
               </Step>
-              <Step n={4} title="Explore the portal">
-                Copy the referral link, open Resources + Toolkit, file a test
-                dispute.
+
+              <Step n={4} title="They look around">
+                In the portal they can copy their referral link, open the{" "}
+                <strong>Resources</strong> and <strong>Toolkit</strong> pages
+                (marketing materials), and raise a question about a sale on the{" "}
+                <strong>Disputes</strong> page. Have a click through it the way a
+                real affiliate would.
               </Step>
-              <Step n={5} title={<>&quot;View as&quot;</>}>
-                From Affiliates → Partners, click &quot;View as&quot; on an
-                active affiliate → opens their portal read-only with an{" "}
-                <strong>&quot;Admin preview&quot;</strong> banner.
+
+              <Step n={5} title="You can preview their portal (&quot;View as&quot;)">
+                From{" "}
+                <GuideLink href="/partner-program/partners">
+                  Affiliate Program → Partners
+                </GuideLink>
+                , click <strong>&quot;View as&quot;</strong> next to any active
+                affiliate.
+                <SeeThis>
+                  their portal, exactly as they see it — you can look but not
+                  change anything — with an{" "}
+                  <strong>&quot;Admin preview&quot;</strong> banner across the
+                  top so you never mistake it for your own account.
+                </SeeThis>
               </Step>
             </ol>
           </CardContent>
@@ -307,59 +389,137 @@ export default async function AffiliateTestingGuidePage() {
       <Section
         icon={CreditCard}
         eyebrow="Part 2 · the important one"
-        title="Customer + money journey"
-        desc="Referral click → checkout → conversion → payout → transfer."
+        title="The money journey"
+        desc="Someone clicks a referral link → buys → the affiliate gets credited → you pay them out."
       >
+        <Callout tone="sky" icon={ShieldCheck} title="Quick setup for the test">
+          Two one-time tweaks so you can see a payout happen in minutes instead
+          of waiting:
+          <ul className="mt-2 space-y-1.5">
+            <li className="flex gap-2">
+              <span className="text-sky-400">•</span>
+              <span>
+                In{" "}
+                <GuideLink href="/partner-program/settings">
+                  Affiliate Program → Settings
+                </GuideLink>
+                , set the <strong>minimum payout to $0</strong> for now (put it
+                back to $100 when you&apos;re done).
+              </span>
+            </li>
+            <li className="flex gap-2">
+              <span className="text-sky-400">•</span>
+              <span>
+                Sign in as the demo affiliate (the login at the top of this
+                page), go to <strong>Payouts</strong>, and click{" "}
+                <strong>&quot;Connect payout account&quot;</strong>. This opens
+                Stripe — our payment system — and its test-mode setup form; use
+                the test-data shortcuts to fill it in quickly. When you come
+                back, the card reads{" "}
+                <strong>&quot;Connected — your payouts are sent
+                automatically.&quot;</strong>
+              </span>
+            </li>
+          </ul>
+        </Callout>
+
         <Card>
           <CardContent className="p-5">
-            <ol className="space-y-4">
-              <Step n={1} title="Settings">
-                Affiliates → Settings → temporarily set{" "}
-                <strong>Minimum payout = $0</strong> (restore to $100 after).
-                (Refund window handled by &quot;Mark earned now&quot; in step 7.)
+            <ol className="space-y-5">
+              <Step n={1} title="Click a referral link">
+                Click this example referral link (no need to type anything —
+                just click):{" "}
+                <GuideLink href={`${AFF}/r?aff=DEMO2026`}>
+                  {`${AFF}/r?aff=DEMO2026`}
+                </GuideLink>
+                . It&apos;s the demo affiliate&apos;s personal link (their code
+                is <Mono>DEMO2026</Mono>).
+                <SeeThis>
+                  it takes you to our book-a-call page and quietly remembers
+                  that this visit came from the demo affiliate.
+                </SeeThis>
               </Step>
-              <Step n={2} title="Connect payout">
-                Sign in as the demo affiliate → Payouts → &quot;Connect payout
-                account&quot; → click through Stripe&apos;s Express test
-                onboarding (use its test-data shortcuts). Status flips to{" "}
-                <strong>Ready</strong>.
+
+              <Step n={2} title="Buy something">
+                A referral link normally points people to book a call. To test an
+                actual purchase, open our{" "}
+                <GuideLink href={`${AFF}/enroll`}>checkout page</GuideLink>{" "}
+                directly and confirm the referral box already shows{" "}
+                <Mono>DEMO2026</Mono> (it&apos;s remembered from the link you
+                clicked). Click <strong>&quot;Buy now&quot;</strong> on the $1
+                test program and pay with the practice card:
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <Mono>4242 4242 4242 4242</Mono>
+                  <Mono>Exp 12/34</Mono>
+                  <Mono>CVC (3-digit code) 123</Mono>
+                  <Mono>ZIP: any, e.g. 10001</Mono>
+                </div>
+                <p className="mt-2 text-[13px] leading-relaxed text-amber-700">
+                  Heads up: the $1 test program only shows here once a test price
+                  is attached to it in Stripe. If you don&apos;t see it yet, ask
+                  an admin to wire that up — in the meantime, in practice mode
+                  you can safely &quot;Buy now&quot; on any program (nothing is
+                  charged).
+                </p>
               </Step>
-              <Step n={3} title="Click the referral link">
-                Visit <Mono>/r?aff=DEMO2026</Mono> → it redirects to the booking
-                page and drops the attribution cookie. (Or go straight to{" "}
-                <Mono>/enroll</Mono>.)
-              </Step>
-              <Step n={4} title="Buy">
-                At <Mono>/enroll</Mono>, confirm the referral box shows{" "}
-                <Mono>DEMO2026</Mono>, buy &quot;Test Product ($1)&quot; with
-                test card <Mono>4242 4242 4242 4242</Mono>, expiry{" "}
-                <Mono>12/34</Mono>, CVC <Mono>123</Mono>, any ZIP.
-              </Step>
-              <Step n={5} title="See the payment">
-                Stripe (Test) → Payments — the $1 charge appears, tagged with the{" "}
-                <Mono>aff_id</Mono>.
-              </Step>
-              <Step n={6} title="See the conversion">
-                Affiliates → Events → Activity — the conversion appears, credited
-                to the Demo Affiliate (<Mono>$0.10</Mono> commission).
-              </Step>
-              <Step n={7} title="Clear the refund window">
-                On that conversion&apos;s &quot;…&quot; menu → &quot;Mark earned
-                now&quot; → it flips <Mono>pending</Mono> → <Mono>earned</Mono>.
-              </Step>
-              <Step n={8} title="Pay out">
-                Events → Payouts → Generate batch → the <Mono>$0.10</Mono>{" "}
-                auto-transfers to the connected account.
-              </Step>
-              <Step n={9} title="Verify the transfer">
-                Stripe → Connect → Transfers — a transfer labeled{" "}
-                <Mono>
-                  CAIO affiliate commission — demo@chiefaiofficer.com
-                </Mono>
+
+              <Step n={3} title="See the sale credited to the affiliate">
+                Back in Motherboard, open{" "}
+                <GuideLink href="/partner-program/events">
+                  Affiliate Program → Events
+                </GuideLink>
                 .
+                <SeeThis>
+                  the sale appears in the activity list, credited to the Demo
+                  Affiliate, with a commission of <strong>10% of the price</strong>{" "}
+                  (so <Mono>$0.10</Mono> on the $1 test program). It starts as{" "}
+                  <strong>Pending</strong>.
+                </SeeThis>
               </Step>
-              <Step n={10} title="Restore">
-                Settings → Minimum payout back to <strong>$100</strong>.
+
+              <Step n={4} title="Skip the waiting period (test shortcut)">
+                Every real sale sits as <strong>Pending</strong> for a few days
+                first — that&apos;s the refund window, so we never pay out on a
+                sale that later gets refunded. To test without waiting, click the{" "}
+                <strong>three-dots (…) button</strong> on that sale&apos;s row and
+                choose <strong>&quot;Mark earned now&quot;</strong>.
+                <SeeThis>
+                  it moves from <strong>Pending</strong> to{" "}
+                  <strong>Earned</strong> (ready to be paid).
+                </SeeThis>
+              </Step>
+
+              <Step n={5} title="Put the payout together">
+                Still in the admin, open the <strong>Payouts</strong> tab (it sits
+                next to Activity, inside{" "}
+                <GuideLink href="/partner-program/events">Events</GuideLink>) and
+                click <strong>&quot;Generate payout batch&quot;</strong> — that
+                just gathers up everyone who&apos;s owed money right now.
+                <SeeThis>
+                  a draft payout appears containing the <Mono>$0.10</Mono> owed to
+                  the demo affiliate.
+                </SeeThis>
+              </Step>
+
+              <Step n={6} title="Mark it paid">
+                On that payout, click <strong>&quot;Mark paid&quot;</strong>.
+                <SeeThis>
+                  the sale flips to <strong>Paid</strong> in Events — the
+                  affiliate is now recorded as paid.
+                </SeeThis>
+                <p className="mt-2 text-[13px] leading-relaxed text-zinc-500">
+                  The actual bank transfer to the affiliate&apos;s connected
+                  account is sent automatically on our scheduled monthly payout
+                  run (that&apos;s when a matching transfer would show up in
+                  Stripe). The buttons above are how you track and settle payouts
+                  in the meantime.
+                </p>
+              </Step>
+
+              <Step n={7} title="Put the setting back">
+                Return to{" "}
+                <GuideLink href="/partner-program/settings">Settings</GuideLink>{" "}
+                and set the <strong>minimum payout back to $100</strong>.
               </Step>
             </ol>
           </CardContent>
@@ -370,82 +530,90 @@ export default async function AffiliateTestingGuidePage() {
       <Section
         icon={Workflow}
         eyebrow="Part 3"
-        title="GHL checks"
-        desc="Confirm contacts sync and get tagged in the B2B subaccount."
+        title="Behind the scenes: it updates GoHighLevel too"
+        desc="Nothing to click — this happens on its own. Here's what to look for."
       >
         <Card>
           <CardContent className="space-y-4 p-5">
-            <div>
+            <p className="text-sm leading-relaxed text-zinc-600">
+              GoHighLevel is the tool we use to keep track of our contacts and
+              leads. You don&apos;t need to open it to run this test — this
+              section just explains what happens there automatically.
+            </p>
+            <div className="border-t border-zinc-100 pt-4">
               <p className="text-sm font-medium text-zinc-900">
-                Affiliate sync
+                New affiliates become contacts
               </p>
               <p className="mt-1 text-sm leading-relaxed text-zinc-600">
-                After approving, the daily sync (or a manual run of{" "}
-                <Mono>/api/cron/sync-ghl-affiliates</Mono>) upserts the affiliate
-                as a GHL contact tagged <Mono>affiliate-partner</Mono> in the B2B
-                subaccount.
+                On the next daily sync (it runs once a day), a newly approved
+                affiliate shows up as a contact in our affiliate GoHighLevel
+                account, tagged <Mono>affiliate-partner</Mono>. So they may not
+                appear the instant you approve them — allow up to a day.
               </p>
             </div>
             <div className="border-t border-zinc-100 pt-4">
               <p className="text-sm font-medium text-zinc-900">
-                Conversion tagging
+                Buyers get tagged as referrals
               </p>
               <p className="mt-1 text-sm leading-relaxed text-zinc-600">
-                After a conversion, the <strong>buyer&apos;s</strong> GHL contact
-                is upserted + tagged <Mono>affiliate-referral</Mono> with a note
-                naming the referring affiliate.
+                After a referred sale, the <strong>buyer&apos;s</strong> contact
+                in GoHighLevel gets tagged <Mono>affiliate-referral</Mono>, with
+                a note saying which affiliate sent them.
               </p>
             </div>
             <div className="border-t border-zinc-100 pt-4">
               <p className="text-sm font-medium text-zinc-900">
-                Roadmap lead{" "}
+                Roadmap page leads{" "}
                 <span className="text-xs font-normal text-zinc-400">
-                  (separate)
+                  (a separate flow)
                 </span>
               </p>
               <p className="mt-1 text-sm leading-relaxed text-zinc-600">
-                Submit the roadmap page&apos;s email form → the lead upserts into
-                GHL and the Four Stages PDF arrives as an email attachment.
+                Fill in the email form on the{" "}
+                <GuideLink href="https://roadmap.chiefaiofficer.com">
+                  roadmap landing page
+                </GuideLink>
+                . The lead is added to GoHighLevel and the Four Stages PDF
+                arrives in that inbox as an email attachment.
               </p>
             </div>
           </CardContent>
         </Card>
       </Section>
 
-      {/* Gotchas */}
-      <Section icon={AlertTriangle} eyebrow="Watch out" title="Gotchas">
-        <Callout
-          tone="amber"
-          icon={AlertTriangle}
-          title="Read before (and after) testing"
-        >
+      {/* Tips */}
+      <Section icon={AlertTriangle} eyebrow="Good to know" title="A few tips">
+        <Callout tone="amber" icon={AlertTriangle} title="Keep these in mind">
           <ul className="space-y-2">
             <li className="flex gap-2">
               <span className="text-amber-500">•</span>
               <span>
-                <strong>TEST mode only</strong> — nothing above charges real
-                money.
+                <strong>It&apos;s all practice mode.</strong> Our payment system
+                is in test mode, so nothing above charges a real card or moves
+                real money.
               </span>
             </li>
             <li className="flex gap-2">
               <span className="text-amber-500">•</span>
               <span>
-                <strong>Restore Settings</strong> (Minimum payout = $100, Refund
-                window = 7) when done.
+                <strong>Reset your settings</strong> when you finish — minimum
+                payout back to <strong>$100</strong>.
               </span>
             </li>
             <li className="flex gap-2">
               <span className="text-amber-500">•</span>
               <span>
-                Seeded sample/demo data is excluded from payout batches — only
-                your real test conversion transfers.
+                The <strong>sample/demo</strong> rows you may see in the lists
+                are just examples — they&apos;re never included when you pay
+                affiliates. Only your own test sale counts.
               </span>
             </li>
             <li className="flex gap-2">
               <span className="text-amber-500">•</span>
               <span>
-                Fresh conversions sit <Mono>pending</Mono> for the 7-day refund
-                window; &quot;Mark earned now&quot; is the test shortcut.
+                A brand-new sale won&apos;t be payable right away — it waits out
+                the refund window first. <strong>&quot;Mark earned now&quot;</strong>{" "}
+                is the shortcut for testing only.
               </span>
             </li>
           </ul>

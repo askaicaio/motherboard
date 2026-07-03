@@ -16,7 +16,6 @@ import { columns, type OnboardingRequestRow } from "@/components/onboarding/requ
 import { ONBOARDING_STATUS_CONFIG } from "@/types";
 import { UserPlus, Search } from "lucide-react";
 import Link from "next/link";
-import { QuickLinksPanel } from "@/components/layout/quick-links-panel";
 
 interface PaginatedResponse {
   data: OnboardingRequestRow[];
@@ -60,8 +59,6 @@ export default function OnboardingListPage() {
 
   return (
     <div className="space-y-6">
-      <QuickLinksPanel />
-
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Onboarding Requests</h1>

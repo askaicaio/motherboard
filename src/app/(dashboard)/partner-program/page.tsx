@@ -235,18 +235,18 @@ export default async function PartnerProgramPage() {
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <NextLink
-            href="/partner-program/resources"
-            className="inline-flex items-center gap-2 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
-          >
-            <FolderOpen className="h-4 w-4" />
-            Resources
-          </NextLink>
-          <NextLink
             href="/partner-program/testing"
             className="inline-flex items-center gap-1.5 rounded-md px-2 py-2 text-sm font-medium text-zinc-500 hover:text-zinc-900"
           >
             <FlaskConical className="h-4 w-4" />
             Testing guide
+          </NextLink>
+          <NextLink
+            href="/partner-program/resources"
+            className="inline-flex items-center gap-2 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+          >
+            <FolderOpen className="h-4 w-4" />
+            Resources
           </NextLink>
           <NextLink
             href="/partner-program/emails"

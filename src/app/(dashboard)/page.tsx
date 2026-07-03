@@ -8,6 +8,7 @@ import { OnboardingStatusBadge } from "@/components/onboarding/status-badge";
 import { Users, Clock, AlertCircle, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
+import { QuickLinksPanel } from "@/components/layout/quick-links-panel";
 import type { OnboardingStatus } from "@/types";
 
 interface DashboardData {
@@ -39,9 +40,17 @@ export default function DashboardPage() {
     });
   }, []);
 
+  const totalRequests = recent?.pagination.total ?? 0;
+  const pendingCount = pending?.pagination.total ?? 0;
+
   if (loading) {
     return (
       <div className="space-y-6">
+        <QuickLinksPanel />
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
+          <p className="text-sm text-zinc-500">CAIO Internal onboarding overview.</p>
+        </div>
         <div className="grid grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-24" />)}
         </div>
@@ -50,11 +59,10 @@ export default function DashboardPage() {
     );
   }
 
-  const totalRequests = recent?.pagination.total ?? 0;
-  const pendingCount = pending?.pagination.total ?? 0;
-
   return (
     <div className="space-y-6">
+      <QuickLinksPanel />
+
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
         <p className="text-sm text-zinc-500">CAIO Internal onboarding overview.</p>
