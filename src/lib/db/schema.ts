@@ -1204,6 +1204,66 @@ export const automationsRelations = relations(automations, ({ one }) => ({
   }),
 }));
 
+// ------------------------------------------------------------------------
+// Automation errors — one row per captured error event from an integration.
+// ------------------------------------------------------------------------
+// Feeds the Per Website Error History page (and later the "Last Error" column +
+// the Main Page "Days since last Error" / "# Errors" stats). Written by each
+// platform's error capture (Make first); read back per platform. Idempotent on
+// (platform, external_error_id) so re-polling the same execution can't
+// duplicate a row.
+export const automationErrors = pgTable(
+  "automation_errors",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    /** The automation this error belongs to (FK). Cascades on delete so an
+     *  automation's errors are removed with it. */
+    automationId: uuid("automation_id")
+      .notNull()
+      .references(() => automations.id, { onDelete: "cascade" }),
+    /** Source website slug, denormalized from the automation for fast
+     *  per-platform queries: 'make' | 'n8n' | 'ghl' | 'ghl-b2b' | 'zapier'. */
+    platform: text("platform").notNull(),
+    /** The platform's own unique id for this error/execution (e.g. Make's
+     *  execution id). Makes capture idempotent — see the unique index. */
+    externalErrorId: text("external_error_id").notNull(),
+    /** The integration's error description. Nullable (some sources/paths don't
+     *  return message text). Shown in the Error History "Error Message" column. */
+    message: text("message"),
+    /** When the error occurred on the source platform. The Error History
+     *  "Error Date" column + its newest-first sort key. */
+    occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull(),
+    /** When we recorded it. */
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    // Idempotent capture: one row per platform execution, so re-polling the
+    // same errored execution updates rather than duplicates.
+    uniqueIndex("uniq_automation_errors_platform_external").on(
+      table.platform,
+      table.externalErrorId,
+    ),
+    index("idx_automation_errors_automation").on(table.automationId),
+    // Per-platform newest-first reads (the Error History page).
+    index("idx_automation_errors_platform_time").on(
+      table.platform,
+      table.occurredAt,
+    ),
+  ],
+);
+
+export const automationErrorsRelations = relations(
+  automationErrors,
+  ({ one }) => ({
+    automation: one(automations, {
+      fields: [automationErrors.automationId],
+      references: [automations.id],
+    }),
+  }),
+);
+
 // ========================================================================
 // Partner Program (affiliate system)
 // ========================================================================

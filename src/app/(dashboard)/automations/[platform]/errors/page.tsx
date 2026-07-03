@@ -19,6 +19,7 @@ import { platformHasApiKey } from "@/lib/automations/credentials";
 import { getAutoRefreshFor } from "@/lib/automations/autorefresh";
 import { ErrorHistoryTable } from "@/components/automations/error-history-table";
 import { AutomationSyncControls } from "@/components/automations/automation-sync-controls";
+import { getErrorHistoryRows } from "@/lib/automations/errors";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +37,10 @@ export default async function AutomationErrorHistoryPage({
   // Same per-platform, app-wide state the Per Website Page uses to drive these
   // controls, so the toggle + Refresh List here are the exact same function.
   const autoRefresh = await getAutoRefreshFor(site.slug);
+
+  // Captured error events for this platform (newest first). Empty until the
+  // platform's error capture has run (Make first). Feeds the error-log table.
+  const errorRows = await getErrorHistoryRows(site.slug);
 
   return (
     <div className="space-y-6 p-6">
@@ -100,11 +105,10 @@ export default async function AutomationErrorHistoryPage({
         />
       </div>
 
-      {/* Error log table (3 columns: Name · Link · Error Date), chronological
-          with the latest errors on top. PLACEHOLDER: error tracking isn't built
-          yet, so no rows are passed and the table shows its empty state. Feed
-          the per-error-event list into `rows` once error capture lands. */}
-      <ErrorHistoryTable />
+      {/* Error log table (Name · Error Date · Error Message), newest first.
+          Rows come from the captured `automation_errors` for this platform;
+          shows the empty state until this platform's error capture has run. */}
+      <ErrorHistoryTable rows={errorRows} />
     </div>
   );
 }
