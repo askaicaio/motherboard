@@ -9,7 +9,7 @@ import { db } from "@/lib/db";
 import { automations } from "@/lib/db/schema";
 import { sql } from "drizzle-orm";
 import { Card, CardContent } from "@/components/ui/card";
-import { Workflow } from "lucide-react";
+import { Workflow, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AUTOMATION_SITES } from "@/lib/automations/sites";
 import { platformHasApiKey } from "@/lib/automations/credentials";
@@ -167,13 +167,18 @@ export default async function AutomationsPage() {
                     <AutoRefreshStat
                       enabled={autoRefreshMap[site.slug]?.enabled ?? false}
                     />
-                    {/* Days since last Error. PLACEHOLDER: stuck at 0 for now,
-                        error tracking doesn't exist yet so nothing feeds this.
-                        The count number is always red; the label is default
-                        color. Wire the real value in once error tracking lands. */}
-                    <p className="text-sm font-medium">
-                      Days since last Error: <span className="text-red-600">0</span> days
-                    </p>
+                    {/* Days since last Error. PLACEHOLDER: error tracking doesn't
+                        exist yet, so instead of a count we show the same red X as
+                        the auto-refresh stat (meaning "not tracked yet"). Once
+                        error tracking lands, replace the X with the real red day
+                        count, e.g. `<span className="text-red-600">{n}</span> days`. */}
+                    <div className="flex items-center gap-1.5 text-sm font-medium">
+                      <span>Days since last Error:</span>
+                      <X
+                        className="h-3.5 w-3.5 text-red-600"
+                        aria-label="not tracked yet"
+                      />
+                    </div>
                   </div>
                   {/* Error History: opens this website's own error history page. */}
                   <Link
