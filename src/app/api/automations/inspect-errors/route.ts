@@ -1,15 +1,20 @@
 // =============================================================
-// TEMPORARY inspector — Make error-data shape discovery
+// TEMPORARY inspector — Make error-data shape discovery (GENTLE)
 // =============================================================
 // GET /api/automations/inspect-errors[?scenarioId=NNN]
 //
 // Dumps RAW Make API responses so we can see the exact shape of error data
-// (how an errored execution is flagged, where the message lives) BEFORE writing
-// the capture parser. Admin-only (logged-in). Read-only; hits Make only.
+// (how an errored execution is flagged in the logs, where the message lives)
+// BEFORE writing the capture parser. Admin-only. Read-only.
 //
-// ⚠️ THROWAWAY: delete this route once the Make error capture is built. It
-// exists purely to reveal the live response shape (same approach used to
-// confirm the Zapier error webhook).
+// GENTLE: Make's org rate limit is low, so this makes only a handful of calls
+// with delays + a 429 backoff (an earlier 30-scenario scan tripped the limit).
+// DLQ is intentionally NOT called (the token lacks dlqs:read).
+//
+// Best used with an errored scenario: /api/automations/inspect-errors?scenarioId=NNN
+// (find the id in that automation's Make link: .../scenarios/<id>/edit).
+//
+// ⚠️ THROWAWAY: delete this route once the Make error capture is built.
 // =============================================================
 
 import { NextRequest, NextResponse } from "next/server";
@@ -22,6 +27,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 const ZONE = process.env.MAKE_ZONE || "us1";
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 function makeHeaders(): HeadersInit {
   return {
@@ -30,24 +36,37 @@ function makeHeaders(): HeadersInit {
   };
 }
 
-/** Fetch a URL and return its raw parsed body (or text) + status, never throws. */
-async function raw(url: string) {
-  try {
-    const res = await fetch(url, { headers: makeHeaders() });
-    const text = await res.text();
-    let body: unknown = text.slice(0, 4000);
+/** Fetch a URL, returning its raw parsed body + status. One 429 backoff+retry. */
+async function raw(url: string): Promise<{
+  url: string;
+  status?: number;
+  ok?: boolean;
+  body?: unknown;
+  error?: string;
+}> {
+  for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      body = JSON.parse(text);
-    } catch {
-      /* keep the raw text */
+      const res = await fetch(url, { headers: makeHeaders() });
+      if (res.status === 429 && attempt === 0) {
+        await sleep(5000); // rate limited — wait once, then retry
+        continue;
+      }
+      const text = await res.text();
+      let body: unknown = text.slice(0, 4000);
+      try {
+        body = JSON.parse(text);
+      } catch {
+        /* keep raw text */
+      }
+      return { url, status: res.status, ok: res.ok, body };
+    } catch (e) {
+      return { url, error: e instanceof Error ? e.message : String(e) };
     }
-    return { url, status: res.status, ok: res.ok, body };
-  } catch (e) {
-    return { url, error: e instanceof Error ? e.message : String(e) };
   }
+  return { url, error: "rate limited (429) after retry" };
 }
 
-/** Pull the numeric scenario id out of a Make editor URL (.../scenarios/<id>/edit). */
+/** Pull the numeric scenario id from a Make editor URL (.../scenarios/<id>/edit). */
 function scenarioIdFromUrl(u: string): string | null {
   const m = u.match(/\/scenarios\/(\d+)\//);
   return m ? m[1] : null;
@@ -65,11 +84,10 @@ export async function GET(request: NextRequest) {
   const base = `https://${ZONE}.make.com/api/v2`;
   let scenarioId = request.nextUrl.searchParams.get("scenarioId");
 
-  // No explicit scenario: scan our stored Make automations and try to find one
-  // whose status=3 (error) log filter returns something. One call per scenario.
-  // If Make ignores the status param, the first scenario with any logs is used
-  // (we still see the raw entry shape either way).
-  const scanned: { scenarioId: string; errorLogHit: boolean; status: number | null }[] = [];
+  // No explicit scenario: gently scan a FEW stored Make automations (big delays)
+  // to find the first with any logs. This is only to reveal the log-entry shape;
+  // for a real ERROR shape, pass ?scenarioId= of a scenario you know errored.
+  const scanned: { scenarioId: string; hasLogs: boolean; status?: number }[] = [];
   if (!scenarioId) {
     const rows = await db
       .select({ externalUrl: automations.externalUrl })
@@ -79,41 +97,33 @@ export async function GET(request: NextRequest) {
       .map((r) => scenarioIdFromUrl(r.externalUrl))
       .filter((v): v is string => !!v);
 
-    let firstWithAny: string | null = null;
-    for (const id of ids.slice(0, 30)) {
-      const probe = await raw(`${base}/scenarios/${id}/logs?pg[limit]=1&status=3`);
+    for (const id of ids.slice(0, 5)) {
+      const probe = await raw(`${base}/scenarios/${id}/logs?pg[limit]=1`);
       const body = probe.body as { scenarioLogs?: unknown[] } | undefined;
-      const logs = Array.isArray(body?.scenarioLogs) ? body!.scenarioLogs! : [];
-      scanned.push({
-        scenarioId: id,
-        errorLogHit: logs.length > 0,
-        status: typeof probe.status === "number" ? probe.status : null,
-      });
-      if (logs.length > 0) {
+      const hasLogs = Array.isArray(body?.scenarioLogs) && body!.scenarioLogs!.length > 0;
+      scanned.push({ scenarioId: id, hasLogs, status: probe.status });
+      if (hasLogs) {
         scenarioId = id;
         break;
       }
-      if (!firstWithAny) firstWithAny = id;
-      await new Promise((r) => setTimeout(r, 60));
+      await sleep(1500);
     }
-    if (!scenarioId) scenarioId = firstWithAny;
+    if (!scenarioId && ids.length > 0) scenarioId = ids[0];
   }
 
   if (!scenarioId) {
-    return NextResponse.json({
-      note: "No Make scenarios found to inspect.",
-      scanned,
-    });
+    return NextResponse.json({ note: "No Make scenarios found to inspect.", scanned });
   }
 
-  // Dump raw responses for the chosen scenario across the plausible error routes.
+  // A few gentle calls for the chosen scenario.
   const logsUnfiltered = await raw(`${base}/scenarios/${scenarioId}/logs?pg[limit]=10`);
+  await sleep(1500);
   const logsErrorFiltered = await raw(
     `${base}/scenarios/${scenarioId}/logs?pg[limit]=10&status=3`,
   );
-  const dlq = await raw(`${base}/dlqs?scenarioId=${scenarioId}`);
+  await sleep(1500);
 
-  // Grab a first execution id from the logs to fetch its detail (where the
+  // First execution id from the unfiltered logs -> fetch its detail (where the
   // error name/message/module likely live).
   const logsBody = logsUnfiltered.body as
     | { scenarioLogs?: Record<string, unknown>[] }
@@ -128,12 +138,11 @@ export async function GET(request: NextRequest) {
       : { note: "No execution id found in the first log entry.", firstEntry };
 
   return NextResponse.json({
-    note: "TEMP inspector — raw Make responses. Paste this entire JSON back to Claude; the route will then be removed.",
+    note: "TEMP inspector (gentle) — raw Make responses. Paste this entire JSON back to Claude. Tip: for an ERROR shape, re-run with ?scenarioId=<id of a scenario that errored>.",
     inspectedScenarioId: scenarioId,
     scanned,
     logsUnfiltered,
     logsErrorFiltered,
-    dlq,
     executionDetail,
   });
 }
