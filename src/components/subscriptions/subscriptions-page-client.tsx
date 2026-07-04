@@ -29,6 +29,7 @@ import {
   ArrowUpDown,
   Filter,
   Pencil,
+  Archive,
 } from "lucide-react";
 import {
   format,
@@ -65,6 +66,8 @@ export interface SubscriptionRow {
   name: string;
   serviceName: string | null;
   ownerEmail: string | null;
+  /** Optional short label shown on nested (child) rows instead of the app name. */
+  label: string | null;
   isStarred: boolean;
   websiteUrl: string | null;
   departments: string[];
@@ -106,6 +109,42 @@ const STATUS_TONE_RULES: Array<{ match: RegExp; tone: string }> = [
 function statusTone(status: string): string {
   for (const r of STATUS_TONE_RULES) if (r.match.test(status)) return r.tone;
   return "bg-zinc-100 text-zinc-700";
+}
+
+// Department pills get a stable colour derived from the name, so the same
+// department always reads the same colour across every row without us
+// maintaining a hand-kept map.
+const DEPT_TONES = [
+  "bg-blue-100 text-blue-700",
+  "bg-emerald-100 text-emerald-700",
+  "bg-amber-100 text-amber-700",
+  "bg-violet-100 text-violet-700",
+  "bg-rose-100 text-rose-700",
+  "bg-cyan-100 text-cyan-700",
+  "bg-indigo-100 text-indigo-700",
+  "bg-teal-100 text-teal-700",
+  "bg-fuchsia-100 text-fuchsia-700",
+  "bg-lime-100 text-lime-700",
+  "bg-orange-100 text-orange-700",
+  "bg-sky-100 text-sky-700",
+];
+function deptTone(name: string): string {
+  let h = 0;
+  const s = name.trim().toLowerCase();
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return DEPT_TONES[h % DEPT_TONES.length];
+}
+function DeptBadge({ name }: { name: string }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium",
+        deptTone(name),
+      )}
+    >
+      {name}
+    </span>
+  );
 }
 
 function fmtUsd(n: number | null): string {
@@ -201,6 +240,9 @@ export function SubscriptionsPageClient({
   const [renewSoon, setRenewSoon] = useState(false);
   const [editing, setEditing] = useState<SubscriptionRow | null>(null);
   const [addOpen, setAddOpen] = useState(false);
+  // When adding a credential from a specific parent's "+" action, we preset
+  // the parent in the Add dialog so the new row nests correctly.
+  const [addParentId, setAddParentId] = useState<string>("");
 
   // Index children by parent id so we can render them under their parent
   // in the table/card/compact views. Filtering happens on parents only —
@@ -268,12 +310,13 @@ export function SubscriptionsPageClient({
           r.name,
           r.serviceName,
           r.ownerEmail,
+          r.label,
           r.notes,
           r.tag,
           ...r.departments,
-          // Include child names + owners so searching "operations@" still
-          // surfaces the parent (e.g. Claude doc@) it nests under.
-          ...kids.flatMap((k) => [k.name, k.ownerEmail, k.serviceName]),
+          // Include child names, labels + owners so searching "operations@" or
+          // a seat's label still surfaces the parent it nests under.
+          ...kids.flatMap((k) => [k.name, k.label, k.ownerEmail, k.serviceName]),
         ]
           .filter(Boolean)
           .join(" ")
@@ -385,10 +428,28 @@ export function SubscriptionsPageClient({
   };
   const handleCreated = (created: SubscriptionRow) => {
     setRows((prev) => [created, ...prev]);
-    toast.success(`Added ${created.name}`);
+    toast.success(
+      created.parentId
+        ? `Added credential${created.label ? ` "${created.label}"` : ""}`
+        : `Added ${created.name}`,
+    );
+  };
+  // Open the Add dialog pre-nested under a parent (adds a credential/seat).
+  const openAddCredential = (parent: SubscriptionRow) => {
+    setAddParentId(parent.id);
+    setAddOpen(true);
+  };
+  const openAddTopLevel = () => {
+    setAddParentId("");
+    setAddOpen(true);
   };
   const handleArchive = async (row: SubscriptionRow) => {
-    if (!confirm(`Archive "${row.name}"?`)) return;
+    // Show the identifier the user actually sees on the row (a child shows its
+    // label/owner, never the derived internal name).
+    const shown = row.parentId
+      ? row.label || row.ownerEmail || "this credential"
+      : row.serviceName || row.name;
+    if (!confirm(`Archive "${shown}"?`)) return;
     const res = await fetch(`/api/subscriptions/${row.id}`, {
       method: "DELETE",
     });
@@ -406,6 +467,8 @@ export function SubscriptionsPageClient({
       "Name",
       "Service",
       "Owner",
+      "Label",
+      "Parent",
       "Starred",
       "Website",
       "Departments",
@@ -422,12 +485,21 @@ export function SubscriptionsPageClient({
       return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
     };
     const lines = [headers.join(",")];
-    for (const r of sorted) {
+    // Export parents AND their nested credential/seat rows, so the Label
+    // column (which lives on children) actually carries data. The Parent
+    // column names the app each credential belongs to.
+    const parentNameById = new Map(
+      topLevelRows.map((p) => [p.id, p.serviceName || p.name]),
+    );
+    const exportRows = flattenWithChildren(sorted, childrenByParent);
+    for (const r of exportRows) {
       lines.push(
         [
           r.name,
           r.serviceName,
           r.ownerEmail,
+          r.label,
+          r.parentId ? parentNameById.get(r.parentId) ?? "" : "",
           r.isStarred ? "yes" : "",
           r.websiteUrl,
           r.departments.join(" | "),
@@ -479,12 +551,10 @@ export function SubscriptionsPageClient({
             <Download className="mr-2 h-3.5 w-3.5" />
             Export
           </Button>
-          {editMode && (
-            <Button size="sm" onClick={() => setAddOpen(true)}>
-              <Plus className="mr-2 h-3.5 w-3.5" />
-              Add
-            </Button>
-          )}
+          <Button size="sm" onClick={openAddTopLevel}>
+            <Plus className="mr-2 h-3.5 w-3.5" />
+            Add
+          </Button>
         </div>
       </div>
 
@@ -668,6 +738,7 @@ export function SubscriptionsPageClient({
                   editMode={editMode}
                   onRowClick={(r) => setEditing(r)}
                   onArchive={handleArchive}
+                  onAddCredential={openAddCredential}
                 />
               )}
               {view === "cards" && (
@@ -701,11 +772,15 @@ export function SubscriptionsPageClient({
       />
       <EditSubscriptionDialog
         open={addOpen}
-        onOpenChange={setAddOpen}
+        onOpenChange={(o) => {
+          setAddOpen(o);
+          if (!o) setAddParentId("");
+        }}
         onCreated={handleCreated}
         knownDepartments={allDepartments}
         knownStatuses={allStatuses}
         possibleParents={topLevelRows}
+        initialParentId={addParentId || undefined}
       />
     </div>
   );
@@ -817,11 +892,13 @@ function TableView({
   editMode,
   onRowClick,
   onArchive,
+  onAddCredential,
 }: {
   items: DisplayRow[];
   editMode: boolean;
   onRowClick: (r: SubscriptionRow) => void;
   onArchive: (r: SubscriptionRow) => void;
+  onAddCredential: (r: SubscriptionRow) => void;
 }) {
   return (
     <Card>
@@ -838,7 +915,7 @@ function TableView({
               <th className="text-left px-3 py-2">Renewal</th>
               <th className="text-center px-3 py-2">1P</th>
               <th className="text-left px-3 py-2">Status</th>
-              {editMode && <th className="w-10 px-2"></th>}
+              {editMode && <th className="w-16 px-2"></th>}
             </tr>
           </thead>
           <tbody>
@@ -859,14 +936,18 @@ function TableView({
                   ) : null}
                 </td>
                 <td className={cn("px-3 py-2 align-top", r._isChild && "pl-6")}>
-                  <div
-                    className={cn(
-                      "text-zinc-900",
-                      r._isChild ? "text-xs text-zinc-600" : "font-medium",
-                    )}
-                  >
-                    {r.serviceName || r.name}
-                  </div>
+                  {r._isChild ? (
+                    // Nested credential/seat: show its custom label, or nothing
+                    // (blank) — never the redundant parent app name. The owner
+                    // column identifies the row.
+                    r.label ? (
+                      <div className="text-xs text-zinc-600">{r.label}</div>
+                    ) : null
+                  ) : (
+                    <div className="font-medium text-zinc-900">
+                      {r.serviceName || r.name}
+                    </div>
+                  )}
                   {r.websiteUrl &&
                     (() => {
                       const host = safeHost(r.websiteUrl);
@@ -891,9 +972,7 @@ function TableView({
                 <td className="px-3 py-2 align-top">
                   <div className="flex flex-wrap gap-1">
                     {r.departments.slice(0, 3).map((d) => (
-                      <Badge key={d} variant="secondary" className="text-[10px] font-normal">
-                        {d}
-                      </Badge>
+                      <DeptBadge key={d} name={d} />
                     ))}
                     {r.departments.length > 3 && (
                       <Badge variant="outline" className="text-[10px] font-normal">
@@ -915,16 +994,34 @@ function TableView({
                 <td className="px-3 py-2 align-top"><StatusBadge status={r.status} /></td>
                 {editMode && (
                   <td className="px-2 py-2 align-top">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onArchive(r);
-                      }}
-                      className="text-xs text-red-600 hover:underline"
-                    >
-                      Archive
-                    </button>
+                    <div className="flex items-center justify-end gap-0.5">
+                      {!r._isChild && (
+                        <button
+                          type="button"
+                          title="Add a credential / seat under this subscription"
+                          aria-label="Add credential"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onAddCredential(r);
+                          }}
+                          className="rounded p-1 text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700"
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        title="Archive"
+                        aria-label="Archive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onArchive(r);
+                        }}
+                        className="rounded p-1 text-zinc-400 transition hover:bg-red-50 hover:text-red-600"
+                      >
+                        <Archive className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </td>
                 )}
               </tr>
@@ -993,7 +1090,7 @@ function CardsView({
             </div>
             <div className="flex flex-wrap gap-1">
               {r.departments.slice(0, 5).map((d) => (
-                <Badge key={d} variant="secondary" className="text-[10px] font-normal">{d}</Badge>
+                <DeptBadge key={d} name={d} />
               ))}
             </div>
             {(() => {
@@ -1010,7 +1107,7 @@ function CardsView({
                         key={k.id}
                         className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-mono text-zinc-600"
                       >
-                        {k.ownerEmail?.split("@")[0] ?? k.name}
+                        {k.label || k.ownerEmail?.split("@")[0] || "seat"}
                       </span>
                     ))}
                     {kids.length > 8 && (
@@ -1060,7 +1157,11 @@ function CompactView({
                 <span className="w-3.5 shrink-0" />
               )}
               <div className="min-w-0 flex-1">
-                <div className="text-sm font-medium truncate">{r.serviceName || r.name}</div>
+                <div className="text-sm font-medium truncate">
+                  {r._isChild
+                    ? r.label || r.ownerEmail?.split("@")[0] || "—"
+                    : r.serviceName || r.name}
+                </div>
                 <div className="text-xs text-zinc-500 truncate">
                   {r.ownerEmail || r.departments.join(", ") || "—"}
                 </div>

@@ -12,6 +12,7 @@ const patchSchema = z.object({
   name: z.string().min(1).max(300).optional(),
   serviceName: z.string().max(200).nullable().optional(),
   ownerEmail: z.string().email().max(200).nullable().optional().or(z.literal("")),
+  label: z.string().max(200).nullable().optional(),
   isStarred: z.boolean().optional(),
   websiteUrl: z.string().url().max(500).nullable().optional().or(z.literal("")),
   departments: z.array(z.string().max(80)).max(20).optional(),
@@ -51,6 +52,7 @@ export async function PATCH(
   if (body.name !== undefined) patch.name = body.name.trim();
   if (body.serviceName !== undefined)
     patch.serviceName = body.serviceName?.trim() || null;
+  if (body.label !== undefined) patch.label = body.label?.trim() || null;
   if (body.ownerEmail !== undefined)
     patch.ownerEmail = body.ownerEmail
       ? body.ownerEmail.toLowerCase().trim()

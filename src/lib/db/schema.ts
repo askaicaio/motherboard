@@ -1084,6 +1084,13 @@ export const subscriptions = pgTable(
     serviceName: text("service_name"),
     /** Owner email portion, parsed from name when present. */
     ownerEmail: text("owner_email"),
+    /**
+     * Optional short label for a nested account/seat row (e.g. "Editing
+     * seat", "Ops account"). Shown on child rows INSTEAD of repeating the
+     * parent app name. Null / blank = no label (row shows nothing but its
+     * owner). Not used for top-level rows, which display their name.
+     */
+    label: text("label"),
     /** True when the imported name had a "*" prefix — shared/primary platform. */
     isStarred: boolean("is_starred").notNull().default(false),
 

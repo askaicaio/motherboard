@@ -8,6 +8,14 @@ import { SubscriptionsPageClient } from "@/components/subscriptions/subscription
 
 export const dynamic = "force-dynamic";
 
+// Department tags we no longer surface. "Unique Account Needed" is retired —
+// individual accounts are modeled as child credential rows now. Stripped here
+// so it disappears immediately, even before migration 0028 cleans the data.
+const HIDDEN_DEPARTMENTS = new Set(["unique account needed"]);
+function visibleDepartments(depts: string[]): string[] {
+  return depts.filter((d) => !HIDDEN_DEPARTMENTS.has(d.trim().toLowerCase()));
+}
+
 export default async function SubscriptionsPage() {
   await requireAuth();
 
@@ -25,9 +33,10 @@ export default async function SubscriptionsPage() {
         name: r.name,
         serviceName: r.serviceName,
         ownerEmail: r.ownerEmail,
+        label: r.label,
         isStarred: r.isStarred,
         websiteUrl: r.websiteUrl,
-        departments: r.departments,
+        departments: visibleDepartments(r.departments),
         inOnePassword: r.inOnePassword,
         // numeric → string from PG; normalise to number | null for the client
         monthlyCostUsd: r.monthlyCostUsd != null ? Number(r.monthlyCostUsd) : null,

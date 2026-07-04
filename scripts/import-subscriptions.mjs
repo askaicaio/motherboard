@@ -201,9 +201,11 @@ for (const row of data) {
 
   const allDepts = parseDepartmentList(row[colIdx.departments] || "");
   const isArchived = allDepts.some((d) => d.toLowerCase() === "*archived");
-  // Strip the *Archived sentinel — status field carries that semantic instead
+  // Strip the *Archived sentinel (status carries that) and the retired
+  // "Unique Account Needed" tag (individual accounts are child rows now).
+  const DROP_DEPTS = new Set(["*archived", "unique account needed"]);
   const departments = allDepts.filter(
-    (d) => d.toLowerCase() !== "*archived",
+    (d) => !DROP_DEPTS.has(d.toLowerCase()),
   );
   if (isArchived) archivedCount++;
 

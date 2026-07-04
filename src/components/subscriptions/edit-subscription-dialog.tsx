@@ -28,6 +28,8 @@ interface Props {
   knownStatuses?: string[];
   /** Top-level rows the user can nest this one under (parent dropdown). */
   possibleParents?: SubscriptionRow[];
+  /** Preselected parent when adding a credential from a parent's "+" action. */
+  initialParentId?: string;
   /** When true the dialog renders fields as plain text (no editing). */
   readOnly?: boolean;
 }
@@ -41,6 +43,7 @@ export function EditSubscriptionDialog({
   knownDepartments = [],
   knownStatuses = [],
   possibleParents = [],
+  initialParentId,
   readOnly = false,
 }: Props) {
   const isEdit = !!existing;
@@ -48,6 +51,7 @@ export function EditSubscriptionDialog({
   const [name, setName] = useState("");
   const [serviceName, setServiceName] = useState("");
   const [ownerEmail, setOwnerEmail] = useState("");
+  const [label, setLabel] = useState("");
   const [isStarred, setIsStarred] = useState(false);
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [inOnePassword, setInOnePassword] = useState(false);
@@ -72,6 +76,7 @@ export function EditSubscriptionDialog({
       setName(existing.name);
       setServiceName(existing.serviceName ?? "");
       setOwnerEmail(existing.ownerEmail ?? "");
+      setLabel(existing.label ?? "");
       setIsStarred(existing.isStarred);
       setWebsiteUrl(existing.websiteUrl ?? "");
       setInOnePassword(existing.inOnePassword);
@@ -93,6 +98,7 @@ export function EditSubscriptionDialog({
       setName("");
       setServiceName("");
       setOwnerEmail("");
+      setLabel("");
       setIsStarred(false);
       setWebsiteUrl("");
       setInOnePassword(false);
@@ -105,10 +111,10 @@ export function EditSubscriptionDialog({
       setTag("");
       setStatus("active");
       setDepartments([]);
-      setParentId("");
+      setParentId(initialParentId ?? "");
     }
     setDeptInput("");
-  }, [open, existing]);
+  }, [open, existing, initialParentId]);
 
   function addDeptFromInput() {
     const raw = deptInput.trim();
@@ -127,7 +133,15 @@ export function EditSubscriptionDialog({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!name.trim()) {
+    // A nested credential/seat doesn't need a name — it's shown by its label
+    // (or owner). Derive an internal name so search + the NOT NULL column hold.
+    const isChild = !!parentId;
+    const finalName =
+      name.trim() ||
+      (isChild
+        ? label.trim() || ownerEmail.trim() || serviceName.trim() || "Account"
+        : "");
+    if (!finalName) {
       toast.error("Name is required");
       return;
     }
@@ -139,9 +153,10 @@ export function EditSubscriptionDialog({
       if (annual == null && monthly != null) annual = Math.round(monthly * 1200) / 100;
 
       const body = {
-        name: name.trim(),
+        name: finalName,
         serviceName: serviceName.trim() || null,
         ownerEmail: ownerEmail.trim() || null,
+        label: label.trim() || null,
         isStarred,
         websiteUrl: websiteUrl.trim() || null,
         departments,
@@ -181,6 +196,7 @@ export function EditSubscriptionDialog({
         name: data.subscription.name,
         serviceName: data.subscription.serviceName ?? null,
         ownerEmail: data.subscription.ownerEmail ?? null,
+        label: data.subscription.label ?? null,
         isStarred: data.subscription.isStarred,
         websiteUrl: data.subscription.websiteUrl ?? null,
         departments: data.subscription.departments ?? [],
@@ -229,6 +245,7 @@ export function EditSubscriptionDialog({
           </DialogHeader>
           <div className="space-y-3 text-sm">
             <Field label="Name" value={existing.name} />
+            {existing.label && <Field label="Label" value={existing.label} />}
             <Field label="Owner" value={existing.ownerEmail} mono />
             {existing.websiteUrl && (
               <div>
@@ -283,8 +300,16 @@ export function EditSubscriptionDialog({
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="space-y-1.5">
-            <Label htmlFor="sub-name">Name *</Label>
-            <Input id="sub-name" value={name} onChange={(e) => setName(e.target.value)} required maxLength={300} />
+            <Label htmlFor="sub-name">Name{parentId ? "" : " *"}</Label>
+            <Input
+              id="sub-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              maxLength={300}
+              placeholder={
+                parentId ? "Optional for a nested account — leave blank" : ""
+              }
+            />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
@@ -323,6 +348,23 @@ export function EditSubscriptionDialog({
               Use this for team-plan seats (e.g. nest each Claude member account under the team-plan owner).
             </p>
           </div>
+
+          {parentId && (
+            <div className="space-y-1.5">
+              <Label htmlFor="sub-label">Label</Label>
+              <Input
+                id="sub-label"
+                value={label}
+                onChange={(e) => setLabel(e.target.value)}
+                maxLength={200}
+                placeholder="e.g. Editing seat"
+              />
+              <p className="text-[10px] text-zinc-500">
+                Shown on this nested account/seat row instead of the app name.
+                Leave blank if none — the owner still identifies the row.
+              </p>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="sub-monthly">Monthly cost (USD)</Label>

@@ -16,12 +16,12 @@ INSERT INTO subscriptions (
   notes, tag, status, archived_at
 ) VALUES
 ('868ewc7d3', 'No Code MBA | caio@chiefaiofficer.com', 'No Code MBA', 'caio@chiefaiofficer.com', false, 'https://app.nocode.mba/dashboard', ARRAY['Training','App Development']::text[], true, 12.6, 151.2, '2026-07-26'::date, 'not sure if we are still using this / no monthly option', NULL, 'annual plans', NULL),
-('868e5en63', '1Password', '1Password', NULL, true, 'https://start.1password.com/signin?l=en', ARRAY['Unique Account Needed']::text[], false, 292.48, 3509.76, '2026-02-20'::date, '26 active members + tax, billed every 20th', NULL, 'team plan', NULL),
-('868e5epgd', 'ClickUp', 'ClickUp', NULL, true, 'https://app.clickup.com/', ARRAY['Unique Account Needed']::text[], false, 114, 1368, '2026-08-28'::date, '5 active accounts ($95/month x 12)', NULL, 'team plan', NULL),
-('868e5encj', 'Fathom', 'Fathom', NULL, true, 'https://fathom.video/users/sign_in', ARRAY['Unique Account Needed']::text[], false, NULL, NULL, NULL, NULL, NULL, 'team plan', NULL),
-('868e5enf7', 'Google', 'Google', NULL, true, 'https://accounts.google.com/', ARRAY['Unique Account Needed']::text[], false, 636.54, 7638.48, NULL, '23 active accounts, 1 archived account', NULL, 'team plan', NULL),
-('868e5en74', 'Slack', 'Slack', NULL, true, 'https://daygull.slack.com/', ARRAY['Unique Account Needed']::text[], false, 284.95, 3419.4, NULL, '$7.25/mo/member + 20 members', NULL, 'team plan', NULL),
-('868ewbmcn', 'Zoom | askai@chiefaiofficer.com', 'Zoom', 'askai@chiefaiofficer.com', true, 'https://us06web.zoom.us/recording/', ARRAY['Operations','Unique Account Needed']::text[], true, 350.63, 4207.56, '2025-08-14'::date, 'Monthly Price varies. listed subscription price is the highest recorded.', NULL, 'team plan', NULL),
+('868e5en63', '1Password', '1Password', NULL, true, 'https://start.1password.com/signin?l=en', '{}'::text[], false, 292.48, 3509.76, '2026-02-20'::date, '26 active members + tax, billed every 20th', NULL, 'team plan', NULL),
+('868e5epgd', 'ClickUp', 'ClickUp', NULL, true, 'https://app.clickup.com/', '{}'::text[], false, 114, 1368, '2026-08-28'::date, '5 active accounts ($95/month x 12)', NULL, 'team plan', NULL),
+('868e5encj', 'Fathom', 'Fathom', NULL, true, 'https://fathom.video/users/sign_in', '{}'::text[], false, NULL, NULL, NULL, NULL, NULL, 'team plan', NULL),
+('868e5enf7', 'Google', 'Google', NULL, true, 'https://accounts.google.com/', '{}'::text[], false, 636.54, 7638.48, NULL, '23 active accounts, 1 archived account', NULL, 'team plan', NULL),
+('868e5en74', 'Slack', 'Slack', NULL, true, 'https://daygull.slack.com/', '{}'::text[], false, 284.95, 3419.4, NULL, '$7.25/mo/member + 20 members', NULL, 'team plan', NULL),
+('868ewbmcn', 'Zoom | askai@chiefaiofficer.com', 'Zoom', 'askai@chiefaiofficer.com', true, 'https://us06web.zoom.us/recording/', ARRAY['Operations']::text[], true, 350.63, 4207.56, '2025-08-14'::date, 'Monthly Price varies. listed subscription price is the highest recorded.', NULL, 'team plan', NULL),
 ('868efrgzh', 'Apollo.io | doc@chiefaiofficer.com', 'Apollo.io', 'doc@chiefaiofficer.com', false, 'https://app.apollo.io/#/login', ARRAY['Marketing']::text[], true, NULL, NULL, NULL, 'CANCELLED, used to be 4 users
 plan includes 2 users (Doc & Lea)', NULL, 'team plan', NULL),
 ('868egedw7', 'Canva Teams | CAIO''s team | askai@chiefaiofficer.com', 'Canva Teams', NULL, false, 'https://www.canva.com', ARRAY['Content Creation']::text[], true, 15.99, 191.88, NULL, 'contains smartcuts, assets, etc', NULL, 'team plan', NULL),
