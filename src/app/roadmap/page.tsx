@@ -46,7 +46,8 @@ export const metadata: Metadata = {
 export default function RoadmapPage() {
   const bookingBaseUrl =
     process.env.NEXT_PUBLIC_BOOKING_CALENDAR_URL ||
-    "https://api.leadconnectorhq.com/widget/booking/UPZT7IA9XbWWcjm5oFCz";
+    // Chris Daigle's roadmap-call calendar (the page is about his talk).
+    "https://api.leadconnectorhq.com/widget/booking/jKZyZLbDOcpd588BjT63";
 
   return (
     <RoadmapClient
