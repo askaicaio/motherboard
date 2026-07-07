@@ -18,6 +18,12 @@ import { ROADMAP_PDF_BASE64, ROADMAP_PDF_FILENAME } from "@/lib/roadmap-pdf";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+// The single tag that marks a roadmap-page contact in GoHighLevel. Applied here
+// to everyone who submits the email form; apply the SAME tag to people who book
+// a call via a GHL workflow (our app never sees GHL bookings). Change it here
+// and in the GHL workflow together if you want a different name.
+const ROADMAP_TAG = "roadmap-lead";
+
 const leadSchema = z.object({
   email: z.string().email().max(300),
   // Name is required on the roadmap form — collect a real first + last name.
@@ -112,7 +118,7 @@ async function upsertGhlContact(lead: Lead): Promise<void> {
     firstName: lead.firstName,
     lastName: lead.lastName,
     source: "Live Event – Roadmap Page",
-    tags: ["live-event", "roadmap-download"],
+    tags: [ROADMAP_TAG, "live-event", "roadmap-download"],
     customFields: [
       { key: "lead_source", field_value: "Live Event" },
       { key: "campaign", field_value: lead.utm_campaign || "unspecified" },
