@@ -9,7 +9,7 @@
 //
 // Contract: returns { ok: true } (200) whenever the request is well-formed
 // (the client always shows the on-page download link), even if one or both
-// sub-ops fail. Only a missing/invalid email returns 400. Never 500s uncaught.
+// sub-ops fail. A missing name or invalid email returns 400. Never 500s uncaught.
 
 import { NextRequest, NextResponse } from "next/server";
 import { z, ZodError } from "zod";
@@ -20,8 +20,9 @@ export const dynamic = "force-dynamic";
 
 const leadSchema = z.object({
   email: z.string().email().max(300),
-  firstName: z.string().max(150).optional(),
-  lastName: z.string().max(150).optional(),
+  // Name is required on the roadmap form — collect a real first + last name.
+  firstName: z.string().trim().min(1).max(150),
+  lastName: z.string().trim().min(1).max(150),
   utm_source: z.string().max(300).optional(),
   utm_medium: z.string().max(300).optional(),
   utm_campaign: z.string().max(300).optional(),
@@ -147,7 +148,10 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     if (err instanceof ZodError) {
       return NextResponse.json(
-        { ok: false, error: "A valid email address is required." },
+        {
+          ok: false,
+          error: "Your first name, last name, and a valid email are required.",
+        },
         { status: 400 },
       );
     }

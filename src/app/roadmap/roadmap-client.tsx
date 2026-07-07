@@ -413,15 +413,23 @@ export default function RoadmapClient({
             </div>
 
             <div className="mt-8 overflow-hidden rounded-2xl bg-white shadow-[0_30px_60px_-25px_rgba(0,0,0,0.6)]">
-              {/* min-height reserves space to avoid CLS while the iframe loads */}
+              {/*
+                GHL's form_embed.js auto-resizes this iframe by id (it has no
+                MutationObserver, and it matches height messages via
+                getElementById). So we give it a STABLE id and must NOT:
+                  • lazy-load it — the resizer handshake fires on load; if the
+                    content loads late the id mapping is lost and it never grows.
+                  • remount it via `key` — a replaced element is orphaned (no
+                    observer re-scans it). We update `src` in place instead.
+                The responsive min-height is a fallback so the taller mobile
+                calendar is never clipped even if auto-resize lags.
+              */}
               <iframe
-                key={bookingSrc}
+                id="ghl-booking-widget"
                 src={bookingSrc}
                 title="Book your roadmap call"
-                loading="lazy"
-                className="w-full"
-                style={{ minHeight: 700, border: "0", display: "block" }}
-                scrolling="no"
+                className="block w-full min-h-[640px]"
+                style={{ border: "0" }}
               />
             </div>
           </div>
@@ -575,6 +583,16 @@ function EmailCapture({ utm }: { utm: Utm }) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (status === "submitting") return;
+
+    const fn = firstName.trim();
+    const ln = lastName.trim();
+    const em = email.trim();
+    if (!fn || !ln || !em) {
+      setErrorMsg("Please enter your first name, last name, and email.");
+      setStatus("error");
+      return;
+    }
+
     setStatus("submitting");
     setErrorMsg(null);
 
@@ -583,9 +601,9 @@ function EmailCapture({ utm }: { utm: Utm }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email: email.trim(),
-          firstName: firstName.trim() || undefined,
-          lastName: lastName.trim() || undefined,
+          email: em,
+          firstName: fn,
+          lastName: ln,
           ...utm,
         }),
       });
@@ -649,17 +667,19 @@ function EmailCapture({ utm }: { utm: Utm }) {
                 <div className="grid gap-3 sm:grid-cols-2">
                   <input
                     type="text"
+                    required
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
-                    placeholder="First name (optional)"
+                    placeholder="First name"
                     autoComplete="given-name"
                     className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-[0.95rem] text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[var(--blue)] focus:ring-2 focus:ring-[var(--blue)]/20"
                   />
                   <input
                     type="text"
+                    required
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
-                    placeholder="Last name (optional)"
+                    placeholder="Last name"
                     autoComplete="family-name"
                     className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-[0.95rem] text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[var(--blue)] focus:ring-2 focus:ring-[var(--blue)]/20"
                   />
