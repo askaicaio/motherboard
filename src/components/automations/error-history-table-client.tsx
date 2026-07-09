@@ -18,6 +18,7 @@ import {
   type ErrorHistoryRow,
 } from "./error-history-table";
 import { CheckErrorsButton } from "./check-errors-button";
+import { AutoRefreshToggle } from "./auto-refresh-toggle";
 
 interface ErrorHistorySite {
   slug: string;
@@ -29,11 +30,17 @@ interface ErrorHistorySite {
 export function ErrorHistoryTableClient({
   site,
   canCapture = false,
+  hasApiKey = false,
+  autoRefresh = { enabled: false, nextRefreshAt: null },
   initialRows = [],
 }: {
   site: ErrorHistorySite;
   /** True only for platforms whose error capture is built (Make). */
   canCapture?: boolean;
+  /** Whether this platform has an API integration (gates the auto-refresh toggle). */
+  hasApiKey?: boolean;
+  /** Shared per-platform auto-refresh state (same one the Per Website Page uses). */
+  autoRefresh?: { enabled: boolean; nextRefreshAt: string | null };
   initialRows?: ErrorHistoryRow[];
 }) {
   const [rows, setRows] = useState(initialRows);
@@ -101,6 +108,15 @@ export function ErrorHistoryTableClient({
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Auto-refresh list toggle, a copy of the Per Website Page one, to the
+              LEFT of "Check for New Errors". Shared per-platform state, so it
+              mirrors the Per Website toggle and (since error capture is coupled
+              to it) is the on/off switch for error capture too. */}
+          <AutoRefreshToggle
+            platform={site.slug}
+            hasApiKey={hasApiKey}
+            autoRefresh={autoRefresh}
+          />
           <CheckErrorsButton platform={site.slug} canCapture={canCapture} />
           {/* Edit mode (delete-only), styled like the Per Website Page toggle;
               sits to the RIGHT of the Check for New Errors button. */}
