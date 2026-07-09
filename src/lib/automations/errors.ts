@@ -22,28 +22,29 @@ import { desc, eq } from "drizzle-orm";
 // Persisted in app_settings under a single key (no migration).
 // ---------------------------------------------------------------------------
 const SWEEP_KEY = "automations_error_sweep";
-/** How often the full error sweep runs (8 hours). */
+/** How often the full error sweep runs on its own (8 hours). */
 export const ERROR_SWEEP_INTERVAL_MS = 8 * 60 * 60 * 1000;
+/** Ignore a MANUAL "check now" request within this long of the last sweep
+ *  (light guard against mashing the button). */
+const MANUAL_MIN_GAP_MS = 60 * 1000;
 
-/** True when the error sweep is due (never run yet, or the stored due time has
- *  passed). The 5-min checker cron calls this each tick. */
-export async function isErrorSweepDue(): Promise<boolean> {
+interface ErrorSweepState {
+  /** ISO time the next sweep is due; the cron runs a sweep once now >= this. */
+  nextSweepAt?: string;
+  /** ISO time the last sweep actually ran. */
+  lastSweptAt?: string;
+}
+
+async function readSweepState(): Promise<ErrorSweepState> {
   const [row] = await db
     .select({ value: appSettings.value })
     .from(appSettings)
     .where(eq(appSettings.key, SWEEP_KEY))
     .limit(1);
-  const next = (row?.value as { nextSweepAt?: string } | undefined)?.nextSweepAt;
-  if (!next) return true; // never swept
-  return new Date(next).getTime() <= Date.now();
+  return (row?.value as ErrorSweepState | undefined) ?? {};
 }
 
-/** Push the next sweep out by the interval. Called after a sweep runs (whether
- *  it succeeded or failed) so a persistent failure can't hammer Make every tick. */
-export async function bumpErrorSweep(): Promise<void> {
-  const value = {
-    nextSweepAt: new Date(Date.now() + ERROR_SWEEP_INTERVAL_MS).toISOString(),
-  };
+async function writeSweepState(value: ErrorSweepState): Promise<void> {
   await db
     .insert(appSettings)
     .values({ key: SWEEP_KEY, value: value as never, updatedAt: new Date() })
@@ -51,6 +52,55 @@ export async function bumpErrorSweep(): Promise<void> {
       target: appSettings.key,
       set: { value: value as never, updatedAt: new Date() },
     });
+}
+
+/** True when the error sweep is due (never run yet, or the stored due time has
+ *  passed). The 5-min checker cron calls this each tick. */
+export async function isErrorSweepDue(): Promise<boolean> {
+  const { nextSweepAt } = await readSweepState();
+  if (!nextSweepAt) return true; // never swept
+  return new Date(nextSweepAt).getTime() <= Date.now();
+}
+
+/** Push the next sweep out by the interval + stamp lastSweptAt=now. Called after
+ *  a sweep runs (success or failure) so a persistent failure can't hammer Make. */
+export async function bumpErrorSweep(): Promise<void> {
+  const now = Date.now();
+  await writeSweepState({
+    nextSweepAt: new Date(now + ERROR_SWEEP_INTERVAL_MS).toISOString(),
+    lastSweptAt: new Date(now).toISOString(),
+  });
+}
+
+/**
+ * MANUAL "check for errors now" — make the sweep due immediately so the next
+ * 5-min cron tick runs it (server-side, unattended; the user can close the app).
+ * Light guard: no-op if a sweep is already pending (due), or if one ran within
+ * the last minute. Returns whether it queued and why not.
+ */
+export async function requestErrorSweep(): Promise<{
+  queued: boolean;
+  reason?: "pending" | "recent";
+}> {
+  const state = await readSweepState();
+  const now = Date.now();
+  // Already due/pending — a sweep is queued for the next tick; nothing to do.
+  if (state.nextSweepAt && new Date(state.nextSweepAt).getTime() <= now) {
+    return { queued: false, reason: "pending" };
+  }
+  // A sweep just ran — don't allow an immediate re-run.
+  if (
+    state.lastSweptAt &&
+    now - new Date(state.lastSweptAt).getTime() < MANUAL_MIN_GAP_MS
+  ) {
+    return { queued: false, reason: "recent" };
+  }
+  // Queue it: make it due now (preserve lastSweptAt for the guard above).
+  await writeSweepState({
+    nextSweepAt: new Date(now).toISOString(),
+    lastSweptAt: state.lastSweptAt,
+  });
+  return { queued: true };
 }
 
 /** One error row as the Error History table wants it (matches ErrorHistoryRow

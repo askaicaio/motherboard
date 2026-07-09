@@ -3,18 +3,23 @@
 // route serves all five websites; the slug is validated against
 // AUTOMATION_SITES (unknown slug -> 404).
 //
-// Shows a header + the 3-column error log table (Name · Error Date · Error
-// Message), newest first, read from the captured `automation_errors` for this
-// platform. Error capture runs in the background (see the checker cron); this
-// page only reads + displays. The list controls (Refresh List / auto-refresh)
-// deliberately live on the Per Website Page, not here — they'd be redundant.
+// Shows a header (with a "Check for New Errors" button) + the 3-column error
+// log table (Name · Error Date · Error Message), newest first, read from the
+// captured `automation_errors` for this platform. Error capture runs in the
+// background (see the checker cron); the button just queues a sweep on demand
+// (Make) or placeholder-errors (other websites). The LIST controls (Refresh
+// List / auto-refresh) deliberately live on the Per Website Page, not here.
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/auth/guard";
 import { ArrowLeft } from "lucide-react";
-import { getAutomationSite } from "@/lib/automations/sites";
+import {
+  getAutomationSite,
+  isErrorCapturePlatform,
+} from "@/lib/automations/sites";
 import { ErrorHistoryTable } from "@/components/automations/error-history-table";
+import { CheckErrorsButton } from "@/components/automations/check-errors-button";
 import { getErrorHistoryRows } from "@/lib/automations/errors";
 
 export const dynamic = "force-dynamic";
@@ -44,43 +49,53 @@ export default async function AutomationErrorHistoryPage({
         Back to Automations
       </Link>
 
-      <div>
-        <div className="flex items-center gap-2">
-          {/* Website brand logo to the LEFT of the title, same treatment as the
-              Per Website Page header + the Main Page card: a monochrome SVG
-              glyph tinted to the brand colour via CSS mask when iconColor is
-              set, otherwise a plain full-colour image. */}
-          {site.iconColor ? (
-            <span
-              aria-hidden
-              className="h-8 w-8 shrink-0"
-              style={{
-                backgroundColor: site.iconColor,
-                maskImage: `url(${site.icon})`,
-                WebkitMaskImage: `url(${site.icon})`,
-                maskRepeat: "no-repeat",
-                WebkitMaskRepeat: "no-repeat",
-                maskPosition: "center",
-                WebkitMaskPosition: "center",
-                maskSize: "contain",
-                WebkitMaskSize: "contain",
-              }}
-            />
-          ) : (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={site.icon}
-              alt=""
-              className="h-8 w-8 shrink-0 object-contain"
-            />
-          )}
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {site.label} Error History
-          </h1>
+      {/* Header row: title block on the left, "Check for New Errors" button on
+          the right. The button queues a background sweep for Make; for the other
+          websites it's a placeholder that shows a red error (capture not built). */}
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            {/* Website brand logo to the LEFT of the title, same treatment as the
+                Per Website Page header + the Main Page card: a monochrome SVG
+                glyph tinted to the brand colour via CSS mask when iconColor is
+                set, otherwise a plain full-colour image. */}
+            {site.iconColor ? (
+              <span
+                aria-hidden
+                className="h-8 w-8 shrink-0"
+                style={{
+                  backgroundColor: site.iconColor,
+                  maskImage: `url(${site.icon})`,
+                  WebkitMaskImage: `url(${site.icon})`,
+                  maskRepeat: "no-repeat",
+                  WebkitMaskRepeat: "no-repeat",
+                  maskPosition: "center",
+                  WebkitMaskPosition: "center",
+                  maskSize: "contain",
+                  WebkitMaskSize: "contain",
+                }}
+              />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={site.icon}
+                alt=""
+                className="h-8 w-8 shrink-0 object-contain"
+              />
+            )}
+            <h1 className="text-2xl font-semibold tracking-tight">
+              {site.label} Error History
+            </h1>
+          </div>
+          <p className="mt-1 text-sm text-zinc-500">
+            Error history for {site.label} automations.
+          </p>
         </div>
-        <p className="mt-1 text-sm text-zinc-500">
-          Error history for {site.label} automations.
-        </p>
+
+        <CheckErrorsButton
+          platform={site.slug}
+          canCapture={isErrorCapturePlatform(site.slug)}
+        />
       </div>
 
       {/* Error log table (Name · Error Date · Error Message), newest first,

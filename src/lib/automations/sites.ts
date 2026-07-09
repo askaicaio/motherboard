@@ -82,3 +82,15 @@ export const SYNCABLE_PLATFORMS = new Set<string>([
 export function isSyncablePlatform(slug: string): boolean {
   return SYNCABLE_PLATFORMS.has(slug);
 }
+
+/**
+ * Platforms whose ERROR capture is built. Make is first; add a slug here as
+ * each platform's error capture lands. The Error History "Check for new errors"
+ * button is a real trigger for these, and a placeholder (red error) for the rest.
+ */
+export const ERROR_CAPTURE_PLATFORMS = new Set<string>(["make"]);
+
+/** True when this platform's error capture is wired up. */
+export function isErrorCapturePlatform(slug: string): boolean {
+  return ERROR_CAPTURE_PLATFORMS.has(slug);
+}
