@@ -14,24 +14,27 @@ import { automationErrors, automations, appSettings } from "@/lib/db/schema";
 import { desc, eq, sql } from "drizzle-orm";
 
 // ---------------------------------------------------------------------------
-// Error-sweep schedule (Cron-B due-timer).
-// The full Make error sweep is expensive-ish (one call per scenario), so it
-// doesn't run every 5-min cron tick. Instead the cron checks this stored
-// "next sweep due" time and only sweeps when it's passed — same pattern as the
-// auto-refresh 24h timer. Interval is 8h (only ~3 sweeps/day; light on Make).
-// Persisted in app_settings under a single key (no migration).
+// Error-sweep triggers.
+// Error capture (the full Make sweep, one call per scenario) is COUPLED to the
+// per-platform Auto-refresh toggle: when a platform's 24h refresh fires, the
+// checker cron sweeps that platform's errors in the same cycle (so toggle OFF =
+// no auto capture). See the cron route's auto-refresh loop.
+//
+// This module only tracks the OTHER trigger: the manual "Check for New Errors"
+// button, which queues a ONE-SHOT sweep for the next 5-min cron tick regardless
+// of the toggle (an always-available escape hatch). Persisted in app_settings
+// under a single key (no migration).
 // ---------------------------------------------------------------------------
 const SWEEP_KEY = "automations_error_sweep";
-/** How often the full error sweep runs on its own (8 hours). */
-export const ERROR_SWEEP_INTERVAL_MS = 8 * 60 * 60 * 1000;
 /** Ignore a MANUAL "check now" request within this long of the last sweep
  *  (light guard against mashing the button). */
 const MANUAL_MIN_GAP_MS = 60 * 1000;
 
 interface ErrorSweepState {
-  /** ISO time the next sweep is due; the cron runs a sweep once now >= this. */
-  nextSweepAt?: string;
-  /** ISO time the last sweep actually ran. */
+  /** A manual "check for new errors" is queued for the next cron tick. */
+  manualPending?: boolean;
+  /** ISO time the last sweep actually ran (any trigger). Feeds the anti-mash
+   *  guard so a manual click just after a sweep is ignored. */
   lastSweptAt?: string;
 }
 
@@ -54,29 +57,31 @@ async function writeSweepState(value: ErrorSweepState): Promise<void> {
     });
 }
 
-/** True when the error sweep is due (never run yet, or the stored due time has
- *  passed). The 5-min checker cron calls this each tick. */
-export async function isErrorSweepDue(): Promise<boolean> {
-  const { nextSweepAt } = await readSweepState();
-  if (!nextSweepAt) return true; // never swept
-  return new Date(nextSweepAt).getTime() <= Date.now();
+/** True when a manual "check now" is queued (button-driven, toggle-independent).
+ *  The 5-min checker cron calls this each tick. */
+export async function isManualSweepPending(): Promise<boolean> {
+  const { manualPending } = await readSweepState();
+  return manualPending === true;
 }
 
-/** Push the next sweep out by the interval + stamp lastSweptAt=now. Called after
- *  a sweep runs (success or failure) so a persistent failure can't hammer Make. */
-export async function bumpErrorSweep(): Promise<void> {
-  const now = Date.now();
+/** Clear the manual flag + stamp lastSweptAt=now. Called after ANY sweep runs
+ *  (toggle-driven or manual) so the flag resets and the anti-mash guard holds,
+ *  even when a persistent failure occurred (so it can't hammer Make). */
+export async function markErrorSweepDone(): Promise<void> {
+  const state = await readSweepState();
   await writeSweepState({
-    nextSweepAt: new Date(now + ERROR_SWEEP_INTERVAL_MS).toISOString(),
-    lastSweptAt: new Date(now).toISOString(),
+    ...state,
+    manualPending: false,
+    lastSweptAt: new Date().toISOString(),
   });
 }
 
 /**
- * MANUAL "check for errors now" — make the sweep due immediately so the next
- * 5-min cron tick runs it (server-side, unattended; the user can close the app).
- * Light guard: no-op if a sweep is already pending (due), or if one ran within
- * the last minute. Returns whether it queued and why not.
+ * MANUAL "check for errors now" — queue a one-shot sweep for the next 5-min
+ * cron tick (server-side, unattended; the user can close the app). Works
+ * regardless of the auto-refresh toggle. Light guard: no-op if a sweep is
+ * already queued, or if one ran within the last minute. Returns whether it
+ * queued and why not.
  */
 export async function requestErrorSweep(): Promise<{
   queued: boolean;
@@ -84,8 +89,8 @@ export async function requestErrorSweep(): Promise<{
 }> {
   const state = await readSweepState();
   const now = Date.now();
-  // Already due/pending — a sweep is queued for the next tick; nothing to do.
-  if (state.nextSweepAt && new Date(state.nextSweepAt).getTime() <= now) {
+  // Already queued for the next tick; nothing to do.
+  if (state.manualPending) {
     return { queued: false, reason: "pending" };
   }
   // A sweep just ran — don't allow an immediate re-run.
@@ -95,11 +100,7 @@ export async function requestErrorSweep(): Promise<{
   ) {
     return { queued: false, reason: "recent" };
   }
-  // Queue it: make it due now (preserve lastSweptAt for the guard above).
-  await writeSweepState({
-    nextSweepAt: new Date(now).toISOString(),
-    lastSweptAt: state.lastSweptAt,
-  });
+  await writeSweepState({ ...state, manualPending: true });
   return { queued: true };
 }
 

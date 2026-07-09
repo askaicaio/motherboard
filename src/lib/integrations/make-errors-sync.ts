@@ -9,14 +9,15 @@
 // never duplicate. The error message is inline on the log entry (error.message),
 // so it's one call per scenario.
 //
-// Runs on an 8h timer (see isErrorSweepDue/bumpErrorSweep in lib/automations/
-// errors.ts), driven by the 5-min checker cron — NOT on every tick or on the
-// Refresh button. Rate-limit friendly: one call per scenario, throttled ~1.5s;
-// make-client returns [] on any non-200 (e.g. 429), so a rate-limited pass just
-// captures fewer and the next sweep catches up.
+// Triggered by the 5-min checker cron in two ways: (a) COUPLED to a platform's
+// 24h Auto-refresh toggle firing (the toggle owns error capture too), and (b)
+// the manual "Check for New Errors" button (a one-shot pending flag). NOT on
+// every tick, and NOT on the Refresh List button. Rate-limit friendly: one call
+// per scenario, throttled ~1.5s; make-client returns [] on any non-200 (e.g.
+// 429), so a rate-limited pass just captures fewer and the next sweep catches up.
 //
-// Feeds the Per Website Error History page today; the Last Error column + Main
-// Page error stats derive from the same table later.
+// Feeds the Per Website Error History page, the Last Error column, and the Main
+// Page "# Errors" stat (all derive from the automation_errors table).
 // =============================================================
 
 import { db } from "@/lib/db";
@@ -62,7 +63,8 @@ export async function captureMakeErrors(): Promise<MakeErrorCaptureResult> {
   // ALL Make scenarios (not active-only): connection/auth errors make Make
   // auto-DISABLE the scenario, so the erroring ones are usually paused — an
   // active-only filter would skip exactly the scenarios that have errors. This
-  // runs on an 8h timer (see isErrorSweepDue) so the full sweep is infrequent.
+  // runs at most once per 24h refresh cycle (or on a manual check), so the full
+  // sweep is infrequent.
   const rows = await db
     .select({ id: automations.id, externalUrl: automations.externalUrl })
     .from(automations)
