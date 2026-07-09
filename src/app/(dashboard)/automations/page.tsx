@@ -22,6 +22,7 @@ import {
 } from "@/components/automations/api-health-check";
 import { getHealthState } from "@/lib/automations/health";
 import { getAutoRefreshMap } from "@/lib/automations/autorefresh";
+import { getErrorCountsByPlatform } from "@/lib/automations/errors";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +43,11 @@ export default async function AutomationsPage() {
   // show its "Auto-refresh list:" stat with a live countdown. Same stored
   // app-setting the per-website toggle writes; the card is display-only.
   const autoRefreshMap = await getAutoRefreshMap();
+
+  // Total captured errors per platform, for each card's "# Errors" stat. Only
+  // Make writes error rows today, so the other cards read 0 until their capture
+  // lands (getErrorCountsByPlatform omits platforms with no errors).
+  const errorCounts = await getErrorCountsByPlatform();
 
   // Count automations per platform & status in one grouped query, then fold
   // into per-platform totals for the cards.
@@ -197,13 +203,12 @@ export default async function AutomationsPage() {
                     valueClassName="text-green-600"
                   />
                   <Stat label="Paused" value={stats.paused} />
-                  {/* Errors count. PLACEHOLDER: stuck at 0 for now, error
-                      tracking doesn't exist yet so nothing feeds this. The
-                      number is always red. Wire the real total in once error
-                      tracking lands. */}
+                  {/* Errors count: total captured errors for this platform
+                      (automation_errors rows). Always red. Reads real data for
+                      Make; the other platforms show 0 until their capture lands. */}
                   <Stat
                     label="Errors"
-                    value={0}
+                    value={errorCounts[site.slug] ?? 0}
                     valueClassName="text-red-600"
                   />
                 </div>
