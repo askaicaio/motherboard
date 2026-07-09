@@ -30,6 +30,7 @@ import { verifyAllPlatforms } from "@/lib/automations/verify";
 import { isSyncablePlatform } from "@/lib/automations/sites";
 import { syncMakeAutomations } from "@/lib/integrations/make-sync";
 import { captureMakeErrors } from "@/lib/integrations/make-errors-sync";
+import { isErrorSweepDue, bumpErrorSweep } from "@/lib/automations/errors";
 import { syncN8nAutomations } from "@/lib/integrations/n8n-sync";
 import { syncGhlAutomations } from "@/lib/integrations/ghl-automations-sync";
 
@@ -113,16 +114,26 @@ export async function GET(request: NextRequest) {
     healthRan = true;
   }
 
-  // Error capture (Make): pull errored executions into automation_errors every
-  // tick, independent of the auto-refresh toggle so the Error History stays
-  // current on its own. Best-effort + throttled; a failure never fails the cron.
+  // Error capture (Make): a full sweep of ALL scenarios on its own 8h timer
+  // (Cron-B — this 5-min heartbeat only runs it when due), independent of the
+  // auto-refresh toggle so the Error History stays current on its own. Always
+  // bump the timer after a run so a persistent failure can't hammer Make.
   try {
-    const errorCapture = await captureMakeErrors();
-    results.push({ task: "make-error-capture", ...errorCapture });
+    if (await isErrorSweepDue()) {
+      try {
+        const errorCapture = await captureMakeErrors();
+        results.push({ task: "make-error-capture", ...errorCapture });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error(`[make-error-capture] failed:`, message);
+        results.push({ task: "make-error-capture", ok: false, error: message });
+      } finally {
+        await bumpErrorSweep();
+      }
+    }
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    console.error(`[make-error-capture] failed:`, message);
-    results.push({ task: "make-error-capture", ok: false, error: message });
+    // The due-check itself failed (e.g. DB read) — skip this tick, try next.
+    console.error(`[make-error-capture] due-check failed:`, err);
   }
 
   return NextResponse.json({

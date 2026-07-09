@@ -1,16 +1,19 @@
 // =============================================================
 // Make error capture — pull errored executions into automation_errors
 // =============================================================
-// Polls ACTIVE Make automations (paused scenarios don't run, so they produce no
-// new errors), fetches each scenario's status=3 log entries via the make-client,
-// and upserts them into the `automation_errors` table (see
-// [[automation-errors-foundation]]). Idempotent on (platform, external_error_id)
-// — the Make execution `imtId` — so re-runs never duplicate. The error message
-// is inline on the log entry (error.message), so it's one call per scenario.
+// Sweeps ALL Make scenarios (a scenario that errored on a connection is usually
+// auto-paused by Make, so active-only would miss it), fetching each scenario's
+// status=3 log entries via the make-client and upserting them into the
+// `automation_errors` table (see [[automation-errors-foundation]]). Idempotent
+// on (platform, external_error_id) — the Make execution `imtId` — so re-runs
+// never duplicate. The error message is inline on the log entry (error.message),
+// so it's one call per scenario.
 //
-// Rate-limit friendly (Make's org limit is low): one call per active scenario,
-// throttled ~0.8s; make-client returns [] on any non-200 (e.g. 429), so a
-// rate-limited pass just captures fewer and the next run catches up.
+// Runs on an 8h timer (see isErrorSweepDue/bumpErrorSweep in lib/automations/
+// errors.ts), driven by the 5-min checker cron — NOT on every tick or on the
+// Refresh button. Rate-limit friendly: one call per scenario, throttled ~1.5s;
+// make-client returns [] on any non-200 (e.g. 429), so a rate-limited pass just
+// captures fewer and the next sweep catches up.
 //
 // Feeds the Per Website Error History page today; the Last Error column + Main
 // Page error stats derive from the same table later.
@@ -18,7 +21,7 @@
 
 import { db } from "@/lib/db";
 import { automations, automationErrors } from "@/lib/db/schema";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { listMakeScenarioErrors } from "./make-client";
 import { platformHasApiKey } from "@/lib/automations/credentials";
 
@@ -56,13 +59,14 @@ export async function captureMakeErrors(): Promise<MakeErrorCaptureResult> {
     };
   }
 
-  // Active scenarios only — keeps the call count bounded + under the rate limit.
+  // ALL Make scenarios (not active-only): connection/auth errors make Make
+  // auto-DISABLE the scenario, so the erroring ones are usually paused — an
+  // active-only filter would skip exactly the scenarios that have errors. This
+  // runs on an 8h timer (see isErrorSweepDue) so the full sweep is infrequent.
   const rows = await db
     .select({ id: automations.id, externalUrl: automations.externalUrl })
     .from(automations)
-    .where(
-      and(eq(automations.platform, PLATFORM), eq(automations.status, "active")),
-    );
+    .where(eq(automations.platform, PLATFORM));
 
   let scenariosPolled = 0;
   let errorsSeen = 0;
@@ -93,8 +97,9 @@ export async function captureMakeErrors(): Promise<MakeErrorCaptureResult> {
       if (insertedRows.length > 0) inserted += 1;
     }
 
-    // Throttle to respect Make's org rate limit (~1 call/sec).
-    await new Promise((r) => setTimeout(r, 800));
+    // Throttle to respect Make's org rate limit (~1 call per 1.5s). A full
+    // sweep of ~115 scenarios is ~3 min — fine on the cron (maxDuration 300s).
+    await new Promise((r) => setTimeout(r, 1500));
   }
 
   return {

@@ -11,7 +11,6 @@ import { z } from "zod";
 import { getOptionalAuth } from "@/lib/auth/guard";
 import { isSyncablePlatform } from "@/lib/automations/sites";
 import { syncMakeAutomations, getMakeRows } from "@/lib/integrations/make-sync";
-import { captureMakeErrors } from "@/lib/integrations/make-errors-sync";
 import { syncN8nAutomations, getN8nRows } from "@/lib/integrations/n8n-sync";
 import {
   syncGhlAutomations,
@@ -61,12 +60,12 @@ export async function POST(request: NextRequest) {
       const rows = await getGhlRows(platform);
       return NextResponse.json({ ok: true, result, rows });
     }
-    // Default: Make. Also capture errors so a manual Refresh refreshes the
-    // Error History too (best-effort; throttled + rate-limit tolerant).
+    // Default: Make. Error capture is NOT run here — it's a background-only
+    // sweep on an 8h timer (see the checker cron). The Refresh button just
+    // re-reads what's captured (the client calls router.refresh after this).
     const result = await syncMakeAutomations(user.id);
-    const errorCapture = await captureMakeErrors();
     const rows = await getMakeRows();
-    return NextResponse.json({ ok: true, result, errorCapture, rows });
+    return NextResponse.json({ ok: true, result, rows });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error(`[${platform} sync] failed:`, message);
