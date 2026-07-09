@@ -4,11 +4,11 @@
 //
 // For an error-capture platform (Make): POSTs /api/automations/capture-errors,
 // which makes the background sweep DUE so the next 5-min cron runs it,
-// unattended. Returns instantly — the user can close the app. New errors appear
+// unattended. Returns instantly, so the user can close the app. New errors appear
 // on the page within a few minutes (reload to see them).
 //
 // For platforms without error capture yet (n8n / ghl / ghl-b2b / zapier): a
-// PLACEHOLDER — clicking just shows red error text that fades after 5s (the
+// PLACEHOLDER: clicking just shows red error text that fades after 5s (the
 // standing default for transient inline errors). No API call.
 
 import { useState, useRef, useEffect } from "react";
@@ -64,7 +64,7 @@ export function CheckErrorsButton({
 
       if (data.queued) {
         toast.success(
-          "Checking for new errors. New ones appear here within a few minutes — reload the page to see them.",
+          "Checking for new errors. New ones appear here within a few minutes. Reload the page to see them.",
         );
       } else if (data.reason === "pending") {
         toast("A check is already queued. New errors will appear here shortly.");

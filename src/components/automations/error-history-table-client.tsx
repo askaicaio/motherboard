@@ -7,7 +7,7 @@
 // Edit mode (delete-only): the header toggle (Pencil + Switch, matching the Per
 // Website Page) reveals a delete button per row. Deleting hard-removes the row
 // (DELETE /api/automations/errors/[id]) with an optimistic update. No add/edit
-// dialogs — delete is the only edit-mode action here.
+// dialogs; delete is the only edit-mode action here.
 
 import { useState } from "react";
 import { toast } from "sonner";
@@ -101,13 +101,14 @@ export function ErrorHistoryTableClient({
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Edit mode (delete-only), styled like the Per Website Page toggle. */}
+          <CheckErrorsButton platform={site.slug} canCapture={canCapture} />
+          {/* Edit mode (delete-only), styled like the Per Website Page toggle;
+              sits to the RIGHT of the Check for New Errors button. */}
           <div className="flex items-center gap-2 text-xs text-zinc-600">
             <Pencil className="h-3.5 w-3.5" />
             Edit mode
             <Switch checked={editMode} onCheckedChange={setEditMode} />
           </div>
-          <CheckErrorsButton platform={site.slug} canCapture={canCapture} />
         </div>
       </div>
 
