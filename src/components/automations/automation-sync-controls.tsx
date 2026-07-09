@@ -22,6 +22,7 @@
 // client's copy.
 
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { RefreshCw, Clock } from "lucide-react";
@@ -58,6 +59,8 @@ export function AutomationSyncControls({
   /** Server-provided auto-refresh state for this platform. */
   autoRefresh?: { enabled: boolean; nextRefreshAt: string | null };
 }) {
+  const router = useRouter();
+
   // "Refresh List" state. On syncable platforms the button calls the real sync;
   // on the rest it shows a temporary placeholder error. `refreshError` holds the
   // red error text; `refreshing` is the in-flight spinner state.
@@ -186,6 +189,10 @@ export function AutomationSyncControls({
             ? `Synced. ${r.created} added, ${r.updated} updated.`
             : "List is up to date.";
         toast.success(summary);
+        // Re-render the server component so freshly-captured rows (e.g. the
+        // Error History table, populated by the Make error capture that runs in
+        // the same sync request) appear without a manual page reload.
+        router.refresh();
       }
     } catch (err) {
       if (!silent) {

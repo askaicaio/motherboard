@@ -192,3 +192,58 @@ export async function getScenarioLastRunAt(
   };
   return json.scenarioLogs?.[0]?.timestamp ?? null;
 }
+
+/** An errored execution, normalized for error-tracking capture. */
+export interface MakeScenarioError {
+  /** Make's prefixed execution id (`imtId`) — unique, used as the idempotency
+   *  key so re-polling the same error never duplicates. */
+  externalErrorId: string;
+  /** ISO 8601 timestamp of the errored execution (the "Error Date"). */
+  occurredAt: string;
+  /** The error description (`error.message`), or null when absent. */
+  message: string | null;
+}
+
+/**
+ * List a scenario's ERRORED executions (status=3) for error tracking.
+ *
+ * ONE request per scenario: the error message is INLINE on each log entry
+ * (`error.message`) — confirmed live 2026-07-03 — so no second call is needed.
+ * Make returns entries newest-first (sorted by imtId desc). Returns [] on ANY
+ * non-200 (e.g. a 429 rate limit): callers treat that as "no new errors this
+ * pass", and the idempotent upsert catches up on the next run. Never throws for
+ * a bad response (only getCreds throws when the token is unset).
+ */
+export async function listMakeScenarioErrors(
+  scenarioId: number | string,
+  limit = 20,
+): Promise<MakeScenarioError[]> {
+  const { token, zone } = getCreds();
+  const url =
+    `https://${zone}.make.com/api/v2/scenarios/${scenarioId}/logs` +
+    `?pg[limit]=${limit}&status=3`;
+
+  const res = await fetch(url, { headers: buildHeaders(token) });
+  if (!res.ok) return [];
+
+  const json = (await res.json().catch(() => ({}))) as {
+    scenarioLogs?: Array<{
+      imtId?: string;
+      id?: string;
+      timestamp?: string;
+      error?: { name?: string; message?: string };
+    }>;
+  };
+
+  const out: MakeScenarioError[] = [];
+  for (const e of json.scenarioLogs ?? []) {
+    const externalErrorId = e.imtId ?? e.id;
+    if (!externalErrorId || !e.timestamp) continue; // need both to store + dedupe
+    out.push({
+      externalErrorId,
+      occurredAt: e.timestamp,
+      message: e.error?.message ?? e.error?.name ?? null,
+    });
+  }
+  return out;
+}

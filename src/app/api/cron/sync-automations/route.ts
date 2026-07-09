@@ -29,6 +29,7 @@ import {
 import { verifyAllPlatforms } from "@/lib/automations/verify";
 import { isSyncablePlatform } from "@/lib/automations/sites";
 import { syncMakeAutomations } from "@/lib/integrations/make-sync";
+import { captureMakeErrors } from "@/lib/integrations/make-errors-sync";
 import { syncN8nAutomations } from "@/lib/integrations/n8n-sync";
 import { syncGhlAutomations } from "@/lib/integrations/ghl-automations-sync";
 
@@ -110,6 +111,18 @@ export async function GET(request: NextRequest) {
     // re-run every tick; the manual button is always available.
     await bumpNextHealthCheck();
     healthRan = true;
+  }
+
+  // Error capture (Make): pull errored executions into automation_errors every
+  // tick, independent of the auto-refresh toggle so the Error History stays
+  // current on its own. Best-effort + throttled; a failure never fails the cron.
+  try {
+    const errorCapture = await captureMakeErrors();
+    results.push({ task: "make-error-capture", ...errorCapture });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`[make-error-capture] failed:`, message);
+    results.push({ task: "make-error-capture", ok: false, error: message });
   }
 
   return NextResponse.json({
