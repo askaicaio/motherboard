@@ -19,6 +19,8 @@ import {
 } from "@/lib/automations/sites";
 import { ErrorHistoryTableClient } from "@/components/automations/error-history-table-client";
 import { getErrorHistoryRows } from "@/lib/automations/errors";
+import { getAutoRefreshFor } from "@/lib/automations/autorefresh";
+import { platformHasApiKey } from "@/lib/automations/credentials";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +38,11 @@ export default async function AutomationErrorHistoryPage({
   // Captured error events for this platform (newest first). Empty until the
   // background error capture has run. Feeds the error-log table.
   const errorRows = await getErrorHistoryRows(site.slug);
+
+  // Same shared per-platform auto-refresh state the Per Website Page toggle
+  // uses. The header's "Auto-refresh list" toggle reads/writes this; since error
+  // capture is coupled to the toggle, it's the switch for error capture too.
+  const autoRefresh = await getAutoRefreshFor(site.slug);
 
   return (
     <div className="space-y-6 p-6">
@@ -55,6 +62,8 @@ export default async function AutomationErrorHistoryPage({
           iconColor: site.iconColor,
         }}
         canCapture={isErrorCapturePlatform(site.slug)}
+        hasApiKey={platformHasApiKey(site.slug)}
+        autoRefresh={autoRefresh}
         initialRows={errorRows}
       />
     </div>
