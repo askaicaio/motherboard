@@ -1,3 +1,5 @@
+"use client";
+
 // Per Website Error History table (3-column error log). Lists a platform's
 // automation errors in CHRONOLOGICAL order, latest errors on TOP.
 //
@@ -16,13 +18,11 @@
 // automation (deduped by link identity); THIS one is ONE ROW PER ERROR EVENT
 // (not deduped), so the same automation can appear on many rows.
 //
-// PLACEHOLDER (2026-07-03): error tracking doesn't exist yet (no runs/errors
-// are stored), so nothing feeds this — with no `rows` it renders the empty
-// state. Once error capture lands (Make/n8n pull + Zapier push; GHL/GHL b2b
-// produce none), pass the per-error-event list into `rows` and it renders.
+// EDIT MODE: when `editMode` is on, each row gets a delete button (a trailing
+// column); clicking calls `onDelete(id)`. Delete-only — no add/edit dialogs.
 
 import { Card, CardContent } from "@/components/ui/card";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Trash2 } from "lucide-react";
 
 /** One error occurrence. `errorAt` is the timestamp of that specific error. */
 export interface ErrorHistoryRow {
@@ -47,9 +47,18 @@ function formatDateCell(value: string | Date | null | undefined): string {
 
 export function ErrorHistoryTable({
   rows = [],
+  editMode = false,
+  onDelete,
+  deletingId = null,
 }: {
-  /** Error events to render. Defaults to none (placeholder — not wired yet). */
+  /** Error events to render (sorted newest-first internally). */
   rows?: ErrorHistoryRow[];
+  /** When true, show a delete button per row (delete-only edit mode). */
+  editMode?: boolean;
+  /** Called with the row id when its delete button is clicked. */
+  onDelete?: (id: string) => void;
+  /** Row currently being deleted (its button is disabled meanwhile). */
+  deletingId?: string | null;
 }) {
   // Chronological, latest on top. Rows with no/invalid date sink to the bottom
   // (mirrors the date-sort behaviour of the Per Website Page table).
@@ -88,13 +97,18 @@ export function ErrorHistoryTable({
               <th className="sticky top-0 z-10 w-full bg-zinc-50 px-3 py-2 text-left shadow-[inset_0_-1px_0_0_#e4e4e7]">
                 Error Message
               </th>
+              {editMode && (
+                <th className="sticky top-0 z-10 w-12 whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
+                  <span className="sr-only">Actions</span>
+                </th>
+              )}
             </tr>
           </thead>
           <tbody>
             {sorted.length === 0 ? (
               <tr>
                 <td
-                  colSpan={3}
+                  colSpan={editMode ? 4 : 3}
                   className="px-3 py-16 text-center text-sm text-zinc-500"
                 >
                   No error history yet. Error tracking for this website has not
@@ -161,6 +175,22 @@ export function ErrorHistoryTable({
                       <span className="text-xs text-zinc-400">-</span>
                     )}
                   </td>
+                  {editMode && (
+                    <td className="px-3 py-2 align-top text-center">
+                      {/* Delete-only edit mode: remove this error row. Hard
+                          delete (may re-appear on the next sweep if still in
+                          Make's logs — user's choice). */}
+                      <button
+                        type="button"
+                        onClick={() => onDelete?.(r.id)}
+                        disabled={deletingId === r.id}
+                        aria-label="Delete this error"
+                        className="inline-flex items-center rounded-md p-1 text-zinc-400 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </td>
+                  )}
                 </tr>
               ))
             )}
