@@ -11,6 +11,7 @@ import { z } from "zod";
 import { getOptionalAuth } from "@/lib/auth/guard";
 import { isSyncablePlatform } from "@/lib/automations/sites";
 import { syncMakeAutomations, getMakeRows } from "@/lib/integrations/make-sync";
+import { captureMakeErrors } from "@/lib/integrations/make-errors-sync";
 import { syncN8nAutomations, getN8nRows } from "@/lib/integrations/n8n-sync";
 import {
   syncGhlAutomations,
@@ -60,10 +61,12 @@ export async function POST(request: NextRequest) {
       const rows = await getGhlRows(platform);
       return NextResponse.json({ ok: true, result, rows });
     }
-    // Default: Make.
+    // Default: Make. Also capture errors so a manual Refresh refreshes the
+    // Error History too (best-effort; throttled + rate-limit tolerant).
     const result = await syncMakeAutomations(user.id);
+    const errorCapture = await captureMakeErrors();
     const rows = await getMakeRows();
-    return NextResponse.json({ ok: true, result, rows });
+    return NextResponse.json({ ok: true, result, errorCapture, rows });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error(`[${platform} sync] failed:`, message);
