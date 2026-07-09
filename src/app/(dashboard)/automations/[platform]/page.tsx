@@ -15,6 +15,7 @@ import { ArrowLeft } from "lucide-react";
 import { getAutomationSite, isSyncablePlatform } from "@/lib/automations/sites";
 import { platformHasApiKey } from "@/lib/automations/credentials";
 import { getAutoRefreshFor } from "@/lib/automations/autorefresh";
+import { getLastErrorAtByPlatform } from "@/lib/automations/errors";
 import { AutomationsTableClient } from "@/components/automations/automations-table-client";
 
 export const dynamic = "force-dynamic";
@@ -30,7 +31,7 @@ export default async function AutomationWebsitePage({
   const site = getAutomationSite(platform);
   if (!site) notFound();
 
-  const rows = await db
+  const baseRows = await db
     .select({
       id: automations.id,
       name: automations.name,
@@ -43,6 +44,15 @@ export default async function AutomationWebsitePage({
     .from(automations)
     .where(eq(automations.platform, site.slug))
     .orderBy(asc(automations.name));
+
+  // Latest captured error date per automation, merged onto each row as the
+  // "Last Error" column. Comes from the automation_errors table (Make writes it
+  // today); a row with no captured error is left null and renders "-".
+  const lastErrorByAutomation = await getLastErrorAtByPlatform(site.slug);
+  const rows = baseRows.map((r) => ({
+    ...r,
+    lastErrorAt: lastErrorByAutomation.get(r.id) ?? null,
+  }));
 
   const autoRefresh = await getAutoRefreshFor(site.slug);
 

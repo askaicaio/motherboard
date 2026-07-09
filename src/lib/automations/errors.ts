@@ -11,7 +11,7 @@
 
 import { db } from "@/lib/db";
 import { automationErrors, automations, appSettings } from "@/lib/db/schema";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 
 // ---------------------------------------------------------------------------
 // Error-sweep schedule (Cron-B due-timer).
@@ -133,4 +133,54 @@ export async function getErrorHistoryRows(
     .innerJoin(automations, eq(automationErrors.automationId, automations.id))
     .where(eq(automationErrors.platform, platform))
     .orderBy(desc(automationErrors.occurredAt));
+}
+
+/**
+ * Total captured errors per platform (one grouped query). Feeds the Main Page
+ * "# Errors" card stat. Platforms with no captured errors are absent from the
+ * map, so callers should default to 0. Today only Make writes rows, so the
+ * other platforms read 0 until their capture lands.
+ */
+export async function getErrorCountsByPlatform(): Promise<
+  Record<string, number>
+> {
+  const rows = await db
+    .select({
+      platform: automationErrors.platform,
+      count: sql<number>`count(*)::int`,
+    })
+    .from(automationErrors)
+    .groupBy(automationErrors.platform);
+
+  const counts: Record<string, number> = {};
+  for (const r of rows) counts[r.platform] = r.count;
+  return counts;
+}
+
+/**
+ * Latest error timestamp per automation for ONE platform, keyed by automation
+ * id. Feeds the Per Website table's "Last Error" column (each row shows its own
+ * most-recent error date). Automations with no captured errors are absent, so
+ * their cell renders "-". Returns an empty map when the platform has none.
+ */
+export async function getLastErrorAtByPlatform(
+  platform: string,
+): Promise<Map<string, Date>> {
+  const rows = await db
+    .select({
+      automationId: automationErrors.automationId,
+      lastErrorAt: sql<string>`max(${automationErrors.occurredAt})`,
+    })
+    .from(automationErrors)
+    .where(eq(automationErrors.platform, platform))
+    .groupBy(automationErrors.automationId);
+
+  const map = new Map<string, Date>();
+  for (const r of rows) {
+    // max() returns null only for an all-null group, which can't happen here
+    // (occurred_at is NOT NULL). Coerce defensively: the driver may hand back a
+    // Date or an ISO string depending on how the aggregate is parsed.
+    if (r.lastErrorAt) map.set(r.automationId, new Date(r.lastErrorAt));
+  }
+  return map;
 }
