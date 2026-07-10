@@ -898,10 +898,12 @@ export function AutomationsTableClient({
                             from the scrolling columns. Name on top; the link
                             sits beneath it (subdued), replacing the old separate
                             Link column. The full URL is stored/clickable, but
-                            DISPLAYS on a single line truncated with an ellipsis
-                            (truncate) so a long link no longer wraps to 3 lines;
+                            DISPLAYS on a single line truncated with an ellipsis;
                             the `min-w-0` lets the text shrink inside the flex row
-                            so the ellipsis kicks in within the fixed 400px. */}
+                            so the ellipsis kicks in within the fixed 400px. The
+                            ellipsis is on the LEFT (`[direction:rtl] text-left`)
+                            so the END of the link (the workflow/scenario ID, the
+                            useful part) stays visible, e.g. "…/builder/<id>". */}
                         <div className="font-medium text-zinc-900">
                           {r.name || (
                             <span className="font-normal text-zinc-400">
@@ -919,7 +921,7 @@ export function AutomationsTableClient({
                             className="mt-0.5 flex items-center gap-1 text-xs text-blue-600 hover:underline"
                           >
                             <ExternalLink className="h-3 w-3 shrink-0" />
-                            <span className="min-w-0 truncate">
+                            <span className="min-w-0 truncate [direction:rtl] text-left">
                               {r.externalUrl}
                             </span>
                           </a>
