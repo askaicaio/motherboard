@@ -9,7 +9,7 @@
 // (DELETE /api/automations/errors/[id]) with an optimistic update. No add/edit
 // dialogs; delete is the only edit-mode action here.
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { Pencil } from "lucide-react";
@@ -48,11 +48,16 @@ export function ErrorHistoryTableClient({
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Re-fetch this platform's captured errors and update the table in place.
+  // Driven by the auto-refresh toggle's steady poll (its `onPoll`, every 30s
+  // while enabled), so newly captured errors show up without a page reload.
+  // `no-store` so the browser can't hand back a stale cached response between
+  // polls (a full page reload always re-runs the server component, which is why
+  // the manual refresh worked; the client poll needs no-store to match).
   const refreshErrorRows = useCallback(async () => {
     try {
-      const res = await fetch(
-        `/api/automations/errors?platform=${site.slug}`,
-      );
+      const res = await fetch(`/api/automations/errors?platform=${site.slug}`, {
+        cache: "no-store",
+      });
       if (!res.ok) return;
       const { errors } = await res.json();
       if (Array.isArray(errors)) setRows(errors as ErrorHistoryRow[]);
@@ -60,36 +65,6 @@ export function ErrorHistoryTableClient({
       // transient; the next poll tick retries
     }
   }, [site.slug]);
-
-  // Bounded row-poll after a scheduled refresh fires. The auto-refresh toggle
-  // calls this once when its countdown elapses; the server error sweep then
-  // runs for ~2-3 min before new rows exist, so a single fetch would be too
-  // early. We poll every 30s for a window that OUTLASTS the sweep (~6 min),
-  // then stop — so newly captured errors appear without a page reload, but
-  // there's no perpetual polling on the 24h cadence. A fresh signal re-arms
-  // the window. This is the fix for "new errors need a manual refresh".
-  const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
-  const pollDeadline = useRef(0);
-  const startErrorRowPolling = useCallback(() => {
-    pollDeadline.current = Date.now() + 6 * 60 * 1000; // (re)arm the window
-    refreshErrorRows(); // immediate
-    if (pollTimer.current) return; // already polling
-    pollTimer.current = setInterval(() => {
-      if (Date.now() > pollDeadline.current) {
-        if (pollTimer.current) clearInterval(pollTimer.current);
-        pollTimer.current = null;
-        return;
-      }
-      refreshErrorRows();
-    }, 30000);
-  }, [refreshErrorRows]);
-
-  // Stop polling on unmount.
-  useEffect(() => {
-    return () => {
-      if (pollTimer.current) clearInterval(pollTimer.current);
-    };
-  }, []);
 
   const handleDelete = async (id: string) => {
     if (deletingId) return; // one at a time
@@ -160,7 +135,7 @@ export function ErrorHistoryTableClient({
             platform={site.slug}
             hasApiKey={hasApiKey}
             autoRefresh={autoRefresh}
-            onElapsePoll={startErrorRowPolling}
+            onPoll={refreshErrorRows}
           />
           <CheckErrorsButton platform={site.slug} canCapture={canCapture} />
           {/* Edit mode (delete-only), styled like the Per Website Page toggle;
