@@ -21,9 +21,11 @@ import { eq } from "drizzle-orm";
 
 const KEY = "automations_autorefresh";
 /** 24 hours — the once-a-day cadence. */
-// ⚠️ DEV TEST (2026-07-10, REVERT ME): temporarily 1 minute to watch the
-// auto-refresh toggle fire live. Restore to `24 * 60 * 60 * 1000` after testing.
-export const AUTO_REFRESH_INTERVAL_MS = 60 * 1000;
+// ⚠️ DEV TEST (2026-07-10, REVERT ME): temporarily 5 minutes to watch the
+// auto-refresh toggle fire live. 5 min (not 1) so the ~3-min Make error sweeps
+// finish before the next fires, instead of overlapping. Restore to
+// `24 * 60 * 60 * 1000` after testing.
+export const AUTO_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
 
 export interface AutoRefreshState {
   enabled: boolean;
