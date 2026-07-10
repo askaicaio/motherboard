@@ -45,9 +45,10 @@ export function AutoRefreshToggle({
   /** Whether this platform has an API integration; turning ON is blocked without one. */
   hasApiKey: boolean;
   autoRefresh?: { enabled: boolean; nextRefreshAt: string | null };
-  /** Called on elapse and on each subsequent poll tick while the countdown is
-   *  elapsed, so the parent can re-fetch its data (e.g. the Error History rows)
-   *  and stay in sync without a full page reload. */
+  /** Called ONCE when the countdown elapses (the scheduled refresh fired), so
+   *  the parent can start polling for freshly-captured data (e.g. the Error
+   *  History rows) without a full page reload. The parent owns the poll window
+   *  because the server error sweep lags ~2-3 min behind the schedule bump. */
   onElapsePoll?: () => void;
 }) {
   // `autoEnabled` + `nextRefreshAt` come from the server; `remainingMs` is the
@@ -115,12 +116,15 @@ export function AutoRefreshToggle({
     const target = nextRefreshAtRef.current;
     if (target && new Date(target).getTime() - Date.now() > 0) return;
 
-    const poll = async () => {
-      // Let the parent refresh its data (the Error History rows) right away.
-      onElapsePollRef.current?.();
-      // Re-anchor the countdown from the server's canonical schedule (the cron
-      // bumps nextRefreshAt when it runs); once it's in the future the countdown
-      // loops and "Refreshing soon…" clears on its own.
+    // Signal the parent ONCE that the scheduled refresh fired. It owns the
+    // longer poll window for the rows (the server sweep lags behind this), so a
+    // one-shot fetch here would be too early.
+    onElapsePollRef.current?.();
+
+    // Re-anchor the countdown from the server's canonical schedule (the cron
+    // bumps nextRefreshAt when it runs); once it's in the future the countdown
+    // loops and "Refreshing soon…" clears on its own. Poll until re-anchored.
+    const reanchor = async () => {
       try {
         const res = await fetch(
           `/api/automations/autorefresh?platform=${platform}`,
@@ -134,8 +138,8 @@ export function AutoRefreshToggle({
         // transient; retry on the next tick
       }
     };
-    poll(); // fire once immediately on elapse
-    const id = setInterval(poll, 30000);
+    reanchor(); // once immediately on elapse
+    const id = setInterval(reanchor, 30000);
     return () => clearInterval(id);
   }, [countdownElapsed, platform]);
 
