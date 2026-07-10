@@ -897,9 +897,11 @@ export function AutomationsTableClient({
                             hovered row, and a right-edge shadow to separate it
                             from the scrolling columns. Name on top; the link
                             sits beneath it (subdued), replacing the old separate
-                            Link column. The full URL is kept (Make's hostname
-                            alone is meaningless) and wraps within the fixed
-                            400px via break-all. */}
+                            Link column. The full URL is stored/clickable, but
+                            DISPLAYS on a single line truncated with an ellipsis
+                            (truncate) so a long link no longer wraps to 3 lines;
+                            the `min-w-0` lets the text shrink inside the flex row
+                            so the ellipsis kicks in within the fixed 400px. */}
                         <div className="font-medium text-zinc-900">
                           {r.name || (
                             <span className="font-normal text-zinc-400">
@@ -913,10 +915,13 @@ export function AutomationsTableClient({
                             target="_blank"
                             rel="noreferrer"
                             onClick={(e) => e.stopPropagation()}
-                            className="mt-0.5 inline-flex items-center gap-1 break-all text-xs text-blue-600 hover:underline"
+                            title={r.externalUrl}
+                            className="mt-0.5 flex items-center gap-1 text-xs text-blue-600 hover:underline"
                           >
                             <ExternalLink className="h-3 w-3 shrink-0" />
-                            {r.externalUrl}
+                            <span className="min-w-0 truncate">
+                              {r.externalUrl}
+                            </span>
                           </a>
                         )}
                       </td>

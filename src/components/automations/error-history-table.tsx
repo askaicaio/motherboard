@@ -124,9 +124,10 @@ export function ErrorHistoryTable({
                       shadow separating it from the scrolling column. Name on top;
                       the automation's link sits BENEATH it (subdued), same as the
                       Per Website Page table — not a separate column. The full URL
-                      is kept and wraps within the fixed 400px via break-all. NOT
-                      deduped — the same automation may repeat (one row per
-                      error). */}
+                      is stored/clickable but DISPLAYS on a single truncated line
+                      (ellipsis) within the fixed 400px, matching the Per Website
+                      table. NOT deduped — the same automation may repeat (one row
+                      per error). */}
                   <td className="sticky left-0 z-10 w-[400px] min-w-[400px] max-w-[400px] bg-white px-3 py-2 align-top shadow-[inset_-1px_0_0_0_#e4e4e7] group-hover:bg-zinc-50">
                     <div className="font-medium text-zinc-900">
                       {r.name || (
@@ -140,10 +141,11 @@ export function ErrorHistoryTable({
                         href={r.externalUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="mt-0.5 inline-flex items-center gap-1 break-all text-xs text-blue-600 hover:underline"
+                        title={r.externalUrl}
+                        className="mt-0.5 flex items-center gap-1 text-xs text-blue-600 hover:underline"
                       >
                         <ExternalLink className="h-3 w-3 shrink-0" />
-                        {r.externalUrl}
+                        <span className="min-w-0 truncate">{r.externalUrl}</span>
                       </a>
                     )}
                   </td>
