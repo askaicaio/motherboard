@@ -137,7 +137,7 @@ export function AutoRefreshToggle({
     // green(ON)/red(OFF) Switch, with a countdown or red error beneath it.
     <div className="relative flex items-center gap-2 text-xs text-zinc-600">
       <Clock className="h-3.5 w-3.5" />
-      Auto-refresh list
+      Auto-refresh
       <Switch
         checked={autoEnabled}
         onCheckedChange={handleAutoToggle}

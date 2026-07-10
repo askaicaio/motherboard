@@ -164,13 +164,13 @@ export default async function AutomationsPage() {
                       {site.description}
                     </p>
                   </div>
-                  {/* Open: opens this website's per-website page. Bottom-right,
-                      inline with the description line. */}
+                  {/* View List: opens this website's per-website page.
+                      Bottom-right, inline with the description line. */}
                   <Link
                     href={`/automations/${site.slug}`}
                     className="shrink-0 rounded-md border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
                   >
-                    Open →
+                    View List
                   </Link>
                 </div>
 

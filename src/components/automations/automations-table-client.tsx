@@ -630,7 +630,7 @@ export function AutomationsTableClient({
               it on without an API integration is blocked with a red error. */}
           <div className="relative flex items-center gap-2 text-xs text-zinc-600">
             <Clock className="h-3.5 w-3.5" />
-            Auto-refresh list
+            Auto-refresh
             {/* ON = green, OFF = red (user 2026-07-01) — green matches the app's
                 other greens (Active status, "API Key Integrated"), red flags that
                 auto-refresh is not running. Scoped to THIS toggle only via
