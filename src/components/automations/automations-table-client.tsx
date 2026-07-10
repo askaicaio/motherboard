@@ -943,19 +943,31 @@ export function AutomationsTableClient({
                         {/* Purpose: "Show" opens a read-only popup when there's
                             text; "None" (red, non-clickable) when empty. In edit
                             mode the button is disabled and clicking the row opens
-                            the Edit Workflow dialog (where the purpose is set). */}
+                            the Edit Workflow dialog (where the purpose is set).
+                            Hovering "Show" reveals a tooltip with the SAME purpose
+                            text the popup displays (Base UI composes the Button as
+                            the trigger via `render`; preserves line breaks). */}
                         {r.purpose ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={editMode}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setShowingPurpose(r.purpose ?? "");
-                            }}
-                          >
-                            Show
-                          </Button>
+                          <Tooltip>
+                            <TooltipTrigger
+                              render={
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={editMode}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowingPurpose(r.purpose ?? "");
+                                  }}
+                                >
+                                  Show
+                                </Button>
+                              }
+                            />
+                            <TooltipContent className="max-w-xs whitespace-pre-wrap break-words text-left normal-case">
+                              {r.purpose}
+                            </TooltipContent>
+                          </Tooltip>
                         ) : (
                           <Button
                             variant="outline"
