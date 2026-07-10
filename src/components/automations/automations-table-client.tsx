@@ -146,7 +146,10 @@ function SyncedColumnMarker({
   spinning?: boolean;
 }) {
   return (
-    <Tooltip>
+    // disableHoverablePopup: close as soon as the cursor leaves the trigger,
+    // even if the popup is under the cursor. Standing default for Automations
+    // tooltips (see the Purpose "Show" tooltip).
+    <Tooltip disableHoverablePopup>
       <TooltipTrigger
         type="button"
         aria-label={`Synced from ${platformLabel}`}
