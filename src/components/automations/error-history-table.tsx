@@ -85,7 +85,7 @@ export function ErrorHistoryTable({
               {/* Corner cell: pinned to BOTH the top (header) and the left
                   (frozen Name column), so it carries both the bottom-edge and
                   right-edge shadows and the highest z-index. */}
-              <th className="sticky left-0 top-0 z-20 w-[600px] min-w-[600px] max-w-[600px] bg-zinc-50 px-3 py-2 text-left shadow-[inset_0_-1px_0_0_#e4e4e7,inset_-1px_0_0_0_#e4e4e7]">
+              <th className="sticky left-0 top-0 z-20 w-[400px] min-w-[400px] max-w-[400px] bg-zinc-50 px-3 py-2 text-left shadow-[inset_0_-1px_0_0_#e4e4e7,inset_-1px_0_0_0_#e4e4e7]">
                 Name
               </th>
               <th className="sticky top-0 z-10 whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
@@ -124,10 +124,10 @@ export function ErrorHistoryTable({
                       shadow separating it from the scrolling column. Name on top;
                       the automation's link sits BENEATH it (subdued), same as the
                       Per Website Page table — not a separate column. The full URL
-                      is kept and wraps within the fixed 600px via break-all. NOT
+                      is kept and wraps within the fixed 400px via break-all. NOT
                       deduped — the same automation may repeat (one row per
                       error). */}
-                  <td className="sticky left-0 z-10 w-[600px] min-w-[600px] max-w-[600px] bg-white px-3 py-2 align-top shadow-[inset_-1px_0_0_0_#e4e4e7] group-hover:bg-zinc-50">
+                  <td className="sticky left-0 z-10 w-[400px] min-w-[400px] max-w-[400px] bg-white px-3 py-2 align-top shadow-[inset_-1px_0_0_0_#e4e4e7] group-hover:bg-zinc-50">
                     <div className="font-medium text-zinc-900">
                       {r.name || (
                         <span className="font-normal text-zinc-400">
