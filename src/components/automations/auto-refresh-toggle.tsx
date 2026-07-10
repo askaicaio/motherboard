@@ -39,17 +39,17 @@ export function AutoRefreshToggle({
   platform,
   hasApiKey,
   autoRefresh = { enabled: false, nextRefreshAt: null },
-  onElapsePoll,
+  onPoll,
 }: {
   platform: string;
   /** Whether this platform has an API integration; turning ON is blocked without one. */
   hasApiKey: boolean;
   autoRefresh?: { enabled: boolean; nextRefreshAt: string | null };
-  /** Called ONCE when the countdown elapses (the scheduled refresh fired), so
-   *  the parent can start polling for freshly-captured data (e.g. the Error
-   *  History rows) without a full page reload. The parent owns the poll window
-   *  because the server error sweep lags ~2-3 min behind the schedule bump. */
-  onElapsePoll?: () => void;
+  /** Called on each poll tick (every 30s) WHILE auto-refresh is enabled, so the
+   *  parent can re-fetch its data (e.g. the Error History rows) and stay current
+   *  without a page reload. Steady poll because the server error sweep lands a
+   *  few minutes after the schedule fires, at a time that varies. */
+  onPoll?: () => void;
 }) {
   // `autoEnabled` + `nextRefreshAt` come from the server; `remainingMs` is the
   // live countdown; `autoError` is the red text under the toggle, fading after 5s.
@@ -67,14 +67,11 @@ export function AutoRefreshToggle({
   // Monotonic id per toggle click, so an out-of-order / stale server response
   // can't clobber the state set by a newer toggle (rapid on/off).
   const autoReqSeq = useRef(0);
-  // Latest nextRefreshAt for the elapsed-effect re-verify guard (avoids acting
-  // off a stale remainingMs during rapid toggling).
-  const nextRefreshAtRef = useRef(nextRefreshAt);
-  // Latest onElapsePoll so the poll interval always calls the current callback
-  // without re-subscribing when the parent re-renders.
-  const onElapsePollRef = useRef(onElapsePoll);
+  // Latest onPoll so the poll interval always calls the current callback without
+  // re-subscribing when the parent re-renders.
+  const onPollRef = useRef(onPoll);
   useEffect(() => {
-    onElapsePollRef.current = onElapsePoll;
+    onPollRef.current = onPoll;
   });
 
   // Clear the fade timer on unmount.
@@ -97,51 +94,34 @@ export function AutoRefreshToggle({
     return () => clearInterval(id);
   }, [autoEnabled, nextRefreshAt]);
 
-  // Keep the latest nextRefreshAt in a ref for the elapsed re-verify guard.
+  // While auto-refresh is ON, keep the OPEN tab in sync without a reload: every
+  // 30s re-read the schedule (so the countdown LOOPS once the cron bumps it,
+  // clearing "Refreshing soon…") and ping the parent to re-fetch its rows (the
+  // Error History rows). A STEADY poll, not a one-shot on elapse: the server
+  // error sweep writes new rows a few minutes after the schedule fires, at a
+  // time that varies, so a fixed window would miss them. Only `nextRefreshAt` is
+  // taken from the server here; `autoEnabled` stays user/toggle-driven so a poll
+  // can't fight an optimistic on/off. Cleared on toggle-off / unmount.
   useEffect(() => {
-    nextRefreshAtRef.current = nextRefreshAt;
-  }, [nextRefreshAt]);
-
-  // Once the countdown elapses, the cron runs the refresh + coupled error sweep
-  // server-side within its interval. Poll for the new schedule (to re-anchor and
-  // LOOP the countdown instead of sticking on "Refreshing soon…") and ping the
-  // parent to re-fetch its rows, so an open tab stays in sync without a reload.
-  // Same mechanism as the Per Website table (PRs #108/#110). Gated on a boolean
-  // (not remainingMs) so it doesn't re-subscribe every tick.
-  const countdownElapsed = autoEnabled && !!nextRefreshAt && remainingMs <= 0;
-  useEffect(() => {
-    if (!countdownElapsed) return;
-    // Re-verify against the ACTUAL target before acting: rapid on/off toggling
-    // can leave countdownElapsed briefly true off a stale remainingMs.
-    const target = nextRefreshAtRef.current;
-    if (target && new Date(target).getTime() - Date.now() > 0) return;
-
-    // Signal the parent ONCE that the scheduled refresh fired. It owns the
-    // longer poll window for the rows (the server sweep lags behind this), so a
-    // one-shot fetch here would be too early.
-    onElapsePollRef.current?.();
-
-    // Re-anchor the countdown from the server's canonical schedule (the cron
-    // bumps nextRefreshAt when it runs); once it's in the future the countdown
-    // loops and "Refreshing soon…" clears on its own. Poll until re-anchored.
-    const reanchor = async () => {
+    if (!autoEnabled) return;
+    const poll = async () => {
+      onPollRef.current?.(); // parent re-fetches its rows
       try {
         const res = await fetch(
           `/api/automations/autorefresh?platform=${platform}`,
+          { cache: "no-store" },
         );
         if (res.ok) {
           const { state } = await res.json();
-          setAutoEnabled(!!state?.enabled);
           if (state?.nextRefreshAt) setNextRefreshAt(state.nextRefreshAt);
         }
       } catch {
         // transient; retry on the next tick
       }
     };
-    reanchor(); // once immediately on elapse
-    const id = setInterval(reanchor, 30000);
+    const id = setInterval(poll, 30000);
     return () => clearInterval(id);
-  }, [countdownElapsed, platform]);
+  }, [autoEnabled, platform]);
 
   // Red error under the toggle, fading after 5s (the standing default for
   // transient error texts).
