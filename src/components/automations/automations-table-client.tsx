@@ -47,10 +47,7 @@ import { WorkflowDialog } from "./workflow-dialog";
 
 /** 24 hours in ms — the auto-refresh cadence (client-side copy; the server is
  *  the source of truth, this is only for the instant optimistic countdown). */
-// ⚠️ DEV TEST (2026-07-10, REVERT ME): temporarily 5 minutes so the countdown
-// matches the shortened server interval during the auto-refresh live test.
-// Restore to `24 * 60 * 60 * 1000` after testing.
-const DAY_MS = 5 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Format milliseconds remaining as HH:MM:SS (clamped at 0). */
 function formatCountdown(ms: number): string {
