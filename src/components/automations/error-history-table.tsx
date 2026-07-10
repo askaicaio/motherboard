@@ -79,7 +79,7 @@ export function ErrorHistoryTable({
   return (
     <Card>
       <CardContent className="max-h-[70vh] overflow-auto p-0">
-        <table className="w-full min-w-[1400px] text-sm">
+        <table className="w-full min-w-[1000px] text-sm">
           <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
             <tr>
               {/* Corner cell: pinned to BOTH the top (header) and the left
