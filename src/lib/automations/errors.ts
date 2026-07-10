@@ -159,6 +159,30 @@ export async function getErrorCountsByPlatform(): Promise<
 }
 
 /**
+ * Whole days since each PLATFORM's most recent captured error, keyed by platform
+ * slug (one grouped query). Feeds the Main Page "Days since last Error" stat.
+ * The day count is computed in SQL (now() - max(occurred_at)) so the server
+ * component stays pure, no Date.now() in render. Platforms with no captured
+ * errors are absent from the map, so the card keeps its red-X placeholder.
+ * Clamped at 0 (a just-now error reads "0 days").
+ */
+export async function getDaysSinceLastErrorByPlatform(): Promise<
+  Record<string, number>
+> {
+  const rows = await db
+    .select({
+      platform: automationErrors.platform,
+      days: sql<number>`greatest(0, floor(extract(epoch from (now() - max(${automationErrors.occurredAt}))) / 86400))::int`,
+    })
+    .from(automationErrors)
+    .groupBy(automationErrors.platform);
+
+  const map: Record<string, number> = {};
+  for (const r of rows) map[r.platform] = r.days;
+  return map;
+}
+
+/**
  * Latest error timestamp per automation for ONE platform, keyed by automation
  * id. Feeds the Per Website table's "Last Error" column (each row shows its own
  * most-recent error date). Automations with no captured errors are absent, so

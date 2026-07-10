@@ -22,7 +22,10 @@ import {
 } from "@/components/automations/api-health-check";
 import { getHealthState } from "@/lib/automations/health";
 import { getAutoRefreshMap } from "@/lib/automations/autorefresh";
-import { getErrorCountsByPlatform } from "@/lib/automations/errors";
+import {
+  getErrorCountsByPlatform,
+  getDaysSinceLastErrorByPlatform,
+} from "@/lib/automations/errors";
 
 export const dynamic = "force-dynamic";
 
@@ -48,6 +51,12 @@ export default async function AutomationsPage() {
   // Make writes error rows today, so the other cards read 0 until their capture
   // lands (getErrorCountsByPlatform omits platforms with no errors).
   const errorCounts = await getErrorCountsByPlatform();
+
+  // Whole days since each platform's most recent captured error, for the "Days
+  // since last Error" stat (computed in SQL). A platform with NO captured errors
+  // is absent here, so its card keeps the red-X placeholder ("not tracked yet");
+  // otherwise we show the day count. Only Make has errors today.
+  const daysSinceErrorByPlatform = await getDaysSinceLastErrorByPlatform();
 
   // Count automations per platform & status in one grouped query, then fold
   // into per-platform totals for the cards.
@@ -106,6 +115,9 @@ export default async function AutomationsPage() {
             active: 0,
             paused: 0,
           };
+          // Days since this platform's most recent captured error. undefined
+          // when the error table is empty for it (keep the red-X placeholder).
+          const daysSinceError = daysSinceErrorByPlatform[site.slug];
           return (
             <Card
               key={site.slug}
@@ -173,17 +185,24 @@ export default async function AutomationsPage() {
                     <AutoRefreshStat
                       enabled={autoRefreshMap[site.slug]?.enabled ?? false}
                     />
-                    {/* Days since last Error. PLACEHOLDER: error tracking doesn't
-                        exist yet, so instead of a count we show the same red X as
-                        the auto-refresh stat (meaning "not tracked yet"). Once
-                        error tracking lands, replace the X with the real red day
-                        count, e.g. `<span className="text-red-600">{n}</span> days`. */}
+                    {/* Days since last Error. When this platform has captured
+                        errors, show days since the most recent one (number always
+                        RED, label default colour). When the error table is empty
+                        for it, keep the red-X placeholder ("not tracked yet").
+                        Only Make has errors today; the rest show the X. */}
                     <div className="flex items-center gap-1.5 text-sm font-medium">
                       <span>Days since last Error:</span>
-                      <X
-                        className="h-3.5 w-3.5 text-red-600"
-                        aria-label="not tracked yet"
-                      />
+                      {daysSinceError !== undefined ? (
+                        <span>
+                          <span className="text-red-600">{daysSinceError}</span>{" "}
+                          days
+                        </span>
+                      ) : (
+                        <X
+                          className="h-3.5 w-3.5 text-red-600"
+                          aria-label="not tracked yet"
+                        />
+                      )}
                     </div>
                   </div>
                   {/* Error History: opens this website's own error history page. */}
