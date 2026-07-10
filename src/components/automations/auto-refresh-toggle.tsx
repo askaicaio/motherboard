@@ -9,10 +9,12 @@
 // via /api/automations/autorefresh, so flipping it here is identical to flipping
 // it on the Per Website Page (they mirror each other through the server).
 //
-// This copy intentionally OMITS the per-website table's "run a sync when the
-// countdown elapses" behaviour: there's no live table here, the timed refresh +
-// error sweep run server-side on the cron and appear on reload. So this is just
-// the toggle + countdown display + the enable/disable call.
+// On countdown elapse it polls the server auto-refresh state to RE-ANCHOR the
+// countdown (so it loops instead of sticking on "Refreshing soon…") and pings
+// `onElapsePoll` so the parent can re-fetch fresh data (the Error History rows)
+// WITHOUT a full page reload — the same "stay in sync" behaviour the Per Website
+// table has (PRs #108/#110). The heavy error sweep still runs server-side on the
+// cron; this only keeps the OPEN tab current.
 
 import { useEffect, useRef, useState } from "react";
 import { Switch } from "@/components/ui/switch";
@@ -37,11 +39,16 @@ export function AutoRefreshToggle({
   platform,
   hasApiKey,
   autoRefresh = { enabled: false, nextRefreshAt: null },
+  onElapsePoll,
 }: {
   platform: string;
   /** Whether this platform has an API integration; turning ON is blocked without one. */
   hasApiKey: boolean;
   autoRefresh?: { enabled: boolean; nextRefreshAt: string | null };
+  /** Called on elapse and on each subsequent poll tick while the countdown is
+   *  elapsed, so the parent can re-fetch its data (e.g. the Error History rows)
+   *  and stay in sync without a full page reload. */
+  onElapsePoll?: () => void;
 }) {
   // `autoEnabled` + `nextRefreshAt` come from the server; `remainingMs` is the
   // live countdown; `autoError` is the red text under the toggle, fading after 5s.
@@ -59,6 +66,15 @@ export function AutoRefreshToggle({
   // Monotonic id per toggle click, so an out-of-order / stale server response
   // can't clobber the state set by a newer toggle (rapid on/off).
   const autoReqSeq = useRef(0);
+  // Latest nextRefreshAt for the elapsed-effect re-verify guard (avoids acting
+  // off a stale remainingMs during rapid toggling).
+  const nextRefreshAtRef = useRef(nextRefreshAt);
+  // Latest onElapsePoll so the poll interval always calls the current callback
+  // without re-subscribing when the parent re-renders.
+  const onElapsePollRef = useRef(onElapsePoll);
+  useEffect(() => {
+    onElapsePollRef.current = onElapsePoll;
+  });
 
   // Clear the fade timer on unmount.
   useEffect(() => {
@@ -79,6 +95,49 @@ export function AutoRefreshToggle({
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, [autoEnabled, nextRefreshAt]);
+
+  // Keep the latest nextRefreshAt in a ref for the elapsed re-verify guard.
+  useEffect(() => {
+    nextRefreshAtRef.current = nextRefreshAt;
+  }, [nextRefreshAt]);
+
+  // Once the countdown elapses, the cron runs the refresh + coupled error sweep
+  // server-side within its interval. Poll for the new schedule (to re-anchor and
+  // LOOP the countdown instead of sticking on "Refreshing soon…") and ping the
+  // parent to re-fetch its rows, so an open tab stays in sync without a reload.
+  // Same mechanism as the Per Website table (PRs #108/#110). Gated on a boolean
+  // (not remainingMs) so it doesn't re-subscribe every tick.
+  const countdownElapsed = autoEnabled && !!nextRefreshAt && remainingMs <= 0;
+  useEffect(() => {
+    if (!countdownElapsed) return;
+    // Re-verify against the ACTUAL target before acting: rapid on/off toggling
+    // can leave countdownElapsed briefly true off a stale remainingMs.
+    const target = nextRefreshAtRef.current;
+    if (target && new Date(target).getTime() - Date.now() > 0) return;
+
+    const poll = async () => {
+      // Let the parent refresh its data (the Error History rows) right away.
+      onElapsePollRef.current?.();
+      // Re-anchor the countdown from the server's canonical schedule (the cron
+      // bumps nextRefreshAt when it runs); once it's in the future the countdown
+      // loops and "Refreshing soon…" clears on its own.
+      try {
+        const res = await fetch(
+          `/api/automations/autorefresh?platform=${platform}`,
+        );
+        if (res.ok) {
+          const { state } = await res.json();
+          setAutoEnabled(!!state?.enabled);
+          if (state?.nextRefreshAt) setNextRefreshAt(state.nextRefreshAt);
+        }
+      } catch {
+        // transient; retry on the next tick
+      }
+    };
+    poll(); // fire once immediately on elapse
+    const id = setInterval(poll, 30000);
+    return () => clearInterval(id);
+  }, [countdownElapsed, platform]);
 
   // Red error under the toggle, fading after 5s (the standing default for
   // transient error texts).

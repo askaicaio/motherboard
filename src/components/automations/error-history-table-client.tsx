@@ -9,7 +9,7 @@
 // (DELETE /api/automations/errors/[id]) with an optimistic update. No add/edit
 // dialogs; delete is the only edit-mode action here.
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { Pencil } from "lucide-react";
@@ -46,6 +46,24 @@ export function ErrorHistoryTableClient({
   const [rows, setRows] = useState(initialRows);
   const [editMode, setEditMode] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // Re-fetch this platform's captured errors and update the table in place.
+  // Called by the auto-refresh toggle when its countdown elapses, so newly
+  // captured errors show up without a full page reload (the fix for the
+  // "have to refresh the page" bug). Failures are ignored; the toggle polls
+  // again on its next tick.
+  const refreshErrorRows = useCallback(async () => {
+    try {
+      const res = await fetch(
+        `/api/automations/errors?platform=${site.slug}`,
+      );
+      if (!res.ok) return;
+      const { errors } = await res.json();
+      if (Array.isArray(errors)) setRows(errors as ErrorHistoryRow[]);
+    } catch {
+      // transient; the toggle's next poll tick retries
+    }
+  }, [site.slug]);
 
   const handleDelete = async (id: string) => {
     if (deletingId) return; // one at a time
@@ -116,6 +134,7 @@ export function ErrorHistoryTableClient({
             platform={site.slug}
             hasApiKey={hasApiKey}
             autoRefresh={autoRefresh}
+            onElapsePoll={refreshErrorRows}
           />
           <CheckErrorsButton platform={site.slug} canCapture={canCapture} />
           {/* Edit mode (delete-only), styled like the Per Website Page toggle;
