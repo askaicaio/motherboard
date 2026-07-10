@@ -948,7 +948,11 @@ export function AutomationsTableClient({
                             text the popup displays (Base UI composes the Button as
                             the trigger via `render`; preserves line breaks). */}
                         {r.purpose ? (
-                          <Tooltip>
+                          // disableHoverablePopup: the tooltip closes as soon as
+                          // the cursor leaves the button, even if the popup itself
+                          // is under the cursor (default keeps it open while
+                          // hovering the popup, which the user found sticky).
+                          <Tooltip disableHoverablePopup>
                             <TooltipTrigger
                               render={
                                 <Button
