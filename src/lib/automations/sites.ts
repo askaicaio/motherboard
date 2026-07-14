@@ -84,11 +84,12 @@ export function isSyncablePlatform(slug: string): boolean {
 }
 
 /**
- * Platforms whose ERROR capture is built. Make is first; add a slug here as
- * each platform's error capture lands. The Error History "Check for new errors"
- * button is a real trigger for these, and a placeholder (red error) for the rest.
+ * Platforms whose ERROR capture is built. Make + n8n are wired; add a slug here
+ * as each platform's error capture lands. The Error History "Check for new
+ * errors" button is a real trigger for these, and a placeholder (red error) for
+ * the rest. (GHL/GHL b2b can't ever join — no run history via API.)
  */
-export const ERROR_CAPTURE_PLATFORMS = new Set<string>(["make"]);
+export const ERROR_CAPTURE_PLATFORMS = new Set<string>(["make", "n8n"]);
 
 /** True when this platform's error capture is wired up. */
 export function isErrorCapturePlatform(slug: string): boolean {

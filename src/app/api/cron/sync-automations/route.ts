@@ -36,7 +36,11 @@ import { verifyAllPlatforms } from "@/lib/automations/verify";
 import { isSyncablePlatform, isErrorCapturePlatform } from "@/lib/automations/sites";
 import { syncMakeAutomations } from "@/lib/integrations/make-sync";
 import { captureMakeErrors } from "@/lib/integrations/make-errors-sync";
-import { isManualSweepPending, markErrorSweepDone } from "@/lib/automations/errors";
+import { captureN8nErrors } from "@/lib/integrations/n8n-errors-sync";
+import {
+  getPendingSweepPlatforms,
+  markErrorSweepDone,
+} from "@/lib/automations/errors";
 import { syncN8nAutomations } from "@/lib/integrations/n8n-sync";
 import { syncGhlAutomations } from "@/lib/integrations/ghl-automations-sync";
 
@@ -68,6 +72,19 @@ async function runSync(platform: string) {
   }
 }
 
+/** Run the error sweep for a platform. Only error-capture platforms (Make, n8n)
+ *  have one; callers should only pass those (guarded by isErrorCapturePlatform). */
+async function captureErrors(platform: string) {
+  switch (platform) {
+    case "make":
+      return captureMakeErrors();
+    case "n8n":
+      return captureN8nErrors();
+    default:
+      return { ok: false, skipped: `no error capture for ${platform}` };
+  }
+}
+
 export async function GET(request: NextRequest) {
   if (!authorized(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -77,9 +94,9 @@ export async function GET(request: NextRequest) {
   const now = Date.now();
   const results: Array<Record<string, unknown>> = [];
 
-  // Set when an error-capture platform's 24h refresh fires this tick, so the
-  // coupled error sweep runs below (Auto-refresh toggle owns error capture too).
-  let errorCaptureDue = false;
+  // Error-capture platforms whose 24h refresh fires this tick, so their coupled
+  // error sweep runs below (the Auto-refresh toggle owns error capture too).
+  const dueErrorPlatforms = new Set<string>();
 
   for (const [platform, state] of Object.entries(map)) {
     if (!state?.enabled || !state.nextRefreshAt) continue;
@@ -88,7 +105,7 @@ export async function GET(request: NextRequest) {
 
     // This platform's refresh is firing this tick; if it supports error capture,
     // couple the error sweep to it (runs once, below).
-    if (isErrorCapturePlatform(platform)) errorCaptureDue = true;
+    if (isErrorCapturePlatform(platform)) dueErrorPlatforms.add(platform);
 
     try {
       const result = await runSync(platform);
@@ -128,35 +145,42 @@ export async function GET(request: NextRequest) {
     healthRan = true;
   }
 
-  // Error capture (Make): a full sweep of ALL scenarios. Runs when EITHER
-  //   (a) a platform's 24h auto-refresh fired this tick (errorCaptureDue) — the
+  // Error capture (per platform: Make sweeps ALL scenarios, n8n ALL workflows).
+  // A platform is swept this tick when EITHER
+  //   (a) its 24h auto-refresh fired this tick (dueErrorPlatforms) — the
   //       coupled, toggle-driven path; or
-  //   (b) the manual "Check for New Errors" button queued a one-shot sweep
-  //       (manualPending) — the toggle-independent escape hatch.
-  // One sweep per tick either way; markErrorSweepDone() clears the manual flag
-  // and stamps lastSweptAt (also satisfying a pending manual request when the
-  // auto path ran). Always mark done, even on failure, so it can't hammer Make.
-  let manualPending = false;
+  //   (b) the manual "Check for New Errors" button queued a one-shot sweep for
+  //       it (pending) — the toggle-independent escape hatch.
+  // Each platform sweeps at most once per tick; markErrorSweepDone(platform)
+  // clears its manual flag and stamps its lastSweptAt (so an auto sweep also
+  // satisfies a pending manual request for the same platform). Always mark done,
+  // even on failure, so a persistent error can't hammer the API.
+  let pending: string[] = [];
   try {
-    manualPending = await isManualSweepPending();
+    pending = await getPendingSweepPlatforms();
   } catch (err) {
     // The pending check itself failed (e.g. DB read) — skip manual this tick.
-    console.error(`[make-error-capture] pending-check failed:`, err);
+    console.error(`[error-capture] pending-check failed:`, err);
   }
-  if (errorCaptureDue || manualPending) {
+  const toSweep = new Set<string>(dueErrorPlatforms);
+  for (const p of pending) {
+    if (isErrorCapturePlatform(p)) toSweep.add(p);
+  }
+  for (const platform of toSweep) {
     try {
-      const errorCapture = await captureMakeErrors();
+      const errorCapture = await captureErrors(platform);
       results.push({
-        task: "make-error-capture",
-        trigger: errorCaptureDue ? "auto" : "manual",
+        task: "error-capture",
+        platform,
+        trigger: dueErrorPlatforms.has(platform) ? "auto" : "manual",
         ...errorCapture,
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      console.error(`[make-error-capture] failed:`, message);
-      results.push({ task: "make-error-capture", ok: false, error: message });
+      console.error(`[error-capture] ${platform} failed:`, message);
+      results.push({ task: "error-capture", platform, ok: false, error: message });
     } finally {
-      await markErrorSweepDone();
+      await markErrorSweepDone(platform);
     }
   }
 
