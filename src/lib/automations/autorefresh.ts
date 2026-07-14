@@ -20,8 +20,11 @@ import { appSettings } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 
 const KEY = "automations_autorefresh";
-/** 24 hours — the once-a-day cadence. */
-export const AUTO_REFRESH_INTERVAL_MS = 24 * 60 * 60 * 1000;
+// ⚠️ DEV TEST (revert me → 24 * 60 * 60 * 1000): temporarily 5 MINUTES so the
+// auto-refresh toggle (and its coupled error sweep) fires quickly for a live
+// test. The checker cron already runs every 5 min (*/5 in vercel.json), so no
+// cron change is needed. REVERT to 24h once the test is done.
+export const AUTO_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
 
 export interface AutoRefreshState {
   enabled: boolean;
