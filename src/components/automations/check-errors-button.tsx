@@ -2,12 +2,13 @@
 
 // "Check for New Errors" button on the Per Website Error History page.
 //
-// For an error-capture platform (Make): POSTs /api/automations/capture-errors,
+// For an error-capture platform (Make, n8n): POSTs /api/automations/capture-errors,
 // which makes the background sweep DUE so the next 5-min cron runs it,
-// unattended. Returns instantly, so the user can close the app. New errors appear
-// on the page within a few minutes (reload to see them).
+// unattended. Returns instantly, so the user can close the app. New errors then
+// appear on their own — the page steadily polls its own rows (see
+// error-history-table-client), so no reload is needed.
 //
-// For platforms without error capture yet (n8n / ghl / ghl-b2b / zapier): a
+// For platforms without error capture yet (ghl / ghl-b2b / zapier): a
 // PLACEHOLDER: clicking just shows red error text that fades after 5s (the
 // standing default for transient inline errors). No API call.
 
@@ -64,7 +65,7 @@ export function CheckErrorsButton({
 
       if (data.queued) {
         toast.success(
-          "Checking for new errors. New ones appear here within a few minutes. Reload the page to see them.",
+          "Checking for new errors. New ones will appear here automatically within a few minutes.",
         );
       } else if (data.reason === "pending") {
         toast("A check is already queued. New errors will appear here shortly.");

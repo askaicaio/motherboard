@@ -9,7 +9,7 @@
 // (DELETE /api/automations/errors/[id]) with an optimistic update. No add/edit
 // dialogs; delete is the only edit-mode action here.
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { Pencil } from "lucide-react";
@@ -26,6 +26,10 @@ interface ErrorHistorySite {
   icon: string;
   iconColor?: string;
 }
+
+/** How often the page re-reads its own error rows while open. Sweeps take
+ *  minutes to land, so this only needs to be responsive-enough, not fast. */
+const ROW_POLL_INTERVAL_MS = 20_000;
 
 export function ErrorHistoryTableClient({
   site,
@@ -48,8 +52,6 @@ export function ErrorHistoryTableClient({
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Re-fetch this platform's captured errors and update the table in place.
-  // Driven by the auto-refresh toggle's steady poll (its `onPoll`, every 30s
-  // while enabled), so newly captured errors show up without a page reload.
   // `no-store` so the browser can't hand back a stale cached response between
   // polls (a full page reload always re-runs the server component, which is why
   // the manual refresh worked; the client poll needs no-store to match).
@@ -65,6 +67,32 @@ export function ErrorHistoryTableClient({
       // transient; the next poll tick retries
     }
   }, [site.slug]);
+
+  // Keep the table current on ITS OWN, independent of the auto-refresh toggle
+  // and of whatever kicked off a sweep (the manual "Check for New Errors" button
+  // OR the toggle; Make OR n8n). Error capture runs server-side on the cron and
+  // its rows land a few minutes later at a time that varies, so we STEADILY
+  // re-read while the page is open instead of leaning on any single trigger to
+  // push the update.
+  //
+  // ⚠️ This decoupling is load-bearing — do NOT re-couple row-refresh to the
+  // toggle. Every past "rows don't show up" regression (#164/#165/#166) came
+  // from making row updates a passenger on the auto-refresh toggle's poll, which
+  // (a) left the MANUAL button path — which is not the toggle — with no live
+  // update at all, and (b) made the toggle path hostage to sweep timing. Row
+  // display is this page's own concern; the toggle just runs its countdown.
+  useEffect(() => {
+    // Pause while editing: an in-flight optimistic delete must not be undone by
+    // a poll re-adding the row (deletes only happen in edit mode).
+    if (editMode) return;
+    const tick = () => {
+      // Skip when the tab is hidden — no point fetching for an unseen page.
+      if (typeof document !== "undefined" && document.hidden) return;
+      void refreshErrorRows();
+    };
+    const id = setInterval(tick, ROW_POLL_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [editMode, refreshErrorRows]);
 
   const handleDelete = async (id: string) => {
     if (deletingId) return; // one at a time
@@ -130,12 +158,14 @@ export function ErrorHistoryTableClient({
           {/* Auto-refresh list toggle, a copy of the Per Website Page one, to the
               LEFT of "Check for New Errors". Shared per-platform state, so it
               mirrors the Per Website toggle and (since error capture is coupled
-              to it) is the on/off switch for error capture too. */}
+              to it) is the on/off switch for error capture too. NOTE: row
+              refresh is intentionally NOT wired here — the page polls its own
+              rows independently (see the effect above), so a manual sweep (with
+              the toggle off) still updates. The toggle just runs its countdown. */}
           <AutoRefreshToggle
             platform={site.slug}
             hasApiKey={hasApiKey}
             autoRefresh={autoRefresh}
-            onPoll={refreshErrorRows}
           />
           <CheckErrorsButton platform={site.slug} canCapture={canCapture} />
           {/* Edit mode (delete-only), styled like the Per Website Page toggle;
