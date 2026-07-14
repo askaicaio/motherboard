@@ -30,21 +30,51 @@ const SWEEP_KEY = "automations_error_sweep";
  *  (light guard against mashing the button). */
 const MANUAL_MIN_GAP_MS = 60 * 1000;
 
+// State is PER-PLATFORM now that more than one platform captures errors (Make +
+// n8n): a manual "check now" on the n8n page must sweep only n8n, not also
+// re-sweep Make (which is a ~3-min job). `manualPending` is the set of platforms
+// with a queued one-shot sweep; `lastSweptAt` is each platform's last-sweep time
+// for the anti-mash guard.
 interface ErrorSweepState {
-  /** A manual "check for new errors" is queued for the next cron tick. */
-  manualPending?: boolean;
-  /** ISO time the last sweep actually ran (any trigger). Feeds the anti-mash
-   *  guard so a manual click just after a sweep is ignored. */
-  lastSweptAt?: string;
+  /** Platform slugs with a manual sweep queued for the next cron tick. */
+  manualPending?: string[];
+  /** Platform slug -> ISO time that platform's last sweep ran (any trigger). */
+  lastSweptAt?: Record<string, string>;
 }
 
+/** Read + normalize the stored state, tolerating the pre-per-platform shape
+ *  (`manualPending: boolean`, `lastSweptAt: string`) that may still be in
+ *  app_settings across a deploy. Legacy values are coerced to Make (the only
+ *  capture platform back then) so an in-flight guard/queue isn't lost. */
 async function readSweepState(): Promise<ErrorSweepState> {
   const [row] = await db
     .select({ value: appSettings.value })
     .from(appSettings)
     .where(eq(appSettings.key, SWEEP_KEY))
     .limit(1);
-  return (row?.value as ErrorSweepState | undefined) ?? {};
+  const raw = (row?.value ?? {}) as {
+    manualPending?: unknown;
+    lastSweptAt?: unknown;
+  };
+
+  const state: ErrorSweepState = {};
+  if (Array.isArray(raw.manualPending)) {
+    state.manualPending = raw.manualPending.filter(
+      (p): p is string => typeof p === "string",
+    );
+  } else if (raw.manualPending === true) {
+    state.manualPending = ["make"]; // legacy boolean
+  }
+  if (
+    raw.lastSweptAt &&
+    typeof raw.lastSweptAt === "object" &&
+    !Array.isArray(raw.lastSweptAt)
+  ) {
+    state.lastSweptAt = raw.lastSweptAt as Record<string, string>;
+  } else if (typeof raw.lastSweptAt === "string") {
+    state.lastSweptAt = { make: raw.lastSweptAt }; // legacy scalar
+  }
+  return state;
 }
 
 async function writeSweepState(value: ErrorSweepState): Promise<void> {
@@ -57,50 +87,52 @@ async function writeSweepState(value: ErrorSweepState): Promise<void> {
     });
 }
 
-/** True when a manual "check now" is queued (button-driven, toggle-independent).
- *  The 5-min checker cron calls this each tick. */
-export async function isManualSweepPending(): Promise<boolean> {
+/** Platforms with a manual "check now" queued (button-driven, toggle-independent).
+ *  The 5-min checker cron reads this each tick and sweeps each one. */
+export async function getPendingSweepPlatforms(): Promise<string[]> {
   const { manualPending } = await readSweepState();
-  return manualPending === true;
+  return manualPending ?? [];
 }
 
-/** Clear the manual flag + stamp lastSweptAt=now. Called after ANY sweep runs
- *  (toggle-driven or manual) so the flag resets and the anti-mash guard holds,
- *  even when a persistent failure occurred (so it can't hammer Make). */
-export async function markErrorSweepDone(): Promise<void> {
+/** Clear ONE platform's manual flag + stamp its lastSweptAt=now. Called after
+ *  that platform's sweep runs (toggle-driven or manual) so the flag resets and
+ *  the anti-mash guard holds, even when a persistent failure occurred (so it
+ *  can't hammer the API). */
+export async function markErrorSweepDone(platform: string): Promise<void> {
   const state = await readSweepState();
   await writeSweepState({
-    ...state,
-    manualPending: false,
-    lastSweptAt: new Date().toISOString(),
+    manualPending: (state.manualPending ?? []).filter((p) => p !== platform),
+    lastSweptAt: {
+      ...(state.lastSweptAt ?? {}),
+      [platform]: new Date().toISOString(),
+    },
   });
 }
 
 /**
- * MANUAL "check for errors now" — queue a one-shot sweep for the next 5-min
- * cron tick (server-side, unattended; the user can close the app). Works
- * regardless of the auto-refresh toggle. Light guard: no-op if a sweep is
- * already queued, or if one ran within the last minute. Returns whether it
- * queued and why not.
+ * MANUAL "check for errors now" for ONE platform — queue a one-shot sweep for
+ * the next 5-min cron tick (server-side, unattended; the user can close the
+ * app). Works regardless of the auto-refresh toggle. Light guard: no-op if a
+ * sweep is already queued for this platform, or if one ran within the last
+ * minute. Returns whether it queued and why not.
  */
-export async function requestErrorSweep(): Promise<{
+export async function requestErrorSweep(platform: string): Promise<{
   queued: boolean;
   reason?: "pending" | "recent";
 }> {
   const state = await readSweepState();
+  const pending = state.manualPending ?? [];
   const now = Date.now();
   // Already queued for the next tick; nothing to do.
-  if (state.manualPending) {
+  if (pending.includes(platform)) {
     return { queued: false, reason: "pending" };
   }
-  // A sweep just ran — don't allow an immediate re-run.
-  if (
-    state.lastSweptAt &&
-    now - new Date(state.lastSweptAt).getTime() < MANUAL_MIN_GAP_MS
-  ) {
+  // This platform swept just now — don't allow an immediate re-run.
+  const last = state.lastSweptAt?.[platform];
+  if (last && now - new Date(last).getTime() < MANUAL_MIN_GAP_MS) {
     return { queued: false, reason: "recent" };
   }
-  await writeSweepState({ ...state, manualPending: true });
+  await writeSweepState({ ...state, manualPending: [...pending, platform] });
   return { queued: true };
 }
 

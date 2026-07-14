@@ -171,6 +171,100 @@ export async function getN8nLastRunAt(
   return last?.stoppedAt ?? last?.startedAt ?? null;
 }
 
+/** An errored execution, normalized for error-tracking capture (mirrors
+ *  MakeScenarioError). */
+export interface N8nWorkflowError {
+  /** n8n's execution id — unique per instance, used as the idempotency key so
+   *  re-polling the same error never duplicates. */
+  externalErrorId: string;
+  /** ISO 8601 timestamp of the errored execution (the "Error Date"). n8n's
+   *  `stoppedAt`, falling back to `startedAt` for a run that never stopped. */
+  occurredAt: string;
+  /** The workflow-level error description, or null when unavailable (we only
+   *  get it when the rich `includeData` pull succeeds — see below). */
+  message: string | null;
+}
+
+/** One execution as returned by GET /api/v1/executions (only the fields we use).
+ *  `data` is present only when the request asked for `includeData=true`. */
+interface N8nExecution {
+  id?: number | string;
+  startedAt?: string;
+  stoppedAt?: string;
+  data?: {
+    resultData?: {
+      error?: { message?: string; description?: string; name?: string };
+    };
+  };
+}
+
+/** Pull the workflow-level error message out of an includeData execution. */
+function n8nErrorMessage(e: N8nExecution): string | null {
+  const err = e.data?.resultData?.error;
+  return err?.message ?? err?.description ?? err?.name ?? null;
+}
+
+/** GET the executions list, returning the parsed body or null on any non-200 /
+ *  parse failure (callers treat null as "try the fallback / no errors"). */
+async function fetchN8nExecutions(
+  url: string,
+  headers: HeadersInit,
+): Promise<{ data?: N8nExecution[] } | null> {
+  const res = await fetch(url, { headers });
+  if (!res.ok) return null;
+  return (await res.json().catch(() => null)) as {
+    data?: N8nExecution[];
+  } | null;
+}
+
+/**
+ * List a workflow's ERRORED executions (status=error) for error tracking.
+ *
+ * Mirrors make-client's listMakeScenarioErrors. One request per workflow: n8n
+ * accepts a `status=error` filter, so we pull only failed executions. The error
+ * MESSAGE lives in the execution's run data, which needs `includeData=true` —
+ * but that can 400 ("Invalid string length") when a run's payload is huge
+ * (n8n GitHub #20706-adjacent), so this is best-effort: try the rich pull first,
+ * and on failure fall back to a dataless list so we still capture the essential
+ * date + idempotency id (message = null). Returns [] on any non-200 (e.g. a
+ * 429): callers treat that as "no new errors this pass" and the idempotent
+ * upsert catches up next run. Never throws for a bad response (only getCreds
+ * throws when creds are unset).
+ */
+export async function listN8nWorkflowErrors(
+  workflowId: number | string,
+  limit = 20,
+): Promise<N8nWorkflowError[]> {
+  const { apiKey, base } = getCreds();
+  const headers = buildHeaders(apiKey);
+  const listUrl =
+    `${base}/api/v1/executions` +
+    `?status=error&workflowId=${encodeURIComponent(String(workflowId))}` +
+    `&limit=${limit}`;
+
+  // Prefer the rich pull (carries the message); fall back to dataless on 400.
+  let withData = true;
+  let json = await fetchN8nExecutions(`${listUrl}&includeData=true`, headers);
+  if (!json) {
+    withData = false;
+    json = await fetchN8nExecutions(listUrl, headers);
+  }
+  if (!json) return [];
+
+  const out: N8nWorkflowError[] = [];
+  for (const e of json.data ?? []) {
+    const externalErrorId = e.id != null ? String(e.id) : null;
+    const occurredAt = e.stoppedAt ?? e.startedAt ?? null;
+    if (!externalErrorId || !occurredAt) continue; // need both to store + dedupe
+    out.push({
+      externalErrorId,
+      occurredAt,
+      message: withData ? n8nErrorMessage(e) : null,
+    });
+  }
+  return out;
+}
+
 /**
  * Live-verify the n8n credentials actually work (used by the Main Page card's
  * "check status" button). Makes a tiny authenticated request; returns true only

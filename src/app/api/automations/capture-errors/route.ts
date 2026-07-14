@@ -5,8 +5,8 @@
 // sweep server-side, unattended — the user can close the app. Instant response.
 // Light guard (see requestErrorSweep) ignores mashing / just-ran requests.
 //
-// Body: { platform }. Only error-capture platforms (Make) are accepted; others
-// 400 (the button placeholder-errors client-side for those anyway).
+// Body: { platform }. Only error-capture platforms (Make, n8n) are accepted;
+// others 400 (the button placeholder-errors client-side for those anyway).
 
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
@@ -36,6 +36,6 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const result = await requestErrorSweep();
+  const result = await requestErrorSweep(body.platform);
   return NextResponse.json({ ok: true, ...result });
 }
