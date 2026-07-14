@@ -204,93 +204,46 @@ export interface MakeScenarioError {
   message: string | null;
 }
 
-/** Outcome of a single scenario's error pull. Distinguishing `rate_limited`
- *  from `ok` matters: a 429 means "this scenario's errors are UNKNOWN this
- *  pass", NOT "this scenario has no errors" — so the sweep can report the
- *  difference instead of silently under-counting. */
-export interface MakeScenarioErrorsResult {
-  status: "ok" | "rate_limited" | "error";
-  errors: MakeScenarioError[];
-}
-
-/** How many times to retry a single scenario after a 429 before giving up. */
-const MAX_ERROR_FETCH_ATTEMPTS = 3;
-/** Cap any single back-off so one rate-limited scenario can't stall the sweep
- *  (and blow the cron's 300s budget). */
-const MAX_BACKOFF_MS = 8000;
-
-/** Parse a `Retry-After` header (delta-seconds or HTTP-date) into ms, capped.
- *  Returns null when absent/unparseable, so the caller uses its own back-off. */
-function parseRetryAfterMs(res: Response): number | null {
-  const raw = res.headers.get("retry-after");
-  if (!raw) return null;
-  const secs = Number(raw);
-  if (Number.isFinite(secs)) return Math.min(Math.max(secs, 0) * 1000, MAX_BACKOFF_MS);
-  const dateMs = new Date(raw).getTime();
-  if (!Number.isNaN(dateMs)) {
-    return Math.min(Math.max(dateMs - Date.now(), 0), MAX_BACKOFF_MS);
-  }
-  return null;
-}
-
 /**
  * List a scenario's ERRORED executions (status=3) for error tracking.
  *
- * ONE request per scenario (the error message is INLINE on each log entry —
- * confirmed live 2026-07-03), retried on a 429. Make's org rate limit is low,
- * so a busy sweep trips 429s; rather than treat those as "no errors" (which
- * silently drops that scenario's errors for the pass), we back off and retry
- * (respecting `Retry-After`), and if still limited we return status
- * `rate_limited` so the caller can count it honestly. Make returns entries
- * newest-first (sorted by imtId desc). Never throws for a bad response (only
- * getCreds throws when the token is unset).
+ * ONE request per scenario: the error message is INLINE on each log entry
+ * (`error.message`) — confirmed live 2026-07-03 — so no second call is needed.
+ * Make returns entries newest-first (sorted by imtId desc). Returns [] on ANY
+ * non-200 (e.g. a 429 rate limit): callers treat that as "no new errors this
+ * pass", and the idempotent upsert catches up on the next run. Never throws for
+ * a bad response (only getCreds throws when the token is unset).
  */
 export async function listMakeScenarioErrors(
   scenarioId: number | string,
   limit = 20,
-): Promise<MakeScenarioErrorsResult> {
+): Promise<MakeScenarioError[]> {
   const { token, zone } = getCreds();
   const url =
     `https://${zone}.make.com/api/v2/scenarios/${scenarioId}/logs` +
     `?pg[limit]=${limit}&status=3`;
 
-  for (let attempt = 1; attempt <= MAX_ERROR_FETCH_ATTEMPTS; attempt++) {
-    const res = await fetch(url, { headers: buildHeaders(token) });
+  const res = await fetch(url, { headers: buildHeaders(token) });
+  if (!res.ok) return [];
 
-    if (res.status === 429) {
-      // Rate limited. Back off and retry unless we're out of attempts.
-      if (attempt === MAX_ERROR_FETCH_ATTEMPTS) {
-        return { status: "rate_limited", errors: [] };
-      }
-      const wait = parseRetryAfterMs(res) ?? attempt * 1000; // 1s, 2s, …
-      await new Promise((r) => setTimeout(r, wait));
-      continue;
-    }
+  const json = (await res.json().catch(() => ({}))) as {
+    scenarioLogs?: Array<{
+      imtId?: string;
+      id?: string;
+      timestamp?: string;
+      error?: { name?: string; message?: string };
+    }>;
+  };
 
-    if (!res.ok) return { status: "error", errors: [] };
-
-    const json = (await res.json().catch(() => ({}))) as {
-      scenarioLogs?: Array<{
-        imtId?: string;
-        id?: string;
-        timestamp?: string;
-        error?: { name?: string; message?: string };
-      }>;
-    };
-
-    const out: MakeScenarioError[] = [];
-    for (const e of json.scenarioLogs ?? []) {
-      const externalErrorId = e.imtId ?? e.id;
-      if (!externalErrorId || !e.timestamp) continue; // need both to store + dedupe
-      out.push({
-        externalErrorId,
-        occurredAt: e.timestamp,
-        message: e.error?.message ?? e.error?.name ?? null,
-      });
-    }
-    return { status: "ok", errors: out };
+  const out: MakeScenarioError[] = [];
+  for (const e of json.scenarioLogs ?? []) {
+    const externalErrorId = e.imtId ?? e.id;
+    if (!externalErrorId || !e.timestamp) continue; // need both to store + dedupe
+    out.push({
+      externalErrorId,
+      occurredAt: e.timestamp,
+      message: e.error?.message ?? e.error?.name ?? null,
+    });
   }
-
-  // Exhausted attempts on 429 (loop always returns otherwise).
-  return { status: "rate_limited", errors: [] };
+  return out;
 }
