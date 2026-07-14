@@ -30,9 +30,27 @@ export interface ErrorHistoryRow {
   name: string;
   externalUrl: string;
   /** The integration's error description for this event (a sentence-length
-   *  message). PLACEHOLDER: nothing feeds it yet, so cells show "-". */
+   *  message). Fed by capture (Make/n8n); may contain HTML (n8n), which is
+   *  rendered as plain text via toPlainText. Null cells show "-". */
   errorMessage?: string | null;
   errorAt: string | Date | null;
+}
+
+/** Render an error message as plain text. Some integrations (n8n) embed HTML in
+ *  their error strings — e.g. `... <a href="...">Learn more</a> ...` — which we
+ *  must NOT render as markup (the text comes from a third-party API: an XSS
+ *  risk). So strip tags, decode the few common entities, and collapse
+ *  whitespace. Plain messages (Make) pass through unchanged. */
+function toPlainText(message: string): string {
+  const withoutTags = message.replace(/<[^>]*>/g, "");
+  const decoded = withoutTags
+    .replace(/&nbsp;/g, " ")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, "&"); // decode &amp; last so "&amp;lt;" -> "&lt;"
+  return decoded.replace(/\s+/g, " ").trim();
 }
 
 /** MM-DD-YYYY, or "-" when empty/invalid. Matches the table's other date cells.
@@ -171,10 +189,11 @@ export function ErrorHistoryTable({
                         full sentences read tactfully instead of being clipped or
                         blowing out the row width; the row grows to fit. A very
                         long single "word"/URL still breaks rather than overflow.
-                        PLACEHOLDER: nothing feeds this yet, so it's always "-". */}
+                        Rendered as plain text (toPlainText) — n8n embeds HTML in
+                        its messages, which we must not render as markup. */}
                     {r.errorMessage ? (
                       <span className="whitespace-normal break-words text-xs text-zinc-700">
-                        {r.errorMessage}
+                        {toPlainText(r.errorMessage)}
                       </span>
                     ) : (
                       <span className="text-xs text-zinc-400">-</span>
