@@ -293,7 +293,7 @@ export default async function PartnerProgramPage() {
         />
       </div>
 
-      {/* Public affiliate-facing pages — slim inline bar (2 items) */}
+      {/* Public affiliate-facing pages — quick links to every public entry point */}
       <div className="flex flex-col gap-2 rounded-lg border border-zinc-200 bg-zinc-50/60 px-3 py-2 sm:flex-row sm:items-center">
         <span className="shrink-0 text-[11px] font-medium uppercase tracking-wide text-zinc-400">
           Public pages
@@ -302,6 +302,10 @@ export default async function PartnerProgramPage() {
           {[
             { href: `${publicBase}/partners`, label: "Landing page" },
             { href: `${publicBase}/partners/apply`, label: "Apply to join" },
+            { href: `${publicBase}/enroll`, label: "Checkout" },
+            { href: `${publicBase}/portal/login`, label: "Affiliate sign-in" },
+            { href: `${publicBase}/partners/terms`, label: "Terms" },
+            { href: `${publicBase}/partners/privacy`, label: "Privacy" },
           ].map((l) => (
             <a
               key={l.href}
