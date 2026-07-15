@@ -43,6 +43,7 @@ export interface AssessmentLead {
   bookedCall?: boolean;
   bookedAt?: string;
   bookedCalendar?: string;
+  bookedSource?: string;
 }
 
 interface LeadsPayload {
