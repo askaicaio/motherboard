@@ -448,6 +448,7 @@ function LeadDialog({
                           "Yes",
                           lead.bookedCalendar,
                           lead.bookedAt ? fmtDate(lead.bookedAt) : "",
+                          lead.bookedSource ? `via ${lead.bookedSource}` : "",
                         ]
                           .filter(Boolean)
                           .join(" · ")
