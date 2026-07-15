@@ -27,6 +27,13 @@ const QUICK_LINKS: { group: string; links: QuickLink[] }[] = [
     ],
   },
   {
+    group: "Quiz leads",
+    links: [
+      { label: "CAIO", href: "https://assessment.chiefaiofficer.com/leads" },
+      { label: "Scaling Up", href: "https://assessment.chiefaiofficer.com/scaling-up-leads" },
+    ],
+  },
+  {
     group: "Tools",
     links: [
       { label: "Stripe", href: "https://dashboard.stripe.com" },
