@@ -51,19 +51,26 @@ export async function getPartnerByRefCode(refCode: string) {
   return row ?? null;
 }
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /** Resolve a program by id OR slug OR stripe_price_id (external ref tolerance). */
 export async function resolveProgram(ref: string) {
-  // Try id first (uuid), then slug, then stripe price id.
+  // Always match slug + stripe_price_id (text columns). Only add the uuid PK
+  // clause when `ref` actually looks like a UUID: comparing the uuid `id`
+  // column against a non-uuid string (e.g. a slug like "roi-blueprint") makes
+  // Postgres coerce that string to uuid and throw 22P02 for the WHOLE query —
+  // which broke every slug-based checkout ("Network error" on Buy now).
+  const clauses = [
+    eq(partnerPrograms.slug, ref),
+    eq(partnerPrograms.stripePriceId, ref),
+  ];
+  if (UUID_RE.test(ref)) clauses.unshift(eq(partnerPrograms.id, ref));
+
   const [row] = await db
     .select()
     .from(partnerPrograms)
-    .where(
-      or(
-        eq(partnerPrograms.id, ref),
-        eq(partnerPrograms.slug, ref),
-        eq(partnerPrograms.stripePriceId, ref),
-      ),
-    )
+    .where(or(...clauses))
     .limit(1);
   return row ?? null;
 }

@@ -1421,6 +1421,12 @@ export const partnerPrograms = pgTable(
     slug: text("slug").notNull(),
     /** List price in cents (display only — not the commission basis). */
     listValueCents: integer("list_value_cents").notNull(),
+    /**
+     * Short marketing blurb shown on the /enroll checkout cards. Can be
+     * AI-drafted (see /api/partners/programs/[id]/generate-description) but is
+     * fully editable + saved from the admin. Null = no description shown.
+     */
+    description: text("description"),
     /** Per-program rate override (nullable — falls back to partner_settings default). */
     commissionRateOverride: text("commission_rate_override"),
     /** True when the program closes via conversation (Strategic Oversight, Embedded Fractional CAIO). */

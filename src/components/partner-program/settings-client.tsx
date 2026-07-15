@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -25,6 +26,8 @@ import {
   Plus,
   Archive,
   RotateCcw,
+  Sparkles,
+  FileText,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -48,6 +51,8 @@ export interface PartnerProgram {
   name: string;
   slug: string;
   listValueCents: number;
+  /** Marketing blurb shown on the /enroll cards (AI-draftable, editable). */
+  description?: string | null;
   commissionRateOverride: string | null;
   salesLed: boolean;
   active: boolean;
@@ -698,6 +703,54 @@ function ProgramRow({
   const [confirmArchive, setConfirmArchive] = useState(false);
   const [archiving, setArchiving] = useState(false);
   const [restoring, setRestoring] = useState(false);
+  const [descOpen, setDescOpen] = useState(false);
+  const [description, setDescription] = useState(program.description ?? "");
+  const [generating, setGenerating] = useState(false);
+  const [savingDesc, setSavingDesc] = useState(false);
+
+  // Ask the AI for a draft blurb — fills the box; nothing saves until "Save".
+  const handleGenerateDesc = async () => {
+    setGenerating(true);
+    try {
+      const res = await fetch(
+        `/api/partners/programs/${program.id}/generate-description`,
+        { method: "POST" },
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.error || "Couldn't generate a draft");
+        return;
+      }
+      if (data.description) setDescription(data.description);
+    } catch {
+      toast.error("Network error generating the draft");
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handleSaveDesc = async () => {
+    setSavingDesc(true);
+    try {
+      const res = await fetch(`/api/partners/programs/${program.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description: description.trim() || null }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error || "Failed to save description");
+        return;
+      }
+      toast.success(`Saved description for ${program.name}`);
+      setDescOpen(false);
+      router.refresh();
+    } catch {
+      toast.error("Network error saving the description");
+    } finally {
+      setSavingDesc(false);
+    }
+  };
 
   const handleArchive = async () => {
     setArchiving(true);
@@ -920,6 +973,21 @@ function ProgramRow({
         ) : (
           <div className="flex items-center justify-end gap-2">
             <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setDescOpen(true)}
+              title="Edit the checkout description (AI can draft it)"
+              className={cn(
+                "whitespace-nowrap",
+                program.description
+                  ? "text-indigo-600 hover:text-indigo-700"
+                  : "text-zinc-500 hover:text-indigo-600",
+              )}
+            >
+              <FileText className="mr-1.5 h-3.5 w-3.5" />
+              {program.description ? "Sales copy" : "Add copy"}
+            </Button>
+            <Button
               variant="outline"
               size="sm"
               onClick={handleSave}
@@ -938,6 +1006,59 @@ function ProgramRow({
             </Button>
           </div>
         )}
+
+        <Dialog
+          open={descOpen}
+          onOpenChange={(o) => {
+            setDescOpen(o);
+            // Re-seed from the persisted value on open so abandoned edits or
+            // rejected AI drafts are discarded (state is seeded once at mount).
+            if (o) setDescription(program.description ?? "");
+          }}
+        >
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Checkout description — {program.name}</DialogTitle>
+              <DialogDescription>
+                Shown on the <span className="font-mono">/enroll</span> card for
+                this product. Draft it with AI, edit freely, then save. Nothing
+                goes live until you click Save.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 py-1 text-left">
+              <Textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={4}
+                maxLength={2000}
+                placeholder="e.g. A hands-on program that takes leaders from AI-curious to running real workflows in 90 days."
+              />
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={handleGenerateDesc}
+                disabled={generating}
+                className="gap-1.5"
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                {generating ? "Generating…" : "Generate with AI"}
+              </Button>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setDescOpen(false)}
+                disabled={savingDesc}
+              >
+                Cancel
+              </Button>
+              <Button onClick={handleSaveDesc} disabled={savingDesc}>
+                {savingDesc ? "Saving…" : "Save description"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         <Dialog open={confirmArchive} onOpenChange={setConfirmArchive}>
           <DialogContent className="sm:max-w-md">

@@ -54,6 +54,7 @@ export default async function PartnerSettingsPage() {
         name: p.name,
         slug: p.slug,
         listValueCents: p.listValueCents,
+        description: p.description,
         commissionRateOverride: p.commissionRateOverride,
         salesLed: p.salesLed,
         active: p.active,

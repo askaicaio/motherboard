@@ -36,6 +36,7 @@ export default async function EnrollPage({
       id: partnerPrograms.id,
       name: partnerPrograms.name,
       slug: partnerPrograms.slug,
+      description: partnerPrograms.description,
       listValueCents: partnerPrograms.listValueCents,
       isSample: partnerPrograms.isSample,
     })

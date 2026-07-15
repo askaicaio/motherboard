@@ -8,6 +8,7 @@ interface Program {
   id: string;
   name: string;
   slug: string;
+  description: string | null;
   listValueCents: number;
   isSample: boolean;
 }
@@ -56,12 +57,22 @@ export default function EnrollClient({
           affId: trimmedRef || null,
         }),
       });
-      const data = await res.json();
+      // Read the body defensively — if the server ever returns a non-JSON
+      // error page, don't let res.json() throw and mask it as a "network" error.
+      let data: { url?: string; error?: string } | null = null;
+      try {
+        data = await res.json();
+      } catch {
+        data = null;
+      }
       if (res.ok && data?.url) {
         window.location.href = data.url;
         return;
       }
-      setError(data?.error || "Something went wrong starting checkout. Please try again.");
+      setError(
+        data?.error ||
+          `Couldn't start checkout (error ${res.status}). Please try again, or contact us if it keeps happening.`,
+      );
       setLoadingSlug(null);
     } catch {
       setError("Network error. Please check your connection and try again.");
@@ -219,6 +230,11 @@ export default function EnrollClient({
                         </span>
                       )}
                     </div>
+                    {program.description && (
+                      <p className="mt-2 text-sm leading-relaxed text-slate-600">
+                        {program.description}
+                      </p>
+                    )}
                     <div className="mt-4 flex items-baseline gap-1">
                       <span className="text-3xl font-extrabold tracking-tight text-[#1e1b4b] tabular-nums">
                         {usd(program.listValueCents)}

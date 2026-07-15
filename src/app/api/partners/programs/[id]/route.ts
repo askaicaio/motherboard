@@ -17,6 +17,8 @@ import { eq } from "drizzle-orm";
 const patchSchema = z
   .object({
     active: z.boolean().optional(),
+    // Editable marketing blurb for the /enroll cards (AI-draftable).
+    description: z.string().max(2000).nullable().optional(),
     // Decimal string e.g. "0.12", or null to fall back to the default rate.
     commissionRateOverride: z
       .string()
@@ -55,6 +57,8 @@ export async function PATCH(
 
   const patch: Record<string, unknown> = { updatedAt: new Date() };
   if (body.active !== undefined) patch.active = body.active;
+  if (body.description !== undefined)
+    patch.description = body.description?.trim() || null;
   if (body.commissionRateOverride !== undefined)
     patch.commissionRateOverride = body.commissionRateOverride;
   if (body.setupFeeCents !== undefined) patch.setupFeeCents = body.setupFeeCents;

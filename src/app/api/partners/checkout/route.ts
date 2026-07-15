@@ -51,26 +51,37 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
-    throw err;
+    // Malformed / non-JSON body — return JSON, never let it become an HTML 500.
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const program = await resolveProgram(body.programRef);
-  if (!program || !program.active) {
-    return NextResponse.json({ error: "Unknown or inactive program" }, { status: 404 });
-  }
-  if (program.salesLed || !program.stripePriceId) {
-    return NextResponse.json(
-      { error: "This program is sales-led and has no self-serve checkout" },
-      { status: 400 },
-    );
-  }
-
-  const affId = body.affId?.trim() || undefined;
-  const meta: Record<string, string> = { program: program.slug };
-  if (affId) meta.aff_id = affId;
-  if (body.cookieId) meta.cookie_id = body.cookieId;
-
+  // Everything past parsing is wrapped so this endpoint ALWAYS returns JSON.
+  // A non-JSON 500 (e.g. an unhandled throw in resolveProgram or a Stripe/config
+  // error) is what surfaces on the client as a generic "Network error" — here it
+  // comes back as a real, readable message instead.
   try {
+    const program = await resolveProgram(body.programRef);
+    if (!program || !program.active) {
+      return NextResponse.json(
+        { error: "Unknown or inactive program" },
+        { status: 404 },
+      );
+    }
+    if (program.salesLed || !program.stripePriceId) {
+      return NextResponse.json(
+        {
+          error:
+            "This program isn't set up for self-serve checkout yet (no Stripe price wired).",
+        },
+        { status: 400 },
+      );
+    }
+
+    const affId = body.affId?.trim() || undefined;
+    const meta: Record<string, string> = { program: program.slug };
+    if (affId) meta.aff_id = affId;
+    if (body.cookieId) meta.cookie_id = body.cookieId;
+
     const session = await getStripe().checkout.sessions.create({
       mode: "payment",
       line_items: [{ price: program.stripePriceId, quantity: 1 }],
@@ -88,7 +99,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ url: session.url, id: session.id });
   } catch (err) {
-    console.error("[checkout] session create failed:", err);
+    console.error("[checkout] failed:", err);
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Checkout failed" },
       { status: 500 },
