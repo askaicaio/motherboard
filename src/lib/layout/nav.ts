@@ -19,6 +19,7 @@ export const MANAGEABLE_TABS: ManageableTab[] = [
   { href: "/onboarding/new", label: "New Request" },
   { href: "/reports", label: "Company Reports" },
   { href: "/members", label: "Members" },
+  { href: "/leads", label: "Leads" },
   { href: "/campaigns", label: "Campaigns" },
   { href: "/automations", label: "Automations" },
   { href: "/docs", label: "Docs" },
