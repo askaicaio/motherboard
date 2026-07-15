@@ -39,6 +39,10 @@ export interface AssessmentLead {
   biggestChallenge: string;
   aiTools: string;
   answers: LeadAnswer[];
+  // Booking signal from GHL (who booked a call — Dani's 1:1 / CAIO exec briefing).
+  bookedCall?: boolean;
+  bookedAt?: string;
+  bookedCalendar?: string;
 }
 
 interface LeadsPayload {

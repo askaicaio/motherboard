@@ -8,6 +8,7 @@ import {
   RefreshCw,
   FileText,
   ExternalLink,
+  Check,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -71,6 +72,25 @@ function SourcePill({ edition }: { edition: string }) {
   );
 }
 
+// "Booked a call" pill — set from the GHL booking webhook. Emerald + a check so
+// it reads as a hot, positive signal at a glance.
+function BookedPill({ lead }: { lead: Pick<AssessmentLead, "bookedCalendar" | "bookedAt"> }) {
+  const parts = [
+    "Booked a call",
+    lead.bookedCalendar,
+    lead.bookedAt ? `on ${fmtDate(lead.bookedAt)}` : "",
+  ].filter(Boolean);
+  return (
+    <span
+      title={parts.join(" · ")}
+      className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700"
+    >
+      <Check className="h-3 w-3" />
+      Booked
+    </span>
+  );
+}
+
 // ─── Test / internal detection (mirrors the quiz portal) ──────────────────────
 const TEST_DOMAINS = ["chiefaiofficer.com", "scalingup.com", "123.com"];
 const TEST_NAMES = [
@@ -111,6 +131,7 @@ export function LeadsPageClient() {
   const [edition, setEdition] = useState("");
   const [tier, setTier] = useState("");
   const [hideTests, setHideTests] = useState(false);
+  const [bookedOnly, setBookedOnly] = useState(false);
   const [selected, setSelected] = useState<AssessmentLead | null>(null);
 
   const load = useCallback(async () => {
@@ -143,6 +164,7 @@ export function LeadsPageClient() {
     const q = query.trim().toLowerCase();
     return leads.filter((l) => {
       if (hideTests && isTestLead(l)) return false;
+      if (bookedOnly && !l.bookedCall) return false;
       if (edition && l.edition !== edition) return false;
       if (tier && l.tier !== tier) return false;
       if (!q) return true;
@@ -150,7 +172,7 @@ export function LeadsPageClient() {
         (v) => v && v.toLowerCase().includes(q),
       );
     });
-  }, [leads, query, edition, tier, hideTests]);
+  }, [leads, query, edition, tier, hideTests, bookedOnly]);
 
   return (
     <div className="space-y-6 p-6">
@@ -217,6 +239,15 @@ export function LeadsPageClient() {
           />
           Hide test entries
         </label>
+        <label className="flex cursor-pointer items-center gap-2 rounded-md border border-zinc-200 px-3 py-2 text-sm text-zinc-600 hover:bg-zinc-50">
+          <input
+            type="checkbox"
+            checked={bookedOnly}
+            onChange={(e) => setBookedOnly(e.target.checked)}
+            className="h-3.5 w-3.5 accent-emerald-600"
+          />
+          Booked a call
+        </label>
         <span className="ml-auto text-xs text-zinc-400">
           {loading
             ? "Loading…"
@@ -274,6 +305,7 @@ export function LeadsPageClient() {
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{lead.name || "—"}</span>
+                      {lead.bookedCall && <BookedPill lead={lead} />}
                       {isTestLead(lead) && (
                         <Badge
                           variant="outline"
@@ -367,6 +399,7 @@ function LeadDialog({
               <div className="flex items-center gap-2">
                 <TierPill tier={lead.tier} />
                 <SourcePill edition={lead.edition} />
+                {lead.bookedCall && <BookedPill lead={lead} />}
                 {lead.pct && (
                   <span className="text-sm text-zinc-500 tabular-nums">
                     {lead.pct}% readiness
@@ -405,6 +438,20 @@ function LeadDialog({
                     [editionLabel(lead.edition), lead.utmSource, lead.utmCampaign]
                       .filter(Boolean)
                       .join(" · ") || undefined
+                  }
+                />
+                <DetailField
+                  label="Booked call"
+                  value={
+                    lead.bookedCall
+                      ? [
+                          "Yes",
+                          lead.bookedCalendar,
+                          lead.bookedAt ? fmtDate(lead.bookedAt) : "",
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")
+                      : undefined
                   }
                 />
               </div>
