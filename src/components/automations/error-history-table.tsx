@@ -68,8 +68,10 @@ export function ErrorHistoryTable({
   editMode = false,
   onDelete,
   deletingId = null,
+  hasQuery = false,
 }: {
-  /** Error events to render (sorted newest-first internally). */
+  /** Error events to render (sorted newest-first internally). Already filtered
+   *  by the parent's search when a query is active. */
   rows?: ErrorHistoryRow[];
   /** When true, show a delete button per row (delete-only edit mode). */
   editMode?: boolean;
@@ -77,6 +79,9 @@ export function ErrorHistoryTable({
   onDelete?: (id: string) => void;
   /** Row currently being deleted (its button is disabled meanwhile). */
   deletingId?: string | null;
+  /** True when a search query is active, so an empty result reads as "no match"
+   *  instead of "no errors yet" (mirrors the Per Website Page table). */
+  hasQuery?: boolean;
 }) {
   // Chronological, latest on top. Rows with no/invalid date sink to the bottom
   // (mirrors the date-sort behaviour of the Per Website Page table).
@@ -129,8 +134,9 @@ export function ErrorHistoryTable({
                   colSpan={editMode ? 4 : 3}
                   className="px-3 py-16 text-center text-sm text-zinc-500"
                 >
-                  No error history yet. Error tracking for this website has not
-                  been set up.
+                  {hasQuery
+                    ? "No errors match your search."
+                    : "No error history yet. Error tracking for this website has not been set up."}
                 </td>
               </tr>
             ) : (
