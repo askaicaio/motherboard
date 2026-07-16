@@ -9,7 +9,7 @@ import { db } from "@/lib/db";
 import { automations } from "@/lib/db/schema";
 import { sql } from "drizzle-orm";
 import { Card, CardContent } from "@/components/ui/card";
-import { Workflow, X } from "lucide-react";
+import { Workflow, X, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AUTOMATION_SITES } from "@/lib/automations/sites";
 import { platformHasApiKey } from "@/lib/automations/credentials";
@@ -90,6 +90,15 @@ export default async function AutomationsPage() {
           <div className="flex items-center gap-2">
             <Workflow className="h-5 w-5 text-zinc-500" />
             <h1 className="text-2xl font-semibold tracking-tight">Automations</h1>
+            {/* Encircled "?" that opens the Automations Feature Integration
+                page. Black by default, lighter on hover. */}
+            <Link
+              href="/automations/feature-integration"
+              aria-label="Automations Feature Integration"
+              className="text-zinc-900 transition-colors hover:text-zinc-400"
+            >
+              <HelpCircle className="h-5 w-5" />
+            </Link>
           </div>
           <p className="mt-1 text-sm text-zinc-500">
             Tracks workflows from different automation websites all in one place.
