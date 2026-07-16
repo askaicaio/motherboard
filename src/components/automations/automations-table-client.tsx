@@ -106,22 +106,38 @@ function SortArrow({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {
 }
 
 // ---------------------------------------------------------------------------
-// Which table columns each platform's sync (Refresh List + auto-refresh) writes,
-// and therefore may overwrite. Drives the ↻ "synced" marker in the column
-// headers. Kept in step with the actual *-sync.ts behaviour so the on-screen cue
-// can't drift from reality (see make-sync / n8n-sync / ghl-automations-sync):
-//   - Make / n8n:     Name, Status, Last Edited, Last Runtime (full run history).
+// Which table columns are AUTO-MANAGED per platform (auto-populated, so a manual
+// edit may be overwritten). Drives the ↻ "synced" marker in the column headers.
+// TWO mechanisms feed this: the list sync (Refresh List + auto-refresh — writes
+// Name/Status/Last Edited/Last Runtime) and error capture (writes Last Error).
+// Kept in step with reality (make-sync / n8n-sync / ghl-automations-sync + which
+// platforms have error tracking live):
+//   - Make / n8n:     Name, Status, Last Edited, Last Runtime, AND Last Error —
+//                     error tracking is live for both (rows in automation_errors).
 //   - GHL / GHL b2b:  Name, Status, Last Edited — NOT Last Runtime (GHL exposes
-//                     no run history, so that column always stays "-").
+//                     no run history) and NOT Last Error (error tracking is
+//                     impossible via their API), so both stay "-".
 //   - Zapier:         no live sync (CSV import only) → nothing is marked.
 // The "name" key also covers the Link shown beneath the name (the sync writes the
 // URL too). Purpose is never synced on any platform, so it never appears here.
-// ⚠️ When a NEW column is added, decide if the sync writes it and update this map
-// (fold into the add-a-column touch-list).
+// ⚠️ When a NEW column is added, decide if a sync/capture writes it and update
+// this map (fold into the add-a-column touch-list).
 // ---------------------------------------------------------------------------
 const SYNCED_COLUMNS: Record<string, ReadonlySet<SortKey>> = {
-  make: new Set<SortKey>(["name", "status", "lastEditedAt", "lastRunAt"]),
-  n8n: new Set<SortKey>(["name", "status", "lastEditedAt", "lastRunAt"]),
+  make: new Set<SortKey>([
+    "name",
+    "status",
+    "lastEditedAt",
+    "lastRunAt",
+    "lastErrorAt",
+  ]),
+  n8n: new Set<SortKey>([
+    "name",
+    "status",
+    "lastEditedAt",
+    "lastRunAt",
+    "lastErrorAt",
+  ]),
   ghl: new Set<SortKey>(["name", "status", "lastEditedAt"]),
   "ghl-b2b": new Set<SortKey>(["name", "status", "lastEditedAt"]),
   // zapier omitted on purpose: CSV import only, no synced columns.
