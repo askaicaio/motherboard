@@ -9,10 +9,11 @@
 // (DELETE /api/automations/errors/[id]) with an optimistic update. No add/edit
 // dialogs; delete is the only edit-mode action here.
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
-import { Pencil } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Pencil, Search } from "lucide-react";
 import {
   ErrorHistoryTable,
   type ErrorHistoryRow,
@@ -50,6 +51,11 @@ export function ErrorHistoryTableClient({
   const [rows, setRows] = useState(initialRows);
   const [editMode, setEditMode] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  // Search filters by automation NAME only, matching the Per Website Page's
+  // search bar (deliberately not the link or the error message). Client-side
+  // over the already-loaded rows, so it's instant and stays out of the poll's
+  // way (the poll refreshes the full `rows`; the filter derives from them).
+  const [query, setQuery] = useState("");
 
   // Re-fetch this platform's captured errors and update the table in place.
   // `no-store` so the browser can't hand back a stale cached response between
@@ -111,6 +117,15 @@ export function ErrorHistoryTableClient({
       setDeletingId(null);
     }
   };
+
+  // Name-only filter (Column 1). Never mutates `rows`. The table still sorts
+  // the result newest-first internally.
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return rows;
+    return rows.filter((r) => r.name.toLowerCase().includes(q));
+  }, [rows, query]);
+  const hasQuery = query.trim().length > 0;
 
   return (
     <>
@@ -178,12 +193,28 @@ export function ErrorHistoryTableClient({
         </div>
       </div>
 
-      <ErrorHistoryTable
-        rows={rows}
-        editMode={editMode}
-        onDelete={handleDelete}
-        deletingId={deletingId}
-      />
+      <div className="space-y-3">
+        {/* Search bar, searches the automation NAME only. Same markup + styling
+            as the Per Website Page search bar (Search icon inset left, pl-8
+            Input, max-w-sm). */}
+        <div className="relative max-w-sm">
+          <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+          <Input
+            placeholder="Search errors by name…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="pl-8"
+          />
+        </div>
+
+        <ErrorHistoryTable
+          rows={filtered}
+          editMode={editMode}
+          onDelete={handleDelete}
+          deletingId={deletingId}
+          hasQuery={hasQuery}
+        />
+      </div>
     </>
   );
 }
