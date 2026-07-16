@@ -27,8 +27,26 @@ export async function POST(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const user = await requireRole("admin");
   const { id } = await params;
+
+  // Gate on the admin role BEFORE the work. requireRole throws on failure;
+  // a permission failure must return a clean 403 (not surface as a mysterious
+  // HTTP 500). Non-permission throws (e.g. a redirect) propagate unchanged.
+  let user;
+  try {
+    user = await requireRole("admin");
+  } catch (err) {
+    if (err instanceof Error && err.message.startsWith("Insufficient permissions")) {
+      return NextResponse.json(
+        {
+          error:
+            "You need admin access to approve affiliates. Ask an admin to set your role to Admin (Members → your account → Edit → Role).",
+        },
+        { status: 403 },
+      );
+    }
+    throw err;
+  }
 
   try {
     const [existing] = await db
