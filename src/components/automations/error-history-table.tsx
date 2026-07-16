@@ -120,18 +120,21 @@ export function ErrorHistoryTable({
               <th className="sticky top-0 z-10 w-full bg-zinc-50 px-3 py-2 text-left shadow-[inset_0_-1px_0_0_#e4e4e7]">
                 Error Message
               </th>
-              {editMode && (
-                <th className="sticky top-0 z-10 w-12 whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
-                  <span className="sr-only">Actions</span>
-                </th>
-              )}
+              {/* Actions (delete) column. ALWAYS rendered, even when edit mode
+                  is off, so toggling only shows/hides the trash icon INSIDE the
+                  cell instead of adding/removing a whole column (which would
+                  resize + shift every other column). Fixed width reserves the
+                  space. */}
+              <th className="sticky top-0 z-10 w-12 whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
+                <span className="sr-only">Actions</span>
+              </th>
             </tr>
           </thead>
           <tbody>
             {sorted.length === 0 ? (
               <tr>
                 <td
-                  colSpan={editMode ? 4 : 3}
+                  colSpan={4}
                   className="px-3 py-16 text-center text-sm text-zinc-500"
                 >
                   {hasQuery
@@ -205,11 +208,13 @@ export function ErrorHistoryTable({
                       <span className="text-xs text-zinc-400">-</span>
                     )}
                   </td>
-                  {editMode && (
-                    <td className="px-3 py-2 align-top text-center">
-                      {/* Delete-only edit mode: remove this error row. Hard
-                          delete (may re-appear on the next sweep if still in
-                          Make's logs — user's choice). */}
+                  {/* Actions cell: always present (reserves the column width);
+                      the trash button only renders in edit mode, so toggling
+                      never resizes the table. Delete-only edit mode: remove this
+                      error row. Hard delete (may re-appear on the next sweep if
+                      still in Make's logs — user's choice). */}
+                  <td className="px-3 py-2 align-top text-center">
+                    {editMode && (
                       <button
                         type="button"
                         onClick={() => onDelete?.(r.id)}
@@ -219,8 +224,8 @@ export function ErrorHistoryTable({
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
-                    </td>
-                  )}
+                    )}
+                  </td>
                 </tr>
               ))
             )}
