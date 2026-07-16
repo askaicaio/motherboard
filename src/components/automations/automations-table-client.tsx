@@ -884,12 +884,13 @@ export function AutomationsTableClient({
                   >
                     <span className="inline-flex items-center justify-center gap-1">
                       {isSynced("lastErrorAt") && (
-                        // Last Error is fed by error capture (Check for New
-                        // Errors + cron), NOT the Refresh List button — so its
-                        // tooltip is tailored and it does NOT spin with a list
-                        // refresh (nothing on THIS page updates errors live).
+                        // Behaves exactly like the other synced-column markers
+                        // (spins with a Refresh List sync); only its tooltip is
+                        // tailored, since Last Error is fed by error capture
+                        // (Check for New Errors + cron) rather than Refresh List.
                         <SyncedColumnMarker
                           platformLabel={label}
+                          spinning={refreshing}
                           tooltip="Updated by error tracking."
                         />
                       )}
