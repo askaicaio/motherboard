@@ -872,16 +872,19 @@ export function AutomationsTableClient({
                       <SortArrow active={sortKey === "lastErrorAt"} dir={sortDir} />
                     </span>
                   </th>
-                  {editMode && (
-                    <th className="sticky top-0 z-10 w-16 bg-zinc-50 px-3 py-2 shadow-[inset_0_-1px_0_0_#e4e4e7]"></th>
-                  )}
+                  {/* Actions (delete) column. ALWAYS rendered, even when edit
+                      mode is off, so toggling only shows/hides the trash icon
+                      INSIDE the cell instead of adding/removing a whole column
+                      (which would resize + shift every other column). Fixed
+                      width reserves the space; the header stays empty. */}
+                  <th className="sticky top-0 z-10 w-16 bg-zinc-50 px-3 py-2 shadow-[inset_0_-1px_0_0_#e4e4e7]"></th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={editMode ? 7 : 6}
+                      colSpan={7}
                       className="px-3 py-16 text-center text-sm text-zinc-500"
                     >
                       {rows.length === 0
@@ -1030,10 +1033,13 @@ export function AutomationsTableClient({
                           <span className="text-xs text-zinc-400">-</span>
                         )}
                       </td>
-                      {editMode && (
-                        <td className="px-3 py-2 align-top text-center">
-                          {/* Trash-icon delete, matching the Error History table:
-                              subtle gray, red on hover. */}
+                      {/* Actions cell: always present (reserves the column
+                          width); the trash button only renders in edit mode, so
+                          toggling never resizes the table. Trash-icon delete,
+                          matching the Error History table: subtle gray, red on
+                          hover. */}
+                      <td className="px-3 py-2 align-top text-center">
+                        {editMode && (
                           <button
                             type="button"
                             onClick={(e) => {
@@ -1045,8 +1051,8 @@ export function AutomationsTableClient({
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
-                        </td>
-                      )}
+                        )}
+                      </td>
                     </tr>
                   ))
                 )}
