@@ -158,9 +158,13 @@ const NO_SYNCED_COLUMNS: ReadonlySet<SortKey> = new Set<SortKey>();
 function SyncedColumnMarker({
   platformLabel,
   spinning = false,
+  tooltip = "Updated by Refresh List. Manual edits may be overwritten.",
 }: {
   platformLabel: string;
   spinning?: boolean;
+  /** Hover text. Defaults to the list-sync wording; the Last Error column passes
+   *  its own since that column is fed by error capture, not Refresh List. */
+  tooltip?: string;
 }) {
   return (
     // disableHoverablePopup: close as soon as the cursor leaves the trigger,
@@ -174,9 +178,7 @@ function SyncedColumnMarker({
       >
         <RefreshCw className={cn("h-3 w-3", spinning && "animate-spin")} />
       </TooltipTrigger>
-      <TooltipContent className="max-w-xs normal-case">
-        Updated by Refresh List. Manual edits may be overwritten.
-      </TooltipContent>
+      <TooltipContent className="max-w-xs normal-case">{tooltip}</TooltipContent>
     </Tooltip>
   );
 }
@@ -882,7 +884,14 @@ export function AutomationsTableClient({
                   >
                     <span className="inline-flex items-center justify-center gap-1">
                       {isSynced("lastErrorAt") && (
-                        <SyncedColumnMarker platformLabel={label} spinning={refreshing} />
+                        // Last Error is fed by error capture (Check for New
+                        // Errors + cron), NOT the Refresh List button — so its
+                        // tooltip is tailored and it does NOT spin with a list
+                        // refresh (nothing on THIS page updates errors live).
+                        <SyncedColumnMarker
+                          platformLabel={label}
+                          tooltip="Updated by error tracking."
+                        />
                       )}
                       Last Error
                       <SortArrow active={sortKey === "lastErrorAt"} dir={sortDir} />
