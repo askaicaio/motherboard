@@ -708,17 +708,24 @@ export function AutomationsTableClient({
               List) and the editing controls (Edit mode + New Workflow). */}
           <Separator orientation="vertical" className="h-5 self-center" />
 
-          <div className="flex items-center gap-2 text-xs text-zinc-600">
+          {/* Edit mode toggle. The "+ New Workflow" button it reveals pops in
+              BELOW the toggle (absolutely positioned via `top-full`), so turning
+              edit mode on/off never reflows the toolbar or shifts any other
+              element (same trick as the auto-refresh countdown + Refresh List
+              error above). The slot below is simply empty when edit mode is off. */}
+          <div className="relative flex items-center gap-2 text-xs text-zinc-600">
             <Pencil className="h-3.5 w-3.5" />
             Edit mode
             <Switch checked={editMode} onCheckedChange={setEditMode} />
+            {editMode && (
+              <div className="absolute right-0 top-full z-10 mt-2">
+                <Button size="sm" onClick={() => setAddOpen(true)}>
+                  <Plus className="mr-2 h-3.5 w-3.5" />
+                  New Workflow
+                </Button>
+              </div>
+            )}
           </div>
-          {editMode && (
-            <Button size="sm" onClick={() => setAddOpen(true)}>
-              <Plus className="mr-2 h-3.5 w-3.5" />
-              New Workflow
-            </Button>
-          )}
         </div>
       </div>
 
