@@ -51,10 +51,11 @@ export function ErrorHistoryTableClient({
   const [rows, setRows] = useState(initialRows);
   const [editMode, setEditMode] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  // Search filters by automation NAME only, matching the Per Website Page's
-  // search bar (deliberately not the link or the error message). Client-side
-  // over the already-loaded rows, so it's instant and stays out of the poll's
-  // way (the poll refreshes the full `rows`; the filter derives from them).
+  // Search filters by automation NAME or LINK (the automation's URL), matching
+  // the Per Website Page's search bar (case-insensitive substring on either;
+  // deliberately not the error message). Client-side over the already-loaded
+  // rows, so it's instant and stays out of the poll's way (the poll refreshes
+  // the full `rows`; the filter derives from them).
   const [query, setQuery] = useState("");
 
   // Re-fetch this platform's captured errors and update the table in place.
@@ -118,12 +119,16 @@ export function ErrorHistoryTableClient({
     }
   };
 
-  // Name-only filter (Column 1). Never mutates `rows`. The table still sorts
-  // the result newest-first internally.
+  // Name-or-link filter (case-insensitive substring on either). Never mutates
+  // `rows`. The table still sorts the result newest-first internally.
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return rows;
-    return rows.filter((r) => r.name.toLowerCase().includes(q));
+    return rows.filter(
+      (r) =>
+        r.name.toLowerCase().includes(q) ||
+        (r.externalUrl ?? "").toLowerCase().includes(q),
+    );
   }, [rows, query]);
   const hasQuery = query.trim().length > 0;
 
@@ -194,13 +199,13 @@ export function ErrorHistoryTableClient({
       </div>
 
       <div className="space-y-3">
-        {/* Search bar, searches the automation NAME only. Same markup + styling
+        {/* Search bar, searches the automation NAME or LINK. Same markup + styling
             as the Per Website Page search bar (Search icon inset left, pl-8
             Input, max-w-sm). */}
         <div className="relative max-w-sm">
           <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
           <Input
-            placeholder="Search errors by name…"
+            placeholder="Search errors by name or link…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="pl-8"
