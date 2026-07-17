@@ -241,3 +241,25 @@ export async function getLastErrorAtByPlatform(
   }
   return map;
 }
+
+/**
+ * Latest error timestamp per automation across ALL platforms, keyed by
+ * automation id (one grouped query, no platform filter). Feeds the combined
+ * "Everything Table" (/automations/all) "Last Error" column. Automations with
+ * no captured errors are absent, so their cell renders "-".
+ */
+export async function getLastErrorAtAllAutomations(): Promise<Map<string, Date>> {
+  const rows = await db
+    .select({
+      automationId: automationErrors.automationId,
+      lastErrorAt: sql<string>`max(${automationErrors.occurredAt})`,
+    })
+    .from(automationErrors)
+    .groupBy(automationErrors.automationId);
+
+  const map = new Map<string, Date>();
+  for (const r of rows) {
+    if (r.lastErrorAt) map.set(r.automationId, new Date(r.lastErrorAt));
+  }
+  return map;
+}
