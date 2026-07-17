@@ -3,7 +3,7 @@
 // Per Website Page, header (auto-refresh toggle + "Refresh List" + edit-mode
 // toggle + "+ New Workflow"), search, and the automations table. The Name cell
 // shows the name with the automation's link beneath it (the link is still its
-// identity; it's just no longer a separate column). Search filters by NAME only.
+// identity; it's just no longer a separate column). Search filters by NAME or LINK.
 //
 // Edit mode (the toggle, top-right): when ON it reveals the "+ New Workflow"
 // button and makes table rows clickable (click a row to edit it). When OFF
@@ -403,14 +403,20 @@ export function AutomationsTableClient({
     }
   };
 
-  // Search filters by NAME only (Column 1), deliberately not the link; the
-  // result is then sorted by the active column. Both are client-side (rows are
-  // already loaded), so it's instant and combines cleanly. rows is never
-  // mutated (we sort a copy). JS sort is stable, so ties keep the prior order.
+  // Search filters by NAME or LINK (the automation's URL) — case-insensitive
+  // substring on either. The result is then sorted by the active column. Both
+  // are client-side (rows are already loaded), so it's instant and combines
+  // cleanly. rows is never mutated (we sort a copy). JS sort is stable, so ties
+  // keep the prior order. (The link host is the same across rows per platform,
+  // so in practice the link match discriminates on the scenario/workflow ID.)
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     const base = q
-      ? rows.filter((r) => r.name.toLowerCase().includes(q))
+      ? rows.filter(
+          (r) =>
+            r.name.toLowerCase().includes(q) ||
+            (r.externalUrl ?? "").toLowerCase().includes(q),
+        )
       : rows;
     const dir = sortDir === "asc" ? 1 : -1;
     const time = (v: string | Date | null | undefined): number | null => {
@@ -748,11 +754,11 @@ export function AutomationsTableClient({
       </div>
 
       <div className="space-y-3">
-        {/* Search bar, searches the automation NAME only. */}
+        {/* Search bar, searches the automation NAME or LINK. */}
         <div className="relative max-w-sm">
           <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
           <Input
-            placeholder="Search automations by name…"
+            placeholder="Search automations by name or link…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="pl-8"
