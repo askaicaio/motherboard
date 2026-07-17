@@ -10,7 +10,7 @@ import { automations } from "@/lib/db/schema";
 import { sql } from "drizzle-orm";
 import { Card, CardContent } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
-import { Workflow, X, HelpCircle } from "lucide-react";
+import { Workflow, X, Blocks, Table } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AUTOMATION_SITES } from "@/lib/automations/sites";
 import { platformHasApiKey } from "@/lib/automations/credentials";
@@ -91,15 +91,6 @@ export default async function AutomationsPage() {
           <div className="flex items-center gap-2">
             <Workflow className="h-5 w-5 text-zinc-500" />
             <h1 className="text-2xl font-semibold tracking-tight">Automations</h1>
-            {/* Encircled "?" that opens the Automations Feature Integration
-                page. Black by default, lighter on hover. */}
-            <Link
-              href="/automations/feature-integration"
-              aria-label="Automations Feature Integration"
-              className="text-zinc-900 transition-colors hover:text-zinc-400"
-            >
-              <HelpCircle className="h-5 w-5" />
-            </Link>
           </div>
           <p className="mt-1 text-sm text-zinc-500">
             Tracks workflows from different automation websites all in one place.
@@ -118,16 +109,24 @@ export default async function AutomationsPage() {
         </div>
       </div>
 
-      {/* Toolbar strip: a long, thin, SHARP-EDGED (non-rounded) card above the
-          website cards, holding global Automations actions. Currently the
-          "View All Lists" button → the combined Everything Table
-          (/automations/all). No label; sharp corners deliberately set it apart
-          from the rounded website cards below. */}
-      <div className="flex items-center bg-card px-4 py-2.5 ring-1 ring-foreground/10">
+      {/* Toolbar strip above the website cards, holding global Automations
+          actions. Rounded edges to match the website cards below. Buttons
+          (left → right): "Feature Integrations" (→ the Feature Integration
+          page) then "View All Lists" (→ the combined Everything Table). Both
+          white (outline) with a leading icon. */}
+      <div className="flex items-center gap-3 rounded-xl bg-card px-4 py-2.5 ring-1 ring-foreground/10">
+        <Link
+          href="/automations/feature-integration"
+          className={buttonVariants({ variant: "outline", size: "sm" })}
+        >
+          <Blocks />
+          Feature Integrations
+        </Link>
         <Link
           href="/automations/all"
           className={buttonVariants({ variant: "outline", size: "sm" })}
         >
+          <Table />
           View All Lists
         </Link>
       </div>
