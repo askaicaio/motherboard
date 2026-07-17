@@ -17,6 +17,7 @@
 // dev whether it should also be added here.
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -42,6 +43,11 @@ export type AllAutomationRow = AutomationRow & { platform: string };
 
 /** platform slug -> site display bits (label + icon), for the Website column. */
 const SITE_BY_SLUG = new Map(AUTOMATION_SITES.map((s) => [s.slug, s] as const));
+
+/** Display label for a platform slug (falls back to the raw slug). */
+function websiteLabelFor(slug: string): string {
+  return SITE_BY_SLUG.get(slug)?.label ?? slug;
+}
 
 type SortKey =
   | "name"
@@ -136,8 +142,6 @@ export function AllAutomationsTableClient({
   // Search matches NAME or LINK (same as the per-website table); the result is
   // then sorted by the active column. All client-side over the loaded rows.
   const filtered = useMemo(() => {
-    const websiteLabel = (slug: string) =>
-      SITE_BY_SLUG.get(slug)?.label ?? slug;
     const q = query.trim().toLowerCase();
     const base = q
       ? rows.filter(
@@ -162,8 +166,8 @@ export function AllAutomationsTableClient({
         case "website":
           return (
             dir *
-            websiteLabel(a.platform).localeCompare(
-              websiteLabel(b.platform),
+            websiteLabelFor(a.platform).localeCompare(
+              websiteLabelFor(b.platform),
               undefined,
               { sensitivity: "base" },
             )
@@ -323,7 +327,15 @@ export function AllAutomationsTableClient({
                         )}
                       </td>
                       <td className="px-3 py-2 text-center align-top">
-                        <WebsiteBadge slug={r.platform} />
+                        {/* Clicking the website entry opens that platform's Per
+                            Website Page. */}
+                        <Link
+                          href={`/automations/${r.platform}`}
+                          title={`Open the ${websiteLabelFor(r.platform)} page`}
+                          className="inline-flex rounded hover:underline"
+                        >
+                          <WebsiteBadge slug={r.platform} />
+                        </Link>
                       </td>
                       <td className="px-3 py-2 text-center align-top">
                         <span

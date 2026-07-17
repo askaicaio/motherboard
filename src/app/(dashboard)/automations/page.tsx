@@ -126,7 +126,7 @@ export default async function AutomationsPage() {
       <div className="flex items-center bg-card px-4 py-2.5 ring-1 ring-foreground/10">
         <Link
           href="/automations/all"
-          className={buttonVariants({ variant: "default", size: "sm" })}
+          className={buttonVariants({ variant: "outline", size: "sm" })}
         >
           View All Lists
         </Link>
@@ -192,7 +192,7 @@ export default async function AutomationsPage() {
                       Bottom-right, inline with the description line. */}
                   <Link
                     href={`/automations/${site.slug}`}
-                    className="shrink-0 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/80"
+                    className="shrink-0 rounded-md border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
                   >
                     View List
                   </Link>
@@ -232,7 +232,7 @@ export default async function AutomationsPage() {
                   {/* Error History: opens this website's own error history page. */}
                   <Link
                     href={`/automations/${site.slug}/errors`}
-                    className="shrink-0 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/80"
+                    className="shrink-0 rounded-md border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
                   >
                     Error History
                   </Link>
