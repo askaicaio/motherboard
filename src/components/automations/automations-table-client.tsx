@@ -833,7 +833,7 @@ export function AutomationsTableClient({
                       <SortArrow active={sortKey === "status"} dir={sortDir} />
                     </span>
                   </th>
-                  <th className="sticky top-0 z-10 whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
+                  <th className="sticky top-0 z-10 w-[120px] min-w-[120px] max-w-[120px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
                     Purpose
                   </th>
                   <th
@@ -985,20 +985,24 @@ export function AutomationsTableClient({
                           {r.status === "active" ? "Active" : "Paused"}
                         </span>
                       </td>
-                      <td className="px-3 py-2 text-left align-top">
-                        {/* Purpose: a truncated preview of the purpose text at a
-                            FIXED width (`w-[120px]`, wraps within that) clamped to 2
-                            lines (`line-clamp-2`) before the ellipsis. A fixed px
-                            width is REQUIRED: in this auto-layout table `w-full`
-                            just lets the cell grow to fit the whole note (no
-                            truncation), so the width has to be pinned. Clicking it
-                            opens the read-only popup with the full text; hovering
-                            shows a tooltip with the same full text (the popup/tooltip
-                            are how the rest is read). "None" (red) when empty. In
-                            edit mode the blurb is disabled (pointer-events-none) so a
-                            row click falls through to open the Edit Workflow dialog
-                            (where the purpose is set). w-[120px] = width knob;
-                            line-clamp-2 = how many lines show before cutting off. */}
+                      <td className="w-[120px] min-w-[120px] max-w-[120px] px-3 py-2 text-left align-top">
+                        {/* Purpose: a preview of the purpose text that fills the
+                            FIXED-WIDTH column (locked to 120px on the th + td, same
+                            trick the frozen Name column uses) and clamps to 2 lines
+                            (`line-clamp-2`) before the ellipsis. Clicking it opens
+                            the read-only popup with the full text; hovering shows a
+                            tooltip with the same full text (the popup/tooltip are how
+                            the rest is read). "None" (red) when empty. In edit mode
+                            the blurb is disabled (pointer-events-none) so a row click
+                            falls through to open the Edit Workflow dialog (where the
+                            purpose is set).
+                            ⚠️ DO NOT add `block` (or any display utility) to the
+                            button: Tailwind v4 emits `.block{display:block}` AFTER
+                            `.line-clamp-2{display:-webkit-box}` in the stylesheet, so
+                            `block` overrides the -webkit-box that line-clamp needs and
+                            the clamp silently stops working (text wraps unbounded).
+                            The 120px column width is the width knob (change on th+td);
+                            line-clamp-2 is the line-count knob. */}
                         {r.purpose ? (
                           // disableHoverablePopup: the tooltip closes as soon as
                           // the cursor leaves the blurb, even if the popup itself is
@@ -1014,7 +1018,7 @@ export function AutomationsTableClient({
                                     e.stopPropagation();
                                     setShowingPurpose(r.purpose ?? "");
                                   }}
-                                  className="block w-[120px] cursor-pointer line-clamp-2 break-words text-left text-xs text-zinc-700 hover:text-zinc-900 hover:underline disabled:pointer-events-none disabled:cursor-default disabled:no-underline"
+                                  className="w-full cursor-pointer line-clamp-2 break-words text-left text-xs text-zinc-700 hover:text-zinc-900 hover:underline disabled:pointer-events-none disabled:cursor-default disabled:no-underline"
                                 >
                                   {r.purpose}
                                 </button>
