@@ -833,7 +833,7 @@ export function AutomationsTableClient({
                       <SortArrow active={sortKey === "status"} dir={sortDir} />
                     </span>
                   </th>
-                  <th className="sticky top-0 z-10 whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
+                  <th className="sticky top-0 z-10 whitespace-nowrap bg-zinc-50 px-3 py-2 text-left shadow-[inset_0_-1px_0_0_#e4e4e7]">
                     Purpose
                   </th>
                   <th
@@ -985,33 +985,37 @@ export function AutomationsTableClient({
                           {r.status === "active" ? "Active" : "Paused"}
                         </span>
                       </td>
-                      <td className="px-3 py-2 text-center align-top">
-                        {/* Purpose: "Show" opens a read-only popup when there's
-                            text; "None" (red, non-clickable) when empty. In edit
-                            mode the button is disabled and clicking the row opens
-                            the Edit Workflow dialog (where the purpose is set).
-                            Hovering "Show" reveals a tooltip with the SAME purpose
-                            text the popup displays (Base UI composes the Button as
-                            the trigger via `render`; preserves line breaks). */}
+                      <td className="px-3 py-2 text-left align-top">
+                        {/* Purpose: a single truncated line of the purpose text
+                            (ellipsis at the fixed column width). Clicking it opens
+                            the read-only popup with the full text; hovering shows a
+                            tooltip with the same full text. The preview is narrow
+                            on purpose (keeps the old "Show" button column width), so
+                            the tooltip/popup are how the rest of the text is read.
+                            "None" (red) when empty. In edit mode the blurb is
+                            disabled (pointer-events-none) so a row click falls
+                            through to open the Edit Workflow dialog (where the
+                            purpose is set). w-[60px] is the tunable knob if a longer
+                            preview is ever wanted. */}
                         {r.purpose ? (
                           // disableHoverablePopup: the tooltip closes as soon as
-                          // the cursor leaves the button, even if the popup itself
-                          // is under the cursor (default keeps it open while
-                          // hovering the popup, which the user found sticky).
+                          // the cursor leaves the blurb, even if the popup itself is
+                          // under the cursor (default keeps it open while hovering
+                          // the popup, which the user found sticky).
                           <Tooltip disableHoverablePopup>
                             <TooltipTrigger
                               render={
-                                <Button
-                                  variant="outline"
-                                  size="sm"
+                                <button
+                                  type="button"
                                   disabled={editMode}
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setShowingPurpose(r.purpose ?? "");
                                   }}
+                                  className="block w-[60px] cursor-pointer truncate text-left text-xs text-zinc-700 hover:text-zinc-900 hover:underline disabled:pointer-events-none disabled:cursor-default disabled:no-underline"
                                 >
-                                  Show
-                                </Button>
+                                  {r.purpose}
+                                </button>
                               }
                             />
                             <TooltipContent className="max-w-xs whitespace-pre-wrap break-words text-left normal-case">
@@ -1019,15 +1023,9 @@ export function AutomationsTableClient({
                             </TooltipContent>
                           </Tooltip>
                         ) : (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            aria-disabled="true"
-                            onClick={(e) => e.preventDefault()}
-                            className="cursor-default border-red-300 bg-red-50 text-red-600 hover:bg-red-50 hover:text-red-600"
-                          >
+                          <span className="text-xs font-medium text-red-600">
                             None
-                          </Button>
+                          </span>
                         )}
                       </td>
                       <td className="px-3 py-2 align-top text-center">
