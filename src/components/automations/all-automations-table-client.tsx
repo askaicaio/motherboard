@@ -20,7 +20,6 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -253,7 +252,7 @@ export function AllAutomationsTableClient({
                       <SortArrow active={sortKey === "status"} dir={sortDir} />
                     </span>
                   </th>
-                  <th className="sticky top-0 z-10 whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
+                  <th className="sticky top-0 z-10 whitespace-nowrap bg-zinc-50 px-3 py-2 text-left shadow-[inset_0_-1px_0_0_#e4e4e7]">
                     Purpose
                   </th>
                   <th
@@ -349,21 +348,24 @@ export function AllAutomationsTableClient({
                           {r.status === "active" ? "Active" : "Paused"}
                         </span>
                       </td>
-                      <td className="px-3 py-2 text-center align-top">
-                        {/* Purpose: read-only "Show" popup when set; red "None"
-                            when empty. Same as the per-website table (no edit
-                            mode here, so "Show" is always clickable). */}
+                      <td className="px-3 py-2 text-left align-top">
+                        {/* Purpose: a single truncated line of the purpose text
+                            (ellipsis at the fixed column width); click opens the
+                            read-only popup, hover shows a tooltip with the full
+                            text. Same as the per-website table (no edit mode here,
+                            so the blurb is always clickable). "None" (red) when
+                            empty. w-[60px] is the tunable width knob. */}
                         {r.purpose ? (
                           <Tooltip disableHoverablePopup>
                             <TooltipTrigger
                               render={
-                                <Button
-                                  variant="outline"
-                                  size="sm"
+                                <button
+                                  type="button"
                                   onClick={() => setShowingPurpose(r.purpose ?? "")}
+                                  className="block w-[60px] cursor-pointer truncate text-left text-xs text-zinc-700 hover:text-zinc-900 hover:underline"
                                 >
-                                  Show
-                                </Button>
+                                  {r.purpose}
+                                </button>
                               }
                             />
                             <TooltipContent className="max-w-xs whitespace-pre-wrap break-words text-left normal-case">
@@ -371,15 +373,9 @@ export function AllAutomationsTableClient({
                             </TooltipContent>
                           </Tooltip>
                         ) : (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            aria-disabled="true"
-                            onClick={(e) => e.preventDefault()}
-                            className="cursor-default border-red-300 bg-red-50 text-red-600 hover:bg-red-50 hover:text-red-600"
-                          >
+                          <span className="text-xs font-medium text-red-600">
                             None
-                          </Button>
+                          </span>
                         )}
                       </td>
                       <td className="px-3 py-2 align-top text-center">
