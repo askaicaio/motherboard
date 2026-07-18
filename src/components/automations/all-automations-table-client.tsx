@@ -252,7 +252,7 @@ export function AllAutomationsTableClient({
                       <SortArrow active={sortKey === "status"} dir={sortDir} />
                     </span>
                   </th>
-                  <th className="sticky top-0 z-10 w-[120px] min-w-[120px] max-w-[120px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
+                  <th className="sticky top-0 z-10 w-[240px] min-w-[240px] max-w-[240px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
                     Purpose
                   </th>
                   <th
@@ -348,9 +348,9 @@ export function AllAutomationsTableClient({
                           {r.status === "active" ? "Active" : "Paused"}
                         </span>
                       </td>
-                      <td className="w-[120px] min-w-[120px] max-w-[120px] px-3 py-2 text-left align-top">
+                      <td className="w-[240px] min-w-[240px] max-w-[240px] px-3 py-2 text-left align-top">
                         {/* Purpose: a preview that fills the FIXED-WIDTH column
-                            (locked to 120px on th + td) and clamps to 2 lines
+                            (locked to 240px on th + td) and clamps to 2 lines
                             (`line-clamp-2`). Click opens the read-only popup, hover
                             shows a tooltip with the full text. Same as the per-website
                             table (no edit mode here, so the blurb is always

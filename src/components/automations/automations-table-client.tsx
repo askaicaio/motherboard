@@ -833,7 +833,7 @@ export function AutomationsTableClient({
                       <SortArrow active={sortKey === "status"} dir={sortDir} />
                     </span>
                   </th>
-                  <th className="sticky top-0 z-10 w-[120px] min-w-[120px] max-w-[120px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
+                  <th className="sticky top-0 z-10 w-[240px] min-w-[240px] max-w-[240px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
                     Purpose
                   </th>
                   <th
@@ -985,9 +985,9 @@ export function AutomationsTableClient({
                           {r.status === "active" ? "Active" : "Paused"}
                         </span>
                       </td>
-                      <td className="w-[120px] min-w-[120px] max-w-[120px] px-3 py-2 text-left align-top">
+                      <td className="w-[240px] min-w-[240px] max-w-[240px] px-3 py-2 text-left align-top">
                         {/* Purpose: a preview of the purpose text that fills the
-                            FIXED-WIDTH column (locked to 120px on the th + td, same
+                            FIXED-WIDTH column (locked to 240px on the th + td, same
                             trick the frozen Name column uses) and clamps to 2 lines
                             (`line-clamp-2`) before the ellipsis. Clicking it opens
                             the read-only popup with the full text; hovering shows a
@@ -1001,7 +1001,7 @@ export function AutomationsTableClient({
                             `.line-clamp-2{display:-webkit-box}` in the stylesheet, so
                             `block` overrides the -webkit-box that line-clamp needs and
                             the clamp silently stops working (text wraps unbounded).
-                            The 120px column width is the width knob (change on th+td);
+                            The 240px column width is the width knob (change on th+td);
                             line-clamp-2 is the line-count knob. */}
                         {r.purpose ? (
                           // disableHoverablePopup: the tooltip closes as soon as
