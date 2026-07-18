@@ -339,7 +339,10 @@ export function AllAutomationsTableClient({
                         }}
                         className="sticky left-0 z-10 w-[400px] min-w-[400px] max-w-[400px] bg-white px-3 py-2 align-top shadow-[inset_-1px_0_0_0_#e4e4e7] group-hover:bg-zinc-50"
                       >
-                        <div className="font-medium text-zinc-900">
+                        {/* break-words so a single over-long word (no spaces)
+                            breaks onto the next line instead of overflowing the
+                            fixed 400px column. */}
+                        <div className="font-medium text-zinc-900 break-words">
                           {r.name || (
                             <span className="font-normal text-zinc-400">
                               (unnamed)

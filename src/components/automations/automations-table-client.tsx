@@ -993,7 +993,11 @@ export function AutomationsTableClient({
                             ellipsis is on the LEFT (`[direction:rtl] text-left`)
                             so the END of the link (the workflow/scenario ID, the
                             useful part) stays visible, e.g. "…/builder/<id>". */}
-                        <div className="font-medium text-zinc-900">
+                        {/* break-words so a single over-long word (no spaces)
+                            breaks onto the next line instead of overflowing the
+                            fixed 400px column. Normal multi-word names wrap as
+                            usual. */}
+                        <div className="font-medium text-zinc-900 break-words">
                           {r.name || (
                             <span className="font-normal text-zinc-400">
                               (unnamed)
