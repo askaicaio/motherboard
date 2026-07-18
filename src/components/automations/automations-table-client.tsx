@@ -986,16 +986,19 @@ export function AutomationsTableClient({
                         </span>
                       </td>
                       <td className="px-3 py-2 text-left align-top">
-                        {/* Purpose: a truncated preview of the purpose text that
-                            FILLS the column width (`w-full`) and clamps to 2 lines
-                            (`line-clamp-2`) before the ellipsis. Clicking it opens
-                            the read-only popup with the full text; hovering shows a
-                            tooltip with the same full text (the popup/tooltip are
-                            how the rest is read). "None" (red) when empty. In edit
-                            mode the blurb is disabled (pointer-events-none) so a row
-                            click falls through to open the Edit Workflow dialog
-                            (where the purpose is set). Change line-clamp-2 to adjust
-                            how many lines show before cutting off. */}
+                        {/* Purpose: a truncated preview of the purpose text at a
+                            FIXED width (`w-[120px]`, wraps within that) clamped to 2
+                            lines (`line-clamp-2`) before the ellipsis. A fixed px
+                            width is REQUIRED: in this auto-layout table `w-full`
+                            just lets the cell grow to fit the whole note (no
+                            truncation), so the width has to be pinned. Clicking it
+                            opens the read-only popup with the full text; hovering
+                            shows a tooltip with the same full text (the popup/tooltip
+                            are how the rest is read). "None" (red) when empty. In
+                            edit mode the blurb is disabled (pointer-events-none) so a
+                            row click falls through to open the Edit Workflow dialog
+                            (where the purpose is set). w-[120px] = width knob;
+                            line-clamp-2 = how many lines show before cutting off. */}
                         {r.purpose ? (
                           // disableHoverablePopup: the tooltip closes as soon as
                           // the cursor leaves the blurb, even if the popup itself is
@@ -1011,7 +1014,7 @@ export function AutomationsTableClient({
                                     e.stopPropagation();
                                     setShowingPurpose(r.purpose ?? "");
                                   }}
-                                  className="block w-full cursor-pointer line-clamp-2 break-words text-left text-xs text-zinc-700 hover:text-zinc-900 hover:underline disabled:pointer-events-none disabled:cursor-default disabled:no-underline"
+                                  className="block w-[120px] cursor-pointer line-clamp-2 break-words text-left text-xs text-zinc-700 hover:text-zinc-900 hover:underline disabled:pointer-events-none disabled:cursor-default disabled:no-underline"
                                 >
                                   {r.purpose}
                                 </button>

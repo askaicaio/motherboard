@@ -349,11 +349,13 @@ export function AllAutomationsTableClient({
                         </span>
                       </td>
                       <td className="px-3 py-2 text-left align-top">
-                        {/* Purpose: a truncated preview that FILLS the column width
-                            (`w-full`) and clamps to 2 lines (`line-clamp-2`); click
-                            opens the read-only popup, hover shows a tooltip with the
-                            full text. Same as the per-website table (no edit mode
-                            here, so the blurb is always clickable). "None" (red)
+                        {/* Purpose: a truncated preview at a FIXED width
+                            (`w-[120px]`, wraps within that) clamped to 2 lines
+                            (`line-clamp-2`); a fixed px width is required (w-full
+                            lets the auto-layout cell grow and never truncates).
+                            Click opens the read-only popup, hover shows a tooltip
+                            with the full text. Same as the per-website table (no edit
+                            mode here, so the blurb is always clickable). "None" (red)
                             when empty. */}
                         {r.purpose ? (
                           <Tooltip disableHoverablePopup>
@@ -362,7 +364,7 @@ export function AllAutomationsTableClient({
                                 <button
                                   type="button"
                                   onClick={() => setShowingPurpose(r.purpose ?? "")}
-                                  className="block w-full cursor-pointer line-clamp-2 break-words text-left text-xs text-zinc-700 hover:text-zinc-900 hover:underline"
+                                  className="block w-[120px] cursor-pointer line-clamp-2 break-words text-left text-xs text-zinc-700 hover:text-zinc-900 hover:underline"
                                 >
                                   {r.purpose}
                                 </button>
