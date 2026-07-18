@@ -252,7 +252,7 @@ export function AllAutomationsTableClient({
                       <SortArrow active={sortKey === "status"} dir={sortDir} />
                     </span>
                   </th>
-                  <th className="sticky top-0 z-10 whitespace-nowrap bg-zinc-50 px-3 py-2 text-left shadow-[inset_0_-1px_0_0_#e4e4e7]">
+                  <th className="sticky top-0 z-10 whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
                     Purpose
                   </th>
                   <th
@@ -349,12 +349,12 @@ export function AllAutomationsTableClient({
                         </span>
                       </td>
                       <td className="px-3 py-2 text-left align-top">
-                        {/* Purpose: a single truncated line of the purpose text
-                            (ellipsis at the fixed column width); click opens the
-                            read-only popup, hover shows a tooltip with the full
-                            text. Same as the per-website table (no edit mode here,
-                            so the blurb is always clickable). "None" (red) when
-                            empty. w-[60px] is the tunable width knob. */}
+                        {/* Purpose: a truncated preview that FILLS the column width
+                            (`w-full`) and clamps to 2 lines (`line-clamp-2`); click
+                            opens the read-only popup, hover shows a tooltip with the
+                            full text. Same as the per-website table (no edit mode
+                            here, so the blurb is always clickable). "None" (red)
+                            when empty. */}
                         {r.purpose ? (
                           <Tooltip disableHoverablePopup>
                             <TooltipTrigger
@@ -362,7 +362,7 @@ export function AllAutomationsTableClient({
                                 <button
                                   type="button"
                                   onClick={() => setShowingPurpose(r.purpose ?? "")}
-                                  className="block w-[60px] cursor-pointer truncate text-left text-xs text-zinc-700 hover:text-zinc-900 hover:underline"
+                                  className="block w-full cursor-pointer line-clamp-2 break-words text-left text-xs text-zinc-700 hover:text-zinc-900 hover:underline"
                                 >
                                   {r.purpose}
                                 </button>
