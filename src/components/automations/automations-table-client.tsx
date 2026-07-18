@@ -833,7 +833,7 @@ export function AutomationsTableClient({
                       <SortArrow active={sortKey === "status"} dir={sortDir} />
                     </span>
                   </th>
-                  <th className="sticky top-0 z-10 whitespace-nowrap bg-zinc-50 px-3 py-2 text-left shadow-[inset_0_-1px_0_0_#e4e4e7]">
+                  <th className="sticky top-0 z-10 whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
                     Purpose
                   </th>
                   <th
@@ -986,17 +986,16 @@ export function AutomationsTableClient({
                         </span>
                       </td>
                       <td className="px-3 py-2 text-left align-top">
-                        {/* Purpose: a single truncated line of the purpose text
-                            (ellipsis at the fixed column width). Clicking it opens
+                        {/* Purpose: a truncated preview of the purpose text that
+                            FILLS the column width (`w-full`) and clamps to 2 lines
+                            (`line-clamp-2`) before the ellipsis. Clicking it opens
                             the read-only popup with the full text; hovering shows a
-                            tooltip with the same full text. The preview is narrow
-                            on purpose (keeps the old "Show" button column width), so
-                            the tooltip/popup are how the rest of the text is read.
-                            "None" (red) when empty. In edit mode the blurb is
-                            disabled (pointer-events-none) so a row click falls
-                            through to open the Edit Workflow dialog (where the
-                            purpose is set). w-[60px] is the tunable knob if a longer
-                            preview is ever wanted. */}
+                            tooltip with the same full text (the popup/tooltip are
+                            how the rest is read). "None" (red) when empty. In edit
+                            mode the blurb is disabled (pointer-events-none) so a row
+                            click falls through to open the Edit Workflow dialog
+                            (where the purpose is set). Change line-clamp-2 to adjust
+                            how many lines show before cutting off. */}
                         {r.purpose ? (
                           // disableHoverablePopup: the tooltip closes as soon as
                           // the cursor leaves the blurb, even if the popup itself is
@@ -1012,7 +1011,7 @@ export function AutomationsTableClient({
                                     e.stopPropagation();
                                     setShowingPurpose(r.purpose ?? "");
                                   }}
-                                  className="block w-[60px] cursor-pointer truncate text-left text-xs text-zinc-700 hover:text-zinc-900 hover:underline disabled:pointer-events-none disabled:cursor-default disabled:no-underline"
+                                  className="block w-full cursor-pointer line-clamp-2 break-words text-left text-xs text-zinc-700 hover:text-zinc-900 hover:underline disabled:pointer-events-none disabled:cursor-default disabled:no-underline"
                                 >
                                   {r.purpose}
                                 </button>
