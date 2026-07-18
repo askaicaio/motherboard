@@ -284,6 +284,14 @@ export function AutomationsTableClient({
   const [editing, setEditing] = useState<AutomationRow | null>(null);
   // The purpose text shown in the read-only "Show purpose" popup (null = closed).
   const [showingPurpose, setShowingPurpose] = useState<string | null>(null);
+  // Adaptive Purpose clamp: how many lines of the Purpose blurb to show per row
+  // (keyed by row id, default 2). Taller rows (a long Name that wraps) get more
+  // lines so the blurb fills the extra height instead of leaving a gap under a
+  // fixed 2-line clamp. Measured from the FIXED-width Name cell's height, which
+  // is independent of the Purpose text, so there is no measure→expand feedback
+  // loop. See the measuring effect below.
+  const [purposeClamp, setPurposeClamp] = useState<Record<string, number>>({});
+  const nameCellRefs = useRef<Map<string, HTMLTableCellElement>>(new Map());
   // Column sorting (client-side, ONE column at a time, two-state toggle).
   // Defaults to Name ascending (matches the server's name-asc ordering). The
   // date columns always sink blanks ("-") to the bottom (see the sort below).
@@ -452,6 +460,33 @@ export function AutomationsTableClient({
       }
     });
   }, [rows, query, sortKey, sortDir]);
+
+  // Recompute the per-row Purpose line count after layout, and whenever the
+  // visible rows change (sort/filter/data) or the window resizes. text-xs
+  // line-height = 16px; the Name cell's clientHeight includes its py-2 (16px)
+  // padding, and floor() guarantees Purpose never grows the row past the Name
+  // cell (so it fills the row's height, it doesn't drive it). Min 2 lines.
+  useEffect(() => {
+    const PURPOSE_LINE_PX = 16; // text-xs line-height (1rem)
+    const CELL_PADDING_Y = 16; // py-2 top + bottom
+    const measure = () => {
+      const next: Record<string, number> = {};
+      for (const [id, el] of nameCellRefs.current) {
+        const contentH = el.clientHeight - CELL_PADDING_Y;
+        next[id] = Math.max(2, Math.floor(contentH / PURPOSE_LINE_PX));
+      }
+      setPurposeClamp((prev) => {
+        const keys = Object.keys(next);
+        const same =
+          keys.length === Object.keys(prev).length &&
+          keys.every((k) => prev[k] === next[k]);
+        return same ? prev : next;
+      });
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [filtered]);
 
   const handleCreated = (row: AutomationRow) =>
     setRows((prev) => [row, ...prev]);
@@ -934,7 +969,15 @@ export function AutomationsTableClient({
                         editMode && "cursor-pointer",
                       )}
                     >
-                      <td className="sticky left-0 z-10 w-[400px] min-w-[400px] max-w-[400px] bg-white px-3 py-2 align-top shadow-[inset_-1px_0_0_0_#e4e4e7] group-hover:bg-zinc-50">
+                      <td
+                        ref={(el) => {
+                          // Track each Name cell so the effect can measure its
+                          // height and size the row's Purpose clamp to match.
+                          if (el) nameCellRefs.current.set(r.id, el);
+                          else nameCellRefs.current.delete(r.id);
+                        }}
+                        className="sticky left-0 z-10 w-[400px] min-w-[400px] max-w-[400px] bg-white px-3 py-2 align-top shadow-[inset_-1px_0_0_0_#e4e4e7] group-hover:bg-zinc-50"
+                      >
                         {/* Frozen Name column (sticky left-0): stays in view
                             during horizontal scroll so the row's identity is
                             always visible. Needs its own opaque bg (rows are
@@ -1001,8 +1044,11 @@ export function AutomationsTableClient({
                             `.line-clamp-2{display:-webkit-box}` in the stylesheet, so
                             `block` overrides the -webkit-box that line-clamp needs and
                             the clamp silently stops working (text wraps unbounded).
-                            The 240px column width is the width knob (change on th+td);
-                            line-clamp-2 is the line-count knob. */}
+                            The 240px column width is the width knob (change on th+td).
+                            Line count is ADAPTIVE: `line-clamp-2` is the 2-line
+                            minimum, and `WebkitLineClamp` inline-style overrides it
+                            per row with however many lines fit the (Name-driven) row
+                            height, computed by the measuring effect above. */}
                         {r.purpose ? (
                           // disableHoverablePopup: the tooltip closes as soon as
                           // the cursor leaves the blurb, even if the popup itself is
@@ -1019,6 +1065,7 @@ export function AutomationsTableClient({
                                     setShowingPurpose(r.purpose ?? "");
                                   }}
                                   className="w-full cursor-pointer line-clamp-2 break-words text-left text-xs text-zinc-700 hover:text-zinc-900 hover:underline disabled:pointer-events-none disabled:cursor-default disabled:no-underline"
+                                  style={{ WebkitLineClamp: purposeClamp[r.id] ?? 2 }}
                                 >
                                   {r.purpose}
                                 </button>

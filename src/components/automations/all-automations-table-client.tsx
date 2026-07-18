@@ -16,7 +16,7 @@
 // allowed to diverge: when a Per Website Page column/feature is added, ASK the
 // dev whether it should also be added here.
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -127,6 +127,11 @@ export function AllAutomationsTableClient({
   const [query, setQuery] = useState("");
   // The purpose text shown in the read-only popup (null = closed).
   const [showingPurpose, setShowingPurpose] = useState<string | null>(null);
+  // Adaptive Purpose clamp (see the per-website AutomationsTableClient for the
+  // full rationale): line count per row, sized to the fixed-width Name cell so
+  // taller rows fill their height instead of leaving a 2-line gap.
+  const [purposeClamp, setPurposeClamp] = useState<Record<string, number>>({});
+  const nameCellRefs = useRef<Map<string, HTMLTableCellElement>>(new Map());
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
@@ -191,6 +196,31 @@ export function AllAutomationsTableClient({
       }
     });
   }, [rows, query, sortKey, sortDir]);
+
+  // Size each row's Purpose clamp to its Name cell height (text-xs line = 16px;
+  // Name cell clientHeight includes py-2 = 16px). Min 2 lines. Re-runs on
+  // sort/filter/data changes and window resize.
+  useEffect(() => {
+    const PURPOSE_LINE_PX = 16;
+    const CELL_PADDING_Y = 16;
+    const measure = () => {
+      const next: Record<string, number> = {};
+      for (const [id, el] of nameCellRefs.current) {
+        const contentH = el.clientHeight - CELL_PADDING_Y;
+        next[id] = Math.max(2, Math.floor(contentH / PURPOSE_LINE_PX));
+      }
+      setPurposeClamp((prev) => {
+        const keys = Object.keys(next);
+        const same =
+          keys.length === Object.keys(prev).length &&
+          keys.every((k) => prev[k] === next[k]);
+        return same ? prev : next;
+      });
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [filtered]);
 
   const ariaSort = (key: SortKey) =>
     sortKey === key
@@ -302,7 +332,13 @@ export function AllAutomationsTableClient({
                 ) : (
                   filtered.map((r) => (
                     <tr key={r.id} className="group border-t hover:bg-zinc-50">
-                      <td className="sticky left-0 z-10 w-[400px] min-w-[400px] max-w-[400px] bg-white px-3 py-2 align-top shadow-[inset_-1px_0_0_0_#e4e4e7] group-hover:bg-zinc-50">
+                      <td
+                        ref={(el) => {
+                          if (el) nameCellRefs.current.set(r.id, el);
+                          else nameCellRefs.current.delete(r.id);
+                        }}
+                        className="sticky left-0 z-10 w-[400px] min-w-[400px] max-w-[400px] bg-white px-3 py-2 align-top shadow-[inset_-1px_0_0_0_#e4e4e7] group-hover:bg-zinc-50"
+                      >
                         <div className="font-medium text-zinc-900">
                           {r.name || (
                             <span className="font-normal text-zinc-400">
@@ -350,11 +386,14 @@ export function AllAutomationsTableClient({
                       </td>
                       <td className="w-[240px] min-w-[240px] max-w-[240px] px-3 py-2 text-left align-top">
                         {/* Purpose: a preview that fills the FIXED-WIDTH column
-                            (locked to 240px on th + td) and clamps to 2 lines
-                            (`line-clamp-2`). Click opens the read-only popup, hover
-                            shows a tooltip with the full text. Same as the per-website
-                            table (no edit mode here, so the blurb is always
-                            clickable). "None" (red) when empty.
+                            (locked to 240px on th + td). Line count is ADAPTIVE:
+                            `line-clamp-2` is the 2-line minimum, `WebkitLineClamp`
+                            inline-style overrides it per row with however many lines
+                            fit the (Name-driven) row height (see the measuring effect).
+                            Click opens the read-only popup, hover shows a tooltip with
+                            the full text. Same as the per-website table (no edit mode
+                            here, so the blurb is always clickable). "None" (red) when
+                            empty.
                             ⚠️ DO NOT add `block` to the button: Tailwind v4 emits
                             `.block{display:block}` after `.line-clamp-2{display:
                             -webkit-box}`, so block overrides the -webkit-box that
@@ -367,6 +406,7 @@ export function AllAutomationsTableClient({
                                   type="button"
                                   onClick={() => setShowingPurpose(r.purpose ?? "")}
                                   className="w-full cursor-pointer line-clamp-2 break-words text-left text-xs text-zinc-700 hover:text-zinc-900 hover:underline"
+                                  style={{ WebkitLineClamp: purposeClamp[r.id] ?? 2 }}
                                 >
                                   {r.purpose}
                                 </button>
