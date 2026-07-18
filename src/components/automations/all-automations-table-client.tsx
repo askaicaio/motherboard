@@ -252,7 +252,7 @@ export function AllAutomationsTableClient({
                       <SortArrow active={sortKey === "status"} dir={sortDir} />
                     </span>
                   </th>
-                  <th className="sticky top-0 z-10 whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
+                  <th className="sticky top-0 z-10 w-[120px] min-w-[120px] max-w-[120px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
                     Purpose
                   </th>
                   <th
@@ -348,15 +348,17 @@ export function AllAutomationsTableClient({
                           {r.status === "active" ? "Active" : "Paused"}
                         </span>
                       </td>
-                      <td className="px-3 py-2 text-left align-top">
-                        {/* Purpose: a truncated preview at a FIXED width
-                            (`w-[120px]`, wraps within that) clamped to 2 lines
-                            (`line-clamp-2`); a fixed px width is required (w-full
-                            lets the auto-layout cell grow and never truncates).
-                            Click opens the read-only popup, hover shows a tooltip
-                            with the full text. Same as the per-website table (no edit
-                            mode here, so the blurb is always clickable). "None" (red)
-                            when empty. */}
+                      <td className="w-[120px] min-w-[120px] max-w-[120px] px-3 py-2 text-left align-top">
+                        {/* Purpose: a preview that fills the FIXED-WIDTH column
+                            (locked to 120px on th + td) and clamps to 2 lines
+                            (`line-clamp-2`). Click opens the read-only popup, hover
+                            shows a tooltip with the full text. Same as the per-website
+                            table (no edit mode here, so the blurb is always
+                            clickable). "None" (red) when empty.
+                            ⚠️ DO NOT add `block` to the button: Tailwind v4 emits
+                            `.block{display:block}` after `.line-clamp-2{display:
+                            -webkit-box}`, so block overrides the -webkit-box that
+                            line-clamp needs and the clamp stops working. */}
                         {r.purpose ? (
                           <Tooltip disableHoverablePopup>
                             <TooltipTrigger
@@ -364,7 +366,7 @@ export function AllAutomationsTableClient({
                                 <button
                                   type="button"
                                   onClick={() => setShowingPurpose(r.purpose ?? "")}
-                                  className="block w-[120px] cursor-pointer line-clamp-2 break-words text-left text-xs text-zinc-700 hover:text-zinc-900 hover:underline"
+                                  className="w-full cursor-pointer line-clamp-2 break-words text-left text-xs text-zinc-700 hover:text-zinc-900 hover:underline"
                                 >
                                   {r.purpose}
                                 </button>
