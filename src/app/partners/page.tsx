@@ -118,14 +118,6 @@ const PROGRAMS = [
   { name: "Embedded Fractional CAIO", listValue: 54_000, commission: 5_400, salesLed: true },
 ];
 
-function usd(dollars: number) {
-  return dollars.toLocaleString("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  });
-}
-
 const STATS = [
   { value: "$5,400", label: "Top commission per referral" },
   { value: "60 days", label: "Attribution cookie" },
@@ -137,7 +129,7 @@ const VALUE_PROPS = [
   {
     icon: TrendingUp,
     title: "High-ticket commissions",
-    body: "Programs run from $10,000 to $54,000. A single referral can earn you up to $5,400 — far beyond typical affiliate payouts.",
+    body: "A single referral can earn you up to $5,400 — far beyond typical affiliate payouts.",
   },
   {
     icon: BadgeCheck,
@@ -182,6 +174,10 @@ const KEY_TERMS = [
 ];
 
 const FAQS = [
+  {
+    q: "How much can I earn?",
+    a: "10% of the first completed purchase by each new customer you refer, across every eligible program — commissions run from $1,000 to $5,400+. The exact rates are always live in your Partner Platform.",
+  },
   {
     q: "How does attribution work?",
     a: "When someone clicks your referral link, a 60-day cookie is set. If they purchase any eligible CAIO program within that window, the conversion is attributed to you. For enterprise deals, a documented direct introduction — logged before any proposal — is tracked the same way.",
@@ -424,6 +420,12 @@ export default function PartnersLandingPage() {
               A flat 10% on every new-customer first purchase. No tiers, no
               decoding.
             </p>
+            <p className="mt-4 text-sm leading-relaxed text-slate-500">
+              Eligible programs run from four-figure certifications to
+              five-figure enterprise engagements, so a single referral pays from
+              $1,000 to $5,400+. The current program list and exact rates live
+              in your Partner Platform.
+            </p>
           </div>
 
           <div className="overflow-hidden rounded-2xl border border-slate-200 shadow-sm shadow-indigo-100/50">
@@ -431,9 +433,7 @@ export default function PartnersLandingPage() {
               <thead>
                 <tr className="bg-[#1e1b4b] text-xs font-semibold uppercase tracking-wider text-indigo-200">
                   <th className="px-6 py-4">Program</th>
-                  <th className="px-6 py-4 text-right">Engagement value</th>
-                  <th className="px-6 py-4 text-right">Your commission</th>
-                  <th className="hidden px-6 py-4 text-center sm:table-cell">How it&apos;s referred</th>
+                  <th className="px-6 py-4 text-right">How it&apos;s referred</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -442,13 +442,7 @@ export default function PartnersLandingPage() {
                     <td className="px-6 py-4 font-semibold text-[#1e1b4b]">
                       {p.name}
                     </td>
-                    <td className="px-6 py-4 text-right tabular-nums text-slate-600">
-                      {usd(p.listValue)}
-                    </td>
-                    <td className="px-6 py-4 text-right text-base font-bold tabular-nums text-[#4f46e5]">
-                      {usd(p.commission)}
-                    </td>
-                    <td className="hidden px-6 py-4 text-center sm:table-cell">
+                    <td className="px-6 py-4 text-right">
                       {p.salesLed ? (
                         <span className="inline-block rounded-full bg-amber-50 px-3 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-200">
                           Introduction
