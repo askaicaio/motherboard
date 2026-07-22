@@ -10,12 +10,13 @@ import { automations } from "@/lib/db/schema";
 import { sql } from "drizzle-orm";
 import { Card, CardContent } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
-import { Workflow, X, Plug, List } from "lucide-react";
+import { Workflow, Plug, List } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AUTOMATION_SITES } from "@/lib/automations/sites";
 import { platformHasApiKey } from "@/lib/automations/credentials";
 import { CopyApiKeyButton } from "@/components/automations/copy-api-key-button";
 import { AutoRefreshStat } from "@/components/automations/auto-refresh-stat";
+import { StatusMark } from "@/components/automations/status-mark";
 import {
   ApiHealthCheckButton,
   AutoHealthCheckToggle,
@@ -221,10 +222,7 @@ export default async function AutomationsPage() {
                           days
                         </span>
                       ) : (
-                        <X
-                          className="h-3.5 w-3.5 text-red-600"
-                          aria-label="not tracked yet"
-                        />
+                        <StatusMark ok={false} label="not tracked yet" />
                       )}
                     </div>
                   </div>

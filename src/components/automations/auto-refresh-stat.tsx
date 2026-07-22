@@ -6,18 +6,16 @@
 //   ON  -> green check
 //   OFF -> red X
 
-import { Check, Clock, X } from "lucide-react";
+import { Clock } from "lucide-react";
+
+import { StatusMark } from "./status-mark";
 
 export function AutoRefreshStat({ enabled }: { enabled: boolean }) {
   return (
     <div className="flex items-center gap-1.5 text-sm font-medium">
       <Clock className="h-3.5 w-3.5 shrink-0 text-zinc-500" aria-hidden />
       <span>Auto-refresh:</span>
-      {enabled ? (
-        <Check className="h-3.5 w-3.5 text-green-600" aria-label="on" />
-      ) : (
-        <X className="h-3.5 w-3.5 text-red-600" aria-label="off" />
-      )}
+      <StatusMark ok={enabled} label={enabled ? "on" : "off"} />
     </div>
   );
 }
