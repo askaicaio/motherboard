@@ -5,19 +5,61 @@
 // over the sibling `[platform]` dynamic route for this exact path (same pattern
 // as `feature-integration` and `all`).
 //
-// PLACEHOLDER: this is a stub shell so the toolbar button resolves without a
-// 404. The real content (a page-level edit-mode toggle + one choice table per
-// dropdown-driven column: Author, Automation Tags, GHL Tags, Trigger Event,
-// Webhook Links) is tracked as its own to-do items and is not built yet.
+// Reads the choice lists for the four generic dropdown columns
+// (automation_dropdown_choices, grouped by column_key) plus the webhook URL
+// choices (automation_webhook_choices) and hands them to the client, which
+// renders one searchable table per column with an Edit-mode add/edit/delete.
+//
+// NOTE: requires migration 0030 (the two choices tables) to have been run.
 
 import Link from "next/link";
 import { requireAuth } from "@/lib/auth/guard";
 import { ArrowLeft } from "lucide-react";
+import { db } from "@/lib/db";
+import {
+  automationDropdownChoices,
+  automationWebhookChoices,
+} from "@/lib/db/schema";
+import { asc } from "drizzle-orm";
+import { DropdownConfigClient } from "@/components/automations/dropdown-config-client";
+import type {
+  DropdownChoiceRow,
+  DropdownColumnKey,
+  WebhookChoiceRow,
+} from "@/lib/automations/dropdown-config";
 
 export const dynamic = "force-dynamic";
 
 export default async function AutomationsDropdownConfigPage() {
   await requireAuth();
+
+  const [choiceRows, webhookRows] = await Promise.all([
+    db
+      .select({
+        id: automationDropdownChoices.id,
+        columnKey: automationDropdownChoices.columnKey,
+        value: automationDropdownChoices.value,
+      })
+      .from(automationDropdownChoices)
+      .orderBy(asc(automationDropdownChoices.value)),
+    db
+      .select({
+        id: automationWebhookChoices.id,
+        url: automationWebhookChoices.url,
+      })
+      .from(automationWebhookChoices)
+      .orderBy(asc(automationWebhookChoices.url)),
+  ]);
+
+  const choices: DropdownChoiceRow[] = choiceRows.map((r) => ({
+    id: r.id,
+    columnKey: r.columnKey as DropdownColumnKey,
+    value: r.value,
+  }));
+  const webhooks: WebhookChoiceRow[] = webhookRows.map((r) => ({
+    id: r.id,
+    url: r.url,
+  }));
 
   return (
     <div className="space-y-6 p-6">
@@ -29,18 +71,7 @@ export default async function AutomationsDropdownConfigPage() {
         Back to Automations
       </Link>
 
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Dropdown Configuration
-        </h1>
-        <p className="mt-1 text-sm text-zinc-500">
-          Manage the choices for the dropdown-driven table columns.
-        </p>
-      </div>
-
-      <div className="rounded-xl border border-dashed border-zinc-300 p-10 text-center text-sm text-zinc-500">
-        Configuration tables are coming soon.
-      </div>
+      <DropdownConfigClient initialChoices={choices} initialWebhooks={webhooks} />
     </div>
   );
 }

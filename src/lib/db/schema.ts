@@ -1271,6 +1271,61 @@ export const automationErrorsRelations = relations(
   }),
 );
 
+// ------------------------------------------------------------------------
+// Dropdown Configuration choices — options for the dropdown-driven columns
+// ------------------------------------------------------------------------
+// Backs the Automations "Dropdown Configuration" page. `column_key` groups the
+// options by which column they belong to ('author' | 'automation_tags' |
+// 'ghl_tags' | 'trigger_event'); unique per (column_key, value) so the same
+// option can't be added twice to one column. There is no automation<->choice
+// link yet (single-vs-multi-select still TBD) — these are just the editable
+// option lists the Per Website dropdown columns will later select from.
+export const automationDropdownChoices = pgTable(
+  "automation_dropdown_choices",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    /** Which dropdown column this option belongs to:
+     *  'author' | 'automation_tags' | 'ghl_tags' | 'trigger_event'. */
+    columnKey: text("column_key").notNull(),
+    /** The option text shown in the dropdown / choice table. */
+    value: text("value").notNull(),
+    createdBy: uuid("created_by").references(() => adminUsers.id),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("uniq_dropdown_choices_column_value").on(
+      table.columnKey,
+      table.value,
+    ),
+    index("idx_dropdown_choices_column").on(table.columnKey),
+  ],
+);
+
+// Webhook URL choices — kept separate from the generic choices table because
+// it grows a relationships/junction (automation<->webhook) later. For now just
+// the editable list of webhook URLs, unique per url.
+export const automationWebhookChoices = pgTable(
+  "automation_webhook_choices",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    /** The webhook URL. Treated as the choice's identity, so it is unique. */
+    url: text("url").notNull(),
+    createdBy: uuid("created_by").references(() => adminUsers.id),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [uniqueIndex("uniq_webhook_choices_url").on(table.url)],
+);
+
 // ========================================================================
 // Partner Program (affiliate system)
 // ========================================================================
