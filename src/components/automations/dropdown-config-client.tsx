@@ -92,6 +92,14 @@ const STATUS_TONE: Record<string, string> = {
   Unknown: "bg-zinc-100 text-zinc-500",
 };
 
+// Sort rank for the GHL Tags status grouping. GHL_TAG_STATUSES already lists
+// the desired top-to-bottom group order (Keep, To Remove, Unknown, Removed);
+// anything unrecognized sorts last.
+function statusRank(status?: string | null): number {
+  const i = (GHL_TAG_STATUSES as readonly string[]).indexOf(status ?? "");
+  return i === -1 ? GHL_TAG_STATUSES.length : i;
+}
+
 export function DropdownConfigClient({
   initialChoices,
   initialWebhooks,
@@ -359,9 +367,19 @@ function ChoiceTableSection({
 }) {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return items;
-    return items.filter((i) => i.value.toLowerCase().includes(q));
-  }, [items, query]);
+    const matched = q
+      ? items.filter((i) => i.value.toLowerCase().includes(q))
+      : items;
+    // Status tables (GHL Tags) group by status order (Keep, To Remove, Unknown,
+    // Removed), then alphabetize within each group. Others keep the server's
+    // plain alphabetical order.
+    if (!table.hasStatus) return matched;
+    return [...matched].sort(
+      (a, b) =>
+        statusRank(a.status) - statusRank(b.status) ||
+        a.value.localeCompare(b.value),
+    );
+  }, [items, query, table.hasStatus]);
 
   // GHL Tags renders a richer multi-column table; the others are simple lists.
   const rich = !!(table.hasStatus || table.hasNotes);
