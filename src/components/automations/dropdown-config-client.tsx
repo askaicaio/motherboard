@@ -432,12 +432,16 @@ function ChoiceTableSection({
                   (each th needs its own bg so rows don't show through). */}
               <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500 [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-zinc-50">
                 <tr>
-                  <th className="px-3 py-2 text-left">Tag</th>
+                  <th className="w-[400px] min-w-[400px] max-w-[400px] px-3 py-2 text-left">
+                    Tag
+                  </th>
                   {table.hasStatus && (
                     <th className="w-[120px] px-3 py-2 text-left">Status</th>
                   )}
                   {table.hasNotes && (
-                    <th className="w-[240px] px-3 py-2 text-left">Notes</th>
+                    <th className="w-[240px] min-w-[240px] max-w-[240px] px-3 py-2 text-left">
+                      Notes
+                    </th>
                   )}
                   {/* Delete column always present so toggling Edit mode doesn't
                       reflow the table; the button hides via `invisible`. */}
@@ -454,7 +458,9 @@ function ChoiceTableSection({
                       editMode && "cursor-pointer hover:bg-zinc-50",
                     )}
                   >
-                    <td className="px-3 py-2 align-top break-words">
+                    {/* Fixed 400px like the Per Website Name column; break-words
+                        wraps an over-long unbroken tag instead of stretching. */}
+                    <td className="w-[400px] min-w-[400px] max-w-[400px] break-words px-3 py-2 align-top">
                       {item.value}
                     </td>
                     {table.hasStatus && (
@@ -463,7 +469,7 @@ function ChoiceTableSection({
                       </td>
                     )}
                     {table.hasNotes && (
-                      <td className="w-[240px] px-3 py-2 align-top">
+                      <td className="w-[240px] min-w-[240px] max-w-[240px] px-3 py-2 align-top">
                         {item.notes ? (
                           <Tooltip disableHoverablePopup>
                             <TooltipTrigger
