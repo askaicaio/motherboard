@@ -278,11 +278,6 @@ function ChoiceTableSection({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <h2 className="text-sm font-semibold text-zinc-800">{table.title}</h2>
-          {table.ghlOnly && (
-            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">
-              GHL only
-            </span>
-          )}
           <span className="text-xs text-zinc-400">{items.length}</span>
         </div>
         {/* Always rendered so its space is reserved in the header row — toggling
