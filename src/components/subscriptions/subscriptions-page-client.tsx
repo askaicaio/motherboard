@@ -26,6 +26,7 @@ import {
   LayoutGrid,
   List as ListIcon,
   ChevronDown,
+  ChevronRight,
   ArrowUpDown,
   Filter,
   Pencil,
@@ -46,14 +47,20 @@ interface DisplayRow extends SubscriptionRow {
   _isChild?: boolean;
 }
 
-/** Splice each parent's children right after it for table-like rendering. */
+/**
+ * Splice each parent's children right after it for table-like rendering.
+ * When `expanded` is a Set, only those parents' children are included — that's
+ * how team plans collapse to a single row. Omit it to always include children.
+ */
 function flattenWithChildren(
   parents: SubscriptionRow[],
   childrenByParent: Map<string, SubscriptionRow[]>,
+  expanded?: Set<string> | null,
 ): DisplayRow[] {
   const out: DisplayRow[] = [];
   for (const p of parents) {
     out.push(p);
+    if (expanded && !expanded.has(p.id)) continue;
     const kids = childrenByParent.get(p.id) || [];
     for (const k of kids) out.push({ ...k, _isChild: true });
   }
@@ -260,6 +267,50 @@ export function SubscriptionsPageClient({
   // When adding a credential from a specific parent's "+" action, we preset
   // the parent in the Add dialog so the new row nests correctly.
   const [addParentId, setAddParentId] = useState<string>("");
+  // Team plans collapse by default — only parents in here show their seats.
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
+  const toggleExpanded = (id: string) =>
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  /**
+   * Inline field edit (star / 1Password / status). Optimistic — the row
+   * updates immediately and rolls back if the request fails. Deliberately
+   * available outside Edit mode: these are one-click toggles, not form edits.
+   */
+  const patchRow = async (
+    row: SubscriptionRow,
+    patch: Partial<
+      Pick<SubscriptionRow, "isStarred" | "inOnePassword" | "status">
+    >,
+  ) => {
+    const before = row;
+    setRows((prev) =>
+      prev.map((r) => (r.id === row.id ? { ...r, ...patch } : r)),
+    );
+    try {
+      const res = await fetch(`/api/subscriptions/${row.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setRows((prev) =>
+          prev.map((r) => (r.id === before.id ? before : r)),
+        );
+        toast.error(data.error || "Couldn't save that change");
+      }
+    } catch {
+      setRows((prev) => prev.map((r) => (r.id === before.id ? before : r)));
+      toast.error("Network error — change not saved");
+    }
+  };
 
   // Index children by parent id so we can render them under their parent
   // in the table/card/compact views. Filtering happens on parents only —
@@ -302,6 +353,19 @@ export function SubscriptionsPageClient({
     for (const r of rows) if (r.status) set.add(r.status);
     return Array.from(set).sort();
   }, [rows]);
+
+  // Options offered by the inline status dropdown — whatever already exists in
+  // the data, plus the standard lifecycle values so a fresh DB still has them.
+  const statusOptions = useMemo(() => {
+    const set = new Set<string>([
+      ...allStatuses,
+      "active",
+      "cancelled",
+      "paused",
+      "archived",
+    ]);
+    return Array.from(set).sort();
+  }, [allStatuses]);
 
   // Apply filters + search — over TOP-LEVEL rows only. Children travel
   // with their parent. (A parent matches if it OR any of its children
@@ -751,11 +815,22 @@ export function SubscriptionsPageClient({
               )}
               {view === "table" && (
                 <TableView
-                  items={flattenWithChildren(items, childrenByParent)}
+                  items={flattenWithChildren(
+                    items,
+                    childrenByParent,
+                    // A search should reveal matching seats, so expand all.
+                    query.trim() ? null : expanded,
+                  )}
                   editMode={editMode}
                   onRowClick={(r) => setEditing(r)}
                   onArchive={handleArchive}
                   onAddCredential={openAddCredential}
+                  childrenByParent={childrenByParent}
+                  expanded={expanded}
+                  forceExpanded={!!query.trim()}
+                  onToggleExpanded={toggleExpanded}
+                  statusOptions={statusOptions}
+                  onPatch={patchRow}
                 />
               )}
               {view === "cards" && (
@@ -767,7 +842,11 @@ export function SubscriptionsPageClient({
               )}
               {view === "compact" && (
                 <CompactView
-                  items={flattenWithChildren(items, childrenByParent)}
+                  items={flattenWithChildren(
+                    items,
+                    childrenByParent,
+                    query.trim() ? null : expanded,
+                  )}
                   editMode={editMode}
                   onRowClick={(r) => setEditing(r)}
                 />
@@ -912,12 +991,29 @@ function TableView({
   onRowClick,
   onArchive,
   onAddCredential,
+  childrenByParent,
+  expanded,
+  forceExpanded,
+  onToggleExpanded,
+  statusOptions,
+  onPatch,
 }: {
   items: DisplayRow[];
   editMode: boolean;
   onRowClick: (r: SubscriptionRow) => void;
   onArchive: (r: SubscriptionRow) => void;
   onAddCredential: (r: SubscriptionRow) => void;
+  childrenByParent: Map<string, SubscriptionRow[]>;
+  expanded: Set<string>;
+  forceExpanded: boolean;
+  onToggleExpanded: (id: string) => void;
+  statusOptions: string[];
+  onPatch: (
+    r: SubscriptionRow,
+    patch: Partial<
+      Pick<SubscriptionRow, "isStarred" | "inOnePassword" | "status">
+    >,
+  ) => void;
 }) {
   return (
     <Card>
@@ -943,16 +1039,42 @@ function TableView({
                 key={r.id}
                 onClick={() => onRowClick(r)}
                 className={cn(
-                  "cursor-pointer border-t hover:bg-zinc-50",
+                  "group cursor-pointer border-t hover:bg-zinc-50",
                   r._isChild && "bg-zinc-50/40",
                 )}
               >
                 <td className="px-3 py-2 align-top">
                   {r._isChild ? (
                     <span className="ml-2 text-zinc-300 select-none">↳</span>
-                  ) : r.isStarred ? (
-                    <Star className="h-3.5 w-3.5 text-amber-500 fill-amber-400" />
-                  ) : null}
+                  ) : (
+                    // Always clickable (even outside Edit mode). Unstarred rows
+                    // only reveal the star on hover/focus so the column stays quiet.
+                    <button
+                      type="button"
+                      title={r.isStarred ? "Unstar" : "Star"}
+                      aria-label={r.isStarred ? "Unstar" : "Star"}
+                      aria-pressed={r.isStarred}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onPatch(r, { isStarred: !r.isStarred });
+                      }}
+                      className={cn(
+                        "rounded p-0.5 transition",
+                        r.isStarred
+                          ? "opacity-100"
+                          : "opacity-0 focus:opacity-100 group-hover:opacity-100",
+                      )}
+                    >
+                      <Star
+                        className={cn(
+                          "h-3.5 w-3.5 transition",
+                          r.isStarred
+                            ? "fill-amber-400 text-amber-500"
+                            : "text-zinc-300 hover:text-amber-500",
+                        )}
+                      />
+                    </button>
+                  )}
                 </td>
                 <td className={cn("px-3 py-2 align-top", r._isChild && "pl-6")}>
                   {r._isChild ? (
@@ -967,7 +1089,10 @@ function TableView({
                       {r.serviceName || r.name}
                     </div>
                   )}
-                  {r.websiteUrl &&
+                  {/* Seat rows inherit the parent's app + URL — repeating the
+                      host on every line is just noise. */}
+                  {!r._isChild &&
+                    r.websiteUrl &&
                     (() => {
                       const host = safeHost(r.websiteUrl);
                       if (!host) return null;
@@ -984,6 +1109,32 @@ function TableView({
                         </a>
                       );
                     })()}
+                  {/* Team plans collapse to one row; this reveals the seats. */}
+                  {(() => {
+                    if (r._isChild) return null;
+                    const seatCount = (childrenByParent.get(r.id) || []).length;
+                    if (seatCount === 0) return null;
+                    const isOpen = forceExpanded || expanded.has(r.id);
+                    return (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onToggleExpanded(r.id);
+                        }}
+                        aria-expanded={isOpen}
+                        className="mt-1 inline-flex items-center gap-1 rounded text-[11px] font-medium text-zinc-500 transition hover:text-zinc-900"
+                      >
+                        <ChevronRight
+                          className={cn(
+                            "h-3 w-3 transition-transform",
+                            isOpen && "rotate-90",
+                          )}
+                        />
+                        {seatCount} {seatCount === 1 ? "seat" : "seats"}
+                      </button>
+                    );
+                  })()}
                 </td>
                 <td className="px-3 py-2 align-top text-xs font-mono text-zinc-600 max-w-[200px] truncate">
                   {r.ownerEmail || <span className="text-zinc-400">—</span>}
@@ -1010,14 +1161,62 @@ function TableView({
                 </td>
                 <td className="px-3 py-2 align-top text-right tabular-nums text-zinc-600">{fmtUsd(r.annualCostUsd)}</td>
                 <td className="px-3 py-2 align-top"><RenewalCell date={r.renewalDate} dayOfMonth={r.renewalDayOfMonth} annual={isAnnualBilled(r)} /></td>
+                {/* 1Password + status are one-click editable, Edit mode or not. */}
                 <td className="px-3 py-2 align-top text-center">
-                  {r.inOnePassword ? (
-                    <span className="text-emerald-600">✓</span>
-                  ) : (
-                    <span className="text-zinc-300">—</span>
-                  )}
+                  <button
+                    type="button"
+                    title={
+                      r.inOnePassword
+                        ? "In 1Password — click to unmark"
+                        : "Not in 1Password — click to mark"
+                    }
+                    aria-label="Toggle 1Password"
+                    aria-pressed={r.inOnePassword}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onPatch(r, { inOnePassword: !r.inOnePassword });
+                    }}
+                    className="rounded px-1.5 py-0.5 transition hover:bg-zinc-100"
+                  >
+                    {r.inOnePassword ? (
+                      <span className="text-emerald-600">✓</span>
+                    ) : (
+                      <span className="text-zinc-300 group-hover:text-zinc-400">
+                        —
+                      </span>
+                    )}
+                  </button>
                 </td>
-                <td className="px-3 py-2 align-top"><StatusBadge status={r.status} /></td>
+                <td
+                  className="px-3 py-2 align-top"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <DropdownMenu>
+                    <DropdownMenuTrigger
+                      className="cursor-pointer rounded transition hover:opacity-80"
+                      title="Change status"
+                    >
+                      <StatusBadge status={r.status} />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="max-h-72 overflow-y-auto">
+                      <DropdownMenuLabel className="text-xs">
+                        Set status
+                      </DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {statusOptions.map((s) => (
+                        <DropdownMenuItem
+                          key={s}
+                          onSelect={() => {
+                            if (s !== r.status) onPatch(r, { status: s });
+                          }}
+                        >
+                          {s === r.status ? "✓ " : "  "}
+                          {s}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </td>
                 {editMode && (
                   <td className="px-2 py-2 align-top">
                     <div className="flex items-center justify-end gap-0.5">
