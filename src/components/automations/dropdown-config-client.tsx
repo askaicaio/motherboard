@@ -401,7 +401,7 @@ function ChoiceTableSection({
         {/* Viewport-relative height cap so tall lists (e.g. GHL Tags' hundreds
             of rows) scroll inside the card instead of stretching the page.
             overflow-auto gives vertical + horizontal scroll; max-h is the knob. */}
-        <CardContent className="max-h-[50vh] overflow-auto p-0">
+        <CardContent className="max-h-[75vh] overflow-auto p-0">
           {filtered.length === 0 ? (
             <div className="py-10 text-center text-sm text-zinc-500">
               {items.length === 0
