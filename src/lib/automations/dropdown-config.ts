@@ -16,6 +16,17 @@ export type DropdownColumnKey =
   | "ghl_tags"
   | "trigger_event";
 
+/** Fixed status options for the GHL Tags column (not user-managed). New GHL Tag
+ *  entries default to DEFAULT_GHL_TAG_STATUS. */
+export const GHL_TAG_STATUSES = [
+  "Keep",
+  "To Remove",
+  "Unknown",
+  "Removed",
+] as const;
+export type GhlTagStatus = (typeof GHL_TAG_STATUSES)[number];
+export const DEFAULT_GHL_TAG_STATUS: GhlTagStatus = "Unknown";
+
 export interface DropdownColumnConfig {
   /** Stored in `automation_dropdown_choices.column_key`. */
   key: DropdownColumnKey;
@@ -27,9 +38,13 @@ export interface DropdownColumnConfig {
   fieldLabel: string;
   /** Input + search placeholder example. */
   placeholder: string;
-  /** True → the column only applies to the GHL pages; shown with a "GHL only"
-   *  tag on the Config page. */
+  /** True → the column only applies to the GHL pages. Metadata for the future
+   *  GHL-gated column (no visible tag on the Config page). */
   ghlOnly?: boolean;
+  /** True → rows carry a Status (fixed GHL_TAG_STATUSES dropdown). GHL Tags only. */
+  hasStatus?: boolean;
+  /** True → rows carry a free-text Notes field (Purpose-style). GHL Tags only. */
+  hasNotes?: boolean;
 }
 
 // Order here is the top-to-bottom order the tables render on the Config page.
@@ -55,6 +70,8 @@ export const DROPDOWN_COLUMNS: DropdownColumnConfig[] = [
     fieldLabel: "GHL tag",
     placeholder: "e.g. Nurture sequence",
     ghlOnly: true,
+    hasStatus: true,
+    hasNotes: true,
   },
   {
     key: "trigger_event",
@@ -70,6 +87,10 @@ export interface DropdownChoiceRow {
   id: string;
   columnKey: DropdownColumnKey;
   value: string;
+  /** GHL Tags only: one of GHL_TAG_STATUSES. Null/undefined for other columns. */
+  status?: string | null;
+  /** GHL Tags only: free-text note. Null/undefined for other columns. */
+  notes?: string | null;
 }
 
 /** A single webhook URL choice. */

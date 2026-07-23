@@ -12,6 +12,9 @@ import { and, eq } from "drizzle-orm";
 const createSchema = z.object({
   columnKey: z.enum(["author", "automation_tags", "ghl_tags", "trigger_event"]),
   value: z.string().trim().min(1).max(300),
+  // Status + Notes only apply to GHL Tags; ignored (stored null) for the others.
+  status: z.enum(["Keep", "To Remove", "Unknown", "Removed"]).optional(),
+  notes: z.string().max(5000).optional(),
 });
 
 const DUPLICATE_ERROR = "That option already exists in this column.";
@@ -70,10 +73,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: DUPLICATE_ERROR }, { status: 409 });
   }
 
+  // Status + Notes only apply to GHL Tags. New GHL Tag entries default to
+  // 'Unknown'; the other columns store null for both.
+  const isGhl = body.columnKey === "ghl_tags";
   try {
     const [created] = await db
       .insert(automationDropdownChoices)
-      .values({ columnKey: body.columnKey, value, createdBy: user.id })
+      .values({
+        columnKey: body.columnKey,
+        value,
+        status: isGhl ? body.status ?? "Unknown" : null,
+        notes: isGhl ? body.notes?.trim() || null : null,
+        createdBy: user.id,
+      })
       .returning();
     return NextResponse.json(
       {
@@ -81,6 +93,8 @@ export async function POST(request: NextRequest) {
           id: created.id,
           columnKey: created.columnKey,
           value: created.value,
+          status: created.status,
+          notes: created.notes,
         },
       },
       { status: 201 },

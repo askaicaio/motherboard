@@ -1289,6 +1289,12 @@ export const automationDropdownChoices = pgTable(
     columnKey: text("column_key").notNull(),
     /** The option text shown in the dropdown / choice table. */
     value: text("value").notNull(),
+    /** GHL Tags only: 'Keep' | 'To Remove' | 'Unknown' | 'Removed'. New GHL Tag
+     *  entries default to 'Unknown' (set app-side). Null for the other columns. */
+    status: text("status"),
+    /** GHL Tags only: free-text note, presented + edited like the Per Website
+     *  "Purpose" column. Null for the other columns. */
+    notes: text("notes"),
     createdBy: uuid("created_by").references(() => adminUsers.id),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()

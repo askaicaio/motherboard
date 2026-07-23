@@ -2,9 +2,13 @@
 
 // Client for the Automations "Dropdown Configuration" page. Renders one table
 // per dropdown-driven column (Author, Automation Tags, GHL Tags, Trigger Event)
-// plus a Webhook Links table, each with its own search bar. A page-level Edit
-// mode toggle (styled like the Per Website / Subscriptions toggle) reveals the
-// per-table "Add Option" button, row-click editing, and per-row delete.
+// plus a Webhook Links table, each with its own search bar, laid out two-up.
+// A page-level Edit mode toggle reveals per-table "Add Option", row-click
+// editing, and per-row delete.
+//
+// GHL Tags is a richer 3-column table: Tag | Status (fixed dropdown, default
+// Unknown) | Notes (free text, presented + edited like the Per Website Purpose
+// column). The other four tables are simple single-column lists.
 //
 // The four generic columns write to /api/automations/dropdown-choices; Webhook
 // Links writes to /api/automations/webhook-choices. Editing is off by default.
@@ -15,11 +19,24 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { ListChecks, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
   DROPDOWN_COLUMNS,
+  GHL_TAG_STATUSES,
   type DropdownChoiceRow,
   type DropdownColumnKey,
   type WebhookChoiceRow,
@@ -30,18 +47,20 @@ import { ChoiceDialog } from "./choice-dialog";
 interface Item {
   id: string;
   value: string;
+  status?: string | null;
+  notes?: string | null;
 }
 
 /** Describes one table on the page. */
 interface TableDescriptor {
-  /** Column key for the generic tables, or "webhooks". */
   id: string;
   title: string;
   fieldLabel: string;
   placeholder: string;
-  /** true → the value is a URL (url input + validation, monospace display). */
   isUrl: boolean;
   ghlOnly?: boolean;
+  hasStatus?: boolean;
+  hasNotes?: boolean;
 }
 
 const WEBHOOK_TABLE: TableDescriptor = {
@@ -60,9 +79,18 @@ const TABLES: TableDescriptor[] = [
     placeholder: c.placeholder,
     isUrl: false,
     ghlOnly: c.ghlOnly,
+    hasStatus: c.hasStatus,
+    hasNotes: c.hasNotes,
   })),
   WEBHOOK_TABLE,
 ];
+
+const STATUS_TONE: Record<string, string> = {
+  Keep: "bg-emerald-100 text-emerald-700",
+  "To Remove": "bg-amber-100 text-amber-700",
+  Removed: "bg-zinc-200 text-zinc-600",
+  Unknown: "bg-zinc-100 text-zinc-500",
+};
 
 export function DropdownConfigClient({
   initialChoices,
@@ -76,18 +104,23 @@ export function DropdownConfigClient({
   const [webhooks, setWebhooks] = useState(initialWebhooks);
   const [editMode, setEditMode] = useState(false);
   const [queries, setQueries] = useState<Record<string, string>>({});
-  // Active dialog: which table, and the item being edited (null → adding).
   const [dialog, setDialog] = useState<{
     tableId: string;
     existing: Item | null;
   } | null>(null);
+  // The notes text shown in the read-only Notes popup (null = closed).
+  const [showingNotes, setShowingNotes] = useState<string | null>(null);
 
-  // Group items under each table id.
   const itemsByTable = useMemo(() => {
     const m: Record<string, Item[]> = {};
     for (const t of TABLES) m[t.id] = [];
     for (const c of choices) {
-      (m[c.columnKey] ??= []).push({ id: c.id, value: c.value });
+      (m[c.columnKey] ??= []).push({
+        id: c.id,
+        value: c.value,
+        status: c.status,
+        notes: c.notes,
+      });
     }
     m.webhooks = webhooks.map((w) => ({ id: w.id, value: w.url }));
     return m;
@@ -97,12 +130,15 @@ export function DropdownConfigClient({
     ? TABLES.find((t) => t.id === dialog.tableId) ?? null
     : null;
 
-  // Create or edit the value for the active dialog's table. Returns an error
-  // message, or null on success (also patching local state + refreshing).
-  async function submitDialog(value: string): Promise<string | null> {
+  async function submitDialog(payload: {
+    value: string;
+    status?: string;
+    notes?: string;
+  }): Promise<string | null> {
     if (!dialog || !activeTable) return "No table selected";
     const isEdit = !!dialog.existing;
     const isWebhook = activeTable.id === "webhooks";
+    const isGhl = activeTable.id === "ghl_tags";
 
     const endpoint = isWebhook
       ? isEdit
@@ -113,10 +149,12 @@ export function DropdownConfigClient({
         : "/api/automations/dropdown-choices";
     const method = isEdit ? "PATCH" : "POST";
     const body = isWebhook
-      ? { url: value }
-      : isEdit
-        ? { value }
-        : { columnKey: activeTable.id, value };
+      ? { url: payload.value }
+      : {
+          ...(isEdit ? {} : { columnKey: activeTable.id }),
+          value: payload.value,
+          ...(isGhl ? { status: payload.status, notes: payload.notes ?? "" } : {}),
+        };
 
     const res = await fetch(endpoint, {
       method,
@@ -125,7 +163,7 @@ export function DropdownConfigClient({
     });
     let data: {
       error?: string;
-      choice?: { id: string };
+      choice?: { id: string; status?: string | null; notes?: string | null };
       webhook?: { id: string };
     } = {};
     try {
@@ -140,8 +178,8 @@ export function DropdownConfigClient({
       if (!saved) return "Save failed";
       setWebhooks((prev) =>
         isEdit
-          ? prev.map((w) => (w.id === saved.id ? { id: saved.id, url: value } : w))
-          : [{ id: saved.id, url: value }, ...prev],
+          ? prev.map((w) => (w.id === saved.id ? { id: saved.id, url: payload.value } : w))
+          : [{ id: saved.id, url: payload.value }, ...prev],
       );
     } else {
       const saved = data.choice;
@@ -149,8 +187,21 @@ export function DropdownConfigClient({
       const columnKey = activeTable.id as DropdownColumnKey;
       setChoices((prev) =>
         isEdit
-          ? prev.map((c) => (c.id === saved.id ? { ...c, value } : c))
-          : [{ id: saved.id, columnKey, value }, ...prev],
+          ? prev.map((c) =>
+              c.id === saved.id
+                ? { ...c, value: payload.value, status: saved.status, notes: saved.notes }
+                : c,
+            )
+          : [
+              {
+                id: saved.id,
+                columnKey,
+                value: payload.value,
+                status: saved.status,
+                notes: saved.notes,
+              },
+              ...prev,
+            ],
       );
     }
     toast.success(isEdit ? "Saved" : "Added");
@@ -183,70 +234,105 @@ export function DropdownConfigClient({
     : "";
 
   return (
-    <div className="space-y-6">
-      {/* Header: title + edit-mode toggle */}
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <ListChecks className="h-5 w-5 text-zinc-500" />
-            <h1 className="text-2xl font-semibold tracking-tight">
-              Dropdown Configuration
-            </h1>
+    <TooltipProvider delay={300}>
+      <div className="space-y-6">
+        {/* Header: title + edit-mode toggle */}
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <ListChecks className="h-5 w-5 text-zinc-500" />
+              <h1 className="text-2xl font-semibold tracking-tight">
+                Dropdown Configuration
+              </h1>
+            </div>
+            <p className="mt-1 text-sm text-zinc-500">
+              Manage the choices for the dropdown-driven table columns. Toggle
+              Edit mode to add, rename, or remove options.
+            </p>
           </div>
-          <p className="mt-1 text-sm text-zinc-500">
-            Manage the choices for the dropdown-driven table columns. Toggle Edit
-            mode to add, rename, or remove options.
-          </p>
+          <div className="flex items-center gap-2 text-xs text-zinc-600">
+            <Pencil className="h-3.5 w-3.5" />
+            Edit mode
+            <Switch checked={editMode} onCheckedChange={setEditMode} />
+          </div>
         </div>
-        <div className="flex items-center gap-2 text-xs text-zinc-600">
-          <Pencil className="h-3.5 w-3.5" />
-          Edit mode
-          <Switch checked={editMode} onCheckedChange={setEditMode} />
-        </div>
-      </div>
 
-      {/* One section per table, laid out two-up on wider screens (the option
-          lists are short, so the tables don't need full width). Stacks to one
-          column when narrow. */}
-      <div className="grid grid-cols-1 items-start gap-x-6 gap-y-8 lg:grid-cols-2">
-        {TABLES.map((table) => (
-          <ChoiceTableSection
-            key={table.id}
-            table={table}
-            items={itemsByTable[table.id] ?? []}
-            editMode={editMode}
-            query={queries[table.id] ?? ""}
-            onQueryChange={(q) =>
-              setQueries((prev) => ({ ...prev, [table.id]: q }))
+        {/* Two-up on wider screens; the option lists are short. */}
+        <div className="grid grid-cols-1 items-start gap-x-6 gap-y-8 lg:grid-cols-2">
+          {TABLES.map((table) => (
+            <ChoiceTableSection
+              key={table.id}
+              table={table}
+              items={itemsByTable[table.id] ?? []}
+              editMode={editMode}
+              query={queries[table.id] ?? ""}
+              onQueryChange={(q) =>
+                setQueries((prev) => ({ ...prev, [table.id]: q }))
+              }
+              onAdd={() => setDialog({ tableId: table.id, existing: null })}
+              onEdit={(item) => setDialog({ tableId: table.id, existing: item })}
+              onDelete={(item) => handleDelete(table, item)}
+              onShowNotes={(n) => setShowingNotes(n)}
+            />
+          ))}
+        </div>
+
+        {activeTable && dialog && (
+          <ChoiceDialog
+            open={!!dialog}
+            onOpenChange={(o) => {
+              if (!o) setDialog(null);
+            }}
+            heading={`${dialog.existing ? "Edit" : "Add"} ${dialogNoun}`}
+            description={
+              dialog.existing
+                ? `Update this ${activeTable.title} option.`
+                : `Add a new option to ${activeTable.title}.`
             }
-            onAdd={() => setDialog({ tableId: table.id, existing: null })}
-            onEdit={(item) => setDialog({ tableId: table.id, existing: item })}
-            onDelete={(item) => handleDelete(table, item)}
+            fieldLabel={activeTable.fieldLabel}
+            placeholder={activeTable.placeholder}
+            isUrl={activeTable.isUrl}
+            initialValue={dialog.existing?.value ?? ""}
+            submitLabel={dialog.existing ? "Save changes" : "Add option"}
+            showStatus={activeTable.hasStatus}
+            statusOptions={GHL_TAG_STATUSES}
+            initialStatus={dialog.existing?.status ?? "Unknown"}
+            showNotes={activeTable.hasNotes}
+            initialNotes={dialog.existing?.notes ?? ""}
+            onSubmit={submitDialog}
           />
-        ))}
-      </div>
+        )}
 
-      {activeTable && dialog && (
-        <ChoiceDialog
-          open={!!dialog}
-          onOpenChange={(o) => {
-            if (!o) setDialog(null);
-          }}
-          heading={`${dialog.existing ? "Edit" : "Add"} ${dialogNoun}`}
-          description={
-            dialog.existing
-              ? `Update this ${activeTable.title} option.`
-              : `Add a new option to ${activeTable.title}.`
-          }
-          fieldLabel={activeTable.fieldLabel}
-          placeholder={activeTable.placeholder}
-          isUrl={activeTable.isUrl}
-          initialValue={dialog.existing?.value ?? ""}
-          submitLabel={dialog.existing ? "Save changes" : "Add option"}
-          onSubmit={submitDialog}
-        />
+        {/* Read-only Notes popup (GHL Tags), mirrors the Purpose popup. */}
+        <Dialog
+          open={showingNotes !== null}
+          onOpenChange={(o) => !o && setShowingNotes(null)}
+        >
+          <DialogContent className="sm:max-w-md" overlayClassName="bg-black/70">
+            <DialogHeader>
+              <DialogTitle>Notes</DialogTitle>
+            </DialogHeader>
+            <p className="whitespace-pre-wrap break-words text-sm text-zinc-700">
+              {showingNotes}
+            </p>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </TooltipProvider>
+  );
+}
+
+function StatusBadge({ status }: { status?: string | null }) {
+  const s = status || "Unknown";
+  return (
+    <span
+      className={cn(
+        "inline-flex whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-medium",
+        STATUS_TONE[s] ?? "bg-zinc-100 text-zinc-500",
       )}
-    </div>
+    >
+      {s}
+    </span>
   );
 }
 
@@ -259,6 +345,7 @@ function ChoiceTableSection({
   onAdd,
   onEdit,
   onDelete,
+  onShowNotes,
 }: {
   table: TableDescriptor;
   items: Item[];
@@ -268,12 +355,16 @@ function ChoiceTableSection({
   onAdd: () => void;
   onEdit: (item: Item) => void;
   onDelete: (item: Item) => void;
+  onShowNotes: (notes: string) => void;
 }) {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return items;
     return items.filter((i) => i.value.toLowerCase().includes(q));
   }, [items, query]);
+
+  // GHL Tags renders a richer multi-column table; the others are simple lists.
+  const rich = !!(table.hasStatus || table.hasNotes);
 
   return (
     <section className="space-y-3">
@@ -282,10 +373,8 @@ function ChoiceTableSection({
           <h2 className="text-sm font-semibold text-zinc-800">{table.title}</h2>
           <span className="text-xs text-zinc-400">{items.length}</span>
         </div>
-        {/* Always rendered so its space is reserved in the header row — toggling
-            Edit mode reveals it IN PLACE instead of pushing the tables down.
-            `invisible` (visibility:hidden) also drops it from tab order and
-            pointer events while hidden, so it can't be focused or clicked. */}
+        {/* Always rendered so its space is reserved (revealed in place when Edit
+            mode turns on, rather than pushing the table down). */}
         <Button
           size="sm"
           onClick={onAdd}
@@ -309,13 +398,100 @@ function ChoiceTableSection({
       </div>
 
       <Card>
-        <CardContent className="p-0">
+        <CardContent className="overflow-x-auto p-0">
           {filtered.length === 0 ? (
             <div className="py-10 text-center text-sm text-zinc-500">
               {items.length === 0
                 ? "No options yet."
                 : "No options match your search."}
             </div>
+          ) : rich ? (
+            <table className="w-full text-sm">
+              <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
+                <tr>
+                  <th className="px-3 py-2 text-left">Tag</th>
+                  {table.hasStatus && (
+                    <th className="w-[120px] px-3 py-2 text-left">Status</th>
+                  )}
+                  {table.hasNotes && (
+                    <th className="w-[240px] px-3 py-2 text-left">Notes</th>
+                  )}
+                  {/* Delete column always present so toggling Edit mode doesn't
+                      reflow the table; the button hides via `invisible`. */}
+                  <th className="w-10 px-2" />
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((item) => (
+                  <tr
+                    key={item.id}
+                    onClick={editMode ? () => onEdit(item) : undefined}
+                    className={cn(
+                      "border-t",
+                      editMode && "cursor-pointer hover:bg-zinc-50",
+                    )}
+                  >
+                    <td className="px-3 py-2 align-top break-words">
+                      {item.value}
+                    </td>
+                    {table.hasStatus && (
+                      <td className="px-3 py-2 align-top">
+                        <StatusBadge status={item.status} />
+                      </td>
+                    )}
+                    {table.hasNotes && (
+                      <td className="w-[240px] px-3 py-2 align-top">
+                        {item.notes ? (
+                          <Tooltip disableHoverablePopup>
+                            <TooltipTrigger
+                              render={
+                                <button
+                                  type="button"
+                                  disabled={editMode}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onShowNotes(item.notes ?? "");
+                                  }}
+                                  className="w-full cursor-pointer line-clamp-2 break-words text-left text-xs text-zinc-700 hover:text-zinc-900 hover:underline disabled:pointer-events-none disabled:cursor-default disabled:no-underline"
+                                >
+                                  {item.notes}
+                                </button>
+                              }
+                            />
+                            <TooltipContent className="max-w-xs whitespace-pre-wrap break-words text-left normal-case">
+                              {item.notes}
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          <span className="text-xs font-medium text-red-600">
+                            None
+                          </span>
+                        )}
+                      </td>
+                    )}
+                    <td className="px-2 py-2 align-top">
+                      <button
+                        type="button"
+                        title="Remove"
+                        aria-label="Remove"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDelete(item);
+                        }}
+                        className={cn(
+                          "rounded p-1 text-zinc-400 transition hover:bg-red-50 hover:text-red-600",
+                          !editMode && "invisible",
+                        )}
+                        tabIndex={editMode ? undefined : -1}
+                        aria-hidden={!editMode}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           ) : (
             <ul className="divide-y">
               {filtered.map((item) => (
@@ -335,10 +511,6 @@ function ChoiceTableSection({
                   >
                     {item.value}
                   </span>
-                  {/* Always rendered so its box is reserved — the option text
-                      (flex-1) and row height stay put when Edit mode toggles,
-                      instead of the icon appearing and reflowing the row.
-                      `invisible` also drops it from tab order + pointer events. */}
                   <button
                     type="button"
                     title="Remove"
