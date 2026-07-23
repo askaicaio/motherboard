@@ -311,16 +311,19 @@ export function DropdownConfigClient({
           />
         )}
 
-        {/* Read-only Notes popup (GHL Tags), mirrors the Purpose popup. */}
+        {/* Read-only Notes popup (GHL Tags), mirrors the Purpose popup exactly:
+            a flex column with a scrollable body (default light overlay, no
+            overlayClassName), so `break-words` wraps a long unbroken string
+            inside the popup instead of overflowing it. */}
         <Dialog
           open={showingNotes !== null}
           onOpenChange={(o) => !o && setShowingNotes(null)}
         >
-          <DialogContent className="sm:max-w-md" overlayClassName="bg-black/70">
+          <DialogContent className="flex max-h-[85vh] flex-col sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>Notes</DialogTitle>
             </DialogHeader>
-            <p className="whitespace-pre-wrap break-words text-sm text-zinc-700">
+            <p className="min-h-0 flex-1 overflow-y-auto whitespace-pre-wrap break-words text-sm text-zinc-700">
               {showingNotes}
             </p>
           </DialogContent>
