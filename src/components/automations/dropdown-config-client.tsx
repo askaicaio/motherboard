@@ -285,12 +285,20 @@ function ChoiceTableSection({
           )}
           <span className="text-xs text-zinc-400">{items.length}</span>
         </div>
-        {editMode && (
-          <Button size="sm" onClick={onAdd}>
-            <Plus className="mr-2 h-3.5 w-3.5" />
-            Add Option
-          </Button>
-        )}
+        {/* Always rendered so its space is reserved in the header row — toggling
+            Edit mode reveals it IN PLACE instead of pushing the tables down.
+            `invisible` (visibility:hidden) also drops it from tab order and
+            pointer events while hidden, so it can't be focused or clicked. */}
+        <Button
+          size="sm"
+          onClick={onAdd}
+          className={cn(!editMode && "invisible")}
+          tabIndex={editMode ? undefined : -1}
+          aria-hidden={!editMode}
+        >
+          <Plus className="mr-2 h-3.5 w-3.5" />
+          Add Option
+        </Button>
       </div>
 
       <div className="relative">
@@ -330,20 +338,27 @@ function ChoiceTableSection({
                   >
                     {item.value}
                   </span>
-                  {editMode && (
-                    <button
-                      type="button"
-                      title="Remove"
-                      aria-label="Remove"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDelete(item);
-                      }}
-                      className="rounded p-1 text-zinc-400 transition hover:bg-red-50 hover:text-red-600"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  )}
+                  {/* Always rendered so its box is reserved — the option text
+                      (flex-1) and row height stay put when Edit mode toggles,
+                      instead of the icon appearing and reflowing the row.
+                      `invisible` also drops it from tab order + pointer events. */}
+                  <button
+                    type="button"
+                    title="Remove"
+                    aria-label="Remove"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDelete(item);
+                    }}
+                    className={cn(
+                      "rounded p-1 text-zinc-400 transition hover:bg-red-50 hover:text-red-600",
+                      !editMode && "invisible",
+                    )}
+                    tabIndex={editMode ? undefined : -1}
+                    aria-hidden={!editMode}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
                 </li>
               ))}
             </ul>
