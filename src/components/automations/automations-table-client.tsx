@@ -1075,7 +1075,7 @@ export function AutomationsTableClient({
                                 </button>
                               }
                             />
-                            <TooltipContent className="max-w-xs whitespace-pre-wrap break-words text-left normal-case">
+                            <TooltipContent className="max-w-xs whitespace-pre-wrap text-left normal-case">
                               {r.purpose}
                             </TooltipContent>
                           </Tooltip>

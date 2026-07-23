@@ -526,7 +526,7 @@ function ChoiceTableSection({
                                 </button>
                               }
                             />
-                            <TooltipContent className="max-w-xs whitespace-pre-wrap break-words text-left normal-case">
+                            <TooltipContent className="max-w-xs whitespace-pre-wrap text-left normal-case">
                               {item.notes}
                             </TooltipContent>
                           </Tooltip>
