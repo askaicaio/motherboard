@@ -205,8 +205,10 @@ export function DropdownConfigClient({
         </div>
       </div>
 
-      {/* One section per table */}
-      <div className="space-y-8">
+      {/* One section per table, laid out two-up on wider screens (the option
+          lists are short, so the tables don't need full width). Stacks to one
+          column when narrow. */}
+      <div className="grid grid-cols-1 items-start gap-x-6 gap-y-8 lg:grid-cols-2">
         {TABLES.map((table) => (
           <ChoiceTableSection
             key={table.id}
