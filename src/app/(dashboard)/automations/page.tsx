@@ -10,7 +10,7 @@ import { automations } from "@/lib/db/schema";
 import { sql } from "drizzle-orm";
 import { Card, CardContent } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
-import { Workflow, Plug, List } from "lucide-react";
+import { Workflow, Plug, List, ListChecks } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AUTOMATION_SITES } from "@/lib/automations/sites";
 import { platformHasApiKey } from "@/lib/automations/credentials";
@@ -113,8 +113,9 @@ export default async function AutomationsPage() {
       {/* Toolbar strip above the website cards, holding global Automations
           actions. Rounded edges to match the website cards below. Buttons
           (left → right): "Feature Integration" (Plug icon → the Feature
-          Integration page) then "View All Lists" (List icon → the combined
-          Everything Table). Both white (outline) with a leading icon. */}
+          Integration page), "View All Lists" (List icon → the combined
+          Everything Table), then "Dropdown Configuration" (ListChecks icon →
+          the Dropdown Config page). All white (outline) with a leading icon. */}
       <div className="flex items-center gap-3 rounded-xl bg-card px-4 py-2.5 ring-1 ring-foreground/10">
         <Link
           href="/automations/feature-integration"
@@ -129,6 +130,13 @@ export default async function AutomationsPage() {
         >
           <List />
           View All Lists
+        </Link>
+        <Link
+          href="/automations/dropdown-config"
+          className={buttonVariants({ variant: "outline", size: "sm" })}
+        >
+          <ListChecks />
+          Dropdown Configuration
         </Link>
       </div>
 
