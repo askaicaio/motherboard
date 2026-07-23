@@ -9,7 +9,10 @@ import { getOptionalAuth } from "@/lib/auth/guard";
 import { and, eq, ne } from "drizzle-orm";
 
 const patchSchema = z.object({
-  value: z.string().trim().min(1).max(300),
+  value: z.string().trim().min(1).max(300).optional(),
+  // GHL Tags only.
+  status: z.enum(["Keep", "To Remove", "Unknown", "Removed"]).optional(),
+  notes: z.string().max(5000).optional(),
 });
 
 const DUPLICATE_ERROR = "That option already exists in this column.";
@@ -51,8 +54,6 @@ export async function PATCH(
     throw err;
   }
 
-  const value = body.value.trim();
-
   // Need the row's column to scope the duplicate check to that column.
   const [row] = await db
     .select({ columnKey: automationDropdownChoices.columnKey })
@@ -61,25 +62,34 @@ export async function PATCH(
     .limit(1);
   if (!row) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const clash = await db
-    .select({ id: automationDropdownChoices.id })
-    .from(automationDropdownChoices)
-    .where(
-      and(
-        eq(automationDropdownChoices.columnKey, row.columnKey),
-        eq(automationDropdownChoices.value, value),
-        ne(automationDropdownChoices.id, id),
-      ),
-    )
-    .limit(1);
-  if (clash.length > 0) {
-    return NextResponse.json({ error: DUPLICATE_ERROR }, { status: 409 });
+  // Duplicate check only when the value (the option text) is changing.
+  if (body.value !== undefined) {
+    const value = body.value.trim();
+    const clash = await db
+      .select({ id: automationDropdownChoices.id })
+      .from(automationDropdownChoices)
+      .where(
+        and(
+          eq(automationDropdownChoices.columnKey, row.columnKey),
+          eq(automationDropdownChoices.value, value),
+          ne(automationDropdownChoices.id, id),
+        ),
+      )
+      .limit(1);
+    if (clash.length > 0) {
+      return NextResponse.json({ error: DUPLICATE_ERROR }, { status: 409 });
+    }
   }
+
+  const patch: Record<string, unknown> = { updatedAt: new Date() };
+  if (body.value !== undefined) patch.value = body.value.trim();
+  if (body.status !== undefined) patch.status = body.status;
+  if (body.notes !== undefined) patch.notes = body.notes.trim() || null;
 
   try {
     const [updated] = await db
       .update(automationDropdownChoices)
-      .set({ value, updatedAt: new Date() })
+      .set(patch)
       .where(eq(automationDropdownChoices.id, id))
       .returning();
     if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -88,6 +98,8 @@ export async function PATCH(
         id: updated.id,
         columnKey: updated.columnKey,
         value: updated.value,
+        status: updated.status,
+        notes: updated.notes,
       },
     });
   } catch (err) {

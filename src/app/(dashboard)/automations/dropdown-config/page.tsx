@@ -39,6 +39,8 @@ export default async function AutomationsDropdownConfigPage() {
         id: automationDropdownChoices.id,
         columnKey: automationDropdownChoices.columnKey,
         value: automationDropdownChoices.value,
+        status: automationDropdownChoices.status,
+        notes: automationDropdownChoices.notes,
       })
       .from(automationDropdownChoices)
       .orderBy(asc(automationDropdownChoices.value)),
@@ -55,6 +57,8 @@ export default async function AutomationsDropdownConfigPage() {
     id: r.id,
     columnKey: r.columnKey as DropdownColumnKey,
     value: r.value,
+    status: r.status,
+    notes: r.notes,
   }));
   const webhooks: WebhookChoiceRow[] = webhookRows.map((r) => ({
     id: r.id,

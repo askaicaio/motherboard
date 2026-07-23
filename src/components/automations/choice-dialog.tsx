@@ -1,12 +1,13 @@
 "use client";
 
-// Add / Edit dialog for a single Dropdown Configuration choice. One component,
-// two modes, driven by `initialValue` (empty = add). It is presentational: the
-// parent passes an `onSubmit(value)` that performs the create/update fetch and
-// returns an error message (or null on success). Modeled on the Automations
-// "Add/Edit Workflow" dialog.
+// Add / Edit dialog for a Dropdown Configuration choice. One component, two
+// modes (add when initialValue is ""). Presentational: the parent's onSubmit
+// performs the create/update and returns an error message (or null on success).
+// The GHL Tags table passes showStatus + showNotes to render a Status dropdown
+// and a Purpose-style Notes textarea alongside the value field. Modeled on the
+// Automations "Add/Edit Workflow" dialog.
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -18,24 +19,41 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
+
+export interface ChoiceSubmit {
+  value: string;
+  status?: string;
+  notes?: string;
+}
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Dialog title, e.g. "Add Author" / "Edit Webhook link". */
   heading: string;
   description: string;
-  /** Field label, e.g. "Author" / "Webhook URL". */
   fieldLabel: string;
   placeholder: string;
-  /** true → validate + type the field as a URL. */
   isUrl: boolean;
-  /** Existing value when editing; "" when adding. */
   initialValue: string;
   submitLabel: string;
+  /** Show a Status dropdown (GHL Tags). */
+  showStatus?: boolean;
+  statusOptions?: readonly string[];
+  initialStatus?: string;
+  /** Show a Purpose-style Notes textarea (GHL Tags). */
+  showNotes?: boolean;
+  initialNotes?: string;
   /** Performs the save. Resolves to an error message, or null on success. */
-  onSubmit: (value: string) => Promise<string | null>;
+  onSubmit: (payload: ChoiceSubmit) => Promise<string | null>;
 }
 
 export function ChoiceDialog({
@@ -48,17 +66,26 @@ export function ChoiceDialog({
   isUrl,
   initialValue,
   submitLabel,
+  showStatus,
+  statusOptions,
+  initialStatus,
+  showNotes,
+  initialNotes,
   onSubmit,
 }: Props) {
   const [value, setValue] = useState("");
+  const [status, setStatus] = useState("");
+  const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
     setValue(initialValue);
+    setStatus(initialStatus ?? "");
+    setNotes(initialNotes ?? "");
     setError(null);
-  }, [open, initialValue]);
+  }, [open, initialValue, initialStatus, initialNotes]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -78,7 +105,11 @@ export function ChoiceDialog({
     }
     setSubmitting(true);
     try {
-      const err = await onSubmit(trimmed);
+      const err = await onSubmit({
+        value: trimmed,
+        ...(showStatus ? { status } : {}),
+        ...(showNotes ? { notes } : {}),
+      });
       if (err) {
         setError(err);
         return;
@@ -95,9 +126,7 @@ export function ChoiceDialog({
     <Dialog
       open={open}
       onOpenChange={(isOpen, eventDetails) => {
-        // Don't dismiss on an outside/backdrop click or focus loss, that would
-        // lose typed work on a misclick. Esc, the ✕, Cancel, and a successful
-        // save still close the dialog.
+        // Don't dismiss on an outside/backdrop click or focus loss.
         if (
           !isOpen &&
           (eventDetails?.reason === "outside-press" ||
@@ -129,6 +158,40 @@ export function ChoiceDialog({
               placeholder={placeholder}
             />
           </div>
+          {showStatus && (
+            <div className="space-y-1.5">
+              <Label htmlFor="choice-status">Status</Label>
+              <Select value={status} onValueChange={(v) => setStatus(v ?? "")}>
+                <SelectTrigger id="choice-status" className="w-44">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(statusOptions ?? []).map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {s}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          {showNotes && (
+            <div className="space-y-1.5">
+              <Label htmlFor="choice-notes">Notes</Label>
+              <Textarea
+                id="choice-notes"
+                value={notes}
+                onChange={(e) => {
+                  setNotes(e.target.value);
+                  setError(null);
+                }}
+                maxLength={5000}
+                rows={3}
+                placeholder="Optional note…"
+                className="block resize-none overflow-hidden [overflow-wrap:anywhere]"
+              />
+            </div>
+          )}
           {error && (
             <p className="text-sm font-medium text-red-600" role="alert">
               {error}
