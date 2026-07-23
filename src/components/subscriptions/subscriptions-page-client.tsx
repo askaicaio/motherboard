@@ -1112,8 +1112,12 @@ function TableView({
                   {/* Team plans collapse to one row; this reveals the seats. */}
                   {(() => {
                     if (r._isChild) return null;
-                    const seatCount = (childrenByParent.get(r.id) || []).length;
-                    if (seatCount === 0) return null;
+                    const kids = childrenByParent.get(r.id) || [];
+                    if (kids.length === 0) return null;
+                    // The host account occupies a seat too, so count it when the
+                    // parent has its own owner. An explicit seat count wins.
+                    const seatCount =
+                      r.seats ?? kids.length + (r.ownerEmail ? 1 : 0);
                     const isOpen = forceExpanded || expanded.has(r.id);
                     return (
                       <button
