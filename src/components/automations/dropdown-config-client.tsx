@@ -13,7 +13,7 @@
 // The four generic columns write to /api/automations/dropdown-choices; Webhook
 // Links writes to /api/automations/webhook-choices. Editing is off by default.
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -384,6 +384,34 @@ function ChoiceTableSection({
   // GHL Tags renders a richer multi-column table; the others are simple lists.
   const rich = !!(table.hasStatus || table.hasNotes);
 
+  // Adaptive Notes clamp (GHL Tags): show as many lines of Notes as fit the
+  // row's height, which is driven by the FIXED-width Tag cell (measured below,
+  // independent of the Notes text, so no measure->expand loop). Mirrors the Per
+  // Website Purpose column; min 2 lines.
+  const [notesClamp, setNotesClamp] = useState<Record<string, number>>({});
+  const tagCellRefs = useRef<Map<string, HTMLTableCellElement>>(new Map());
+  useEffect(() => {
+    if (!table.hasNotes) return;
+    const LINE_PX = 16; // text-xs line-height
+    const PAD_Y = 16; // py-2 top + bottom
+    const measure = () => {
+      const next: Record<string, number> = {};
+      for (const [id, el] of tagCellRefs.current) {
+        next[id] = Math.max(2, Math.floor((el.clientHeight - PAD_Y) / LINE_PX));
+      }
+      setNotesClamp((prev) => {
+        const keys = Object.keys(next);
+        const same =
+          keys.length === Object.keys(prev).length &&
+          keys.every((k) => prev[k] === next[k]);
+        return same ? prev : next;
+      });
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [filtered, table.hasNotes]);
+
   return (
     <section className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -459,8 +487,15 @@ function ChoiceTableSection({
                     )}
                   >
                     {/* Fixed width (break-words wraps an over-long unbroken tag
-                        instead of stretching the column, like the Name column). */}
-                    <td className="w-[240px] min-w-[240px] max-w-[240px] break-words px-3 py-2 align-top">
+                        instead of stretching the column, like the Name column).
+                        Its height drives the row + the adaptive Notes clamp. */}
+                    <td
+                      ref={(el) => {
+                        if (el) tagCellRefs.current.set(item.id, el);
+                        else tagCellRefs.current.delete(item.id);
+                      }}
+                      className="w-[240px] min-w-[240px] max-w-[240px] break-words px-3 py-2 align-top"
+                    >
                       {item.value}
                     </td>
                     {table.hasStatus && (
@@ -482,6 +517,7 @@ function ChoiceTableSection({
                                     onShowNotes(item.notes ?? "");
                                   }}
                                   className="w-full cursor-pointer line-clamp-2 break-words text-left text-xs text-zinc-700 hover:text-zinc-900 hover:underline disabled:pointer-events-none disabled:cursor-default disabled:no-underline"
+                                  style={{ WebkitLineClamp: notesClamp[item.id] ?? 2 }}
                                 >
                                   {item.notes}
                                 </button>
