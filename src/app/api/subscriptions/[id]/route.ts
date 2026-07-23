@@ -19,6 +19,8 @@ const patchSchema = z.object({
   inOnePassword: z.boolean().optional(),
   monthlyCostUsd: z.number().nullable().optional(),
   annualCostUsd: z.number().nullable().optional(),
+  seats: z.number().int().min(0).nullable().optional(),
+  perSeatCostUsd: z.number().nullable().optional(),
   renewalDate: z.string().nullable().optional(),
   renewalDayOfMonth: z.number().int().min(1).max(31).nullable().optional(),
   notes: z.string().max(5000).nullable().optional(),
@@ -69,6 +71,10 @@ export async function PATCH(
   if (body.annualCostUsd !== undefined)
     patch.annualCostUsd =
       body.annualCostUsd != null ? String(body.annualCostUsd) : null;
+  if (body.seats !== undefined) patch.seats = body.seats ?? null;
+  if (body.perSeatCostUsd !== undefined)
+    patch.perSeatCostUsd =
+      body.perSeatCostUsd != null ? String(body.perSeatCostUsd) : null;
   if (body.renewalDate !== undefined)
     patch.renewalDate = body.renewalDate || null;
   if (body.renewalDayOfMonth !== undefined)

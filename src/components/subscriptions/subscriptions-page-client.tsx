@@ -74,6 +74,9 @@ export interface SubscriptionRow {
   inOnePassword: boolean;
   monthlyCostUsd: number | null;
   annualCostUsd: number | null;
+  /** Per-seat billing (team plans) — monthly = seats × perSeatCostUsd. */
+  seats: number | null;
+  perSeatCostUsd: number | null;
   renewalDate: string | null;
   renewalDayOfMonth: number | null;
   notes: string | null;
@@ -180,9 +183,22 @@ function daysUntilNextMonthly(dayOfMonth: number): number {
   );
 }
 
+/**
+ * A row is "billed annually" when it carries an annual cost with no monthly
+ * cost (a yearly lump sum). Only those show the year on their renewal date —
+ * everything else recurs often enough that the year is noise.
+ */
+function isAnnualBilled(r: {
+  monthlyCostUsd: number | null;
+  annualCostUsd: number | null;
+}): boolean {
+  return r.annualCostUsd != null && r.monthlyCostUsd == null;
+}
+
 function fmtRenewal(
   d: string | null,
   dayOfMonth: number | null = null,
+  annual = false,
 ): {
   text: string;
   daysOut: number | null;
@@ -203,7 +219,8 @@ function fmtRenewal(
     if (!dateIsValid(parsed)) return { text: d, daysOut: null, monthly: false };
     const days = differenceInDays(parsed, new Date());
     return {
-      text: format(parsed, "MMM d, yyyy"),
+      // Year only for annual (yearly lump-sum) subscriptions.
+      text: format(parsed, annual ? "MMM d, yyyy" : "MMM d"),
       daysOut: days,
       monthly: false,
     };
@@ -867,11 +884,13 @@ function StatusBadge({ status }: { status: string }) {
 function RenewalCell({
   date,
   dayOfMonth,
+  annual = false,
 }: {
   date: string | null;
   dayOfMonth?: number | null;
+  annual?: boolean;
 }) {
-  const { text, daysOut, monthly } = fmtRenewal(date, dayOfMonth ?? null);
+  const { text, daysOut, monthly } = fmtRenewal(date, dayOfMonth ?? null, annual);
   const tone =
     daysOut == null
       ? "text-zinc-400"
@@ -981,9 +1000,16 @@ function TableView({
                     )}
                   </div>
                 </td>
-                <td className="px-3 py-2 align-top text-right tabular-nums">{fmtUsd(r.monthlyCostUsd)}</td>
+                <td className="px-3 py-2 align-top text-right tabular-nums">
+                  {fmtUsd(r.monthlyCostUsd)}
+                  {r.seats != null && r.perSeatCostUsd != null && (
+                    <div className="text-[10px] font-normal text-zinc-400">
+                      {r.seats} × {fmtUsd(r.perSeatCostUsd)}
+                    </div>
+                  )}
+                </td>
                 <td className="px-3 py-2 align-top text-right tabular-nums text-zinc-600">{fmtUsd(r.annualCostUsd)}</td>
-                <td className="px-3 py-2 align-top"><RenewalCell date={r.renewalDate} dayOfMonth={r.renewalDayOfMonth} /></td>
+                <td className="px-3 py-2 align-top"><RenewalCell date={r.renewalDate} dayOfMonth={r.renewalDayOfMonth} annual={isAnnualBilled(r)} /></td>
                 <td className="px-3 py-2 align-top text-center">
                   {r.inOnePassword ? (
                     <span className="text-emerald-600">✓</span>
@@ -1118,7 +1144,7 @@ function CardsView({
               );
             })()}
             <div className="flex items-center justify-between text-xs text-zinc-500 pt-1 border-t">
-              <RenewalCell date={r.renewalDate} dayOfMonth={r.renewalDayOfMonth} />
+              <RenewalCell date={r.renewalDate} dayOfMonth={r.renewalDayOfMonth} annual={isAnnualBilled(r)} />
               {r.inOnePassword && <span className="text-emerald-600">1P ✓</span>}
             </div>
           </CardContent>
@@ -1167,7 +1193,7 @@ function CompactView({
                 </div>
               </div>
               <div className="text-xs tabular-nums text-zinc-700">{fmtUsd(r.monthlyCostUsd)}/mo</div>
-              <RenewalCell date={r.renewalDate} dayOfMonth={r.renewalDayOfMonth} />
+              <RenewalCell date={r.renewalDate} dayOfMonth={r.renewalDayOfMonth} annual={isAnnualBilled(r)} />
               <StatusBadge status={r.status} />
             </li>
           ))}

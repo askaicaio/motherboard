@@ -41,6 +41,9 @@ export default async function SubscriptionsPage() {
         // numeric → string from PG; normalise to number | null for the client
         monthlyCostUsd: r.monthlyCostUsd != null ? Number(r.monthlyCostUsd) : null,
         annualCostUsd: r.annualCostUsd != null ? Number(r.annualCostUsd) : null,
+        seats: r.seats,
+        perSeatCostUsd:
+          r.perSeatCostUsd != null ? Number(r.perSeatCostUsd) : null,
         renewalDate: r.renewalDate, // already 'yyyy-mm-dd' or null
         renewalDayOfMonth: r.renewalDayOfMonth,
         notes: r.notes,

@@ -57,6 +57,8 @@ export function EditSubscriptionDialog({
   const [inOnePassword, setInOnePassword] = useState(false);
   const [monthlyCost, setMonthlyCost] = useState("");
   const [annualCost, setAnnualCost] = useState("");
+  const [seats, setSeats] = useState("");
+  const [perSeatCost, setPerSeatCost] = useState("");
   const [renewalDate, setRenewalDate] = useState("");
   const [renewalDayOfMonth, setRenewalDayOfMonth] = useState<string>("");
   // "date" = anchored to a specific calendar date; "monthly" = every Nth.
@@ -82,6 +84,10 @@ export function EditSubscriptionDialog({
       setInOnePassword(existing.inOnePassword);
       setMonthlyCost(existing.monthlyCostUsd != null ? String(existing.monthlyCostUsd) : "");
       setAnnualCost(existing.annualCostUsd != null ? String(existing.annualCostUsd) : "");
+      setSeats(existing.seats != null ? String(existing.seats) : "");
+      setPerSeatCost(
+        existing.perSeatCostUsd != null ? String(existing.perSeatCostUsd) : "",
+      );
       setRenewalDate(existing.renewalDate ?? "");
       setRenewalDayOfMonth(
         existing.renewalDayOfMonth != null
@@ -104,6 +110,8 @@ export function EditSubscriptionDialog({
       setInOnePassword(false);
       setMonthlyCost("");
       setAnnualCost("");
+      setSeats("");
+      setPerSeatCost("");
       setRenewalDate("");
       setRenewalDayOfMonth("");
       setRenewalCadence("date");
@@ -163,6 +171,8 @@ export function EditSubscriptionDialog({
         inOnePassword,
         monthlyCostUsd: monthly,
         annualCostUsd: annual,
+        seats: seats.trim() ? Math.max(0, Math.round(Number(seats))) : null,
+        perSeatCostUsd: perSeatCost.trim() ? Number(perSeatCost) : null,
         // Cadence chooses which renewal field we send: monthly clears
         // renewal_date, date clears renewal_day_of_month. Backend treats
         // null as "not set" for both.
@@ -208,6 +218,11 @@ export function EditSubscriptionDialog({
         annualCostUsd: data.subscription.annualCostUsd != null
           ? Number(data.subscription.annualCostUsd)
           : null,
+        seats: data.subscription.seats ?? null,
+        perSeatCostUsd:
+          data.subscription.perSeatCostUsd != null
+            ? Number(data.subscription.perSeatCostUsd)
+            : null,
         renewalDate: data.subscription.renewalDate ?? null,
         renewalDayOfMonth: data.subscription.renewalDayOfMonth ?? null,
         notes: data.subscription.notes ?? null,
@@ -265,6 +280,12 @@ export function EditSubscriptionDialog({
               <Field label="Monthly" value={existing.monthlyCostUsd != null ? `$${existing.monthlyCostUsd}` : null} />
               <Field label="Annual" value={existing.annualCostUsd != null ? `$${existing.annualCostUsd}` : null} />
             </div>
+            {existing.seats != null && existing.perSeatCostUsd != null && (
+              <Field
+                label="Seats"
+                value={`${existing.seats} × $${existing.perSeatCostUsd}/seat`}
+              />
+            )}
             <Field
               label="Renewal"
               value={
@@ -365,6 +386,57 @@ export function EditSubscriptionDialog({
               </p>
             </div>
           )}
+          {/* Per-seat billing (team plans). Filling both recomputes the
+              monthly cost as seats × per-seat, which then drives annual. */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="sub-seats">Seats</Label>
+              <Input
+                id="sub-seats"
+                type="number"
+                min={0}
+                step={1}
+                value={seats}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setSeats(v);
+                  const n = Number(v);
+                  const per = Number(perSeatCost);
+                  if (v !== "" && perSeatCost !== "" && Number.isFinite(n) && Number.isFinite(per)) {
+                    const monthly = Math.round(n * per * 100) / 100;
+                    setMonthlyCost(String(monthly));
+                    setAnnualCost(String(Math.round(monthly * 1200) / 100));
+                  }
+                }}
+                placeholder="e.g. 26"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="sub-per-seat">Cost per seat (USD)</Label>
+              <Input
+                id="sub-per-seat"
+                type="number"
+                step="0.01"
+                value={perSeatCost}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setPerSeatCost(v);
+                  const per = Number(v);
+                  const n = Number(seats);
+                  if (v !== "" && seats !== "" && Number.isFinite(per) && Number.isFinite(n)) {
+                    const monthly = Math.round(n * per * 100) / 100;
+                    setMonthlyCost(String(monthly));
+                    setAnnualCost(String(Math.round(monthly * 1200) / 100));
+                  }
+                }}
+                placeholder="e.g. 25"
+              />
+              <p className="text-[10px] text-zinc-500">
+                Set both to auto-calculate the monthly cost below.
+              </p>
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="sub-monthly">Monthly cost (USD)</Label>

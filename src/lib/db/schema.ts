@@ -1103,6 +1103,14 @@ export const subscriptions = pgTable(
     monthlyCostUsd: numeric("monthly_cost_usd", { precision: 12, scale: 2 }),
     annualCostUsd: numeric("annual_cost_usd", { precision: 12, scale: 2 }),
 
+    /**
+     * Per-seat billing (team plans). When both are set, monthly_cost_usd is
+     * derived as seats × per_seat_cost_usd — the monthly/annual columns stay
+     * the source of truth for all spend totals, so nothing downstream changes.
+     */
+    seats: integer("seats"),
+    perSeatCostUsd: numeric("per_seat_cost_usd", { precision: 12, scale: 2 }),
+
     renewalDate: date("renewal_date"),
     /**
      * Day of the month (1-31) for monthly-recurring subs (e.g. "billed

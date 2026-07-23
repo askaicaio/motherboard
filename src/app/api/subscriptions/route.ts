@@ -19,6 +19,8 @@ const createSchema = z.object({
   inOnePassword: z.boolean().optional().default(false),
   monthlyCostUsd: z.number().nullable().optional(),
   annualCostUsd: z.number().nullable().optional(),
+  seats: z.number().int().min(0).nullable().optional(),
+  perSeatCostUsd: z.number().nullable().optional(),
   renewalDate: z.string().nullable().optional(), // ISO yyyy-mm-dd
   renewalDayOfMonth: z.number().int().min(1).max(31).nullable().optional(),
   notes: z.string().max(5000).nullable().optional(),
@@ -88,6 +90,9 @@ export async function POST(request: NextRequest) {
       // Drizzle's numeric type expects a string for insert
       monthlyCostUsd: body.monthlyCostUsd != null ? String(body.monthlyCostUsd) : null,
       annualCostUsd: annual != null ? String(annual) : null,
+      seats: body.seats ?? null,
+      perSeatCostUsd:
+        body.perSeatCostUsd != null ? String(body.perSeatCostUsd) : null,
       renewalDate: body.renewalDate || null,
       renewalDayOfMonth: body.renewalDayOfMonth ?? null,
       notes: body.notes?.trim() || null,
