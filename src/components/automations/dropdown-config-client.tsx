@@ -398,7 +398,10 @@ function ChoiceTableSection({
       </div>
 
       <Card>
-        <CardContent className="overflow-x-auto p-0">
+        {/* Viewport-relative height cap so tall lists (e.g. GHL Tags' hundreds
+            of rows) scroll inside the card instead of stretching the page.
+            overflow-auto gives vertical + horizontal scroll; max-h is the knob. */}
+        <CardContent className="max-h-[50vh] overflow-auto p-0">
           {filtered.length === 0 ? (
             <div className="py-10 text-center text-sm text-zinc-500">
               {items.length === 0
@@ -406,8 +409,10 @@ function ChoiceTableSection({
                 : "No options match your search."}
             </div>
           ) : rich ? (
-            <table className="w-full text-sm">
-              <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
+            <table className="w-full min-w-[560px] text-sm">
+              {/* Sticky header: stays pinned while the card scrolls vertically
+                  (each th needs its own bg so rows don't show through). */}
+              <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500 [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-zinc-50">
                 <tr>
                   <th className="px-3 py-2 text-left">Tag</th>
                   {table.hasStatus && (
