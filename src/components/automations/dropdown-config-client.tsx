@@ -265,8 +265,9 @@ export function DropdownConfigClient({
           </p>
         </div>
 
-        {/* Tab toolbar: pick which table to view. Only the selected one renders. */}
-        <div className="flex flex-wrap gap-1 border-b border-zinc-200">
+        {/* Tab toolbar: pick which table to view (only the selected one renders),
+            with the Edit mode toggle inline at the far right of the same row. */}
+        <div className="flex flex-wrap items-center gap-1 border-b border-zinc-200">
           {TABLES.map((table) => {
             const isActive = table.id === activeTab;
             const count = itemsByTable[table.id]?.length ?? 0;
@@ -297,14 +298,13 @@ export function DropdownConfigClient({
               </button>
             );
           })}
-        </div>
-
-        {/* Edit mode toggle: below the tab toolbar and above the active table's
-            Add Option button (right-aligned to line up with it). */}
-        <div className="flex items-center justify-end gap-2 text-xs text-zinc-600">
-          <Pencil className="h-3.5 w-3.5" />
-          Edit mode
-          <Switch checked={editMode} onCheckedChange={setEditMode} />
+          {/* Edit mode toggle, inline at the far right of the toolbar row and
+              still above the active table's Add Option button. */}
+          <div className="ml-auto flex items-center gap-2 pl-3 text-xs text-zinc-600">
+            <Pencil className="h-3.5 w-3.5" />
+            Edit mode
+            <Switch checked={editMode} onCheckedChange={setEditMode} />
+          </div>
         </div>
 
         {/* Only the selected table renders. Each table's search query persists
