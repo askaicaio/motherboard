@@ -15,6 +15,7 @@
 // Blocked (with a red error) on platforms with no API integration.
 
 import { useState, useMemo, useRef, useEffect } from "react";
+import { useFitViewportHeight } from "@/lib/automations/use-fit-viewport-height";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -292,6 +293,8 @@ export function AutomationsTableClient({
   // loop. See the measuring effect below.
   const [purposeClamp, setPurposeClamp] = useState<Record<string, number>>({});
   const nameCellRefs = useRef<Map<string, HTMLTableCellElement>>(new Map());
+  // Fit-to-viewport height for the table's scroll container (shared hook).
+  const { ref: scrollRef, style: scrollStyle } = useFitViewportHeight();
   // Column sorting (client-side, ONE column at a time, two-state toggle).
   // Defaults to Name ascending (matches the server's name-asc ordering). The
   // date columns always sink blanks ("-") to the bottom (see the sort below).
@@ -822,7 +825,11 @@ export function AutomationsTableClient({
             header row / frozen column z-10 > body. */}
         <TooltipProvider delay={300}>
         <Card>
-          <CardContent className="max-h-[70vh] overflow-auto p-0">
+          <CardContent
+            ref={scrollRef}
+            style={scrollStyle}
+            className="max-h-[70vh] overflow-auto p-0"
+          >
             <table className="w-full min-w-[1250px] text-sm">
               <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
                 <tr>
