@@ -1,10 +1,10 @@
 "use client";
 
-// Client for the Automations "Dropdown Configuration" page. Renders one table
-// per dropdown-driven column (Author, Automation Tags, GHL Tags, Trigger Event)
-// plus a Webhook Links table, each with its own search bar, laid out two-up.
-// A page-level Edit mode toggle reveals per-table "Add Option", row-click
-// editing, and per-row delete.
+// Client for the Automations "Dropdown Configuration" page. Shows one table at a
+// time (Author, Automation Tags, GHL Tags, Trigger Event, Webhook Links) chosen
+// via a tab toolbar; Author is the default. Each table keeps its own search
+// query (preserved when switching tabs). A page-level Edit mode toggle reveals
+// the active table's single "Add Option", row-click editing, and per-row delete.
 //
 // GHL Tags is a richer 3-column table: Tag | Status (fixed dropdown, default
 // Unknown) | Notes (free text, presented + edited like the Per Website Purpose
@@ -111,6 +111,8 @@ export function DropdownConfigClient({
   const [choices, setChoices] = useState(initialChoices);
   const [webhooks, setWebhooks] = useState(initialWebhooks);
   const [editMode, setEditMode] = useState(false);
+  // Which table the toolbar is showing. Author (TABLES[0]) is the default.
+  const [activeTab, setActiveTab] = useState<string>(TABLES[0].id);
   const [queries, setQueries] = useState<Record<string, string>>({});
   const [dialog, setDialog] = useState<{
     tableId: string;
@@ -241,6 +243,10 @@ export function DropdownConfigClient({
       : activeTable.fieldLabel.toLowerCase()
     : "";
 
+  // The table the toolbar is currently showing (falls back to Author).
+  const activeDescriptor =
+    TABLES.find((t) => t.id === activeTab) ?? TABLES[0];
+
   return (
     <TooltipProvider delay={300}>
       <div className="space-y-6">
@@ -265,25 +271,60 @@ export function DropdownConfigClient({
           </div>
         </div>
 
-        {/* Two-up on wider screens; the option lists are short. */}
-        <div className="grid grid-cols-1 items-start gap-x-6 gap-y-8 lg:grid-cols-2">
-          {TABLES.map((table) => (
-            <ChoiceTableSection
-              key={table.id}
-              table={table}
-              items={itemsByTable[table.id] ?? []}
-              editMode={editMode}
-              query={queries[table.id] ?? ""}
-              onQueryChange={(q) =>
-                setQueries((prev) => ({ ...prev, [table.id]: q }))
-              }
-              onAdd={() => setDialog({ tableId: table.id, existing: null })}
-              onEdit={(item) => setDialog({ tableId: table.id, existing: item })}
-              onDelete={(item) => handleDelete(table, item)}
-              onShowNotes={(n) => setShowingNotes(n)}
-            />
-          ))}
+        {/* Tab toolbar: pick which table to view. Only the selected one renders. */}
+        <div className="flex flex-wrap gap-1 border-b border-zinc-200">
+          {TABLES.map((table) => {
+            const isActive = table.id === activeTab;
+            const count = itemsByTable[table.id]?.length ?? 0;
+            return (
+              <button
+                key={table.id}
+                type="button"
+                onClick={() => setActiveTab(table.id)}
+                aria-current={isActive ? "page" : undefined}
+                className={cn(
+                  "-mb-px flex items-center gap-2 border-b-2 px-3 py-2 text-sm font-medium transition",
+                  isActive
+                    ? "border-zinc-900 text-zinc-900"
+                    : "border-transparent text-zinc-500 hover:border-zinc-300 hover:text-zinc-800",
+                )}
+              >
+                {table.title}
+                <span
+                  className={cn(
+                    "rounded-full px-1.5 py-0.5 text-[10px]",
+                    isActive
+                      ? "bg-zinc-200 text-zinc-700"
+                      : "bg-zinc-100 text-zinc-400",
+                  )}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
         </div>
+
+        {/* Only the selected table renders. Each table's search query persists
+            in `queries`, so switching tabs and back restores its search. The
+            `key` remounts the section per tab, re-measuring the adaptive Notes
+            clamp for GHL Tags. */}
+        <ChoiceTableSection
+          key={activeDescriptor.id}
+          table={activeDescriptor}
+          items={itemsByTable[activeDescriptor.id] ?? []}
+          editMode={editMode}
+          query={queries[activeDescriptor.id] ?? ""}
+          onQueryChange={(q) =>
+            setQueries((prev) => ({ ...prev, [activeDescriptor.id]: q }))
+          }
+          onAdd={() => setDialog({ tableId: activeDescriptor.id, existing: null })}
+          onEdit={(item) =>
+            setDialog({ tableId: activeDescriptor.id, existing: item })
+          }
+          onDelete={(item) => handleDelete(activeDescriptor, item)}
+          onShowNotes={(n) => setShowingNotes(n)}
+        />
 
         {activeTable && dialog && (
           <ChoiceDialog
@@ -417,13 +458,19 @@ function ChoiceTableSection({
 
   return (
     <section className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <h2 className="text-sm font-semibold text-zinc-800">{table.title}</h2>
-          <span className="text-xs text-zinc-400">{items.length}</span>
+      {/* Per-table search + the single "Add Option" for the active table. The
+          button is always rendered so its space is reserved; Edit mode reveals
+          it in place rather than reflowing the row. */}
+      <div className="flex items-center gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+          <Input
+            placeholder={`Search ${table.title.toLowerCase()}…`}
+            value={query}
+            onChange={(e) => onQueryChange(e.target.value)}
+            className="pl-8"
+          />
         </div>
-        {/* Always rendered so its space is reserved (revealed in place when Edit
-            mode turns on, rather than pushing the table down). */}
         <Button
           size="sm"
           onClick={onAdd}
@@ -434,16 +481,6 @@ function ChoiceTableSection({
           <Plus className="mr-2 h-3.5 w-3.5" />
           Add Option
         </Button>
-      </div>
-
-      <div className="relative">
-        <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
-        <Input
-          placeholder={`Search ${table.title.toLowerCase()}…`}
-          value={query}
-          onChange={(e) => onQueryChange(e.target.value)}
-          className="pl-8"
-        />
       </div>
 
       <Card>
