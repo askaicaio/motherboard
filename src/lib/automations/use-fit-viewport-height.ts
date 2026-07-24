@@ -17,7 +17,7 @@ import { useEffect, useRef, useState } from "react";
 // The element's existing CSS max-height stays as the pre-measurement (first
 // paint / SSR) fallback; the inline `style.maxHeight` overrides it once measured.
 export function useFitViewportHeight<T extends HTMLElement = HTMLDivElement>({
-  bottomGap = 48,
+  bottomGap = 60,
   minHeight = 240,
 }: { bottomGap?: number; minHeight?: number } = {}) {
   const ref = useRef<T>(null);
