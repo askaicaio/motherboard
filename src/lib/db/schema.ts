@@ -1284,7 +1284,7 @@ export const automationErrorsRelations = relations(
 // ------------------------------------------------------------------------
 // Backs the Automations "Dropdown Configuration" page. `column_key` groups the
 // options by which column they belong to ('author' | 'automation_tags' |
-// 'ghl_tags' | 'trigger_event'); unique per (column_key, value) so the same
+// 'ghl_tags' | 'ghl_forms' | 'trigger_event'); unique per (column_key, value) so the same
 // option can't be added twice to one column. There is no automation<->choice
 // link yet (single-vs-multi-select still TBD) — these are just the editable
 // option lists the Per Website dropdown columns will later select from.
@@ -1293,7 +1293,7 @@ export const automationDropdownChoices = pgTable(
   {
     id: uuid("id").defaultRandom().primaryKey(),
     /** Which dropdown column this option belongs to:
-     *  'author' | 'automation_tags' | 'ghl_tags' | 'trigger_event'. */
+     *  'author' | 'automation_tags' | 'ghl_tags' | 'ghl_forms' | 'trigger_event'. */
     columnKey: text("column_key").notNull(),
     /** The option text shown in the dropdown / choice table. */
     value: text("value").notNull(),

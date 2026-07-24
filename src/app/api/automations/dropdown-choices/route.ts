@@ -1,6 +1,7 @@
 // POST /api/automations/dropdown-choices — create an option for one of the
-// four generic dropdown columns (Author, Automation Tags, GHL Tags, Trigger
-// Event). Backs the "Add Option" action on the Dropdown Configuration page.
+// five generic dropdown columns (Author, Automation Tags, GHL Tags, GHL Forms,
+// Trigger Event). Backs the "Add Option" action on the Dropdown Configuration
+// page.
 
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
@@ -10,7 +11,13 @@ import { getOptionalAuth } from "@/lib/auth/guard";
 import { and, eq } from "drizzle-orm";
 
 const createSchema = z.object({
-  columnKey: z.enum(["author", "automation_tags", "ghl_tags", "trigger_event"]),
+  columnKey: z.enum([
+    "author",
+    "automation_tags",
+    "ghl_tags",
+    "ghl_forms",
+    "trigger_event",
+  ]),
   value: z.string().trim().min(1).max(300),
   // Status + Notes only apply to GHL Tags; ignored (stored null) for the others.
   status: z.enum(["Keep", "To Remove", "Unknown", "Removed"]).optional(),
