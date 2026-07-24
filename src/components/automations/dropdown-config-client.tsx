@@ -501,19 +501,23 @@ function ChoiceTableSection({
                 : "No options match your search."}
             </div>
           ) : rich ? (
-            /* table-fixed so the two content columns (Tag, Notes) flex to share
-               the leftover width evenly, while Status and the delete column stay
-               fixed and delete is pinned at the right edge. Column widths come
-               from these header cells; a long unbroken value wraps (break-words)
-               inside its column instead of stretching it. */
-            <table className="w-full min-w-[560px] table-fixed text-sm">
+            /* table-fixed: the Tag (first) column is fixed at 400px like the
+               Name column on the Per Website + Error History tables; Notes has no
+               width, so table-fixed gives it the leftover width (it flexes).
+               Status + the delete column stay fixed, delete pinned at the right.
+               A long unbroken value wraps (break-words) inside its column. The
+               min-w keeps Notes from collapsing on a narrow viewport. */
+            <table className="w-full min-w-[800px] table-fixed text-sm">
               {/* Sticky header: stays pinned while the card scrolls vertically
                   (each th needs its own bg so rows don't show through). */}
               <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500 [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-zinc-50">
                 <tr>
-                  {/* Tag + Notes get no width, so table-fixed splits the leftover
-                      width evenly between them (they flex with the table). */}
-                  <th className="px-3 py-2 text-left">Tag</th>
+                  {/* Tag: fixed 400px (mirrors the Name column on the Per Website
+                      + Error History tables). Notes below has no width, so
+                      table-fixed gives it the leftover width (it flexes). */}
+                  <th className="w-[400px] min-w-[400px] max-w-[400px] px-3 py-2 text-left">
+                    Tag
+                  </th>
                   {table.hasStatus && (
                     <th className="w-[120px] px-3 py-2 text-left">Status</th>
                   )}
@@ -536,16 +540,16 @@ function ChoiceTableSection({
                       editMode && "cursor-pointer hover:bg-zinc-50",
                     )}
                   >
-                    {/* Flexes with Notes (table-fixed). break-words wraps an
-                        over-long unbroken tag inside the column instead of
-                        overflowing. Its height still drives the row + the
-                        adaptive Notes clamp. */}
+                    {/* Fixed 400px, mirroring the Name column on the Per Website
+                        + Error History tables. break-words wraps an over-long
+                        unbroken tag inside the column. Its height still drives
+                        the row + the adaptive Notes clamp. */}
                     <td
                       ref={(el) => {
                         if (el) tagCellRefs.current.set(item.id, el);
                         else tagCellRefs.current.delete(item.id);
                       }}
-                      className="break-words px-3 py-2 align-top"
+                      className="w-[400px] min-w-[400px] max-w-[400px] break-words px-3 py-2 align-top"
                     >
                       {item.value}
                     </td>
