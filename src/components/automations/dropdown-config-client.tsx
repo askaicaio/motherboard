@@ -458,6 +458,25 @@ function ChoiceTableSection({
     return () => window.removeEventListener("resize", measure);
   }, [filtered, table.hasNotes]);
 
+  // Fit-to-viewport height: cap the scroll container so its bottom lands near
+  // the window bottom, so the page itself no longer scrolls (only the table
+  // scrolls internally). Measured from the container's document offset (robust
+  // to page scroll), recomputed on window resize.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [maxH, setMaxH] = useState<number>();
+  useEffect(() => {
+    const measure = () => {
+      const el = scrollRef.current;
+      if (!el) return;
+      const offsetTop = el.getBoundingClientRect().top + window.scrollY;
+      const BOTTOM_GAP = 24; // breathing room below the card
+      setMaxH(Math.max(240, window.innerHeight - offsetTop - BOTTOM_GAP));
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, []);
+
   return (
     <section className="space-y-3">
       {/* Per-table search + the single "Add Option" for the active table. The
@@ -486,10 +505,16 @@ function ChoiceTableSection({
       </div>
 
       <Card>
-        {/* Viewport-relative height cap so tall lists (e.g. GHL Tags' hundreds
-            of rows) scroll inside the card instead of stretching the page.
-            overflow-auto gives vertical + horizontal scroll; max-h is the knob. */}
-        <CardContent className="max-h-[75vh] overflow-auto p-0">
+        {/* Tall lists (e.g. GHL Tags' hundreds of rows) scroll inside the card
+            instead of stretching the page. overflow-auto gives vertical +
+            horizontal scroll. Height is fit-to-viewport (inline maxHeight,
+            measured above) so the card bottom lands near the window bottom; the
+            max-h-[75vh] class is the pre-measurement fallback. */}
+        <CardContent
+          ref={scrollRef}
+          style={maxH ? { maxHeight: maxH } : undefined}
+          className="max-h-[75vh] overflow-auto p-0"
+        >
           {filtered.length === 0 ? (
             <div className="py-10 text-center text-sm text-zinc-500">
               {items.length === 0
