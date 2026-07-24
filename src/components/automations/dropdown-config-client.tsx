@@ -517,6 +517,11 @@ function ChoiceTableSection({
                       Notes
                     </th>
                   )}
+                  {/* Flexible spacer: absorbs the leftover table width so the
+                      fixed-width Tag/Status/Notes columns don't stretch and the
+                      delete column stays snug at the right edge. (The Per Website
+                      table gets this for free from its real flex columns.) */}
+                  <th />
                   {/* Delete column always present so toggling Edit mode doesn't
                       reflow the table; the button hides via `invisible`. */}
                   <th className="w-10 px-2" />
@@ -580,6 +585,8 @@ function ChoiceTableSection({
                         )}
                       </td>
                     )}
+                    {/* Spacer cell paired with the header spacer column. */}
+                    <td />
                     <td className="px-2 py-2 align-top">
                       <button
                         type="button"
