@@ -41,6 +41,7 @@ import {
   type DropdownColumnKey,
   type WebhookChoiceRow,
 } from "@/lib/automations/dropdown-config";
+import { useFitViewportHeight } from "@/lib/automations/use-fit-viewport-height";
 import { ChoiceDialog } from "./choice-dialog";
 
 /** A unified row shown in any of the tables. */
@@ -458,24 +459,8 @@ function ChoiceTableSection({
     return () => window.removeEventListener("resize", measure);
   }, [filtered, table.hasNotes]);
 
-  // Fit-to-viewport height: cap the scroll container so its bottom lands near
-  // the window bottom, so the page itself no longer scrolls (only the table
-  // scrolls internally). Measured from the container's document offset (robust
-  // to page scroll), recomputed on window resize.
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [maxH, setMaxH] = useState<number>();
-  useEffect(() => {
-    const measure = () => {
-      const el = scrollRef.current;
-      if (!el) return;
-      const offsetTop = el.getBoundingClientRect().top + window.scrollY;
-      const BOTTOM_GAP = 24; // breathing room below the card
-      setMaxH(Math.max(240, window.innerHeight - offsetTop - BOTTOM_GAP));
-    };
-    measure();
-    window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
-  }, []);
+  // Fit-to-viewport height for the scroll container (shared hook).
+  const { ref: scrollRef, style: scrollStyle } = useFitViewportHeight();
 
   return (
     <section className="space-y-3">
@@ -512,7 +497,7 @@ function ChoiceTableSection({
             max-h-[75vh] class is the pre-measurement fallback. */}
         <CardContent
           ref={scrollRef}
-          style={maxH ? { maxHeight: maxH } : undefined}
+          style={scrollStyle}
           className="max-h-[75vh] overflow-auto p-0"
         >
           {filtered.length === 0 ? (

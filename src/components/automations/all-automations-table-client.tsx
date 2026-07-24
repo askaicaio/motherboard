@@ -18,6 +18,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useFitViewportHeight } from "@/lib/automations/use-fit-viewport-height";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
@@ -229,6 +230,9 @@ export function AllAutomationsTableClient({
         : "descending"
       : "none";
 
+  // Fit-to-viewport height for the table's scroll container (shared hook).
+  const { ref: scrollRef, style: scrollStyle } = useFitViewportHeight();
+
   return (
     <div className="space-y-3">
       {/* Search bar, matches NAME or LINK (same as the per-website table). */}
@@ -244,7 +248,11 @@ export function AllAutomationsTableClient({
 
       <TooltipProvider delay={300}>
         <Card>
-          <CardContent className="max-h-[70vh] overflow-auto p-0">
+          <CardContent
+            ref={scrollRef}
+            style={scrollStyle}
+            className="max-h-[70vh] overflow-auto p-0"
+          >
             {/* Same shell as the per-website table: bounded scroll, sticky
                 header (Option B), frozen Name column, horizontal scroll once the
                 columns exceed the card width. */}

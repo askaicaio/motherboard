@@ -22,6 +22,7 @@
 // column); clicking calls `onDelete(id)`. Delete-only — no add/edit dialogs.
 
 import { Card, CardContent } from "@/components/ui/card";
+import { useFitViewportHeight } from "@/lib/automations/use-fit-viewport-height";
 import { ExternalLink, Trash2 } from "lucide-react";
 
 /** One error occurrence. `errorAt` is the timestamp of that specific error. */
@@ -99,9 +100,16 @@ export function ErrorHistoryTable({
     return tb - ta; // descending → latest error first
   });
 
+  // Fit-to-viewport height for the scroll container (shared hook).
+  const { ref: scrollRef, style: scrollStyle } = useFitViewportHeight();
+
   return (
     <Card>
-      <CardContent className="max-h-[70vh] overflow-auto p-0">
+      <CardContent
+        ref={scrollRef}
+        style={scrollStyle}
+        className="max-h-[70vh] overflow-auto p-0"
+      >
         <table className="w-full min-w-[1000px] text-sm">
           <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
             <tr>
