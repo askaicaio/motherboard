@@ -27,6 +27,21 @@ export const GHL_TAG_STATUSES = [
 export type GhlTagStatus = (typeof GHL_TAG_STATUSES)[number];
 export const DEFAULT_GHL_TAG_STATUS: GhlTagStatus = "Unknown";
 
+/** Colour scheme for GHL Tag statuses (user-set 2026-07-24): Keep = green,
+ *  To Remove = red, Unknown = black, Removed = yellow. `badge` = pill bg + text
+ *  for the table's Status column; `text` = text-only colour for the status
+ *  options + selected value in the Add/Edit dialog dropdown. Single source of
+ *  truth so the table and the dialog stay in sync. */
+export const GHL_TAG_STATUS_TONE: Record<
+  string,
+  { badge: string; text: string }
+> = {
+  Keep: { badge: "bg-emerald-100 text-emerald-700", text: "text-emerald-700" },
+  "To Remove": { badge: "bg-red-100 text-red-700", text: "text-red-700" },
+  Unknown: { badge: "bg-zinc-100 text-zinc-900", text: "text-zinc-900" },
+  Removed: { badge: "bg-yellow-100 text-yellow-800", text: "text-yellow-700" },
+};
+
 export interface DropdownColumnConfig {
   /** Stored in `automation_dropdown_choices.column_key`. */
   key: DropdownColumnKey;

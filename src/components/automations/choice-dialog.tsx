@@ -27,6 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { GHL_TAG_STATUS_TONE } from "@/lib/automations/dropdown-config";
 import { Loader2 } from "lucide-react";
 
 export interface ChoiceSubmit {
@@ -163,11 +164,18 @@ export function ChoiceDialog({
               <Label htmlFor="choice-status">Status</Label>
               <Select value={status} onValueChange={(v) => setStatus(v ?? "")}>
                 <SelectTrigger id="choice-status" className="w-44">
-                  <SelectValue placeholder="Status" />
+                  <SelectValue
+                    placeholder="Status"
+                    className={GHL_TAG_STATUS_TONE[status]?.text}
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   {(statusOptions ?? []).map((s) => (
-                    <SelectItem key={s} value={s}>
+                    <SelectItem
+                      key={s}
+                      value={s}
+                      className={GHL_TAG_STATUS_TONE[s]?.text}
+                    >
                       {s}
                     </SelectItem>
                   ))}

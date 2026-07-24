@@ -37,6 +37,7 @@ import { cn } from "@/lib/utils";
 import {
   DROPDOWN_COLUMNS,
   GHL_TAG_STATUSES,
+  GHL_TAG_STATUS_TONE,
   type DropdownChoiceRow,
   type DropdownColumnKey,
   type WebhookChoiceRow,
@@ -85,13 +86,6 @@ const TABLES: TableDescriptor[] = [
   })),
   WEBHOOK_TABLE,
 ];
-
-const STATUS_TONE: Record<string, string> = {
-  Keep: "bg-emerald-100 text-emerald-700",
-  "To Remove": "bg-amber-100 text-amber-700",
-  Removed: "bg-zinc-200 text-zinc-600",
-  Unknown: "bg-zinc-100 text-zinc-500",
-};
 
 // Sort rank for the GHL Tags status grouping. GHL_TAG_STATUSES already lists
 // the desired top-to-bottom group order (Keep, To Remove, Unknown, Removed);
@@ -383,7 +377,7 @@ function StatusBadge({ status }: { status?: string | null }) {
     <span
       className={cn(
         "inline-flex whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-medium",
-        STATUS_TONE[s] ?? "bg-zinc-100 text-zinc-500",
+        GHL_TAG_STATUS_TONE[s]?.badge ?? "bg-zinc-100 text-zinc-500",
       )}
     >
       {s}
