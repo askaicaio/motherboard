@@ -250,25 +250,19 @@ export function DropdownConfigClient({
   return (
     <TooltipProvider delay={300}>
       <div className="space-y-6">
-        {/* Header: title + edit-mode toggle */}
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <ListChecks className="h-5 w-5 text-zinc-500" />
-              <h1 className="text-2xl font-semibold tracking-tight">
-                Dropdown Configuration
-              </h1>
-            </div>
-            <p className="mt-1 text-sm text-zinc-500">
-              Manage the choices for the dropdown-driven table columns. Toggle
-              Edit mode to add, rename, or remove options.
-            </p>
+        {/* Header: title + subtitle. The Edit mode toggle now lives just below
+            the tab toolbar (above the active table's Add Option button). */}
+        <div>
+          <div className="flex items-center gap-2">
+            <ListChecks className="h-5 w-5 text-zinc-500" />
+            <h1 className="text-2xl font-semibold tracking-tight">
+              Dropdown Configuration
+            </h1>
           </div>
-          <div className="flex items-center gap-2 text-xs text-zinc-600">
-            <Pencil className="h-3.5 w-3.5" />
-            Edit mode
-            <Switch checked={editMode} onCheckedChange={setEditMode} />
-          </div>
+          <p className="mt-1 text-sm text-zinc-500">
+            Manage the choices for the dropdown-driven table columns. Toggle
+            Edit mode to add, rename, or remove options.
+          </p>
         </div>
 
         {/* Tab toolbar: pick which table to view. Only the selected one renders. */}
@@ -303,6 +297,14 @@ export function DropdownConfigClient({
               </button>
             );
           })}
+        </div>
+
+        {/* Edit mode toggle: below the tab toolbar and above the active table's
+            Add Option button (right-aligned to line up with it). */}
+        <div className="flex items-center justify-end gap-2 text-xs text-zinc-600">
+          <Pencil className="h-3.5 w-3.5" />
+          Edit mode
+          <Switch checked={editMode} onCheckedChange={setEditMode} />
         </div>
 
         {/* Only the selected table renders. Each table's search query persists
