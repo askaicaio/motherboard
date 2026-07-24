@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { automationDropdownChoices } from "@/lib/db/schema";
+import { DROPDOWN_COLUMNS } from "@/lib/automations/dropdown-config";
 import { getOptionalAuth } from "@/lib/auth/guard";
 import { and, eq } from "drizzle-orm";
 
@@ -80,17 +81,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: DUPLICATE_ERROR }, { status: 409 });
   }
 
-  // Status + Notes only apply to GHL Tags. New GHL Tag entries default to
-  // 'Unknown'; the other columns store null for both.
-  const isGhl = body.columnKey === "ghl_tags";
+  // Status + Notes apply to columns configured with them (GHL Tags, GHL Forms).
+  // Those default a new entry's status to 'Unknown'; other columns store null.
+  const column = DROPDOWN_COLUMNS.find((c) => c.key === body.columnKey);
   try {
     const [created] = await db
       .insert(automationDropdownChoices)
       .values({
         columnKey: body.columnKey,
         value,
-        status: isGhl ? body.status ?? "Unknown" : null,
-        notes: isGhl ? body.notes?.trim() || null : null,
+        status: column?.hasStatus ? body.status ?? "Unknown" : null,
+        notes: column?.hasNotes ? body.notes?.trim() || null : null,
         createdBy: user.id,
       })
       .returning();

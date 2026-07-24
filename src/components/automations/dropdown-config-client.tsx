@@ -63,6 +63,8 @@ interface TableDescriptor {
   ghlOnly?: boolean;
   hasStatus?: boolean;
   hasNotes?: boolean;
+  /** First-column header for the rich table view ("Tag", "Form"). */
+  rowLabel?: string;
 }
 
 const WEBHOOK_TABLE: TableDescriptor = {
@@ -83,6 +85,7 @@ const TABLES: TableDescriptor[] = [
     ghlOnly: c.ghlOnly,
     hasStatus: c.hasStatus,
     hasNotes: c.hasNotes,
+    rowLabel: c.rowLabel,
   })),
   WEBHOOK_TABLE,
 ];
@@ -143,7 +146,8 @@ export function DropdownConfigClient({
     if (!dialog || !activeTable) return "No table selected";
     const isEdit = !!dialog.existing;
     const isWebhook = activeTable.id === "webhooks";
-    const isGhl = activeTable.id === "ghl_tags";
+    const hasStatus = !!activeTable.hasStatus;
+    const hasNotes = !!activeTable.hasNotes;
 
     const endpoint = isWebhook
       ? isEdit
@@ -158,7 +162,8 @@ export function DropdownConfigClient({
       : {
           ...(isEdit ? {} : { columnKey: activeTable.id }),
           value: payload.value,
-          ...(isGhl ? { status: payload.status, notes: payload.notes ?? "" } : {}),
+          ...(hasStatus ? { status: payload.status } : {}),
+          ...(hasNotes ? { notes: payload.notes ?? "" } : {}),
         };
 
     const res = await fetch(endpoint, {
@@ -512,11 +517,12 @@ function ChoiceTableSection({
                   (each th needs its own bg so rows don't show through). */}
               <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500 [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-zinc-50">
                 <tr>
-                  {/* Tag: fixed 400px (mirrors the Name column on the Per Website
-                      + Error History tables). Notes below has no width, so
+                  {/* First column ("Tag" for GHL Tags, "Form" for GHL Forms):
+                      fixed 400px (mirrors the Name column on the Per Website +
+                      Error History tables). Notes below has no width, so
                       table-fixed gives it the leftover width (it flexes). */}
                   <th className="w-[400px] min-w-[400px] max-w-[400px] px-3 py-2 text-left">
-                    Tag
+                    {table.rowLabel}
                   </th>
                   {table.hasStatus && (
                     <th className="w-[120px] px-3 py-2 text-left">Status</th>

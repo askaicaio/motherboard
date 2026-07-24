@@ -57,10 +57,13 @@ export interface DropdownColumnConfig {
   /** True → the column only applies to the GHL pages. Metadata for the future
    *  GHL-gated column (no visible tag on the Config page). */
   ghlOnly?: boolean;
-  /** True → rows carry a Status (fixed GHL_TAG_STATUSES dropdown). GHL Tags only. */
+  /** True → rows carry a Status (fixed GHL_TAG_STATUSES dropdown). GHL Tags + GHL Forms. */
   hasStatus?: boolean;
-  /** True → rows carry a free-text Notes field (Purpose-style). GHL Tags only. */
+  /** True → rows carry a free-text Notes field (Purpose-style). GHL Tags + GHL Forms. */
   hasNotes?: boolean;
+  /** Header for the FIRST column in the rich (Status/Notes) table view, e.g.
+   *  "Tag" for GHL Tags, "Form" for GHL Forms. Only used by the rich tables. */
+  rowLabel?: string;
 }
 
 // Order here is the top-to-bottom order the tables render on the Config page.
@@ -88,17 +91,21 @@ export const DROPDOWN_COLUMNS: DropdownColumnConfig[] = [
     ghlOnly: true,
     hasStatus: true,
     hasNotes: true,
+    rowLabel: "Tag",
   },
   {
-    // Plain single-column list (like Author). Tab sits between GHL Tags and
-    // Trigger Event (order here drives the Config page toolbar tab order). The
-    // "GHL" prefix parallels GHL Tags, but platform-gating of the FUTURE Per
-    // Website column is still TBD, so no `ghlOnly` flag is set here.
+    // Form / Status / Notes table mirroring GHL Tags (hasStatus + hasNotes); the
+    // first column header reads "Form". Tab sits between GHL Tags and Trigger
+    // Event (order here drives the Config page toolbar tab order). No `ghlOnly`
+    // flag: platform-gating of the FUTURE Per Website column is still TBD.
     key: "ghl_forms",
     title: "GHL Forms",
     singular: "GHL form",
     fieldLabel: "GHL form",
     placeholder: "e.g. Contact form",
+    rowLabel: "Form",
+    hasStatus: true,
+    hasNotes: true,
   },
   {
     key: "trigger_event",
