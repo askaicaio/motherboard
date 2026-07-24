@@ -426,9 +426,9 @@ function ChoiceTableSection({
   const rich = !!(table.hasStatus || table.hasNotes);
 
   // Adaptive Notes clamp (GHL Tags): show as many lines of Notes as fit the
-  // row's height, which is driven by the FIXED-width Tag cell (measured below,
-  // independent of the Notes text, so no measure->expand loop). Mirrors the Per
-  // Website Purpose column; min 2 lines.
+  // row's height, which is driven by the Tag cell (measured below, independent
+  // of the Notes text, so no measure->expand loop). Mirrors the Per Website
+  // Purpose column; min 2 lines.
   const [notesClamp, setNotesClamp] = useState<Record<string, number>>({});
   const tagCellRefs = useRef<Map<string, HTMLTableCellElement>>(new Map());
   useEffect(() => {
@@ -501,29 +501,28 @@ function ChoiceTableSection({
                 : "No options match your search."}
             </div>
           ) : rich ? (
-            <table className="w-full min-w-[560px] text-sm">
+            /* table-fixed so the two content columns (Tag, Notes) flex to share
+               the leftover width evenly, while Status and the delete column stay
+               fixed and delete is pinned at the right edge. Column widths come
+               from these header cells; a long unbroken value wraps (break-words)
+               inside its column instead of stretching it. */
+            <table className="w-full min-w-[560px] table-fixed text-sm">
               {/* Sticky header: stays pinned while the card scrolls vertically
                   (each th needs its own bg so rows don't show through). */}
               <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500 [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-zinc-50">
                 <tr>
-                  <th className="w-[240px] min-w-[240px] max-w-[240px] px-3 py-2 text-left">
-                    Tag
-                  </th>
+                  {/* Tag + Notes get no width, so table-fixed splits the leftover
+                      width evenly between them (they flex with the table). */}
+                  <th className="px-3 py-2 text-left">Tag</th>
                   {table.hasStatus && (
                     <th className="w-[120px] px-3 py-2 text-left">Status</th>
                   )}
                   {table.hasNotes && (
-                    <th className="w-[240px] min-w-[240px] max-w-[240px] px-3 py-2 text-left">
-                      Notes
-                    </th>
+                    <th className="px-3 py-2 text-left">Notes</th>
                   )}
-                  {/* Flexible spacer: absorbs the leftover table width so the
-                      fixed-width Tag/Status/Notes columns don't stretch and the
-                      delete column stays snug at the right edge. (The Per Website
-                      table gets this for free from its real flex columns.) */}
-                  <th />
-                  {/* Delete column always present so toggling Edit mode doesn't
-                      reflow the table; the button hides via `invisible`. */}
+                  {/* Delete column: fixed width, pinned right (last column),
+                      always present so toggling Edit mode doesn't reflow the
+                      table; the button hides via `invisible`. */}
                   <th className="w-10 px-2" />
                 </tr>
               </thead>
@@ -537,15 +536,16 @@ function ChoiceTableSection({
                       editMode && "cursor-pointer hover:bg-zinc-50",
                     )}
                   >
-                    {/* Fixed width (break-words wraps an over-long unbroken tag
-                        instead of stretching the column, like the Name column).
-                        Its height drives the row + the adaptive Notes clamp. */}
+                    {/* Flexes with Notes (table-fixed). break-words wraps an
+                        over-long unbroken tag inside the column instead of
+                        overflowing. Its height still drives the row + the
+                        adaptive Notes clamp. */}
                     <td
                       ref={(el) => {
                         if (el) tagCellRefs.current.set(item.id, el);
                         else tagCellRefs.current.delete(item.id);
                       }}
-                      className="w-[240px] min-w-[240px] max-w-[240px] break-words px-3 py-2 align-top"
+                      className="break-words px-3 py-2 align-top"
                     >
                       {item.value}
                     </td>
@@ -555,7 +555,7 @@ function ChoiceTableSection({
                       </td>
                     )}
                     {table.hasNotes && (
-                      <td className="w-[240px] min-w-[240px] max-w-[240px] px-3 py-2 align-top">
+                      <td className="px-3 py-2 align-top">
                         {item.notes ? (
                           <Tooltip disableHoverablePopup>
                             <TooltipTrigger
@@ -585,8 +585,6 @@ function ChoiceTableSection({
                         )}
                       </td>
                     )}
-                    {/* Spacer cell paired with the header spacer column. */}
-                    <td />
                     <td className="px-2 py-2 align-top">
                       <button
                         type="button"
