@@ -117,7 +117,14 @@ function SelectItem({
     <SelectPrimitive.Item
       data-slot="select-item"
       className={cn(
-        "relative flex w-full cursor-default items-center gap-1.5 rounded-md py-1 pr-8 pl-1.5 text-sm outline-hidden select-none focus:bg-accent focus:text-accent-foreground not-data-[variant=destructive]:focus:**:text-accent-foreground data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
+        // NOTE: intentionally NO `focus:text-accent-foreground` /
+        // `focus:**:text-accent-foreground` here. Those forced every item's text
+        // (and its descendants') to the accent colour on hover/focus, clobbering
+        // custom-coloured options (e.g. the GHL Tag status choices, or the green
+        // "Active" in the Workflow dialog). We keep only the `bg-accent` hover
+        // highlight so each item retains its own text colour. `accent-foreground`
+        // ~= the default text colour, so plain items look unchanged.
+        "relative flex w-full cursor-default items-center gap-1.5 rounded-md py-1 pr-8 pl-1.5 text-sm outline-hidden select-none focus:bg-accent data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
         className
       )}
       {...props}
