@@ -14,6 +14,7 @@ export type DropdownColumnKey =
   | "author"
   | "automation_tags"
   | "ghl_tags"
+  | "ghl_forms"
   | "trigger_event";
 
 /** Fixed status options for the GHL Tags column (not user-managed). New GHL Tag
@@ -87,6 +88,17 @@ export const DROPDOWN_COLUMNS: DropdownColumnConfig[] = [
     ghlOnly: true,
     hasStatus: true,
     hasNotes: true,
+  },
+  {
+    // Plain single-column list (like Author). Tab sits between GHL Tags and
+    // Trigger Event (order here drives the Config page toolbar tab order). The
+    // "GHL" prefix parallels GHL Tags, but platform-gating of the FUTURE Per
+    // Website column is still TBD, so no `ghlOnly` flag is set here.
+    key: "ghl_forms",
+    title: "GHL Forms",
+    singular: "GHL form",
+    fieldLabel: "GHL form",
+    placeholder: "e.g. Contact form",
   },
   {
     key: "trigger_event",
