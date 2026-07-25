@@ -3,7 +3,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { automations } from "@/lib/db/schema";
+import { automations, automationDropdownChoices } from "@/lib/db/schema";
 import { getOptionalAuth } from "@/lib/auth/guard";
 import { and, eq, ne } from "drizzle-orm";
 
@@ -14,7 +14,28 @@ const patchSchema = z.object({
   status: z.enum(["active", "paused"]).optional(),
   // Purpose is optional free text; stored as null when blank.
   purpose: z.string().max(5000).optional(),
+  // Author (single-select): the chosen automation_dropdown_choices id, or null
+  // to clear it. Only applied when the key is present. Validated below.
+  authorChoiceId: z.string().uuid().nullable().optional(),
 });
+
+const UNKNOWN_AUTHOR_ERROR = "Unknown author option.";
+
+/** True when `id` is a real Author option (column_key = 'author'). Guards the
+ *  FK against a valid-but-wrong-column choice id. */
+async function isAuthorChoice(id: string): Promise<boolean> {
+  const [row] = await db
+    .select({ id: automationDropdownChoices.id })
+    .from(automationDropdownChoices)
+    .where(
+      and(
+        eq(automationDropdownChoices.id, id),
+        eq(automationDropdownChoices.columnKey, "author"),
+      ),
+    )
+    .limit(1);
+  return !!row;
+}
 
 const DUPLICATE_LINK_ERROR = "An automation with that link already exists.";
 
@@ -60,11 +81,21 @@ export async function PATCH(
     throw err;
   }
 
+  // Reject an author id that isn't a real 'author' option (null clears it and
+  // needs no check).
+  if (
+    body.authorChoiceId != null &&
+    !(await isAuthorChoice(body.authorChoiceId))
+  ) {
+    return NextResponse.json({ error: UNKNOWN_AUTHOR_ERROR }, { status: 400 });
+  }
+
   const patch: Record<string, unknown> = { updatedAt: new Date() };
   if (body.name !== undefined) patch.name = body.name.trim();
   if (body.externalUrl !== undefined) patch.externalUrl = body.externalUrl.trim();
   if (body.status !== undefined) patch.status = body.status;
   if (body.purpose !== undefined) patch.purpose = body.purpose.trim() || null;
+  if (body.authorChoiceId !== undefined) patch.authorChoiceId = body.authorChoiceId;
 
   // Deterministic duplicate check, block if ANOTHER row already uses this
   // link (the link is the automation's identity). Excludes the row itself.

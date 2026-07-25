@@ -4,9 +4,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { automations } from "@/lib/db/schema";
+import { automations, automationDropdownChoices } from "@/lib/db/schema";
 import { getOptionalAuth } from "@/lib/auth/guard";
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { getAutomationSite } from "@/lib/automations/sites";
 
 const createSchema = z.object({
@@ -20,7 +20,28 @@ const createSchema = z.object({
   status: z.enum(["active", "paused"]).optional().default("paused"),
   // Purpose is optional free text; stored as null when blank.
   purpose: z.string().max(5000).optional().default(""),
+  // Author (single-select): the chosen automation_dropdown_choices id, or null
+  // for none. Validated below to be a real 'author' option.
+  authorChoiceId: z.string().uuid().nullable().optional(),
 });
+
+const UNKNOWN_AUTHOR_ERROR = "Unknown author option.";
+
+/** True when `id` is a real Author option (column_key = 'author'). Guards the
+ *  FK against a valid-but-wrong-column choice id. */
+async function isAuthorChoice(id: string): Promise<boolean> {
+  const [row] = await db
+    .select({ id: automationDropdownChoices.id })
+    .from(automationDropdownChoices)
+    .where(
+      and(
+        eq(automationDropdownChoices.id, id),
+        eq(automationDropdownChoices.columnKey, "author"),
+      ),
+    )
+    .limit(1);
+  return !!row;
+}
 
 /**
  * Postgres unique-constraint violation (e.g. duplicate external_url).
@@ -78,6 +99,12 @@ export async function POST(request: NextRequest) {
 
   const externalUrl = body.externalUrl.trim();
 
+  // Reject an author id that isn't a real 'author' option (the FK alone would
+  // also allow a choice from another column).
+  if (body.authorChoiceId && !(await isAuthorChoice(body.authorChoiceId))) {
+    return NextResponse.json({ error: UNKNOWN_AUTHOR_ERROR }, { status: 400 });
+  }
+
   // Deterministic duplicate check (the link is the automation's identity).
   const existing = await db
     .select({ id: automations.id })
@@ -97,6 +124,7 @@ export async function POST(request: NextRequest) {
         externalUrl,
         status: body.status,
         purpose: body.purpose.trim() || null,
+        authorChoiceId: body.authorChoiceId ?? null,
         createdBy: user.id,
       })
       .returning();

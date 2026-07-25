@@ -33,6 +33,8 @@ import {
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import type { AutomationRow } from "./automations-table-client";
+import { SingleChoiceCombobox } from "./single-choice-combobox";
+import type { ChoiceOption } from "@/lib/automations/dropdown-config";
 
 interface Props {
   open: boolean;
@@ -41,6 +43,8 @@ interface Props {
   platform: string;
   /** Present → edit mode; absent → add mode. */
   existing?: AutomationRow;
+  /** Configured Author options for the single-select Author dropdown. */
+  authorChoices?: ChoiceOption[];
   onCreated?: (row: AutomationRow) => void;
   onSaved?: (row: AutomationRow) => void;
 }
@@ -50,6 +54,7 @@ export function WorkflowDialog({
   onOpenChange,
   platform,
   existing,
+  authorChoices = [],
   onCreated,
   onSaved,
 }: Props) {
@@ -61,6 +66,8 @@ export function WorkflowDialog({
   const [status, setStatus] = useState("paused");
   // Purpose is an optional free-text note.
   const [purpose, setPurpose] = useState("");
+  // Author: the selected Author choice id ("" = none). Single-select dropdown.
+  const [authorChoiceId, setAuthorChoiceId] = useState("");
   // Inline error shown as red text inside the dialog (e.g. duplicate link).
   const [error, setError] = useState<string | null>(null);
 
@@ -71,6 +78,7 @@ export function WorkflowDialog({
     setExternalUrl(existing?.externalUrl ?? "");
     setStatus(existing?.status ?? "paused");
     setPurpose(existing?.purpose ?? "");
+    setAuthorChoiceId(existing?.authorChoiceId ?? "");
     setError(null);
   }, [open, existing]);
 
@@ -88,9 +96,11 @@ export function WorkflowDialog({
         ? `/api/automations/${existing!.id}`
         : "/api/automations";
       const method = isEdit ? "PATCH" : "POST";
+      // authorChoiceId: send the selected id, or null to clear it.
+      const authorPayload = authorChoiceId || null;
       const body = isEdit
-        ? { name: name.trim(), externalUrl: externalUrl.trim(), status, purpose: purpose.trim() }
-        : { platform, name: name.trim(), externalUrl: externalUrl.trim(), status, purpose: purpose.trim() };
+        ? { name: name.trim(), externalUrl: externalUrl.trim(), status, purpose: purpose.trim(), authorChoiceId: authorPayload }
+        : { platform, name: name.trim(), externalUrl: externalUrl.trim(), status, purpose: purpose.trim(), authorChoiceId: authorPayload };
 
       const res = await fetch(endpoint, {
         method,
@@ -112,16 +122,24 @@ export function WorkflowDialog({
         return;
       }
 
+      const saved = data.automation;
+      // Author: the API returns the stored id; resolve its display value from
+      // the loaded choices so the table cell updates without a reload.
+      const savedAuthorChoiceId = saved.authorChoiceId ?? null;
       const row: AutomationRow = {
-        id: data.automation.id,
-        name: data.automation.name,
-        externalUrl: data.automation.externalUrl,
-        status: data.automation.status,
-        purpose: data.automation.purpose,
+        id: saved.id,
+        name: saved.name,
+        externalUrl: saved.externalUrl,
+        status: saved.status,
+        purpose: saved.purpose,
+        authorChoiceId: savedAuthorChoiceId,
+        author:
+          authorChoices.find((c) => c.id === savedAuthorChoiceId)?.value ??
+          null,
         // Sync-only fields, carried through so an edit doesn't blank them in the
         // table (not editable here; the API returns the current values).
-        lastRunAt: data.automation.lastRunAt,
-        lastEditedAt: data.automation.lastEditedAt,
+        lastRunAt: saved.lastRunAt,
+        lastEditedAt: saved.lastEditedAt,
       };
       if (isEdit) {
         onSaved?.(row);
@@ -233,6 +251,24 @@ export function WorkflowDialog({
                 <SelectItem value="paused">Paused</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="wf-author">Author</Label>
+            {/* Single-select: pick ONE Author option from the configured
+                choices (managed on the Dropdown Configuration page). Optional;
+                the "None" row clears it. Searchable because the list can grow. */}
+            <SingleChoiceCombobox
+              id="wf-author"
+              options={authorChoices}
+              value={authorChoiceId}
+              onChange={(v) => {
+                setAuthorChoiceId(v);
+                setError(null);
+              }}
+              searchPlaceholder="Search authors…"
+              emptyLabel="None"
+              noResultsLabel="No authors found."
+            />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="wf-purpose">Purpose</Label>

@@ -46,6 +46,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { WorkflowDialog } from "./workflow-dialog";
+import type { ChoiceOption } from "@/lib/automations/dropdown-config";
 
 /** 24 hours in ms — the auto-refresh cadence (client-side copy; the server is
  *  the source of truth, this is only for the instant optimistic countdown). */
@@ -120,7 +121,8 @@ function SortArrow({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {
 //                     impossible via their API), so both stay "-".
 //   - Zapier:         no live sync (CSV import only) → nothing is marked.
 // The "name" key also covers the Link shown beneath the name (the sync writes the
-// URL too). Purpose is never synced on any platform, so it never appears here.
+// URL too). Purpose and Author are never synced on any platform (manual only), so
+// they never appear here.
 // ⚠️ When a NEW column is added, decide if a sync/capture writes it and update
 // this map (fold into the add-a-column touch-list).
 // ---------------------------------------------------------------------------
@@ -203,6 +205,13 @@ export interface AutomationRow {
   // "-". Wire it to a real per-automation "last error at" once error tracking
   // lands. Rendered in RED (unlike the other date columns).
   lastErrorAt?: string | Date | null;
+  // Author (single-select dropdown column). `authorChoiceId` is the stored
+  // automation_dropdown_choices id; `author` is its resolved display value
+  // (both null when unset). Set via the Add/Edit Workflow dialog only; never
+  // synced. The value comes pre-resolved from the page's join (server render)
+  // or from the loaded choices (after a dialog save).
+  authorChoiceId?: string | null;
+  author?: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -232,6 +241,8 @@ const EXPORT_COLUMNS: { header: string; value: (r: AutomationRow) => string }[] 
       header: "Last Error",
       value: (r) => (r.lastErrorAt ? formatDateCell(r.lastErrorAt) : ""),
     },
+    // Author is the last data column on the table, so it's last here too.
+    { header: "Author", value: (r) => r.author ?? "" },
   ];
 
 /** Escape one CSV field: wrap in double-quotes (doubling internal quotes) when
@@ -256,6 +267,7 @@ export function AutomationsTableClient({
   icon,
   iconColor,
   initialRows,
+  authorChoices = [],
   canSync = false,
   hasApiKey = false,
   autoRefresh = { enabled: false, nextRefreshAt: null },
@@ -269,6 +281,8 @@ export function AutomationsTableClient({
    *  full-colour image icons. Mirrors the Main Page card. */
   iconColor?: string;
   initialRows: AutomationRow[];
+  /** Author options for the single-select Author dropdown (Add/Edit dialog). */
+  authorChoices?: ChoiceOption[];
   /** When true, "Refresh List" performs a real sync; otherwise it shows the
    *  temporary placeholder error (platforms whose sync isn't built yet). */
   canSync?: boolean;
@@ -814,7 +828,7 @@ export function AutomationsTableClient({
             stands in for the row border, which would otherwise scroll away.
 
             Horizontal scroll + frozen Name column: the table carries a
-            `min-w-[1250px]` so once columns exceed the card width it overflows
+            `min-w-[1410px]` so once columns exceed the card width it overflows
             and the existing overflow-auto shows a horizontal scrollbar (drag,
             Shift+wheel, or trackpad swipe). The first column (Name + its link)
             is `sticky left-0` on both the header and every body row so the
@@ -830,7 +844,7 @@ export function AutomationsTableClient({
             style={scrollStyle}
             className="max-h-[70vh] overflow-auto p-0"
           >
-            <table className="w-full min-w-[1250px] text-sm">
+            <table className="w-full min-w-[1410px] text-sm">
               <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
                 <tr>
                   {/* Corner cell: pinned to BOTH the top (header) and the left
@@ -946,6 +960,12 @@ export function AutomationsTableClient({
                       <SortArrow active={sortKey === "lastErrorAt"} dir={sortDir} />
                     </span>
                   </th>
+                  {/* Author: single-select dropdown column, center-aligned like
+                      the other new columns. Not sortable (set in the Add/Edit
+                      dialog, displayed here) and never synced. */}
+                  <th className="sticky top-0 z-10 w-[160px] min-w-[160px] max-w-[160px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
+                    Author
+                  </th>
                   {/* Actions (delete) column. ALWAYS rendered, even when edit
                       mode is off, so toggling only shows/hides the trash icon
                       INSIDE the cell instead of adding/removing a whole column
@@ -958,7 +978,7 @@ export function AutomationsTableClient({
                 {filtered.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={7}
+                      colSpan={8}
                       className="px-3 py-16 text-center text-sm text-zinc-500"
                     >
                       {rows.length === 0
@@ -1127,6 +1147,21 @@ export function AutomationsTableClient({
                           <span className="text-xs text-zinc-400">-</span>
                         )}
                       </td>
+                      {/* Author: the selected option's value, or red "None"
+                          when unset (mirrors the Purpose empty state). Set in
+                          the Add/Edit dialog; break-words so a long name wraps
+                          inside the fixed 160px column. */}
+                      <td className="w-[160px] min-w-[160px] max-w-[160px] px-3 py-2 text-center align-top">
+                        {r.author ? (
+                          <span className="text-xs text-zinc-700 break-words">
+                            {r.author}
+                          </span>
+                        ) : (
+                          <span className="text-xs font-medium text-red-600">
+                            None
+                          </span>
+                        )}
+                      </td>
                       {/* Actions cell: always present (reserves the column
                           width); the trash button only renders in edit mode, so
                           toggling never resizes the table. Trash-icon delete,
@@ -1162,6 +1197,7 @@ export function AutomationsTableClient({
         open={addOpen}
         onOpenChange={setAddOpen}
         platform={platform}
+        authorChoices={authorChoices}
         onCreated={handleCreated}
       />
       {/* Edit */}
@@ -1170,6 +1206,7 @@ export function AutomationsTableClient({
         onOpenChange={(o) => !o && setEditing(null)}
         platform={platform}
         existing={editing ?? undefined}
+        authorChoices={authorChoices}
         onSaved={handleSaved}
       />
 

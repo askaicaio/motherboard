@@ -8,7 +8,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import { automations } from "@/lib/db/schema";
+import { automations, automationDropdownChoices } from "@/lib/db/schema";
 import { asc, eq } from "drizzle-orm";
 import { requireAuth } from "@/lib/auth/guard";
 import { ArrowLeft } from "lucide-react";
@@ -40,10 +40,29 @@ export default async function AutomationWebsitePage({
       purpose: automations.purpose,
       lastRunAt: automations.lastRunAt,
       lastEditedAt: automations.lastEditedAt,
+      // Author: the stored choice id + its resolved display value (left join,
+      // so rows with no author come back null).
+      authorChoiceId: automations.authorChoiceId,
+      author: automationDropdownChoices.value,
     })
     .from(automations)
+    .leftJoin(
+      automationDropdownChoices,
+      eq(automations.authorChoiceId, automationDropdownChoices.id),
+    )
     .where(eq(automations.platform, site.slug))
     .orderBy(asc(automations.name));
+
+  // Author options for the single-select dropdown (managed on the Dropdown
+  // Configuration page). Passed to the table's Add/Edit Workflow dialog.
+  const authorChoices = await db
+    .select({
+      id: automationDropdownChoices.id,
+      value: automationDropdownChoices.value,
+    })
+    .from(automationDropdownChoices)
+    .where(eq(automationDropdownChoices.columnKey, "author"))
+    .orderBy(asc(automationDropdownChoices.value));
 
   // Latest captured error date per automation, merged onto each row as the
   // "Last Error" column. Comes from the automation_errors table (Make writes it
@@ -73,6 +92,7 @@ export default async function AutomationWebsitePage({
         icon={site.icon}
         iconColor={site.iconColor}
         initialRows={rows}
+        authorChoices={authorChoices}
         canSync={isSyncablePlatform(site.slug)}
         hasApiKey={platformHasApiKey(site.slug)}
         autoRefresh={autoRefresh}

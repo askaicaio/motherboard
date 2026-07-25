@@ -256,7 +256,7 @@ export function AllAutomationsTableClient({
             {/* Same shell as the per-website table: bounded scroll, sticky
                 header (Option B), frozen Name column, horizontal scroll once the
                 columns exceed the card width. */}
-            <table className="w-full min-w-[1400px] text-sm">
+            <table className="w-full min-w-[1560px] text-sm">
               <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
                 <tr>
                   {/* Corner cell: frozen Name column, sticky on both axes. */}
@@ -323,13 +323,18 @@ export function AllAutomationsTableClient({
                       <SortArrow active={sortKey === "lastErrorAt"} dir={sortDir} />
                     </span>
                   </th>
+                  {/* Author: display-only here (mirrors the Per Website column).
+                      Center-aligned, not sortable, fixed 160px. */}
+                  <th className="sticky top-0 z-10 w-[160px] min-w-[160px] max-w-[160px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
+                    Author
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={7}
+                      colSpan={8}
                       className="px-3 py-16 text-center text-sm text-zinc-500"
                     >
                       {rows.length === 0
@@ -460,6 +465,19 @@ export function AllAutomationsTableClient({
                           </span>
                         ) : (
                           <span className="text-xs text-zinc-400">-</span>
+                        )}
+                      </td>
+                      {/* Author: the selected option's value, or red "None"
+                          when unset (mirrors the Per Website column). */}
+                      <td className="w-[160px] min-w-[160px] max-w-[160px] px-3 py-2 text-center align-top">
+                        {r.author ? (
+                          <span className="text-xs text-zinc-700 break-words">
+                            {r.author}
+                          </span>
+                        ) : (
+                          <span className="text-xs font-medium text-red-600">
+                            None
+                          </span>
                         )}
                       </td>
                     </tr>

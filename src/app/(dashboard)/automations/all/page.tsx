@@ -11,8 +11,8 @@
 
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { automations } from "@/lib/db/schema";
-import { asc } from "drizzle-orm";
+import { automations, automationDropdownChoices } from "@/lib/db/schema";
+import { asc, eq } from "drizzle-orm";
 import { requireAuth } from "@/lib/auth/guard";
 import { ArrowLeft } from "lucide-react";
 import { getLastErrorAtAllAutomations } from "@/lib/automations/errors";
@@ -34,8 +34,15 @@ export default async function AllAutomationsPage() {
       lastRunAt: automations.lastRunAt,
       lastEditedAt: automations.lastEditedAt,
       platform: automations.platform,
+      // Author: stored id + resolved display value (left join → null when unset).
+      authorChoiceId: automations.authorChoiceId,
+      author: automationDropdownChoices.value,
     })
     .from(automations)
+    .leftJoin(
+      automationDropdownChoices,
+      eq(automations.authorChoiceId, automationDropdownChoices.id),
+    )
     .orderBy(asc(automations.name));
 
   // Latest captured error per automation (across all platforms) → Last Error.
