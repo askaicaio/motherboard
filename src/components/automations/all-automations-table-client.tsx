@@ -55,7 +55,8 @@ type SortKey =
   | "status"
   | "lastEditedAt"
   | "lastRunAt"
-  | "lastErrorAt";
+  | "lastErrorAt"
+  | "author";
 
 /** MM-DD-YYYY, or "-" when empty/invalid. Same as the per-website table. */
 function formatDateCell(value: string | Date | null | undefined): string {
@@ -192,6 +193,16 @@ export function AllAutomationsTableClient({
           if (tb === null) return -1;
           return dir * (ta - tb);
         }
+        case "author": {
+          // Alphabetical (case-insensitive); "None" (unset) ALWAYS sinks to the
+          // bottom, regardless of direction. Same rule as the per-website table.
+          const av = a.author?.trim() ?? "";
+          const bv = b.author?.trim() ?? "";
+          if (!av && !bv) return 0;
+          if (!av) return 1;
+          if (!bv) return -1;
+          return dir * av.localeCompare(bv, undefined, { sensitivity: "base" });
+        }
         default:
           return 0;
       }
@@ -323,10 +334,17 @@ export function AllAutomationsTableClient({
                       <SortArrow active={sortKey === "lastErrorAt"} dir={sortDir} />
                     </span>
                   </th>
-                  {/* Author: display-only here (mirrors the Per Website column).
-                      Center-aligned, not sortable, fixed 160px. */}
-                  <th className="sticky top-0 z-10 w-[160px] min-w-[160px] max-w-[160px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
-                    Author
+                  {/* Author: mirrors the Per Website column. Center-aligned,
+                      sortable alphabetically ("None" sinks last), fixed 160px. */}
+                  <th
+                    onClick={() => toggleSort("author")}
+                    aria-sort={ariaSort("author")}
+                    className="sticky top-0 z-10 w-[160px] min-w-[160px] max-w-[160px] cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700"
+                  >
+                    <span className="inline-flex items-center justify-center gap-1">
+                      Author
+                      <SortArrow active={sortKey === "author"} dir={sortDir} />
+                    </span>
                   </th>
                 </tr>
               </thead>
