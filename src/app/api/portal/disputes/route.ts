@@ -3,6 +3,7 @@
 // AUTHORITATIVE server-side value when a conversion is referenced.
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { put } from "@vercel/blob";
 import { db } from "@/lib/db";
 import { partnerDisputes, partnerConversions } from "@/lib/db/schema";
 import { and, eq } from "drizzle-orm";
@@ -17,6 +18,14 @@ const schema = z.object({
   evidence: z.string().min(1).max(5000),
 });
 
+const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024; // 10MB
+const ALLOWED_ATTACHMENT_TYPES = new Set([
+  "application/pdf",
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+]);
+
 export async function POST(request: NextRequest) {
   const partner = await getPartnerSession();
   if (!partner) {
@@ -29,9 +38,22 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Multipart: a JSON `payload` field + an optional `file` attachment.
+  let formData: FormData;
+  try {
+    formData = await request.formData();
+  } catch {
+    return NextResponse.json(
+      { error: "Expected multipart/form-data." },
+      { status: 400 },
+    );
+  }
+  const payloadRaw = formData.get("payload");
   let body;
   try {
-    body = schema.parse(await request.json());
+    body = schema.parse(
+      JSON.parse(typeof payloadRaw === "string" ? payloadRaw : "{}"),
+    );
   } catch (err) {
     if (err instanceof z.ZodError) {
       return NextResponse.json(
@@ -39,7 +61,45 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
-    throw err;
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
+  }
+
+  // Optional evidence attachment.
+  let evidenceFileUrl: string | null = null;
+  let evidenceFileName: string | null = null;
+  const file = formData.get("file");
+  if (file instanceof File && file.size > 0) {
+    if (!ALLOWED_ATTACHMENT_TYPES.has(file.type)) {
+      return NextResponse.json(
+        { error: "Attachment must be a PDF or image (PNG, JPG, WebP)." },
+        { status: 400 },
+      );
+    }
+    if (file.size > MAX_ATTACHMENT_BYTES) {
+      return NextResponse.json(
+        { error: "Attachment must be 10MB or smaller." },
+        { status: 400 },
+      );
+    }
+    const token = process.env.BLOB_READ_WRITE_TOKEN;
+    if (token) {
+      try {
+        const ext = file.name.split(".").pop()?.toLowerCase() || "bin";
+        const blob = await put(
+          `dispute-evidence/${crypto.randomUUID()}.${ext}`,
+          file,
+          { access: "public", addRandomSuffix: false, token },
+        );
+        evidenceFileUrl = blob.url;
+        evidenceFileName = file.name;
+      } catch (err) {
+        console.error("[portal/disputes] attachment upload failed:", err);
+        return NextResponse.json(
+          { error: "Couldn't upload your attachment. Please try again." },
+          { status: 500 },
+        );
+      }
+    }
   }
 
   const now = new Date();
@@ -117,6 +177,8 @@ export async function POST(request: NextRequest) {
       conversionId: body.conversionId ?? null,
       dealCloseDate: dealClose,
       evidence: body.evidence.trim(),
+      evidenceFileUrl,
+      evidenceFileName,
       status: "open",
     })
     .returning();

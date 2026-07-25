@@ -9,6 +9,7 @@ export function DisputeFormClient() {
   const [dealCloseDate, setDealCloseDate] = useState("");
   const [evidence, setEvidence] = useState("");
   const [conversionRef, setConversionRef] = useState("");
+  const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -32,10 +33,13 @@ export function DisputeFormClient() {
       const ref = conversionRef.trim();
       if (ref) body.conversionId = ref;
 
+      const fd = new FormData();
+      fd.append("payload", JSON.stringify(body));
+      if (file) fd.append("file", file);
+
       const res = await fetch("/api/portal/disputes", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: fd,
       });
 
       if (!res.ok) {
@@ -57,6 +61,7 @@ export function DisputeFormClient() {
       setDealCloseDate("");
       setEvidence("");
       setConversionRef("");
+      setFile(null);
       router.refresh();
     } catch {
       setError("Something went wrong. Please check your connection and try again.");
@@ -103,6 +108,28 @@ export function DisputeFormClient() {
           placeholder="email threads, calendar invites, written introductions…"
           className="mt-1.5 block w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-[#1e1b4b] shadow-sm outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
         />
+      </div>
+
+      <div>
+        <label
+          htmlFor="disputeFile"
+          className="block text-sm font-medium text-[#1e1b4b]"
+        >
+          Attachment{" "}
+          <span className="font-normal text-slate-400">(optional)</span>
+        </label>
+        <input
+          id="disputeFile"
+          type="file"
+          accept="application/pdf,image/png,image/jpeg,image/webp"
+          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+          className="mt-1.5 block w-full text-sm text-slate-700 file:mr-4 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-indigo-700 hover:file:bg-indigo-100"
+        />
+        <p className="mt-1.5 text-xs text-slate-500">
+          {file
+            ? `Selected: ${file.name}`
+            : "Attach a screenshot, PDF, or calendar invite as proof (PDF or image, max 10MB)."}
+        </p>
       </div>
 
       <div>

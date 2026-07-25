@@ -1821,6 +1821,9 @@ export const partnerDisputes = pgTable(
       .notNull(),
     dealCloseDate: timestamp("deal_close_date", { withTimezone: true }),
     evidence: text("evidence"),
+    /** Optional evidence attachment (PDF or image) uploaded with the dispute. */
+    evidenceFileUrl: text("evidence_file_url"),
+    evidenceFileName: text("evidence_file_name"),
     /** open | upheld | denied | closed */
     status: text("status").notNull().default("open"),
     resolution: text("resolution"),

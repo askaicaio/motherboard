@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Scale } from "lucide-react";
+import { Scale, Paperclip } from "lucide-react";
 import { format, parseISO, isValid as dateIsValid } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -36,6 +36,8 @@ export interface DisputeRow {
   submittedAt: string;
   dealCloseDate: string | null;
   evidence: string | null;
+  evidenceFileUrl: string | null;
+  evidenceFileName: string | null;
   status: string;
   resolution: string | null;
   decidedAt: string | null;
@@ -329,6 +331,17 @@ export function DisputesClient({
                     <span className="text-zinc-400">No evidence provided.</span>
                   )}
                 </div>
+                {active.evidenceFileUrl && (
+                  <a
+                    href={active.evidenceFileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2 inline-flex items-center gap-1.5 rounded-md border bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50"
+                  >
+                    <Paperclip className="h-3.5 w-3.5" />
+                    {active.evidenceFileName || "View attachment"}
+                  </a>
+                )}
               </div>
 
               <div className="space-y-2">

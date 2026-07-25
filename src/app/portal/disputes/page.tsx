@@ -1,4 +1,4 @@
-import { ShieldAlert } from "lucide-react";
+import { ShieldAlert, Paperclip } from "lucide-react";
 import { format } from "date-fns";
 import { requirePartner } from "@/lib/partners/session";
 import { db } from "@/lib/db";
@@ -115,6 +115,20 @@ export default async function DisputesPage() {
                     <p className="mt-1 line-clamp-3 text-sm text-slate-600">
                       {d.evidence}
                     </p>
+                  </div>
+                )}
+
+                {d.evidenceFileUrl && (
+                  <div className="mt-3">
+                    <a
+                      href={d.evidenceFileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100"
+                    >
+                      <Paperclip className="h-3.5 w-3.5" />
+                      {d.evidenceFileName || "View attachment"}
+                    </a>
                   </div>
                 )}
 
