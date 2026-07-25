@@ -131,6 +131,20 @@ Find your highest-ROI AI moves with CAIO: [link]`,
   },
 ];
 
+// A ready-to-paste prompt affiliates drop into Claude to generate a matching
+// on-brand graphic for a post. They swap in their post text; brand rules baked in.
+const IMAGE_PROMPT = `Create a clean, modern square (1080×1080) social graphic to run alongside this post.
+
+Style: minimal and executive — lots of whitespace, high contrast, no stock photos, no fake dashboards or robot clichés.
+Brand colors: deep indigo #4F46E5 and navy #1E1B4B as the accents, on an off-white #F8F8FC background. Use one accent color as the dominant, the other sparingly.
+Layout: a single bold sans-serif headline pulling the sharpest one-line hook from the post (rewrite it tighter if needed), generous margins, and a small "Chief AI Officer" wordmark in the bottom-left corner. No paragraphs of text — one punchy line only.
+Keep it credible and premium, aimed at business owners and executives.
+
+Post it accompanies (for context — don't put all of this on the image):
+"""
+[paste your post here]
+"""`;
+
 const SUBJECT_LINES = [
   "The hidden truth about AI nobody's telling you",
   "Do you make these AI mistakes?",
@@ -396,6 +410,32 @@ export default async function PortalToolkitPage() {
                 </p>
               </div>
             ))}
+          </div>
+
+          {/* Turn a post into a graphic with Claude */}
+          <div className="mt-6 overflow-hidden rounded-2xl border border-indigo-200 bg-indigo-50">
+            <div className="flex items-start justify-between gap-4 border-b border-indigo-100 px-5 py-3.5">
+              <div className="min-w-0">
+                <div className="font-mono text-[11px] uppercase tracking-[0.14em] text-indigo-600">
+                  Bonus · make it visual
+                </div>
+                <div className="font-semibold text-slate-900">
+                  Turn any post into a branded graphic with Claude
+                </div>
+              </div>
+              <CopyBlockButton value={IMAGE_PROMPT} />
+            </div>
+            <div className="px-5 py-4">
+              <p className="mb-3 text-sm leading-relaxed text-slate-600">
+                Posts with an image get more reach. Copy this prompt, paste it
+                into <span className="font-medium text-slate-800">Claude</span>,
+                and swap in your post text — it&apos;ll generate an on-brand
+                square graphic you can attach. Regenerate until it feels right.
+              </p>
+              <pre className="whitespace-pre-wrap rounded-xl border border-indigo-100 bg-white px-4 py-3 font-mono text-xs leading-relaxed text-slate-700">
+                {IMAGE_PROMPT}
+              </pre>
+            </div>
           </div>
         </section>
 

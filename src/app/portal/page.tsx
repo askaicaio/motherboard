@@ -122,11 +122,20 @@ export default async function PortalDashboardPage() {
   return (
     <div className="mx-auto max-w-5xl px-6 py-8">
       <header className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight text-[#1e1b4b]">
-          Welcome back, {firstName}
-        </h1>
+        <div className="flex flex-wrap items-center gap-2">
+          <h1 className="text-2xl font-semibold tracking-tight text-[#1e1b4b]">
+            Welcome back, {firstName}
+          </h1>
+          {partner.isSample && (
+            <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-amber-700">
+              Sample data
+            </span>
+          )}
+        </div>
         <p className="mt-1 text-sm text-slate-500">
-          Here&rsquo;s how your referrals are performing.
+          {partner.isSample
+            ? "This is a demo account — the clicks, conversions, and earnings below are example data, not real activity."
+            : "Here’s how your referrals are performing."}
         </p>
       </header>
 
