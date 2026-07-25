@@ -1,14 +1,19 @@
 "use client";
 
 // Client for the Automations "Dropdown Configuration" page. Shows one table at a
-// time (Author, Automation Tags, GHL Tags, Trigger Event, Webhook Links) chosen
-// via a tab toolbar; Author is the default. Each table keeps its own search
-// query (preserved when switching tabs). A page-level Edit mode toggle reveals
-// the active table's single "Add Option", row-click editing, and per-row delete.
+// time (Author, Automation Tags, GHL Tags, GHL Forms, Trigger Event, Webhook
+// Links) chosen via a tab toolbar; Author is the default. Each table keeps its
+// own search query (preserved when switching tabs). A page-level Edit mode toggle
+// reveals the active table's single "Add Option", row-click editing, and per-row
+// delete.
 //
-// GHL Tags is a richer 3-column table: Tag | Status (fixed dropdown, default
-// Unknown) | Notes (free text, presented + edited like the Per Website Purpose
-// column). The other four tables are simple single-column lists.
+// Author, GHL Tags, and GHL Forms are richer 3-column tables:
+// <rowLabel> | Status (per-column dropdown, default Unknown) | Notes (free text,
+// presented + edited like the Per Website Purpose column). Each has its OWN
+// status set (Author: Active/Inactive/Unknown; GHL: Keep/To Remove/Unknown/
+// Removed) via its column config. GHL Tags + GHL Forms group rows by status;
+// Author stays plain alphabetical. The other tables are simple single-column
+// lists.
 //
 // The four generic columns write to /api/automations/dropdown-choices; Webhook
 // Links writes to /api/automations/webhook-choices. Editing is off by default.
@@ -36,10 +41,9 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
   DROPDOWN_COLUMNS,
-  GHL_TAG_STATUSES,
-  GHL_TAG_STATUS_TONE,
   type DropdownChoiceRow,
   type DropdownColumnKey,
+  type StatusOption,
   type WebhookChoiceRow,
 } from "@/lib/automations/dropdown-config";
 import { useFitViewportHeight } from "@/lib/automations/use-fit-viewport-height";
@@ -62,8 +66,14 @@ interface TableDescriptor {
   isUrl: boolean;
   ghlOnly?: boolean;
   hasStatus?: boolean;
+  /** This column's Status choices + tones (present iff hasStatus). */
+  statusOptions?: StatusOption[];
+  /** Default status for a new entry (present iff hasStatus). */
+  defaultStatus?: string;
+  /** Group rows by status order (GHL Tags/Forms); omit → plain alphabetical. */
+  statusGrouped?: boolean;
   hasNotes?: boolean;
-  /** First-column header for the rich table view ("Tag", "Form"). */
+  /** First-column header for the rich table view ("Tag", "Form", "Author"). */
   rowLabel?: string;
 }
 
@@ -84,18 +94,25 @@ const TABLES: TableDescriptor[] = [
     isUrl: false,
     ghlOnly: c.ghlOnly,
     hasStatus: c.hasStatus,
+    statusOptions: c.statusOptions,
+    defaultStatus: c.defaultStatus,
+    statusGrouped: c.statusGrouped,
     hasNotes: c.hasNotes,
     rowLabel: c.rowLabel,
   })),
   WEBHOOK_TABLE,
 ];
 
-// Sort rank for the GHL Tags status grouping. GHL_TAG_STATUSES already lists
-// the desired top-to-bottom group order (Keep, To Remove, Unknown, Removed);
-// anything unrecognized sorts last.
-function statusRank(status?: string | null): number {
-  const i = (GHL_TAG_STATUSES as readonly string[]).indexOf(status ?? "");
-  return i === -1 ? GHL_TAG_STATUSES.length : i;
+// Sort rank for a status-grouped table. A column's `statusOptions` already list
+// the desired top-to-bottom group order; anything unrecognized (incl. null)
+// sorts last. Null is shown as "Unknown" (see StatusBadge), so treat it as such.
+function statusRank(
+  status: string | null | undefined,
+  options: StatusOption[],
+): number {
+  const key = status || "Unknown";
+  const i = options.findIndex((o) => o.value === key);
+  return i === -1 ? options.length : i;
 }
 
 export function DropdownConfigClient({
@@ -346,8 +363,10 @@ export function DropdownConfigClient({
             initialValue={dialog.existing?.value ?? ""}
             submitLabel={dialog.existing ? "Save changes" : "Add option"}
             showStatus={activeTable.hasStatus}
-            statusOptions={GHL_TAG_STATUSES}
-            initialStatus={dialog.existing?.status ?? "Unknown"}
+            statusOptions={activeTable.statusOptions ?? []}
+            initialStatus={
+              dialog.existing?.status ?? activeTable.defaultStatus ?? "Unknown"
+            }
             showNotes={activeTable.hasNotes}
             initialNotes={dialog.existing?.notes ?? ""}
             onSubmit={submitDialog}
@@ -376,13 +395,20 @@ export function DropdownConfigClient({
   );
 }
 
-function StatusBadge({ status }: { status?: string | null }) {
+function StatusBadge({
+  status,
+  options,
+}: {
+  status?: string | null;
+  options: StatusOption[];
+}) {
   const s = status || "Unknown";
+  const badge = options.find((o) => o.value === s)?.badge;
   return (
     <span
       className={cn(
         "inline-flex whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-medium",
-        GHL_TAG_STATUS_TONE[s]?.badge ?? "bg-zinc-100 text-zinc-500",
+        badge ?? "bg-zinc-100 text-zinc-500",
       )}
     >
       {s}
@@ -416,16 +442,18 @@ function ChoiceTableSection({
     const matched = q
       ? items.filter((i) => i.value.toLowerCase().includes(q))
       : items;
-    // Status tables (GHL Tags) group by status order (Keep, To Remove, Unknown,
-    // Removed), then alphabetize within each group. Others keep the server's
-    // plain alphabetical order.
-    if (!table.hasStatus) return matched;
+    // Status-GROUPED tables (GHL Tags, GHL Forms) group by their status order,
+    // then alphabetize within each group. Every other table (incl. Author, which
+    // has a Status column but is NOT grouped) keeps the server's plain
+    // alphabetical order.
+    if (!table.statusGrouped) return matched;
+    const options = table.statusOptions ?? [];
     return [...matched].sort(
       (a, b) =>
-        statusRank(a.status) - statusRank(b.status) ||
+        statusRank(a.status, options) - statusRank(b.status, options) ||
         a.value.localeCompare(b.value),
     );
-  }, [items, query, table.hasStatus]);
+  }, [items, query, table.statusGrouped, table.statusOptions]);
 
   // GHL Tags renders a richer multi-column table; the others are simple lists.
   const rich = !!(table.hasStatus || table.hasNotes);
@@ -561,7 +589,10 @@ function ChoiceTableSection({
                     </td>
                     {table.hasStatus && (
                       <td className="px-3 py-2 align-top">
-                        <StatusBadge status={item.status} />
+                        <StatusBadge
+                          status={item.status}
+                          options={table.statusOptions ?? []}
+                        />
                       </td>
                     )}
                     {table.hasNotes && (

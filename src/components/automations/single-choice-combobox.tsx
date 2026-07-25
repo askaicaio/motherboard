@@ -58,7 +58,9 @@ export function SingleChoiceCombobox({
         type="button"
         className={cn(
           "flex w-full items-center justify-between gap-2 rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-left text-sm",
-          value === "" && "text-zinc-400",
+          // Empty = the red "None" treatment, matching the table cell's red
+          // "None" for an unset value.
+          value === "" && "font-medium text-red-600",
         )}
       >
         <span className="min-w-0 truncate">
@@ -84,7 +86,7 @@ export function SingleChoiceCombobox({
                   setOpen(false);
                 }}
               >
-                <span className="text-zinc-400">{emptyLabel}</span>
+                <span className="font-medium text-red-600">{emptyLabel}</span>
                 {value === "" && <Check className="ml-auto h-4 w-4" />}
               </CommandItem>
               {options.map((o) => (

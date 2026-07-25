@@ -17,31 +17,38 @@ export type DropdownColumnKey =
   | "ghl_forms"
   | "trigger_event";
 
-/** Fixed status options for the GHL Tags column (not user-managed). New GHL Tag
- *  entries default to DEFAULT_GHL_TAG_STATUS. */
-export const GHL_TAG_STATUSES = [
-  "Keep",
-  "To Remove",
-  "Unknown",
-  "Removed",
-] as const;
-export type GhlTagStatus = (typeof GHL_TAG_STATUSES)[number];
-export const DEFAULT_GHL_TAG_STATUS: GhlTagStatus = "Unknown";
+/** One status option: its label plus display tones. `badge` = pill bg + text for
+ *  the table's Status column; `text` = text-only colour for the option + selected
+ *  value in the Add/Edit dialog dropdown. Single source of truth so a column's
+ *  table and dialog stay in sync. Status sets are PER COLUMN (see each column's
+ *  `statusOptions` below), so different columns can offer different statuses. */
+export interface StatusOption {
+  value: string;
+  badge: string;
+  text: string;
+}
 
-/** Colour scheme for GHL Tag statuses (user-set 2026-07-24): Keep = green,
- *  To Remove = red, Unknown = black, Removed = yellow. `badge` = pill bg + text
- *  for the table's Status column; `text` = text-only colour for the status
- *  options + selected value in the Add/Edit dialog dropdown. Single source of
- *  truth so the table and the dialog stay in sync. */
-export const GHL_TAG_STATUS_TONE: Record<
-  string,
-  { badge: string; text: string }
-> = {
-  Keep: { badge: "bg-emerald-100 text-emerald-700", text: "text-emerald-700" },
-  "To Remove": { badge: "bg-red-100 text-red-700", text: "text-red-700" },
-  Unknown: { badge: "bg-zinc-100 text-zinc-900", text: "text-zinc-900" },
-  Removed: { badge: "bg-yellow-100 text-yellow-800", text: "text-yellow-700" },
-};
+/** Default status for a new entry in any status-bearing column. Every status set
+ *  below includes it. */
+export const DEFAULT_STATUS = "Unknown";
+
+/** Status set for the GHL Tags + GHL Forms columns (user-set 2026-07-24): Keep =
+ *  green, To Remove = red, Unknown = black, Removed = yellow. Order here is the
+ *  top-to-bottom group order in those tables. */
+export const GHL_TAG_STATUS_OPTIONS: StatusOption[] = [
+  { value: "Keep", badge: "bg-emerald-100 text-emerald-700", text: "text-emerald-700" },
+  { value: "To Remove", badge: "bg-red-100 text-red-700", text: "text-red-700" },
+  { value: "Unknown", badge: "bg-zinc-100 text-zinc-900", text: "text-zinc-900" },
+  { value: "Removed", badge: "bg-yellow-100 text-yellow-800", text: "text-yellow-700" },
+];
+
+/** Status set for the Author column (user-set 2026-07-25): Active = green,
+ *  Inactive = red, Unknown = black. */
+export const AUTHOR_STATUS_OPTIONS: StatusOption[] = [
+  { value: "Active", badge: "bg-emerald-100 text-emerald-700", text: "text-emerald-700" },
+  { value: "Inactive", badge: "bg-red-100 text-red-700", text: "text-red-700" },
+  { value: "Unknown", badge: "bg-zinc-100 text-zinc-900", text: "text-zinc-900" },
+];
 
 export interface DropdownColumnConfig {
   /** Stored in `automation_dropdown_choices.column_key`. */
@@ -57,23 +64,43 @@ export interface DropdownColumnConfig {
   /** True → the column only applies to the GHL pages. Metadata for the future
    *  GHL-gated column (no visible tag on the Config page). */
   ghlOnly?: boolean;
-  /** True → rows carry a Status (fixed GHL_TAG_STATUSES dropdown). GHL Tags + GHL Forms. */
+  /** True → rows carry a Status. When set, `statusOptions` lists the choices and
+   *  `defaultStatus` is used for a new entry. GHL Tags, GHL Forms, Author. */
   hasStatus?: boolean;
-  /** True → rows carry a free-text Notes field (Purpose-style). GHL Tags + GHL Forms. */
+  /** This column's Status choices (present iff hasStatus). PER COLUMN: GHL Tags +
+   *  GHL Forms use GHL_TAG_STATUS_OPTIONS; Author uses AUTHOR_STATUS_OPTIONS. */
+  statusOptions?: StatusOption[];
+  /** Default status for a new entry (present iff hasStatus). */
+  defaultStatus?: string;
+  /** True → the Config table GROUPS rows by status order (then alphabetizes
+   *  within a group), like GHL Tags + GHL Forms. Omit → plain alphabetical order
+   *  (Author). */
+  statusGrouped?: boolean;
+  /** True → rows carry a free-text Notes field (Purpose-style). GHL Tags, GHL
+   *  Forms, Author. */
   hasNotes?: boolean;
   /** Header for the FIRST column in the rich (Status/Notes) table view, e.g.
-   *  "Tag" for GHL Tags, "Form" for GHL Forms. Only used by the rich tables. */
+   *  "Tag" for GHL Tags, "Form" for GHL Forms, "Author" for Author. Only used by
+   *  the rich tables. */
   rowLabel?: string;
 }
 
 // Order here is the top-to-bottom order the tables render on the Config page.
 export const DROPDOWN_COLUMNS: DropdownColumnConfig[] = [
   {
+    // Author / Status / Notes table. Rich (hasStatus + hasNotes) like GHL Tags,
+    // but with its OWN status set (Active/Inactive/Unknown) and NOT status-grouped
+    // (kept plain alphabetical by author name, per user 2026-07-25).
     key: "author",
     title: "Author",
     singular: "author",
     fieldLabel: "Author",
     placeholder: "e.g. Jane Doe",
+    rowLabel: "Author",
+    hasStatus: true,
+    statusOptions: AUTHOR_STATUS_OPTIONS,
+    defaultStatus: DEFAULT_STATUS,
+    hasNotes: true,
   },
   {
     key: "automation_tags",
@@ -90,6 +117,9 @@ export const DROPDOWN_COLUMNS: DropdownColumnConfig[] = [
     placeholder: "e.g. Nurture sequence",
     ghlOnly: true,
     hasStatus: true,
+    statusOptions: GHL_TAG_STATUS_OPTIONS,
+    defaultStatus: DEFAULT_STATUS,
+    statusGrouped: true,
     hasNotes: true,
     rowLabel: "Tag",
   },
@@ -105,6 +135,9 @@ export const DROPDOWN_COLUMNS: DropdownColumnConfig[] = [
     placeholder: "e.g. Contact form",
     rowLabel: "Form",
     hasStatus: true,
+    statusOptions: GHL_TAG_STATUS_OPTIONS,
+    defaultStatus: DEFAULT_STATUS,
+    statusGrouped: true,
     hasNotes: true,
   },
   {
@@ -121,9 +154,11 @@ export interface DropdownChoiceRow {
   id: string;
   columnKey: DropdownColumnKey;
   value: string;
-  /** GHL Tags only: one of GHL_TAG_STATUSES. Null/undefined for other columns. */
+  /** Status-bearing columns only (GHL Tags, GHL Forms, Author): one of that
+   *  column's `statusOptions` values. Null/undefined for the plain columns. */
   status?: string | null;
-  /** GHL Tags only: free-text note. Null/undefined for other columns. */
+  /** Notes-bearing columns only (GHL Tags, GHL Forms, Author): free-text note.
+   *  Null/undefined for the plain columns. */
   notes?: string | null;
 }
 

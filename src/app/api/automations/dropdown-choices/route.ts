@@ -20,8 +20,10 @@ const createSchema = z.object({
     "trigger_event",
   ]),
   value: z.string().trim().min(1).max(300),
-  // Status + Notes only apply to GHL Tags; ignored (stored null) for the others.
-  status: z.enum(["Keep", "To Remove", "Unknown", "Removed"]).optional(),
+  // Status + Notes only apply to status/notes-bearing columns (GHL Tags, GHL
+  // Forms, Author); ignored (stored null) for the others. Status is validated
+  // per-column below (each column has its own allowed set).
+  status: z.string().trim().max(50).optional(),
   notes: z.string().max(5000).optional(),
 });
 
@@ -81,16 +83,30 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: DUPLICATE_ERROR }, { status: 409 });
   }
 
-  // Status + Notes apply to columns configured with them (GHL Tags, GHL Forms).
-  // Those default a new entry's status to 'Unknown'; other columns store null.
+  // Status + Notes apply to columns configured with them (GHL Tags, GHL Forms,
+  // Author). Status defaults to the column's own default; other columns store null.
   const column = DROPDOWN_COLUMNS.find((c) => c.key === body.columnKey);
+
+  // A provided status must belong to THIS column's set (per-column validation).
+  if (column?.hasStatus && body.status) {
+    const allowed = (column.statusOptions ?? []).map((o) => o.value);
+    if (!allowed.includes(body.status)) {
+      return NextResponse.json(
+        { error: "Invalid status for this column." },
+        { status: 400 },
+      );
+    }
+  }
+
   try {
     const [created] = await db
       .insert(automationDropdownChoices)
       .values({
         columnKey: body.columnKey,
         value,
-        status: column?.hasStatus ? body.status ?? "Unknown" : null,
+        status: column?.hasStatus
+          ? body.status || column.defaultStatus || "Unknown"
+          : null,
         notes: column?.hasNotes ? body.notes?.trim() || null : null,
         createdBy: user.id,
       })

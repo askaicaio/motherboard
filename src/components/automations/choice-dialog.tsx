@@ -27,7 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { GHL_TAG_STATUS_TONE } from "@/lib/automations/dropdown-config";
+import type { StatusOption } from "@/lib/automations/dropdown-config";
 import { Loader2 } from "lucide-react";
 
 export interface ChoiceSubmit {
@@ -46,9 +46,10 @@ interface Props {
   isUrl: boolean;
   initialValue: string;
   submitLabel: string;
-  /** Show a Status dropdown (GHL Tags). */
+  /** Show a Status dropdown (status-bearing columns: GHL Tags, GHL Forms,
+   *  Author). Each option carries its own text tone. */
   showStatus?: boolean;
-  statusOptions?: readonly string[];
+  statusOptions?: StatusOption[];
   initialStatus?: string;
   /** Show a Purpose-style Notes textarea (GHL Tags). */
   showNotes?: boolean;
@@ -166,17 +167,15 @@ export function ChoiceDialog({
                 <SelectTrigger id="choice-status" className="w-44">
                   <SelectValue
                     placeholder="Status"
-                    className={GHL_TAG_STATUS_TONE[status]?.text}
+                    className={
+                      (statusOptions ?? []).find((o) => o.value === status)?.text
+                    }
                   />
                 </SelectTrigger>
                 <SelectContent>
-                  {(statusOptions ?? []).map((s) => (
-                    <SelectItem
-                      key={s}
-                      value={s}
-                      className={GHL_TAG_STATUS_TONE[s]?.text}
-                    >
-                      {s}
+                  {(statusOptions ?? []).map((o) => (
+                    <SelectItem key={o.value} value={o.value} className={o.text}>
+                      {o.value}
                     </SelectItem>
                   ))}
                 </SelectContent>
