@@ -5,13 +5,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { automationDropdownChoices } from "@/lib/db/schema";
+import { DROPDOWN_COLUMNS } from "@/lib/automations/dropdown-config";
 import { getOptionalAuth } from "@/lib/auth/guard";
 import { and, eq, ne } from "drizzle-orm";
 
 const patchSchema = z.object({
   value: z.string().trim().min(1).max(300).optional(),
-  // GHL Tags only.
-  status: z.enum(["Keep", "To Remove", "Unknown", "Removed"]).optional(),
+  // Status/notes-bearing columns only (GHL Tags, GHL Forms, Author). Status is
+  // validated per-column below against the row's own column set.
+  status: z.string().trim().max(50).optional(),
   notes: z.string().max(5000).optional(),
 });
 
@@ -61,6 +63,18 @@ export async function PATCH(
     .where(eq(automationDropdownChoices.id, id))
     .limit(1);
   if (!row) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  // A provided status must belong to THIS row's column set (per-column).
+  if (body.status !== undefined) {
+    const column = DROPDOWN_COLUMNS.find((c) => c.key === row.columnKey);
+    const allowed = (column?.statusOptions ?? []).map((o) => o.value);
+    if (!allowed.includes(body.status)) {
+      return NextResponse.json(
+        { error: "Invalid status for this column." },
+        { status: 400 },
+      );
+    }
+  }
 
   // Duplicate check only when the value (the option text) is changing.
   if (body.value !== undefined) {
