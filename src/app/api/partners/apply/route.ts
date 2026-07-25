@@ -13,10 +13,18 @@ export const maxDuration = 60;
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024; // ~10MB
 
+// Stricter than a bare .email() — require a real domain with a dot + TLD so
+// typos like "you@gmailcom" (missing the period) are rejected server-side too.
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i;
+
 const applySchema = z.object({
   firstName: z.string().min(1).max(150),
   lastName: z.string().min(1).max(150),
-  email: z.string().email().max(300),
+  email: z
+    .string()
+    .max(300)
+    .transform((v) => v.trim())
+    .refine((v) => EMAIL_RE.test(v), "A valid email address is required"),
   address: z.string().min(1).max(500),
   city: z.string().min(1).max(200),
   state: z.string().min(1).max(200),
@@ -24,17 +32,19 @@ const applySchema = z.object({
   country: z.string().min(1).max(200),
   dateOfBirth: z.string().min(1).max(20),
   howDidYouHear: z.string().min(1).max(200),
-  website: z.string().max(1000).optional().default(""),
+  website: z.string().max(2000).optional().default(""),
   profession: z.string().min(1).max(5000),
   promoExperience: z.boolean(),
   promoExperienceDesc: z.string().max(5000).optional().default(""),
   affiliateExperienceLevel: z.string().min(1).max(50),
   aiExperienceLevel: z.string().min(1).max(50),
-  platforms: z.array(z.string().max(100)).min(1),
+  // Items can carry a free-text "Other: …" value, so allow a little room.
+  platforms: z.array(z.string().max(200)).min(1),
   audienceSize: z.coerce.number().int().min(0),
-  targetAudience: z.array(z.string().max(100)).min(1),
+  targetAudience: z.array(z.string().max(200)).min(1),
   homeRun: z.string().min(1).max(5000),
-  anythingElse: z.string().min(1).max(5000),
+  // Optional — applicants shouldn't be blocked by this one.
+  anythingElse: z.string().max(5000).optional().default(""),
   signature: z.string().min(1).max(300),
   company_website: z.string().optional().default(""), // honeypot
 });

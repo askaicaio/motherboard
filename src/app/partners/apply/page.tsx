@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { Plus, X, HelpCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const HEAR_OPTIONS = [
   "LinkedIn",
@@ -37,6 +39,7 @@ const PLATFORM_OPTIONS = [
   "Blog",
   "Speaking Gigs/Presentations",
   "Community",
+  "Other",
 ];
 
 const AUDIENCE_OPTIONS = [
@@ -49,9 +52,35 @@ const AUDIENCE_OPTIONS = [
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024; // ~10MB
 
+// Real domain with a dot + TLD — rejects typos like "you@gmailcom".
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i;
+
+// Common misspellings of popular providers — caught with a "did you mean" hint.
+const TYPO_DOMAINS: Record<string, string> = {
+  "gmailcom": "gmail.com",
+  "gmial.com": "gmail.com",
+  "gmai.com": "gmail.com",
+  "gmail.co": "gmail.com",
+  "gmail.con": "gmail.com",
+  "gmail.cm": "gmail.com",
+  "gnail.com": "gmail.com",
+  "yaho.com": "yahoo.com",
+  "yahoo.co": "yahoo.com",
+  "yahoo.con": "yahoo.com",
+  "hotmial.com": "hotmail.com",
+  "hotmail.co": "hotmail.com",
+  "hotmail.con": "hotmail.com",
+  "outlok.com": "outlook.com",
+  "outlook.co": "outlook.com",
+  "iclould.com": "icloud.com",
+  "icloud.co": "icloud.com",
+};
+
 const inputCls =
   "w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition";
 const labelCls = "block text-sm font-medium text-slate-700";
+const errRing =
+  "border-red-400 ring-1 ring-red-300 focus:ring-red-400 focus:border-red-400";
 
 export default function PartnerApplyPage() {
   const router = useRouter();
@@ -67,7 +96,6 @@ export default function PartnerApplyPage() {
     country: "",
     dateOfBirth: "",
     howDidYouHear: "",
-    website: "",
     profession: "",
     promoExperience: "",
     promoExperienceDesc: "",
@@ -80,12 +108,25 @@ export default function PartnerApplyPage() {
     company_website: "", // honeypot
   });
   const [platforms, setPlatforms] = useState<string[]>([]);
+  const [platformOther, setPlatformOther] = useState("");
   const [targetAudience, setTargetAudience] = useState<string[]>([]);
+  const [audienceOther, setAudienceOther] = useState("");
+  const [websites, setWebsites] = useState<string[]>([""]);
   const [taxForm, setTaxForm] = useState<File | null>(null);
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [success, setSuccess] = useState(false);
+
+  const err = (name: string) => name in errors;
+  const clearErr = (name: string) =>
+    setErrors((prev) => {
+      if (!(name in prev)) return prev;
+      const next = { ...prev };
+      delete next[name];
+      return next;
+    });
 
   function handleChange(
     e: React.ChangeEvent<
@@ -93,23 +134,27 @@ export default function PartnerApplyPage() {
     >,
   ) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    clearErr(e.target.name);
   }
 
   function toggle(
     list: string[],
     setList: (v: string[]) => void,
     value: string,
+    errKey: string,
   ) {
     setList(
       list.includes(value)
         ? list.filter((v) => v !== value)
         : [...list, value],
     );
+    clearErr(errKey);
   }
 
   function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
     setError(null);
+    clearErr("taxForm");
     if (!file) {
       setTaxForm(null);
       return;
@@ -129,25 +174,93 @@ export default function PartnerApplyPage() {
     setTaxForm(file);
   }
 
+  function validate(): Record<string, string> {
+    const next: Record<string, string> = {};
+    const req = (name: string, val: string, msg = "This field is required.") => {
+      if (!val.trim()) next[name] = msg;
+    };
+    req("firstName", form.firstName);
+    req("lastName", form.lastName);
+    req("address", form.address);
+    req("city", form.city);
+    req("state", form.state);
+    req("postalCode", form.postalCode);
+    req("country", form.country);
+    req("dateOfBirth", form.dateOfBirth);
+    req("howDidYouHear", form.howDidYouHear, "Please choose an option.");
+    req("profession", form.profession);
+    req("affiliateExperienceLevel", form.affiliateExperienceLevel, "Please choose an option.");
+    req("aiExperienceLevel", form.aiExperienceLevel, "Please choose an option.");
+    req("audienceSize", form.audienceSize);
+    req("homeRun", form.homeRun);
+    req("signature", form.signature);
+
+    // Email — format + common-typo guard.
+    const email = form.email.trim();
+    if (!email) {
+      next.email = "This field is required.";
+    } else if (!EMAIL_RE.test(email)) {
+      next.email = "Please enter a valid email address.";
+    } else {
+      const domain = email.split("@")[1]?.toLowerCase();
+      if (domain && TYPO_DOMAINS[domain]) {
+        next.email = `Did you mean …@${TYPO_DOMAINS[domain]}?`;
+      }
+    }
+
+    if (!form.promoExperience) next.promoExperience = "Please choose Yes or No.";
+
+    if (platforms.length === 0) {
+      next.platforms = "Please select at least one platform.";
+    } else if (platforms.includes("Other") && !platformOther.trim()) {
+      next.platformOther = "Please specify your other platform.";
+    }
+
+    if (targetAudience.length === 0) {
+      next.targetAudience = "Please select at least one audience.";
+    } else if (targetAudience.includes("Other") && !audienceOther.trim()) {
+      next.audienceOther = "Please specify your other audience.";
+    }
+
+    if (!taxForm) next.taxForm = "Please upload your W-9 or W-8BEN (PDF).";
+
+    // Optional, but guard the total length so it can't blow past the server cap.
+    const joinedSites = websites.map((s) => s.trim()).filter(Boolean).join("\n");
+    if (joinedSites.length > 2000) {
+      next.website =
+        "That's a lot of links — please keep them under 2000 characters total.";
+    }
+
+    return next;
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
 
-    if (platforms.length === 0) {
-      setError("Please select at least one content/promotion platform.");
-      return;
-    }
-    if (targetAudience.length === 0) {
-      setError("Please select at least one target audience or niche.");
-      return;
-    }
-    if (!taxForm) {
-      setError("Please upload your W-9 or W-8BEN tax form (PDF).");
+    const next = validate();
+    setErrors(next);
+    if (Object.keys(next).length > 0) {
+      setError("Please fill in the highlighted fields below.");
+      // Scroll the first invalid field into view once it's rendered red.
+      setTimeout(() => {
+        document
+          .querySelector('[data-invalid="true"]')
+          ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 0);
       return;
     }
 
     setSubmitting(true);
     try {
+      const finalPlatforms = platforms.map((p) =>
+        p === "Other" ? `Other: ${platformOther.trim()}` : p,
+      );
+      const finalAudience = targetAudience.map((a) =>
+        a === "Other" ? `Other: ${audienceOther.trim()}` : a,
+      );
+      const website = websites.map((s) => s.trim()).filter(Boolean).join("\n");
+
       const payload = {
         firstName: form.firstName.trim(),
         lastName: form.lastName.trim(),
@@ -159,15 +272,15 @@ export default function PartnerApplyPage() {
         country: form.country.trim(),
         dateOfBirth: form.dateOfBirth,
         howDidYouHear: form.howDidYouHear,
-        website: form.website.trim(),
+        website,
         profession: form.profession.trim(),
         promoExperience: form.promoExperience === "yes",
         promoExperienceDesc: form.promoExperienceDesc.trim(),
         affiliateExperienceLevel: form.affiliateExperienceLevel,
         aiExperienceLevel: form.aiExperienceLevel,
-        platforms,
+        platforms: finalPlatforms,
         audienceSize: form.audienceSize,
-        targetAudience,
+        targetAudience: finalAudience,
         homeRun: form.homeRun.trim(),
         anythingElse: form.anythingElse.trim(),
         signature: form.signature.trim(),
@@ -175,7 +288,7 @@ export default function PartnerApplyPage() {
       };
 
       const fd = new FormData();
-      fd.append("taxForm", taxForm);
+      fd.append("taxForm", taxForm!);
       fd.append("payload", JSON.stringify(payload));
 
       const res = await fetch("/api/partners/apply", {
@@ -211,7 +324,7 @@ export default function PartnerApplyPage() {
             />
           </div>
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
-            Affiliate Onboarding
+            Affiliate Application
           </h1>
           <p className="mt-2 text-slate-500 text-base">
             Earn up to{" "}
@@ -243,12 +356,13 @@ export default function PartnerApplyPage() {
                     id="firstName"
                     name="firstName"
                     type="text"
-                    required
                     autoComplete="given-name"
                     value={form.firstName}
                     onChange={handleChange}
-                    className={inputCls}
+                    data-invalid={err("firstName") || undefined}
+                    className={cn(inputCls, err("firstName") && errRing)}
                   />
+                  <FieldError msg={errors.firstName} />
                 </div>
                 <div className="space-y-1.5">
                   <label htmlFor="lastName" className={labelCls}>
@@ -258,12 +372,13 @@ export default function PartnerApplyPage() {
                     id="lastName"
                     name="lastName"
                     type="text"
-                    required
                     autoComplete="family-name"
                     value={form.lastName}
                     onChange={handleChange}
-                    className={inputCls}
+                    data-invalid={err("lastName") || undefined}
+                    className={cn(inputCls, err("lastName") && errRing)}
                   />
+                  <FieldError msg={errors.lastName} />
                 </div>
               </div>
 
@@ -275,12 +390,13 @@ export default function PartnerApplyPage() {
                   id="email"
                   name="email"
                   type="email"
-                  required
                   autoComplete="email"
                   value={form.email}
                   onChange={handleChange}
-                  className={inputCls}
+                  data-invalid={err("email") || undefined}
+                  className={cn(inputCls, err("email") && errRing)}
                 />
+                <FieldError msg={errors.email} />
               </div>
 
               {/* Address */}
@@ -292,12 +408,13 @@ export default function PartnerApplyPage() {
                   id="address"
                   name="address"
                   type="text"
-                  required
                   autoComplete="street-address"
                   value={form.address}
                   onChange={handleChange}
-                  className={inputCls}
+                  data-invalid={err("address") || undefined}
+                  className={cn(inputCls, err("address") && errRing)}
                 />
+                <FieldError msg={errors.address} />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -309,12 +426,13 @@ export default function PartnerApplyPage() {
                     id="city"
                     name="city"
                     type="text"
-                    required
                     autoComplete="address-level2"
                     value={form.city}
                     onChange={handleChange}
-                    className={inputCls}
+                    data-invalid={err("city") || undefined}
+                    className={cn(inputCls, err("city") && errRing)}
                   />
+                  <FieldError msg={errors.city} />
                 </div>
                 <div className="space-y-1.5">
                   <label htmlFor="state" className={labelCls}>
@@ -324,12 +442,13 @@ export default function PartnerApplyPage() {
                     id="state"
                     name="state"
                     type="text"
-                    required
                     autoComplete="address-level1"
                     value={form.state}
                     onChange={handleChange}
-                    className={inputCls}
+                    data-invalid={err("state") || undefined}
+                    className={cn(inputCls, err("state") && errRing)}
                   />
+                  <FieldError msg={errors.state} />
                 </div>
               </div>
 
@@ -342,12 +461,13 @@ export default function PartnerApplyPage() {
                     id="postalCode"
                     name="postalCode"
                     type="text"
-                    required
                     autoComplete="postal-code"
                     value={form.postalCode}
                     onChange={handleChange}
-                    className={inputCls}
+                    data-invalid={err("postalCode") || undefined}
+                    className={cn(inputCls, err("postalCode") && errRing)}
                   />
+                  <FieldError msg={errors.postalCode} />
                 </div>
                 <div className="space-y-1.5">
                   <label htmlFor="country" className={labelCls}>
@@ -358,12 +478,13 @@ export default function PartnerApplyPage() {
                     id="country"
                     name="country"
                     type="text"
-                    required
                     autoComplete="country-name"
                     value={form.country}
                     onChange={handleChange}
-                    className={inputCls}
+                    data-invalid={err("country") || undefined}
+                    className={cn(inputCls, err("country") && errRing)}
                   />
+                  <FieldError msg={errors.country} />
                 </div>
               </div>
 
@@ -375,11 +496,12 @@ export default function PartnerApplyPage() {
                   id="dateOfBirth"
                   name="dateOfBirth"
                   type="date"
-                  required
                   value={form.dateOfBirth}
                   onChange={handleChange}
-                  className={inputCls}
+                  data-invalid={err("dateOfBirth") || undefined}
+                  className={cn(inputCls, err("dateOfBirth") && errRing)}
                 />
+                <FieldError msg={errors.dateOfBirth} />
               </div>
 
               {/* How did you hear */}
@@ -391,10 +513,10 @@ export default function PartnerApplyPage() {
                 <select
                   id="howDidYouHear"
                   name="howDidYouHear"
-                  required
                   value={form.howDidYouHear}
                   onChange={handleChange}
-                  className={inputCls}
+                  data-invalid={err("howDidYouHear") || undefined}
+                  className={cn(inputCls, err("howDidYouHear") && errRing)}
                 >
                   <option value="">Select one…</option>
                   {HEAR_OPTIONS.map((o) => (
@@ -403,21 +525,62 @@ export default function PartnerApplyPage() {
                     </option>
                   ))}
                 </select>
+                <FieldError msg={errors.howDidYouHear} />
               </div>
 
-              <div className="space-y-1.5">
-                <label htmlFor="website" className={labelCls}>
+              {/* Website / social links — add more with the + (on hover) */}
+              <div className="space-y-1.5" data-invalid={err("website") || undefined}>
+                <label className={labelCls}>
                   Website or Social Media Link(s){" "}
                   <span className="text-slate-400 font-normal">(optional)</span>
                 </label>
-                <input
-                  id="website"
-                  name="website"
-                  type="text"
-                  value={form.website}
-                  onChange={handleChange}
-                  className={inputCls}
-                />
+                <div className="space-y-2">
+                  {websites.map((url, i) => (
+                    <div key={i} className="group flex items-center gap-2">
+                      <input
+                        type="url"
+                        value={url}
+                        onChange={(e) => {
+                          setWebsites((prev) =>
+                            prev.map((u, idx) => (idx === i ? e.target.value : u)),
+                          );
+                          clearErr("website");
+                        }}
+                        maxLength={500}
+                        placeholder="https://…"
+                        className={inputCls}
+                      />
+                      {websites.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setWebsites((prev) => prev.filter((_, idx) => idx !== i))
+                          }
+                          aria-label="Remove this link"
+                          className="shrink-0 rounded-md p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setWebsites((prev) => [
+                            ...prev.slice(0, i + 1),
+                            "",
+                            ...prev.slice(i + 1),
+                          ])
+                        }
+                        aria-label="Add another link"
+                        title="Add another link"
+                        className="shrink-0 rounded-md p-1.5 text-slate-400 opacity-0 transition hover:bg-indigo-50 hover:text-indigo-600 focus:opacity-100 group-hover:opacity-100"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <FieldError msg={errors.website} />
               </div>
 
               <div className="space-y-1.5">
@@ -428,16 +591,17 @@ export default function PartnerApplyPage() {
                 <textarea
                   id="profession"
                   name="profession"
-                  required
                   rows={3}
                   value={form.profession}
                   onChange={handleChange}
-                  className={`${inputCls} resize-none`}
+                  data-invalid={err("profession") || undefined}
+                  className={cn(inputCls, "resize-none", err("profession") && errRing)}
                 />
+                <FieldError msg={errors.profession} />
               </div>
 
               {/* Promo experience */}
-              <div className="space-y-2">
+              <div className="space-y-2" data-invalid={err("promoExperience") || undefined}>
                 <span className={labelCls}>
                   Do you have experience promoting online courses or digital
                   products? <span className="text-red-500">*</span>
@@ -448,7 +612,6 @@ export default function PartnerApplyPage() {
                       type="radio"
                       name="promoExperience"
                       value="yes"
-                      required
                       checked={form.promoExperience === "yes"}
                       onChange={handleChange}
                       className="text-indigo-600 focus:ring-indigo-500"
@@ -467,6 +630,7 @@ export default function PartnerApplyPage() {
                     No
                   </label>
                 </div>
+                <FieldError msg={errors.promoExperience} />
               </div>
 
               <div className="space-y-1.5">
@@ -492,10 +656,10 @@ export default function PartnerApplyPage() {
                 <select
                   id="affiliateExperienceLevel"
                   name="affiliateExperienceLevel"
-                  required
                   value={form.affiliateExperienceLevel}
                   onChange={handleChange}
-                  className={inputCls}
+                  data-invalid={err("affiliateExperienceLevel") || undefined}
+                  className={cn(inputCls, err("affiliateExperienceLevel") && errRing)}
                 >
                   <option value="">Select one…</option>
                   {AFFILIATE_LEVELS.map((o) => (
@@ -504,6 +668,7 @@ export default function PartnerApplyPage() {
                     </option>
                   ))}
                 </select>
+                <FieldError msg={errors.affiliateExperienceLevel} />
               </div>
 
               <div className="space-y-1.5">
@@ -514,10 +679,10 @@ export default function PartnerApplyPage() {
                 <select
                   id="aiExperienceLevel"
                   name="aiExperienceLevel"
-                  required
                   value={form.aiExperienceLevel}
                   onChange={handleChange}
-                  className={inputCls}
+                  data-invalid={err("aiExperienceLevel") || undefined}
+                  className={cn(inputCls, err("aiExperienceLevel") && errRing)}
                 >
                   <option value="">Select one…</option>
                   {AI_LEVELS.map((o) => (
@@ -526,10 +691,11 @@ export default function PartnerApplyPage() {
                     </option>
                   ))}
                 </select>
+                <FieldError msg={errors.aiExperienceLevel} />
               </div>
 
               {/* Platforms */}
-              <div className="space-y-2">
+              <div className="space-y-2" data-invalid={err("platforms") || undefined}>
                 <span className={labelCls}>
                   What are your primary platforms for content or promotion?
                   (choose all that apply){" "}
@@ -544,13 +710,35 @@ export default function PartnerApplyPage() {
                       <input
                         type="checkbox"
                         checked={platforms.includes(o)}
-                        onChange={() => toggle(platforms, setPlatforms, o)}
+                        onChange={() =>
+                          toggle(platforms, setPlatforms, o, "platforms")
+                        }
                         className="rounded text-indigo-600 focus:ring-indigo-500"
                       />
                       {o}
                     </label>
                   ))}
                 </div>
+                {platforms.includes("Other") && (
+                  <input
+                    type="text"
+                    value={platformOther}
+                    onChange={(e) => {
+                      setPlatformOther(e.target.value);
+                      clearErr("platformOther");
+                    }}
+                    maxLength={190}
+                    placeholder="Please specify your other platform"
+                    data-invalid={err("platformOther") || undefined}
+                    className={cn(inputCls, "mt-1", err("platformOther") && errRing)}
+                  />
+                )}
+                <FieldError
+                  msg={
+                    errors.platforms ||
+                    (platforms.includes("Other") ? errors.platformOther : undefined)
+                  }
+                />
               </div>
 
               <div className="space-y-1.5">
@@ -563,15 +751,16 @@ export default function PartnerApplyPage() {
                   name="audienceSize"
                   type="number"
                   min={0}
-                  required
                   value={form.audienceSize}
                   onChange={handleChange}
-                  className={inputCls}
+                  data-invalid={err("audienceSize") || undefined}
+                  className={cn(inputCls, err("audienceSize") && errRing)}
                 />
+                <FieldError msg={errors.audienceSize} />
               </div>
 
               {/* Target audience */}
-              <div className="space-y-2">
+              <div className="space-y-2" data-invalid={err("targetAudience") || undefined}>
                 <span className={labelCls}>
                   Who is your target audience or niche?{" "}
                   <span className="text-red-500">*</span>
@@ -586,7 +775,7 @@ export default function PartnerApplyPage() {
                         type="checkbox"
                         checked={targetAudience.includes(o)}
                         onChange={() =>
-                          toggle(targetAudience, setTargetAudience, o)
+                          toggle(targetAudience, setTargetAudience, o, "targetAudience")
                         }
                         className="rounded text-indigo-600 focus:ring-indigo-500"
                       />
@@ -594,6 +783,26 @@ export default function PartnerApplyPage() {
                     </label>
                   ))}
                 </div>
+                {targetAudience.includes("Other") && (
+                  <input
+                    type="text"
+                    value={audienceOther}
+                    onChange={(e) => {
+                      setAudienceOther(e.target.value);
+                      clearErr("audienceOther");
+                    }}
+                    maxLength={190}
+                    placeholder="Please specify your other audience"
+                    data-invalid={err("audienceOther") || undefined}
+                    className={cn(inputCls, "mt-1", err("audienceOther") && errRing)}
+                  />
+                )}
+                <FieldError
+                  msg={
+                    errors.targetAudience ||
+                    (targetAudience.includes("Other") ? errors.audienceOther : undefined)
+                  }
+                />
               </div>
 
               <div className="space-y-1.5">
@@ -604,23 +813,23 @@ export default function PartnerApplyPage() {
                 <textarea
                   id="homeRun"
                   name="homeRun"
-                  required
                   rows={3}
                   value={form.homeRun}
                   onChange={handleChange}
-                  className={`${inputCls} resize-none`}
+                  data-invalid={err("homeRun") || undefined}
+                  className={cn(inputCls, "resize-none", err("homeRun") && errRing)}
                 />
+                <FieldError msg={errors.homeRun} />
               </div>
 
               <div className="space-y-1.5">
                 <label htmlFor="anythingElse" className={labelCls}>
                   Anything else we should know?{" "}
-                  <span className="text-red-500">*</span>
+                  <span className="text-slate-400 font-normal">(optional)</span>
                 </label>
                 <textarea
                   id="anythingElse"
                   name="anythingElse"
-                  required
                   rows={3}
                   value={form.anythingElse}
                   onChange={handleChange}
@@ -630,27 +839,48 @@ export default function PartnerApplyPage() {
 
               {/* Tax form */}
               <div className="space-y-1.5">
-                <label htmlFor="taxForm" className={labelCls}>
-                  Tax form (W-9 or W-8BEN), PDF{" "}
-                  <span className="text-red-500">*</span>
-                </label>
+                <div className="flex items-center justify-between gap-2">
+                  <label htmlFor="taxForm" className={labelCls}>
+                    Tax form (W-9 or W-8BEN), PDF{" "}
+                    <span className="text-red-500">*</span>
+                  </label>
+                  <span className="group relative shrink-0">
+                    <button
+                      type="button"
+                      aria-label="What is this form?"
+                      className="flex h-5 w-5 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+                    >
+                      <HelpCircle className="h-4 w-4" />
+                    </button>
+                    <span className="pointer-events-none absolute right-0 top-7 z-10 w-72 rounded-lg border border-slate-200 bg-white p-3 text-xs leading-relaxed text-slate-600 opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+                      A <strong>W-9</strong> (if you&apos;re a U.S. taxpayer) or a{" "}
+                      <strong>W-8BEN</strong> (if you&apos;re outside the U.S.) is a
+                      standard IRS form that lets us pay your commissions legally.
+                      Both are free, take a couple of minutes to fill out, and you
+                      can download the right one from the IRS website. We can&apos;t
+                      issue any payout without it on file.
+                    </span>
+                  </span>
+                </div>
                 <input
                   id="taxForm"
                   name="taxForm"
                   type="file"
                   accept="application/pdf"
-                  required
                   onChange={handleFile}
-                  className="w-full text-sm text-slate-700 file:mr-4 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-indigo-700 hover:file:bg-indigo-100"
+                  data-invalid={err("taxForm") || undefined}
+                  className={cn(
+                    "w-full rounded-lg text-sm text-slate-700 file:mr-4 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-indigo-700 hover:file:bg-indigo-100",
+                    err("taxForm") && "ring-1 ring-red-300 rounded-lg p-1",
+                  )}
                 />
                 {taxForm && (
                   <p className="text-xs text-slate-500">
                     Selected: {taxForm.name}
                   </p>
                 )}
-                <p className="text-xs text-slate-400">
-                  PDF only, max 10MB.
-                </p>
+                <p className="text-xs text-slate-400">PDF only, max 10MB.</p>
+                <FieldError msg={errors.taxForm} />
               </div>
 
               {/* Signature */}
@@ -662,15 +892,16 @@ export default function PartnerApplyPage() {
                   id="signature"
                   name="signature"
                   type="text"
-                  required
                   placeholder="Your full legal name"
                   value={form.signature}
                   onChange={handleChange}
-                  className={inputCls}
+                  data-invalid={err("signature") || undefined}
+                  className={cn(inputCls, err("signature") && errRing)}
                 />
                 <p className="text-xs text-slate-400">
                   Typing your name acts as your electronic signature.
                 </p>
+                <FieldError msg={errors.signature} />
               </div>
 
               {/* Honeypot — visually hidden, not for humans */}
@@ -705,12 +936,34 @@ export default function PartnerApplyPage() {
                 </div>
               )}
 
+              <p className="text-center text-xs text-slate-500">
+                By submitting, you agree to our{" "}
+                <a
+                  href="/partners/terms"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-medium text-indigo-600 underline hover:text-indigo-700"
+                >
+                  Terms
+                </a>{" "}
+                and{" "}
+                <a
+                  href="/partners/privacy"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-medium text-indigo-600 underline hover:text-indigo-700"
+                >
+                  Privacy Policy
+                </a>
+                .
+              </p>
+
               <button
                 type="submit"
                 disabled={submitting}
                 className="w-full rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold text-sm py-3 transition focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
               >
-                {submitting ? "Submitting…" : "Complete My Affiliate Onboarding"}
+                {submitting ? "Submitting…" : "Submit My Application"}
               </button>
 
               <p className="text-center text-xs text-slate-400">
@@ -732,4 +985,9 @@ export default function PartnerApplyPage() {
       </div>
     </div>
   );
+}
+
+function FieldError({ msg }: { msg?: string }) {
+  if (!msg) return null;
+  return <p className="text-xs text-red-600">{msg}</p>;
 }

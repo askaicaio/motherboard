@@ -38,7 +38,7 @@ export function PortalHeader({
             alt="Chief AI Officer — in partnership with Scaling Up"
             width={4000}
             height={1000}
-            className="h-6 w-auto"
+            className="h-12 w-auto"
           />
           <span className="hidden border-l border-slate-200 pl-2.5 text-sm font-semibold tracking-tight text-slate-500 sm:inline">
             Affiliate Portal
