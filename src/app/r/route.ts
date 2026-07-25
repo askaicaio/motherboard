@@ -59,7 +59,18 @@ export async function GET(request: NextRequest) {
   // Build the final redirect URL up-front so even an unknown ref code
   // still forwards the user somewhere sensible.
   const destUrl = new URL(dest);
-  if (refCode) destUrl.searchParams.set("aff_id", refCode);
+  if (refCode) {
+    // Our own pages read aff_id directly (checkout, enroll).
+    destUrl.searchParams.set("aff_id", refCode);
+    // GHL/LeadConnector ignores unmapped query params but NATIVELY captures
+    // UTM params onto the booked contact's attribution — so we also pass the
+    // code as utm_content. A GHL workflow ("Appointment booked" → read
+    // utm_content → POST to Motherboard) is what closes the loop for
+    // sales-led booking leads. Harmless on chiefaiofficer.com destinations.
+    destUrl.searchParams.set("utm_source", "affiliate");
+    destUrl.searchParams.set("utm_medium", "referral");
+    destUrl.searchParams.set("utm_content", refCode);
+  }
 
   const redirect = NextResponse.redirect(destUrl.toString(), {
     status: 302,
