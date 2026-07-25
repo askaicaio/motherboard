@@ -1198,6 +1198,17 @@ export const automations = pgTable(
      *  this (workflow `updatedAt`), so it is populated for all synced platforms. */
     lastEditedAt: timestamp("last_edited_at", { withTimezone: true }),
 
+    /** Selected Author option (single-select dropdown column). Nullable FK to
+     *  an `automation_dropdown_choices` row with column_key = 'author'. Optional
+     *  (unset by default); set only via the Add/Edit Workflow dialog, never by a
+     *  sync. ON DELETE SET NULL: removing the Author option on the Dropdown
+     *  Configuration page un-assigns it here. The display value is resolved by
+     *  joining to the choice's `value`. */
+    authorChoiceId: uuid("author_choice_id").references(
+      () => automationDropdownChoices.id,
+      { onDelete: "set null" },
+    ),
+
     createdBy: uuid("created_by").references(() => adminUsers.id),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
@@ -1209,6 +1220,7 @@ export const automations = pgTable(
   (table) => [
     uniqueIndex("uniq_automations_external_url").on(table.externalUrl),
     index("idx_automations_platform").on(table.platform),
+    index("idx_automations_author_choice").on(table.authorChoiceId),
   ],
 );
 

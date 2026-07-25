@@ -132,3 +132,12 @@ export interface WebhookChoiceRow {
   id: string;
   url: string;
 }
+
+/** One selectable option handed to a Per Website dropdown column's picker
+ *  (the searchable dropdown in the Add/Edit Workflow dialog). `id` is the
+ *  `automation_dropdown_choices` row id stored on the automation; `value` is
+ *  the label shown. Shared by every dropdown-driven column. */
+export interface ChoiceOption {
+  id: string;
+  value: string;
+}
