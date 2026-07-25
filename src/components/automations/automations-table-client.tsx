@@ -74,7 +74,13 @@ function formatDateCell(value: string | Date | null | undefined): string {
 }
 
 /** Columns the per-website table can be sorted by (Purpose is not sortable). */
-type SortKey = "name" | "status" | "lastEditedAt" | "lastRunAt" | "lastErrorAt";
+type SortKey =
+  | "name"
+  | "status"
+  | "lastEditedAt"
+  | "lastRunAt"
+  | "lastErrorAt"
+  | "author";
 
 /** Sort indicator next to every sortable column header, always in the SAME
  *  fixed-width (w-3) slot so the header label never shifts when sorting changes:
@@ -471,6 +477,17 @@ export function AutomationsTableClient({
           if (ta === null) return 1;
           if (tb === null) return -1;
           return dir * (ta - tb);
+        }
+        case "author": {
+          // Alphabetical (case-insensitive) like Name; "None" (unset) ALWAYS
+          // sinks to the bottom, regardless of direction, matching the date
+          // columns' blanks-last rule.
+          const av = a.author?.trim() ?? "";
+          const bv = b.author?.trim() ?? "";
+          if (!av && !bv) return 0;
+          if (!av) return 1;
+          if (!bv) return -1;
+          return dir * av.localeCompare(bv, undefined, { sensitivity: "base" });
         }
         default:
           return 0;
@@ -961,10 +978,24 @@ export function AutomationsTableClient({
                     </span>
                   </th>
                   {/* Author: single-select dropdown column, center-aligned like
-                      the other new columns. Not sortable (set in the Add/Edit
-                      dialog, displayed here) and never synced. */}
-                  <th className="sticky top-0 z-10 w-[160px] min-w-[160px] max-w-[160px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
-                    Author
+                      the other new columns. Sortable alphabetically (A-Z);
+                      "None" rows sink to the bottom. Never synced (set in the
+                      Add/Edit dialog). */}
+                  <th
+                    onClick={() => toggleSort("author")}
+                    aria-sort={
+                      sortKey === "author"
+                        ? sortDir === "asc"
+                          ? "ascending"
+                          : "descending"
+                        : "none"
+                    }
+                    className="sticky top-0 z-10 w-[160px] min-w-[160px] max-w-[160px] cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700"
+                  >
+                    <span className="inline-flex items-center justify-center gap-1">
+                      Author
+                      <SortArrow active={sortKey === "author"} dir={sortDir} />
+                    </span>
                   </th>
                   {/* Actions (delete) column. ALWAYS rendered, even when edit
                       mode is off, so toggling only shows/hides the trash icon
