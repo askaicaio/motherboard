@@ -95,7 +95,7 @@ export default async function ActivityPage() {
             <thead>
               <tr className="border-b border-slate-200 text-left text-xs font-medium uppercase tracking-wide text-slate-400">
                 <th className="px-5 py-3">Program</th>
-                <th className="px-5 py-3">Buyer</th>
+                <th className="px-5 py-3">Lead</th>
                 <th className="px-5 py-3">Status</th>
                 <th className="px-5 py-3 text-right">Commission</th>
                 <th className="px-5 py-3 text-right">Purchased</th>
@@ -149,7 +149,11 @@ export default async function ActivityPage() {
             >
               Pending
             </span>
-            <span>In the refund window — not yet cleared to earn.</span>
+            <span>
+              Your referral purchased. New commissions are held for a short
+              7-day window in case the customer requests a refund — once it
+              passes with no refund, this clears to Earned.
+            </span>
           </li>
           <li className="flex items-start gap-2.5">
             <span

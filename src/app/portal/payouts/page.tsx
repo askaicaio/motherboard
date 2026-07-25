@@ -125,24 +125,25 @@ export default async function PayoutsPage({
         </div>
       )}
 
-      {/* Payout terms */}
+      {/* Payout terms — grouped info cards, tinted grey to read as one band
+          and stand apart from the white data cards below. */}
       <section className="mb-6 grid gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl border border-slate-200 bg-white p-5">
-          <Banknote className="h-5 w-5 text-[#4f46e5]" />
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+          <Banknote className="h-5 w-5 text-slate-500" />
           <p className="mt-2 text-sm font-semibold text-[#1e1b4b]">Net-45 terms</p>
           <p className="mt-0.5 text-xs text-slate-500">
             Earned commissions are paid 45 days after the close of the period.
           </p>
         </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-5">
-          <FileText className="h-5 w-5 text-[#4f46e5]" />
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+          <FileText className="h-5 w-5 text-slate-500" />
           <p className="mt-2 text-sm font-semibold text-[#1e1b4b]">$100 minimum</p>
           <p className="mt-0.5 text-xs text-slate-500">
             Balances under $100 roll forward to the next payout cycle.
           </p>
         </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-5">
-          <ShieldCheck className="h-5 w-5 text-[#4f46e5]" />
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+          <ShieldCheck className="h-5 w-5 text-slate-500" />
           <p className="mt-2 text-sm font-semibold text-[#1e1b4b]">ACH or Zelle</p>
           <p className="mt-0.5 text-xs text-slate-500">
             A valid W-9 / W-8BEN is required before any payout is released.

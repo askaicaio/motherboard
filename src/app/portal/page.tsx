@@ -67,7 +67,35 @@ export default async function PortalDashboardPage() {
     process.env.NEXT_PUBLIC_APP_URL ||
     "https://affiliates.chiefaiofficer.com"
   ).replace(/\/$/, "");
-  const referralLink = `${base}/r?aff=${partner.refCode}`;
+  // One tracked link per intent — all carry the ref code + set the 60-day
+  // cookie via /r, then redirect to the right destination.
+  const ref = partner.refCode;
+  const enrollDest = encodeURIComponent(`${base}/enroll`);
+  const communityUrl = process.env.AFFILIATE_COMMUNITY_URL?.replace(/\/$/, "");
+  const referralLinks: { key: string; title: string; hint: string; href: string }[] = [
+    {
+      key: "booking",
+      title: "Book a call",
+      hint: "Best for high-ticket / enterprise intros",
+      href: `${base}/r?aff=${ref}`,
+    },
+    {
+      key: "buy",
+      title: "Buy a program",
+      hint: "Sends buyers straight to checkout",
+      href: `${base}/r?aff=${ref}&dest=${enrollDest}`,
+    },
+    ...(communityUrl
+      ? [
+          {
+            key: "community",
+            title: "Join the CAIO Community",
+            hint: "Invite people into the community",
+            href: `${base}/r?aff=${ref}&dest=${encodeURIComponent(communityUrl)}`,
+          },
+        ]
+      : []),
+  ];
 
   const needsPayoutSetup = partner.stripeConnectStatus !== "ready";
 
@@ -118,20 +146,32 @@ export default async function PortalDashboardPage() {
         </Link>
       )}
 
-      {/* Referral link */}
+      {/* Referral links — one per intent */}
       <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <h2 className="text-sm font-semibold text-[#1e1b4b]">
-          Your referral link
+          Your referral links
         </h2>
         <p className="mt-1 text-xs text-slate-500">
-          Share this link anywhere. Every click is attributed to you for 60
-          days.
+          Every click is attributed to you for 60 days. Pick the link that fits
+          how you&rsquo;re sharing.
         </p>
-        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
-          <div className="flex-1 truncate rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2 font-mono text-sm text-slate-700">
-            {referralLink}
-          </div>
-          <CopyLinkButton value={referralLink} />
+        <div className="mt-4 space-y-4">
+          {referralLinks.map((l) => (
+            <div key={l.key}>
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="text-xs font-semibold text-[#1e1b4b]">
+                  {l.title}
+                </span>
+                <span className="text-[11px] text-slate-400">{l.hint}</span>
+              </div>
+              <div className="mt-1.5 flex flex-col gap-2 sm:flex-row sm:items-center">
+                <div className="flex-1 truncate rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2 font-mono text-sm text-slate-700">
+                  {l.href}
+                </div>
+                <CopyLinkButton value={l.href} />
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 
