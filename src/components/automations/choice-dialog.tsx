@@ -43,13 +43,6 @@ export interface ChoiceSubmit {
   textColor?: string | null;
 }
 
-/** Text-colour swatch order: Black first (it takes the old "none" slot, since an
- *  unset text colour renders black anyway), then the rest of the palette. */
-const TEXT_COLOR_OPTIONS = [
-  ...CHOICE_COLOR_OPTIONS.filter((c) => c.key === "black"),
-  ...CHOICE_COLOR_OPTIONS.filter((c) => c.key !== "black"),
-];
-
 /** A compact swatch picker: an optional "none" chip + one circle per palette
  *  colour; the selected swatch gets a ring. Value is the colour key ("" = none).
  *  `disabled` dims the whole section and blocks interaction. */
@@ -72,21 +65,6 @@ function ColorSwatchPicker({
     <div className={cn("space-y-1.5", disabled && "pointer-events-none opacity-40")}>
       <Label>{label}</Label>
       <div className="flex flex-wrap gap-1.5">
-        {showNone && (
-          <button
-            type="button"
-            onClick={() => onChange("")}
-            disabled={disabled}
-            aria-label="None"
-            title="None"
-            className={cn(
-              "flex h-6 w-6 items-center justify-center rounded-full border border-zinc-300 text-[11px] text-zinc-400",
-              value === "" && "ring-2 ring-zinc-900 ring-offset-1",
-            )}
-          >
-            &times;
-          </button>
-        )}
         {options.map((c) => (
           <button
             key={c.key}
@@ -102,6 +80,22 @@ function ColorSwatchPicker({
             style={{ backgroundColor: c.hex, border: "1px solid rgba(0,0,0,0.12)" }}
           />
         ))}
+        {/* "None" chip last (at the very end of the row). */}
+        {showNone && (
+          <button
+            type="button"
+            onClick={() => onChange("")}
+            disabled={disabled}
+            aria-label="None"
+            title="None"
+            className={cn(
+              "flex h-6 w-6 items-center justify-center rounded-full border border-zinc-300 text-[11px] text-zinc-400",
+              value === "" && "ring-2 ring-zinc-900 ring-offset-1",
+            )}
+          >
+            &times;
+          </button>
+        )}
       </div>
     </div>
   );
@@ -327,7 +321,6 @@ export function ChoiceDialog({
                   setTextColor(k);
                   setError(null);
                 }}
-                options={TEXT_COLOR_OPTIONS}
                 showNone={false}
                 disabled={badgeColor === ""}
               />
