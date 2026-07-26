@@ -303,7 +303,21 @@ export function AllAutomationsTableClient({
                       <SortArrow active={sortKey === "status"} dir={sortDir} />
                     </span>
                   </th>
-                  {/* Trigger Event: mirrors the Per Website column, after Status.
+                  {/* Author: mirrors the Per Website column. Center-aligned,
+                      sortable alphabetically ("None" sinks last), fixed 160px.
+                      Sits between Status and Trigger Event (the two dropdown
+                      cols). */}
+                  <th
+                    onClick={() => toggleSort("author")}
+                    aria-sort={ariaSort("author")}
+                    className="sticky top-0 z-10 w-[160px] min-w-[160px] max-w-[160px] cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700"
+                  >
+                    <span className="inline-flex items-center justify-center gap-1">
+                      Author
+                      <SortArrow active={sortKey === "author"} dir={sortDir} />
+                    </span>
+                  </th>
+                  {/* Trigger Event: mirrors the Per Website column, after Author.
                       Display-only, not sortable, 160px. */}
                   <th className="sticky top-0 z-10 w-[160px] min-w-[160px] max-w-[160px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
                     Trigger Event
@@ -344,18 +358,6 @@ export function AllAutomationsTableClient({
                     <span className="inline-flex items-center justify-center gap-1">
                       Last Error
                       <SortArrow active={sortKey === "lastErrorAt"} dir={sortDir} />
-                    </span>
-                  </th>
-                  {/* Author: mirrors the Per Website column. Center-aligned,
-                      sortable alphabetically ("None" sinks last), fixed 160px. */}
-                  <th
-                    onClick={() => toggleSort("author")}
-                    aria-sort={ariaSort("author")}
-                    className="sticky top-0 z-10 w-[160px] min-w-[160px] max-w-[160px] cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700"
-                  >
-                    <span className="inline-flex items-center justify-center gap-1">
-                      Author
-                      <SortArrow active={sortKey === "author"} dir={sortDir} />
                     </span>
                   </th>
                 </tr>
@@ -429,6 +431,20 @@ export function AllAutomationsTableClient({
                         >
                           {r.status === "active" ? "Active" : "Paused"}
                         </span>
+                      </td>
+                      {/* Author: the selected option's value, or red "None" when
+                          unset (mirrors the Per Website column). Sits between
+                          Status and Trigger Event. */}
+                      <td className="w-[160px] min-w-[160px] max-w-[160px] px-3 py-2 text-center align-top">
+                        {r.author ? (
+                          <span className="text-xs text-zinc-700 break-words">
+                            {r.author}
+                          </span>
+                        ) : (
+                          <span className="text-xs font-medium text-red-600">
+                            None
+                          </span>
+                        )}
                       </td>
                       {/* Trigger Event: the selected option's value, or red
                           "None" when unset (mirrors the Per Website column). */}
@@ -535,19 +551,6 @@ export function AllAutomationsTableClient({
                           </span>
                         ) : (
                           <span className="text-xs text-zinc-400">-</span>
-                        )}
-                      </td>
-                      {/* Author: the selected option's value, or red "None"
-                          when unset (mirrors the Per Website column). */}
-                      <td className="w-[160px] min-w-[160px] max-w-[160px] px-3 py-2 text-center align-top">
-                        {r.author ? (
-                          <span className="text-xs text-zinc-700 break-words">
-                            {r.author}
-                          </span>
-                        ) : (
-                          <span className="text-xs font-medium text-red-600">
-                            None
-                          </span>
                         )}
                       </td>
                     </tr>
