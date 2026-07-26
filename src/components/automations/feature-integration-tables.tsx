@@ -8,6 +8,11 @@
 // and persists via POST /api/automations/feature-integration (state is stored
 // app-wide in app_settings — shared, survives reload). Updates are optimistic
 // and roll back on error.
+//
+// ⏸️ TOGGLING TEMPORARILY DISABLED (2026-07-25): the marks are currently LOCKED
+// to their stored values (display-only) via the TOGGLE_ENABLED flag below. All
+// the toggle machinery (optimistic update, POST persistence, rollback) is kept
+// intact — flip TOGGLE_ENABLED back to `true` to re-enable click-to-toggle.
 
 import { useState } from "react";
 import { toast } from "sonner";
@@ -19,6 +24,15 @@ import {
   FEATURE_INTEGRATION_TABLES,
   cellKey,
 } from "@/lib/automations/feature-integration-spec";
+
+// ───────────────────────────────────────────────────────────────────────────
+// Master switch for the click-to-toggle behaviour on this page.
+//   true  → cells are clickable and edits persist (the original behaviour).
+//   false → cells are LOCKED to their stored values (display-only, no click).
+// Currently OFF (temporary). To re-enable editing, set this to `true` — nothing
+// else needs to change; the toggle logic below is untouched.
+// ───────────────────────────────────────────────────────────────────────────
+const TOGGLE_ENABLED = false;
 
 /** Website column header: the brand logo (sized to the label text) + the label.
  *  Monochrome SVG glyphs are tinted via CSS mask when iconColor is set (Make /
@@ -53,19 +67,48 @@ function SiteIcon({
   return <img src={icon} alt="" className="h-4 w-4 shrink-0 object-contain" />;
 }
 
-/** One two-state checkbox cell. Red square + X (false) / green square + check
- *  (true). Disabled while its own save is in flight. */
+/** One two-state cell. Red square + X (false) / green square + check (true).
+ *  When `interactive` (TOGGLE_ENABLED) it's a clickable button that toggles and
+ *  is disabled while its own save is in flight; when locked it renders the SAME
+ *  mark as a static, non-clickable indicator (no hover, no click). */
 function CheckboxCell({
   checked,
   pending,
   onToggle,
   label,
+  interactive,
 }: {
   checked: boolean;
   pending: boolean;
   onToggle: () => void;
   label: string;
+  interactive: boolean;
 }) {
+  // Shared look: fixed square, rounded, white glyph, green (on) / red (off).
+  const base = cn(
+    "inline-flex h-6 w-6 items-center justify-center rounded-md text-white",
+    checked ? "bg-green-600" : "bg-red-600",
+  );
+  const glyph = checked ? (
+    <Check className="h-4 w-4" />
+  ) : (
+    <X className="h-4 w-4" />
+  );
+
+  // Locked: a static indicator, identical mark but not clickable (no hover
+  // affordance, no toggle). Re-enable via TOGGLE_ENABLED.
+  if (!interactive) {
+    return (
+      <span
+        role="img"
+        aria-label={`${label}: ${checked ? "enabled" : "disabled"}`}
+        className={base}
+      >
+        {glyph}
+      </span>
+    );
+  }
+
   return (
     <button
       type="button"
@@ -74,17 +117,12 @@ function CheckboxCell({
       aria-pressed={checked}
       aria-label={`${label}: ${checked ? "enabled" : "disabled"}`}
       className={cn(
-        "inline-flex h-6 w-6 items-center justify-center rounded-md text-white transition-colors disabled:opacity-60",
-        checked
-          ? "bg-green-600 hover:bg-green-500"
-          : "bg-red-600 hover:bg-red-500",
+        base,
+        "transition-colors disabled:opacity-60",
+        checked ? "hover:bg-green-500" : "hover:bg-red-500",
       )}
     >
-      {checked ? (
-        <Check className="h-4 w-4" />
-      ) : (
-        <X className="h-4 w-4" />
-      )}
+      {glyph}
     </button>
   );
 }
@@ -100,6 +138,7 @@ export function FeatureIntegrationTables({
   const [pending, setPending] = useState<Set<string>>(new Set());
 
   const toggle = async (key: string) => {
+    if (!TOGGLE_ENABLED) return; // toggling temporarily disabled (marks locked)
     if (pending.has(key)) return; // ignore while this cell is saving
     const next = !state[key];
 
@@ -174,6 +213,7 @@ export function FeatureIntegrationTables({
                             pending={pending.has(key)}
                             onToggle={() => toggle(key)}
                             label={`${row.label} for ${site.label} (${table.cornerLabel})`}
+                            interactive={TOGGLE_ENABLED}
                           />
                         </td>
                       );
