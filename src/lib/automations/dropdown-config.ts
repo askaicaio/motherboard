@@ -62,7 +62,12 @@ export interface ChoiceColor {
   hex: string;
 }
 
+// Order = the swatch order in the pickers (this array is only iterated there).
+// Neutrals first (Black, Gray, White, user-set 2026-07-26), then the vibrant set.
 export const CHOICE_COLOR_OPTIONS: ChoiceColor[] = [
+  { key: "black", label: "Black", hex: "#111827" },
+  { key: "gray", label: "Gray", hex: "#6b7280" },
+  { key: "white", label: "White", hex: "#ffffff" },
   { key: "teal", label: "Teal", hex: "#14b8a6" },
   { key: "green", label: "Green", hex: "#22c55e" },
   { key: "mint", label: "Mint", hex: "#6ee7b7" },
@@ -78,9 +83,6 @@ export const CHOICE_COLOR_OPTIONS: ChoiceColor[] = [
   { key: "gold", label: "Gold", hex: "#f59e0b" },
   { key: "yellow", label: "Yellow", hex: "#facc15" },
   { key: "brown", label: "Brown", hex: "#92400e" },
-  { key: "white", label: "White", hex: "#ffffff" },
-  { key: "gray", label: "Gray", hex: "#6b7280" },
-  { key: "black", label: "Black", hex: "#111827" },
 ];
 
 /** Look up a colour's hex by key (undefined for an unknown/unset key). */
