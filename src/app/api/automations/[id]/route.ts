@@ -14,6 +14,8 @@ const patchSchema = z.object({
   status: z.enum(["active", "paused"]).optional(),
   // Purpose is optional free text; stored as null when blank.
   purpose: z.string().max(5000).optional(),
+  // Notes is optional free text (mirrors Purpose); stored as null when blank.
+  notes: z.string().max(5000).optional(),
   // Author (single-select): the chosen automation_dropdown_choices id, or null
   // to clear it. Only applied when the key is present. Validated below.
   authorChoiceId: z.string().uuid().nullable().optional(),
@@ -95,6 +97,7 @@ export async function PATCH(
   if (body.externalUrl !== undefined) patch.externalUrl = body.externalUrl.trim();
   if (body.status !== undefined) patch.status = body.status;
   if (body.purpose !== undefined) patch.purpose = body.purpose.trim() || null;
+  if (body.notes !== undefined) patch.notes = body.notes.trim() || null;
   if (body.authorChoiceId !== undefined) patch.authorChoiceId = body.authorChoiceId;
 
   // Deterministic duplicate check, block if ANOTHER row already uses this

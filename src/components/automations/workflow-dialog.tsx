@@ -66,6 +66,8 @@ export function WorkflowDialog({
   const [status, setStatus] = useState("paused");
   // Purpose is an optional free-text note.
   const [purpose, setPurpose] = useState("");
+  // Notes is a second optional free-text note (mirrors Purpose).
+  const [notes, setNotes] = useState("");
   // Author: the selected Author choice id ("" = none). Single-select dropdown.
   const [authorChoiceId, setAuthorChoiceId] = useState("");
   // Inline error shown as red text inside the dialog (e.g. duplicate link).
@@ -78,6 +80,7 @@ export function WorkflowDialog({
     setExternalUrl(existing?.externalUrl ?? "");
     setStatus(existing?.status ?? "paused");
     setPurpose(existing?.purpose ?? "");
+    setNotes(existing?.notes ?? "");
     setAuthorChoiceId(existing?.authorChoiceId ?? "");
     setError(null);
   }, [open, existing]);
@@ -99,8 +102,8 @@ export function WorkflowDialog({
       // authorChoiceId: send the selected id, or null to clear it.
       const authorPayload = authorChoiceId || null;
       const body = isEdit
-        ? { name: name.trim(), externalUrl: externalUrl.trim(), status, purpose: purpose.trim(), authorChoiceId: authorPayload }
-        : { platform, name: name.trim(), externalUrl: externalUrl.trim(), status, purpose: purpose.trim(), authorChoiceId: authorPayload };
+        ? { name: name.trim(), externalUrl: externalUrl.trim(), status, purpose: purpose.trim(), notes: notes.trim(), authorChoiceId: authorPayload }
+        : { platform, name: name.trim(), externalUrl: externalUrl.trim(), status, purpose: purpose.trim(), notes: notes.trim(), authorChoiceId: authorPayload };
 
       const res = await fetch(endpoint, {
         method,
@@ -132,6 +135,7 @@ export function WorkflowDialog({
         externalUrl: saved.externalUrl,
         status: saved.status,
         purpose: saved.purpose,
+        notes: saved.notes,
         authorChoiceId: savedAuthorChoiceId,
         author:
           authorChoices.find((c) => c.id === savedAuthorChoiceId)?.value ??
@@ -289,6 +293,23 @@ export function WorkflowDialog({
               // removes the manual resize grip - together they force all growth
               // into the outer fields scroll area, so there's a single scrollbar.
               // [overflow-wrap:anywhere] breaks over-long words.
+              className="block resize-none overflow-hidden [overflow-wrap:anywhere]"
+            />
+          </div>
+          <div className="space-y-1.5">
+            {/* Notes: a second free-text note, mirrors the Purpose field above
+                exactly (same textarea setup), just labelled "Notes". */}
+            <Label htmlFor="wf-notes">Notes</Label>
+            <Textarea
+              id="wf-notes"
+              value={notes}
+              onChange={(e) => {
+                setNotes(e.target.value);
+                setError(null);
+              }}
+              maxLength={5000}
+              rows={3}
+              placeholder="Any extra notes…"
               className="block resize-none overflow-hidden [overflow-wrap:anywhere]"
             />
           </div>

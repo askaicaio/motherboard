@@ -31,6 +31,7 @@ export default async function AllAutomationsPage() {
       externalUrl: automations.externalUrl,
       status: automations.status,
       purpose: automations.purpose,
+      notes: automations.notes,
       lastRunAt: automations.lastRunAt,
       lastEditedAt: automations.lastEditedAt,
       platform: automations.platform,

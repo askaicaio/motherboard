@@ -1186,6 +1186,10 @@ export const automations = pgTable(
      *  (nullable). Shown via the Purpose column's "Show"/"None" button and
      *  edited in the Add/Edit Workflow dialog. */
     purpose: text("purpose"),
+    /** A second optional free-text note, built exactly like `purpose`. Shown in
+     *  the "Notes" column (right of Purpose) and edited in the Add/Edit Workflow
+     *  dialog. Never written by a sync. */
+    notes: text("notes"),
     /** When this automation last ran on its source platform. Nullable; filled
      *  only by the sync (Refresh List / auto-refresh), never manually. Shown in
      *  the "Last Runtime" column formatted MM-DD-YYYY ("-" when null). */

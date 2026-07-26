@@ -198,6 +198,7 @@ export interface AutomationRow {
   externalUrl: string;
   status: string; // "active" | "paused"
   purpose?: string | null; // optional free-text note
+  notes?: string | null; // second optional free-text note (mirrors purpose)
   // When the automation last ran on its source platform. Sync-only (never set
   // manually). Date on initial server render, ISO string after a sync/poll.
   lastRunAt?: string | Date | null;
@@ -235,6 +236,8 @@ const EXPORT_COLUMNS: { header: string; value: (r: AutomationRow) => string }[] 
     { header: "Link", value: (r) => r.externalUrl ?? "" },
     { header: "Status", value: (r) => r.status },
     { header: "Purpose", value: (r) => r.purpose ?? "" },
+    // Notes sits immediately right of Purpose on the table, so it does here too.
+    { header: "Notes", value: (r) => r.notes ?? "" },
     {
       header: "Last Edited",
       value: (r) => (r.lastEditedAt ? formatDateCell(r.lastEditedAt) : ""),
@@ -305,6 +308,10 @@ export function AutomationsTableClient({
   const [editing, setEditing] = useState<AutomationRow | null>(null);
   // The purpose text shown in the read-only "Show purpose" popup (null = closed).
   const [showingPurpose, setShowingPurpose] = useState<string | null>(null);
+  // The notes text shown in the read-only "Show notes" popup (null = closed).
+  // Mirrors showingPurpose. (The per-row clamp is shared: Notes reuses
+  // purposeClamp since both cells share the Name-cell-driven row height.)
+  const [showingNotes, setShowingNotes] = useState<string | null>(null);
   // Adaptive Purpose clamp: how many lines of the Purpose blurb to show per row
   // (keyed by row id, default 2). Taller rows (a long Name that wraps) get more
   // lines so the blurb fills the extra height instead of leaving a gap under a
@@ -845,7 +852,7 @@ export function AutomationsTableClient({
             stands in for the row border, which would otherwise scroll away.
 
             Horizontal scroll + frozen Name column: the table carries a
-            `min-w-[1410px]` so once columns exceed the card width it overflows
+            `min-w-[1650px]` so once columns exceed the card width it overflows
             and the existing overflow-auto shows a horizontal scrollbar (drag,
             Shift+wheel, or trackpad swipe). The first column (Name + its link)
             is `sticky left-0` on both the header and every body row so the
@@ -861,7 +868,7 @@ export function AutomationsTableClient({
             style={scrollStyle}
             className="max-h-[70vh] overflow-auto p-0"
           >
-            <table className="w-full min-w-[1410px] text-sm">
+            <table className="w-full min-w-[1650px] text-sm">
               <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
                 <tr>
                   {/* Corner cell: pinned to BOTH the top (header) and the left
@@ -908,6 +915,11 @@ export function AutomationsTableClient({
                   </th>
                   <th className="sticky top-0 z-10 w-[240px] min-w-[240px] max-w-[240px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
                     Purpose
+                  </th>
+                  {/* Notes: mirrors the Purpose column exactly, one column to its
+                      right. Not sortable (like Purpose). */}
+                  <th className="sticky top-0 z-10 w-[240px] min-w-[240px] max-w-[240px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
+                    Notes
                   </th>
                   <th
                     onClick={() => toggleSort("lastEditedAt")}
@@ -1009,7 +1021,7 @@ export function AutomationsTableClient({
                 {filtered.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={8}
+                      colSpan={9}
                       className="px-3 py-16 text-center text-sm text-zinc-500"
                     >
                       {rows.length === 0
@@ -1143,6 +1155,40 @@ export function AutomationsTableClient({
                           </span>
                         )}
                       </td>
+                      {/* Notes: mirrors the Purpose cell exactly (fixed 240px,
+                          adaptive line-clamp, "Show" tooltip + read-only popup,
+                          red "None" when empty, disabled in edit mode so the row
+                          click opens the Edit dialog). Reuses purposeClamp since
+                          both cells share the Name-cell-driven row height. */}
+                      <td className="w-[240px] min-w-[240px] max-w-[240px] px-3 py-2 text-left align-top">
+                        {r.notes ? (
+                          <Tooltip disableHoverablePopup>
+                            <TooltipTrigger
+                              render={
+                                <button
+                                  type="button"
+                                  disabled={editMode}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowingNotes(r.notes ?? "");
+                                  }}
+                                  className="w-full cursor-pointer line-clamp-2 break-words text-left text-xs text-zinc-700 hover:text-zinc-900 hover:underline disabled:pointer-events-none disabled:cursor-default disabled:no-underline"
+                                  style={{ WebkitLineClamp: purposeClamp[r.id] ?? 2 }}
+                                >
+                                  {r.notes}
+                                </button>
+                              }
+                            />
+                            <TooltipContent className="max-w-xs whitespace-pre-wrap text-left normal-case">
+                              {r.notes}
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          <span className="text-xs font-medium text-red-600">
+                            None
+                          </span>
+                        )}
+                      </td>
                       <td className="px-3 py-2 align-top text-center">
                         {/* Last Edited: sync/import-filled date (MM-DD-YYYY). A
                             plain "-" when empty (sync-only, never manual). */}
@@ -1254,6 +1300,21 @@ export function AutomationsTableClient({
               scrollbar) while the title stays pinned. */}
           <p className="min-h-0 flex-1 overflow-y-auto whitespace-pre-wrap break-words text-sm text-zinc-700">
             {showingPurpose}
+          </p>
+        </DialogContent>
+      </Dialog>
+
+      {/* Read-only "Show notes" popup (mirrors the Purpose popup) */}
+      <Dialog
+        open={showingNotes !== null}
+        onOpenChange={(o) => !o && setShowingNotes(null)}
+      >
+        <DialogContent className="flex max-h-[85vh] flex-col sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Notes</DialogTitle>
+          </DialogHeader>
+          <p className="min-h-0 flex-1 overflow-y-auto whitespace-pre-wrap break-words text-sm text-zinc-700">
+            {showingNotes}
           </p>
         </DialogContent>
       </Dialog>
