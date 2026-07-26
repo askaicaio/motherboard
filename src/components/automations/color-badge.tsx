@@ -22,7 +22,7 @@ export function ColorBadge({
   const fg = choiceColorHex(textColor) ?? "#111827";
   return (
     <span
-      className="inline-block break-words rounded-full px-3 py-0.5 text-xs font-medium"
+      className="inline-block break-words rounded-md px-3 py-0.5 text-xs font-medium"
       style={{ backgroundColor: bg, color: fg, border: "1px solid rgba(0,0,0,0.08)" }}
     >
       {value}

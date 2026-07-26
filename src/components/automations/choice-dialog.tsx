@@ -268,7 +268,7 @@ export function ChoiceDialog({
                 <div>
                   {badgeColor ? (
                     <span
-                      className="inline-block break-words rounded-full px-3 py-0.5 text-xs font-medium"
+                      className="inline-block break-words rounded-md px-3 py-0.5 text-xs font-medium"
                       style={{
                         backgroundColor: choiceColorHex(badgeColor),
                         color: choiceColorHex(textColor) ?? "#111827",
