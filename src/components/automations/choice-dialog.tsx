@@ -206,12 +206,21 @@ export function ChoiceDialog({
         onOpenChange(isOpen);
       }}
     >
-      <DialogContent className="sm:max-w-md" overlayClassName="bg-black/70">
+      <DialogContent
+        className="flex max-h-[85vh] flex-col sm:max-w-md"
+        overlayClassName="bg-black/70"
+      >
         <DialogHeader>
           <DialogTitle>{heading}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-3">
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+          {/* Fields scroll together when the dialog gets tall (e.g. a long Notes
+              value); the header + footer stay pinned so the buttons are always
+              reachable. Mirrors the Per Website Add/Edit Workflow dialog.
+              (-mx-1/px-1 gives focus rings room so they don't trigger a
+              horizontal scrollbar.) */}
+          <div className="-mx-1 min-h-0 flex-1 space-y-3 overflow-y-auto px-1 pb-3">
           <div className="space-y-1.5">
             <Label htmlFor="choice-value">{fieldLabel}</Label>
             <Input
@@ -315,7 +324,8 @@ export function ChoiceDialog({
               {error}
             </p>
           )}
-          <DialogFooter>
+          </div>
+          <DialogFooter className="shrink-0">
             <Button
               type="button"
               variant="outline"
