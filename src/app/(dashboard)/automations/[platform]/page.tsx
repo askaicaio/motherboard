@@ -38,6 +38,7 @@ export default async function AutomationWebsitePage({
       externalUrl: automations.externalUrl,
       status: automations.status,
       purpose: automations.purpose,
+      notes: automations.notes,
       lastRunAt: automations.lastRunAt,
       lastEditedAt: automations.lastEditedAt,
       // Author: the stored choice id + its resolved display value (left join,

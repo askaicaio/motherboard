@@ -129,6 +129,8 @@ export function AllAutomationsTableClient({
   const [query, setQuery] = useState("");
   // The purpose text shown in the read-only popup (null = closed).
   const [showingPurpose, setShowingPurpose] = useState<string | null>(null);
+  // The notes text shown in the read-only "Show notes" popup (mirrors Purpose).
+  const [showingNotes, setShowingNotes] = useState<string | null>(null);
   // Adaptive Purpose clamp (see the per-website AutomationsTableClient for the
   // full rationale): line count per row, sized to the fixed-width Name cell so
   // taller rows fill their height instead of leaving a 2-line gap.
@@ -267,7 +269,7 @@ export function AllAutomationsTableClient({
             {/* Same shell as the per-website table: bounded scroll, sticky
                 header (Option B), frozen Name column, horizontal scroll once the
                 columns exceed the card width. */}
-            <table className="w-full min-w-[1560px] text-sm">
+            <table className="w-full min-w-[1800px] text-sm">
               <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
                 <tr>
                   {/* Corner cell: frozen Name column, sticky on both axes. */}
@@ -303,6 +305,11 @@ export function AllAutomationsTableClient({
                   </th>
                   <th className="sticky top-0 z-10 w-[240px] min-w-[240px] max-w-[240px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
                     Purpose
+                  </th>
+                  {/* Notes: mirrors Purpose, one column to its right (same as the
+                      Per Website table). Display-only, not sortable. */}
+                  <th className="sticky top-0 z-10 w-[240px] min-w-[240px] max-w-[240px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
+                    Notes
                   </th>
                   <th
                     onClick={() => toggleSort("lastEditedAt")}
@@ -352,7 +359,7 @@ export function AllAutomationsTableClient({
                 {filtered.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={8}
+                      colSpan={9}
                       className="px-3 py-16 text-center text-sm text-zinc-500"
                     >
                       {rows.length === 0
@@ -456,6 +463,33 @@ export function AllAutomationsTableClient({
                           </span>
                         )}
                       </td>
+                      {/* Notes: mirrors the Purpose cell (display-only, reuses
+                          purposeClamp for the row-height-driven clamp). */}
+                      <td className="w-[240px] min-w-[240px] max-w-[240px] px-3 py-2 text-left align-top">
+                        {r.notes ? (
+                          <Tooltip disableHoverablePopup>
+                            <TooltipTrigger
+                              render={
+                                <button
+                                  type="button"
+                                  onClick={() => setShowingNotes(r.notes ?? "")}
+                                  className="w-full cursor-pointer line-clamp-2 break-words text-left text-xs text-zinc-700 hover:text-zinc-900 hover:underline"
+                                  style={{ WebkitLineClamp: purposeClamp[r.id] ?? 2 }}
+                                >
+                                  {r.notes}
+                                </button>
+                              }
+                            />
+                            <TooltipContent className="max-w-xs whitespace-pre-wrap text-left normal-case">
+                              {r.notes}
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          <span className="text-xs font-medium text-red-600">
+                            None
+                          </span>
+                        )}
+                      </td>
                       <td className="px-3 py-2 align-top text-center">
                         {r.lastEditedAt ? (
                           <span className="text-xs tabular-nums text-zinc-700">
@@ -518,6 +552,21 @@ export function AllAutomationsTableClient({
           </DialogHeader>
           <p className="min-h-0 flex-1 overflow-y-auto whitespace-pre-wrap break-words text-sm text-zinc-700">
             {showingPurpose}
+          </p>
+        </DialogContent>
+      </Dialog>
+
+      {/* Read-only "Show notes" popup (mirrors the Purpose popup). */}
+      <Dialog
+        open={showingNotes !== null}
+        onOpenChange={(o) => !o && setShowingNotes(null)}
+      >
+        <DialogContent className="flex max-h-[85vh] flex-col sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Notes</DialogTitle>
+          </DialogHeader>
+          <p className="min-h-0 flex-1 overflow-y-auto whitespace-pre-wrap break-words text-sm text-zinc-700">
+            {showingNotes}
           </p>
         </DialogContent>
       </Dialog>

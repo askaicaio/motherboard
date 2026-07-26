@@ -20,6 +20,8 @@ const createSchema = z.object({
   status: z.enum(["active", "paused"]).optional().default("paused"),
   // Purpose is optional free text; stored as null when blank.
   purpose: z.string().max(5000).optional().default(""),
+  // Notes is optional free text (mirrors Purpose); stored as null when blank.
+  notes: z.string().max(5000).optional().default(""),
   // Author (single-select): the chosen automation_dropdown_choices id, or null
   // for none. Validated below to be a real 'author' option.
   authorChoiceId: z.string().uuid().nullable().optional(),
@@ -124,6 +126,7 @@ export async function POST(request: NextRequest) {
         externalUrl,
         status: body.status,
         purpose: body.purpose.trim() || null,
+        notes: body.notes.trim() || null,
         authorChoiceId: body.authorChoiceId ?? null,
         createdBy: user.id,
       })
