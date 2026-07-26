@@ -193,9 +193,12 @@ export const DROPDOWN_COLUMNS: DropdownColumnConfig[] = [
     hasNotes: true,
   },
   {
-    // Trigger Event / Badge Color / Text Color table. `hasColor` makes it a rich
-    // table: the value renders as a coloured pill (badge + text colours chosen
-    // independently in the Add/Edit dialog), plus two colour columns.
+    // Trigger Event / Badge Color / Text Color / Notes table. `hasColor` makes
+    // it a rich table: the value renders as a coloured pill (badge + text colours
+    // chosen independently in the Add/Edit dialog), plus two colour columns.
+    // `hasNotes` adds a Purpose-style Notes column (mimics the Author table),
+    // rendered last (4th column); reuses the shared `notes` field (migration
+    // 0031), so no new migration.
     key: "trigger_event",
     title: "Trigger Event",
     singular: "trigger event",
@@ -203,6 +206,7 @@ export const DROPDOWN_COLUMNS: DropdownColumnConfig[] = [
     placeholder: "e.g. Form submitted",
     rowLabel: "Trigger Event",
     hasColor: true,
+    hasNotes: true,
   },
 ];
 
@@ -214,8 +218,8 @@ export interface DropdownChoiceRow {
   /** Status-bearing columns only (GHL Tags, GHL Forms, Author): one of that
    *  column's `statusOptions` values. Null/undefined for the plain columns. */
   status?: string | null;
-  /** Notes-bearing columns only (GHL Tags, GHL Forms, Author): free-text note.
-   *  Null/undefined for the plain columns. */
+  /** Notes-bearing columns only (GHL Tags, GHL Forms, Author, Trigger Event):
+   *  free-text note. Null/undefined for the plain columns. */
   notes?: string | null;
   /** Color-bearing columns only (Trigger Event): the chosen pill/background
    *  colour key (from CHOICE_COLOR_OPTIONS). Null/undefined otherwise. */
