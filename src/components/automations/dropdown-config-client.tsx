@@ -41,6 +41,8 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
   DROPDOWN_COLUMNS,
+  choiceColorHex,
+  choiceColorLabel,
   type DropdownChoiceRow,
   type DropdownColumnKey,
   type StatusOption,
@@ -55,6 +57,8 @@ interface Item {
   value: string;
   status?: string | null;
   notes?: string | null;
+  badgeColor?: string | null;
+  textColor?: string | null;
 }
 
 /** Describes one table on the page. */
@@ -73,6 +77,8 @@ interface TableDescriptor {
   /** Group rows by status order (GHL Tags/Forms); omit → plain alphabetical. */
   statusGrouped?: boolean;
   hasNotes?: boolean;
+  /** Rows carry Badge + Text colours; value renders as a pill (Trigger Event). */
+  hasColor?: boolean;
   /** First-column header for the rich table view ("Tag", "Form", "Author"). */
   rowLabel?: string;
 }
@@ -98,6 +104,7 @@ const TABLES: TableDescriptor[] = [
     defaultStatus: c.defaultStatus,
     statusGrouped: c.statusGrouped,
     hasNotes: c.hasNotes,
+    hasColor: c.hasColor,
     rowLabel: c.rowLabel,
   })),
   WEBHOOK_TABLE,
@@ -145,6 +152,8 @@ export function DropdownConfigClient({
         value: c.value,
         status: c.status,
         notes: c.notes,
+        badgeColor: c.badgeColor,
+        textColor: c.textColor,
       });
     }
     m.webhooks = webhooks.map((w) => ({ id: w.id, value: w.url }));
@@ -159,12 +168,15 @@ export function DropdownConfigClient({
     value: string;
     status?: string;
     notes?: string;
+    badgeColor?: string | null;
+    textColor?: string | null;
   }): Promise<string | null> {
     if (!dialog || !activeTable) return "No table selected";
     const isEdit = !!dialog.existing;
     const isWebhook = activeTable.id === "webhooks";
     const hasStatus = !!activeTable.hasStatus;
     const hasNotes = !!activeTable.hasNotes;
+    const hasColor = !!activeTable.hasColor;
 
     const endpoint = isWebhook
       ? isEdit
@@ -181,6 +193,12 @@ export function DropdownConfigClient({
           value: payload.value,
           ...(hasStatus ? { status: payload.status } : {}),
           ...(hasNotes ? { notes: payload.notes ?? "" } : {}),
+          ...(hasColor
+            ? {
+                badgeColor: payload.badgeColor ?? null,
+                textColor: payload.textColor ?? null,
+              }
+            : {}),
         };
 
     const res = await fetch(endpoint, {
@@ -190,7 +208,13 @@ export function DropdownConfigClient({
     });
     let data: {
       error?: string;
-      choice?: { id: string; status?: string | null; notes?: string | null };
+      choice?: {
+        id: string;
+        status?: string | null;
+        notes?: string | null;
+        badgeColor?: string | null;
+        textColor?: string | null;
+      };
       webhook?: { id: string };
     } = {};
     try {
@@ -216,7 +240,14 @@ export function DropdownConfigClient({
         isEdit
           ? prev.map((c) =>
               c.id === saved.id
-                ? { ...c, value: payload.value, status: saved.status, notes: saved.notes }
+                ? {
+                    ...c,
+                    value: payload.value,
+                    status: saved.status,
+                    notes: saved.notes,
+                    badgeColor: saved.badgeColor,
+                    textColor: saved.textColor,
+                  }
                 : c,
             )
           : [
@@ -226,6 +257,8 @@ export function DropdownConfigClient({
                 value: payload.value,
                 status: saved.status,
                 notes: saved.notes,
+                badgeColor: saved.badgeColor,
+                textColor: saved.textColor,
               },
               ...prev,
             ],
@@ -369,6 +402,9 @@ export function DropdownConfigClient({
             }
             showNotes={activeTable.hasNotes}
             initialNotes={dialog.existing?.notes ?? ""}
+            showColors={activeTable.hasColor}
+            initialBadgeColor={dialog.existing?.badgeColor ?? ""}
+            initialTextColor={dialog.existing?.textColor ?? ""}
             onSubmit={submitDialog}
           />
         )}
@@ -416,6 +452,48 @@ function StatusBadge({
   );
 }
 
+/** The value rendered as a coloured pill using the choice's badge + text colour
+ *  keys (inline hex, so it's independent of the app's pale pill classes). No
+ *  badge colour set → plain text. A faint inline border keeps white/light pills
+ *  visible on the white card. */
+function ColorPill({
+  value,
+  badgeColor,
+  textColor,
+}: {
+  value: string;
+  badgeColor?: string | null;
+  textColor?: string | null;
+}) {
+  const bg = choiceColorHex(badgeColor);
+  if (!bg) return <span className="text-sm text-zinc-700 break-words">{value}</span>;
+  const fg = choiceColorHex(textColor) ?? "#111827";
+  return (
+    <span
+      className="inline-block break-words rounded-full px-3 py-0.5 text-xs font-medium"
+      style={{ backgroundColor: bg, color: fg, border: "1px solid rgba(0,0,0,0.08)" }}
+    >
+      {value}
+    </span>
+  );
+}
+
+/** A "Badge Color" / "Text Color" cell: a swatch + the colour's name, or a
+ *  muted dash when unset. */
+function ColorCell({ colorKey }: { colorKey?: string | null }) {
+  const hex = choiceColorHex(colorKey);
+  if (!hex) return <span className="text-xs text-zinc-400">—</span>;
+  return (
+    <span className="inline-flex items-center gap-2 text-xs text-zinc-700">
+      <span
+        className="h-4 w-4 shrink-0 rounded"
+        style={{ backgroundColor: hex, border: "1px solid rgba(0,0,0,0.12)" }}
+      />
+      {choiceColorLabel(colorKey)}
+    </span>
+  );
+}
+
 function ChoiceTableSection({
   table,
   items,
@@ -456,7 +534,7 @@ function ChoiceTableSection({
   }, [items, query, table.statusGrouped, table.statusOptions]);
 
   // GHL Tags renders a richer multi-column table; the others are simple lists.
-  const rich = !!(table.hasStatus || table.hasNotes);
+  const rich = !!(table.hasStatus || table.hasNotes || table.hasColor);
 
   // Adaptive Notes clamp (GHL Tags): show as many lines of Notes as fit the
   // row's height, which is driven by the Tag cell (measured below, independent
@@ -558,6 +636,12 @@ function ChoiceTableSection({
                   {table.hasNotes && (
                     <th className="px-3 py-2 text-left">Notes</th>
                   )}
+                  {table.hasColor && (
+                    <>
+                      <th className="w-[150px] px-3 py-2 text-left">Badge Color</th>
+                      <th className="w-[150px] px-3 py-2 text-left">Text Color</th>
+                    </>
+                  )}
                   {/* Delete column: fixed width, pinned right (last column),
                       always present so toggling Edit mode doesn't reflow the
                       table; the button hides via `invisible`. */}
@@ -585,7 +669,15 @@ function ChoiceTableSection({
                       }}
                       className="w-[400px] min-w-[400px] max-w-[400px] break-words px-3 py-2 align-top"
                     >
-                      {item.value}
+                      {table.hasColor ? (
+                        <ColorPill
+                          value={item.value}
+                          badgeColor={item.badgeColor}
+                          textColor={item.textColor}
+                        />
+                      ) : (
+                        item.value
+                      )}
                     </td>
                     {table.hasStatus && (
                       <td className="px-3 py-2 align-top">
@@ -625,6 +717,16 @@ function ChoiceTableSection({
                           </span>
                         )}
                       </td>
+                    )}
+                    {table.hasColor && (
+                      <>
+                        <td className="px-3 py-2 align-top">
+                          <ColorCell colorKey={item.badgeColor} />
+                        </td>
+                        <td className="px-3 py-2 align-top">
+                          <ColorCell colorKey={item.textColor} />
+                        </td>
+                      </>
                     )}
                     <td className="px-2 py-2 align-top">
                       <button

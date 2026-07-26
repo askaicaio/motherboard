@@ -50,6 +50,54 @@ export const AUTHOR_STATUS_OPTIONS: StatusOption[] = [
   { value: "Unknown", badge: "bg-zinc-100 text-zinc-900", text: "text-zinc-900" },
 ];
 
+/** One selectable colour swatch for the colour-driven columns (Trigger Event).
+ *  `key` is stored on the choice (in `badge_color` / `text_color`); `hex` is the
+ *  actual colour rendered (inline style, so it's independent of the app's pale
+ *  pill classes); `label` is shown next to the swatch. Vibrant set + neutrals,
+ *  user-approved 2026-07-25. Used for BOTH the pill (badge) colour and the text
+ *  colour, chosen independently per choice. */
+export interface ChoiceColor {
+  key: string;
+  label: string;
+  hex: string;
+}
+
+export const CHOICE_COLOR_OPTIONS: ChoiceColor[] = [
+  { key: "teal", label: "Teal", hex: "#14b8a6" },
+  { key: "green", label: "Green", hex: "#22c55e" },
+  { key: "mint", label: "Mint", hex: "#6ee7b7" },
+  { key: "cyan", label: "Cyan", hex: "#06b6d4" },
+  { key: "blue", label: "Blue", hex: "#3b82f6" },
+  { key: "indigo", label: "Indigo", hex: "#6366f1" },
+  { key: "lavender", label: "Lavender", hex: "#c4b5fd" },
+  { key: "purple", label: "Purple", hex: "#8b5cf6" },
+  { key: "pink", label: "Pink", hex: "#ec4899" },
+  { key: "rose", label: "Rose", hex: "#f43f5e" },
+  { key: "red", label: "Red", hex: "#ef4444" },
+  { key: "orange", label: "Orange", hex: "#f97316" },
+  { key: "gold", label: "Gold", hex: "#f59e0b" },
+  { key: "yellow", label: "Yellow", hex: "#facc15" },
+  { key: "brown", label: "Brown", hex: "#92400e" },
+  { key: "white", label: "White", hex: "#ffffff" },
+  { key: "gray", label: "Gray", hex: "#6b7280" },
+  { key: "black", label: "Black", hex: "#111827" },
+];
+
+/** Look up a colour's hex by key (undefined for an unknown/unset key). */
+export function choiceColorHex(key: string | null | undefined): string | undefined {
+  if (!key) return undefined;
+  return CHOICE_COLOR_OPTIONS.find((c) => c.key === key)?.hex;
+}
+
+/** Label for a colour key (or "" when unset/unknown). */
+export function choiceColorLabel(key: string | null | undefined): string {
+  if (!key) return "";
+  return CHOICE_COLOR_OPTIONS.find((c) => c.key === key)?.label ?? "";
+}
+
+/** Set of valid colour keys, for API validation. */
+export const CHOICE_COLOR_KEYS = CHOICE_COLOR_OPTIONS.map((c) => c.key);
+
 export interface DropdownColumnConfig {
   /** Stored in `automation_dropdown_choices.column_key`. */
   key: DropdownColumnKey;
@@ -79,9 +127,13 @@ export interface DropdownColumnConfig {
   /** True → rows carry a free-text Notes field (Purpose-style). GHL Tags, GHL
    *  Forms, Author. */
   hasNotes?: boolean;
-  /** Header for the FIRST column in the rich (Status/Notes) table view, e.g.
-   *  "Tag" for GHL Tags, "Form" for GHL Forms, "Author" for Author. Only used by
-   *  the rich tables. */
+  /** True → rows carry a Badge Color + Text Color (chosen independently from
+   *  CHOICE_COLOR_OPTIONS), and the value renders as a coloured pill preview.
+   *  Trigger Event. Renders as a rich table (like hasStatus/hasNotes do). */
+  hasColor?: boolean;
+  /** Header for the FIRST column in the rich (Status/Notes/Color) table view,
+   *  e.g. "Tag" for GHL Tags, "Form" for GHL Forms, "Author" for Author,
+   *  "Trigger Event" for Trigger Event. Only used by the rich tables. */
   rowLabel?: string;
 }
 
@@ -141,11 +193,16 @@ export const DROPDOWN_COLUMNS: DropdownColumnConfig[] = [
     hasNotes: true,
   },
   {
+    // Trigger Event / Badge Color / Text Color table. `hasColor` makes it a rich
+    // table: the value renders as a coloured pill (badge + text colours chosen
+    // independently in the Add/Edit dialog), plus two colour columns.
     key: "trigger_event",
     title: "Trigger Event",
     singular: "trigger event",
     fieldLabel: "Trigger event",
     placeholder: "e.g. Form submitted",
+    rowLabel: "Trigger Event",
+    hasColor: true,
   },
 ];
 
@@ -160,6 +217,12 @@ export interface DropdownChoiceRow {
   /** Notes-bearing columns only (GHL Tags, GHL Forms, Author): free-text note.
    *  Null/undefined for the plain columns. */
   notes?: string | null;
+  /** Color-bearing columns only (Trigger Event): the chosen pill/background
+   *  colour key (from CHOICE_COLOR_OPTIONS). Null/undefined otherwise. */
+  badgeColor?: string | null;
+  /** Color-bearing columns only (Trigger Event): the chosen text colour key.
+   *  Null/undefined otherwise. */
+  textColor?: string | null;
 }
 
 /** A single webhook URL choice. */

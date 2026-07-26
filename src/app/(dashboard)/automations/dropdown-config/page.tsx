@@ -41,6 +41,8 @@ export default async function AutomationsDropdownConfigPage() {
         value: automationDropdownChoices.value,
         status: automationDropdownChoices.status,
         notes: automationDropdownChoices.notes,
+        badgeColor: automationDropdownChoices.badgeColor,
+        textColor: automationDropdownChoices.textColor,
       })
       .from(automationDropdownChoices)
       .orderBy(asc(automationDropdownChoices.value)),
@@ -59,6 +61,8 @@ export default async function AutomationsDropdownConfigPage() {
     value: r.value,
     status: r.status,
     notes: r.notes,
+    badgeColor: r.badgeColor,
+    textColor: r.textColor,
   }));
   const webhooks: WebhookChoiceRow[] = webhookRows.map((r) => ({
     id: r.id,

@@ -5,7 +5,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { automationDropdownChoices } from "@/lib/db/schema";
-import { DROPDOWN_COLUMNS } from "@/lib/automations/dropdown-config";
+import {
+  DROPDOWN_COLUMNS,
+  CHOICE_COLOR_KEYS,
+} from "@/lib/automations/dropdown-config";
 import { getOptionalAuth } from "@/lib/auth/guard";
 import { and, eq, ne } from "drizzle-orm";
 
@@ -15,6 +18,9 @@ const patchSchema = z.object({
   // validated per-column below against the row's own column set.
   status: z.string().trim().max(50).optional(),
   notes: z.string().max(5000).optional(),
+  // Colour-bearing columns only (Trigger Event); null clears. Validated below.
+  badgeColor: z.string().nullable().optional(),
+  textColor: z.string().nullable().optional(),
 });
 
 const DUPLICATE_ERROR = "That option already exists in this column.";
@@ -76,6 +82,16 @@ export async function PATCH(
     }
   }
 
+  // A provided colour (badge/text), when non-null, must be a valid palette key.
+  for (const c of [body.badgeColor, body.textColor]) {
+    if (c && !CHOICE_COLOR_KEYS.includes(c)) {
+      return NextResponse.json(
+        { error: "Invalid colour for this column." },
+        { status: 400 },
+      );
+    }
+  }
+
   // Duplicate check only when the value (the option text) is changing.
   if (body.value !== undefined) {
     const value = body.value.trim();
@@ -99,6 +115,8 @@ export async function PATCH(
   if (body.value !== undefined) patch.value = body.value.trim();
   if (body.status !== undefined) patch.status = body.status;
   if (body.notes !== undefined) patch.notes = body.notes.trim() || null;
+  if (body.badgeColor !== undefined) patch.badgeColor = body.badgeColor || null;
+  if (body.textColor !== undefined) patch.textColor = body.textColor || null;
 
   try {
     const [updated] = await db
@@ -114,6 +132,8 @@ export async function PATCH(
         value: updated.value,
         status: updated.status,
         notes: updated.notes,
+        badgeColor: updated.badgeColor,
+        textColor: updated.textColor,
       },
     });
   } catch (err) {

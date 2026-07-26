@@ -7,7 +7,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { automationDropdownChoices } from "@/lib/db/schema";
-import { DROPDOWN_COLUMNS } from "@/lib/automations/dropdown-config";
+import {
+  DROPDOWN_COLUMNS,
+  CHOICE_COLOR_KEYS,
+} from "@/lib/automations/dropdown-config";
 import { getOptionalAuth } from "@/lib/auth/guard";
 import { and, eq } from "drizzle-orm";
 
@@ -25,7 +28,13 @@ const createSchema = z.object({
   // per-column below (each column has its own allowed set).
   status: z.string().trim().max(50).optional(),
   notes: z.string().max(5000).optional(),
+  // Badge + Text colours only apply to colour-bearing columns (Trigger Event);
+  // ignored (stored null) otherwise. Must be a valid palette key or null.
+  badgeColor: z.string().nullable().optional(),
+  textColor: z.string().nullable().optional(),
 });
+
+const INVALID_COLOR_ERROR = "Invalid colour for this column.";
 
 const DUPLICATE_ERROR = "That option already exists in this column.";
 
@@ -98,6 +107,15 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // Colours (colour-bearing columns only): each, when set, must be a valid key.
+  if (column?.hasColor) {
+    for (const c of [body.badgeColor, body.textColor]) {
+      if (c && !CHOICE_COLOR_KEYS.includes(c)) {
+        return NextResponse.json({ error: INVALID_COLOR_ERROR }, { status: 400 });
+      }
+    }
+  }
+
   try {
     const [created] = await db
       .insert(automationDropdownChoices)
@@ -108,6 +126,8 @@ export async function POST(request: NextRequest) {
           ? body.status || column.defaultStatus || "Unknown"
           : null,
         notes: column?.hasNotes ? body.notes?.trim() || null : null,
+        badgeColor: column?.hasColor ? body.badgeColor || null : null,
+        textColor: column?.hasColor ? body.textColor || null : null,
         createdBy: user.id,
       })
       .returning();
@@ -119,6 +139,8 @@ export async function POST(request: NextRequest) {
           value: created.value,
           status: created.status,
           notes: created.notes,
+          badgeColor: created.badgeColor,
+          textColor: created.textColor,
         },
       },
       { status: 201 },
