@@ -127,8 +127,8 @@ function SortArrow({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {
 //                     impossible via their API), so both stay "-".
 //   - Zapier:         no live sync (CSV import only) → nothing is marked.
 // The "name" key also covers the Link shown beneath the name (the sync writes the
-// URL too). Purpose and Author are never synced on any platform (manual only), so
-// they never appear here.
+// URL too). Purpose, Author, Notes and Trigger Event are never synced on any
+// platform (manual only), so they never appear here.
 // ⚠️ When a NEW column is added, decide if a sync/capture writes it and update
 // this map (fold into the add-a-column touch-list).
 // ---------------------------------------------------------------------------
@@ -219,6 +219,11 @@ export interface AutomationRow {
   // or from the loaded choices (after a dialog save).
   authorChoiceId?: string | null;
   author?: string | null;
+  // Trigger Event (single-select dropdown column, mirrors Author).
+  // `triggerEventChoiceId` is the stored choice id; `triggerEvent` is its
+  // resolved display value (both null when unset). Manual only; never synced.
+  triggerEventChoiceId?: string | null;
+  triggerEvent?: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -235,6 +240,8 @@ const EXPORT_COLUMNS: { header: string; value: (r: AutomationRow) => string }[] 
     { header: "Name", value: (r) => r.name ?? "" },
     { header: "Link", value: (r) => r.externalUrl ?? "" },
     { header: "Status", value: (r) => r.status },
+    // Trigger Event sits right after Status on the table, so it does here too.
+    { header: "Trigger Event", value: (r) => r.triggerEvent ?? "" },
     { header: "Purpose", value: (r) => r.purpose ?? "" },
     // Notes sits immediately right of Purpose on the table, so it does here too.
     { header: "Notes", value: (r) => r.notes ?? "" },
@@ -277,6 +284,7 @@ export function AutomationsTableClient({
   iconColor,
   initialRows,
   authorChoices = [],
+  triggerEventChoices = [],
   canSync = false,
   hasApiKey = false,
   autoRefresh = { enabled: false, nextRefreshAt: null },
@@ -292,6 +300,8 @@ export function AutomationsTableClient({
   initialRows: AutomationRow[];
   /** Author options for the single-select Author dropdown (Add/Edit dialog). */
   authorChoices?: ChoiceOption[];
+  /** Trigger Event options for its single-select dropdown (Add/Edit dialog). */
+  triggerEventChoices?: ChoiceOption[];
   /** When true, "Refresh List" performs a real sync; otherwise it shows the
    *  temporary placeholder error (platforms whose sync isn't built yet). */
   canSync?: boolean;
@@ -852,7 +862,7 @@ export function AutomationsTableClient({
             stands in for the row border, which would otherwise scroll away.
 
             Horizontal scroll + frozen Name column: the table carries a
-            `min-w-[1650px]` so once columns exceed the card width it overflows
+            `min-w-[1810px]` so once columns exceed the card width it overflows
             and the existing overflow-auto shows a horizontal scrollbar (drag,
             Shift+wheel, or trackpad swipe). The first column (Name + its link)
             is `sticky left-0` on both the header and every body row so the
@@ -868,7 +878,7 @@ export function AutomationsTableClient({
             style={scrollStyle}
             className="max-h-[70vh] overflow-auto p-0"
           >
-            <table className="w-full min-w-[1650px] text-sm">
+            <table className="w-full min-w-[1810px] text-sm">
               <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
                 <tr>
                   {/* Corner cell: pinned to BOTH the top (header) and the left
@@ -912,6 +922,11 @@ export function AutomationsTableClient({
                       Status
                       <SortArrow active={sortKey === "status"} dir={sortDir} />
                     </span>
+                  </th>
+                  {/* Trigger Event: single-select dropdown column, center-aligned,
+                      display-only (not sortable), never synced. Sits after Status. */}
+                  <th className="sticky top-0 z-10 w-[160px] min-w-[160px] max-w-[160px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
+                    Trigger Event
                   </th>
                   <th className="sticky top-0 z-10 w-[240px] min-w-[240px] max-w-[240px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
                     Purpose
@@ -1021,7 +1036,7 @@ export function AutomationsTableClient({
                 {filtered.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={9}
+                      colSpan={10}
                       className="px-3 py-16 text-center text-sm text-zinc-500"
                     >
                       {rows.length === 0
@@ -1101,6 +1116,19 @@ export function AutomationsTableClient({
                         >
                           {r.status === "active" ? "Active" : "Paused"}
                         </span>
+                      </td>
+                      {/* Trigger Event: the selected option's value, or red "None"
+                          when unset (mirrors Author). Center-aligned, 160px. */}
+                      <td className="w-[160px] min-w-[160px] max-w-[160px] px-3 py-2 text-center align-top">
+                        {r.triggerEvent ? (
+                          <span className="text-xs text-zinc-700 break-words">
+                            {r.triggerEvent}
+                          </span>
+                        ) : (
+                          <span className="text-xs font-medium text-red-600">
+                            None
+                          </span>
+                        )}
                       </td>
                       <td className="w-[240px] min-w-[240px] max-w-[240px] px-3 py-2 text-left align-top">
                         {/* Purpose: a preview of the purpose text that fills the
@@ -1275,6 +1303,7 @@ export function AutomationsTableClient({
         onOpenChange={setAddOpen}
         platform={platform}
         authorChoices={authorChoices}
+        triggerEventChoices={triggerEventChoices}
         onCreated={handleCreated}
       />
       {/* Edit */}
@@ -1284,6 +1313,7 @@ export function AutomationsTableClient({
         platform={platform}
         existing={editing ?? undefined}
         authorChoices={authorChoices}
+        triggerEventChoices={triggerEventChoices}
         onSaved={handleSaved}
       />
 
