@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/select";
 import {
   CHOICE_COLOR_OPTIONS,
+  choiceColorHex,
   type StatusOption,
 } from "@/lib/automations/dropdown-config";
 import { cn } from "@/lib/utils";
@@ -267,6 +268,30 @@ export function ChoiceDialog({
           )}
           {showColors && (
             <>
+              {/* Live preview: the value rendered as a pill with the currently
+                  selected badge + text colours (updates as you type / pick).
+                  Plain text until a badge colour is chosen. */}
+              <div className="space-y-1.5">
+                <Label>Preview</Label>
+                <div>
+                  {badgeColor ? (
+                    <span
+                      className="inline-block break-words rounded-full px-3 py-0.5 text-xs font-medium"
+                      style={{
+                        backgroundColor: choiceColorHex(badgeColor),
+                        color: choiceColorHex(textColor) ?? "#111827",
+                        border: "1px solid rgba(0,0,0,0.08)",
+                      }}
+                    >
+                      {value.trim() || "Preview"}
+                    </span>
+                  ) : (
+                    <span className="text-sm text-zinc-700">
+                      {value.trim() || "Preview"}
+                    </span>
+                  )}
+                </div>
+              </div>
               <ColorSwatchPicker
                 label="Badge color"
                 value={badgeColor}
