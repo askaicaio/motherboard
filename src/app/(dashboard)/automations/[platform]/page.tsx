@@ -50,9 +50,12 @@ export default async function AutomationWebsitePage({
       // so rows with no author come back null).
       authorChoiceId: automations.authorChoiceId,
       author: automationDropdownChoices.value,
-      // Trigger Event: same, via the aliased second join.
+      // Trigger Event: same, via the aliased second join, plus the choice's
+      // badge + text colours so the cell can render a coloured pill.
       triggerEventChoiceId: automations.triggerEventChoiceId,
       triggerEvent: triggerChoices.value,
+      triggerEventBadgeColor: triggerChoices.badgeColor,
+      triggerEventTextColor: triggerChoices.textColor,
     })
     .from(automations)
     .leftJoin(
@@ -81,6 +84,8 @@ export default async function AutomationWebsitePage({
       .select({
         id: automationDropdownChoices.id,
         value: automationDropdownChoices.value,
+        badgeColor: automationDropdownChoices.badgeColor,
+        textColor: automationDropdownChoices.textColor,
       })
       .from(automationDropdownChoices)
       .where(eq(automationDropdownChoices.columnKey, "trigger_event"))

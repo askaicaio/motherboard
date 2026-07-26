@@ -43,9 +43,12 @@ export default async function AllAutomationsPage() {
       // Author: stored id + resolved display value (left join → null when unset).
       authorChoiceId: automations.authorChoiceId,
       author: automationDropdownChoices.value,
-      // Trigger Event: same, via the aliased second join.
+      // Trigger Event: same, via the aliased second join, plus its badge + text
+      // colours so the cell can render a coloured pill.
       triggerEventChoiceId: automations.triggerEventChoiceId,
       triggerEvent: triggerChoices.value,
+      triggerEventBadgeColor: triggerChoices.badgeColor,
+      triggerEventTextColor: triggerChoices.textColor,
     })
     .from(automations)
     .leftJoin(

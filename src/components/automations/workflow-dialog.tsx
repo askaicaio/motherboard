@@ -136,6 +136,10 @@ export function WorkflowDialog({
       // Author: the API returns the stored id; resolve its display value from
       // the loaded choices so the table cell updates without a reload.
       const savedAuthorChoiceId = saved.authorChoiceId ?? null;
+      // Trigger Event: resolve the chosen option (value + colours) the same way.
+      const savedTriggerEvent = triggerEventChoices.find(
+        (c) => c.id === saved.triggerEventChoiceId,
+      );
       const row: AutomationRow = {
         id: saved.id,
         name: saved.name,
@@ -148,10 +152,11 @@ export function WorkflowDialog({
           authorChoices.find((c) => c.id === savedAuthorChoiceId)?.value ??
           null,
         triggerEventChoiceId: saved.triggerEventChoiceId ?? null,
-        triggerEvent:
-          triggerEventChoices.find(
-            (c) => c.id === saved.triggerEventChoiceId,
-          )?.value ?? null,
+        triggerEvent: savedTriggerEvent?.value ?? null,
+        // Resolve the chosen option's colours too, so the pill shows immediately
+        // (not just after a reload).
+        triggerEventBadgeColor: savedTriggerEvent?.badgeColor ?? null,
+        triggerEventTextColor: savedTriggerEvent?.textColor ?? null,
         // Sync-only fields, carried through so an edit doesn't blank them in the
         // table (not editable here; the API returns the current values).
         lastRunAt: saved.lastRunAt,
