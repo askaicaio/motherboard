@@ -19,20 +19,21 @@ const patchSchema = z.object({
   // Author (single-select): the chosen automation_dropdown_choices id, or null
   // to clear it. Only applied when the key is present. Validated below.
   authorChoiceId: z.string().uuid().nullable().optional(),
+  // Trigger Event (single-select): the chosen id, or null to clear it. Only
+  // applied when present. Validated below.
+  triggerEventChoiceId: z.string().uuid().nullable().optional(),
 });
 
-const UNKNOWN_AUTHOR_ERROR = "Unknown author option.";
-
-/** True when `id` is a real Author option (column_key = 'author'). Guards the
- *  FK against a valid-but-wrong-column choice id. */
-async function isAuthorChoice(id: string): Promise<boolean> {
+/** True when `id` is a real option for `columnKey` in automation_dropdown_choices.
+ *  Guards a single-select FK against a valid-but-wrong-column choice id. */
+async function isChoiceOfColumn(id: string, columnKey: string): Promise<boolean> {
   const [row] = await db
     .select({ id: automationDropdownChoices.id })
     .from(automationDropdownChoices)
     .where(
       and(
         eq(automationDropdownChoices.id, id),
-        eq(automationDropdownChoices.columnKey, "author"),
+        eq(automationDropdownChoices.columnKey, columnKey),
       ),
     )
     .limit(1);
@@ -83,13 +84,19 @@ export async function PATCH(
     throw err;
   }
 
-  // Reject an author id that isn't a real 'author' option (null clears it and
-  // needs no check).
+  // Reject a single-select id that isn't a real option for its column (null
+  // clears it and needs no check).
   if (
     body.authorChoiceId != null &&
-    !(await isAuthorChoice(body.authorChoiceId))
+    !(await isChoiceOfColumn(body.authorChoiceId, "author"))
   ) {
-    return NextResponse.json({ error: UNKNOWN_AUTHOR_ERROR }, { status: 400 });
+    return NextResponse.json({ error: "Unknown author option." }, { status: 400 });
+  }
+  if (
+    body.triggerEventChoiceId != null &&
+    !(await isChoiceOfColumn(body.triggerEventChoiceId, "trigger_event"))
+  ) {
+    return NextResponse.json({ error: "Unknown trigger event option." }, { status: 400 });
   }
 
   const patch: Record<string, unknown> = { updatedAt: new Date() };
@@ -99,6 +106,8 @@ export async function PATCH(
   if (body.purpose !== undefined) patch.purpose = body.purpose.trim() || null;
   if (body.notes !== undefined) patch.notes = body.notes.trim() || null;
   if (body.authorChoiceId !== undefined) patch.authorChoiceId = body.authorChoiceId;
+  if (body.triggerEventChoiceId !== undefined)
+    patch.triggerEventChoiceId = body.triggerEventChoiceId;
 
   // Deterministic duplicate check, block if ANOTHER row already uses this
   // link (the link is the automation's identity). Excludes the row itself.

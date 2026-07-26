@@ -9,6 +9,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { automations, automationDropdownChoices } from "@/lib/db/schema";
+import { alias } from "drizzle-orm/pg-core";
 import { asc, eq } from "drizzle-orm";
 import { requireAuth } from "@/lib/auth/guard";
 import { ArrowLeft } from "lucide-react";
@@ -31,6 +32,10 @@ export default async function AutomationWebsitePage({
   const site = getAutomationSite(platform);
   if (!site) notFound();
 
+  // Second self-join of the choices table for Trigger Event (Author already
+  // joins it unaliased), so both single-select values resolve in one query.
+  const triggerChoices = alias(automationDropdownChoices, "trigger_choices");
+
   const baseRows = await db
     .select({
       id: automations.id,
@@ -45,25 +50,42 @@ export default async function AutomationWebsitePage({
       // so rows with no author come back null).
       authorChoiceId: automations.authorChoiceId,
       author: automationDropdownChoices.value,
+      // Trigger Event: same, via the aliased second join.
+      triggerEventChoiceId: automations.triggerEventChoiceId,
+      triggerEvent: triggerChoices.value,
     })
     .from(automations)
     .leftJoin(
       automationDropdownChoices,
       eq(automations.authorChoiceId, automationDropdownChoices.id),
     )
+    .leftJoin(
+      triggerChoices,
+      eq(automations.triggerEventChoiceId, triggerChoices.id),
+    )
     .where(eq(automations.platform, site.slug))
     .orderBy(asc(automations.name));
 
-  // Author options for the single-select dropdown (managed on the Dropdown
+  // Options for the single-select dropdowns (managed on the Dropdown
   // Configuration page). Passed to the table's Add/Edit Workflow dialog.
-  const authorChoices = await db
-    .select({
-      id: automationDropdownChoices.id,
-      value: automationDropdownChoices.value,
-    })
-    .from(automationDropdownChoices)
-    .where(eq(automationDropdownChoices.columnKey, "author"))
-    .orderBy(asc(automationDropdownChoices.value));
+  const [authorChoices, triggerEventChoices] = await Promise.all([
+    db
+      .select({
+        id: automationDropdownChoices.id,
+        value: automationDropdownChoices.value,
+      })
+      .from(automationDropdownChoices)
+      .where(eq(automationDropdownChoices.columnKey, "author"))
+      .orderBy(asc(automationDropdownChoices.value)),
+    db
+      .select({
+        id: automationDropdownChoices.id,
+        value: automationDropdownChoices.value,
+      })
+      .from(automationDropdownChoices)
+      .where(eq(automationDropdownChoices.columnKey, "trigger_event"))
+      .orderBy(asc(automationDropdownChoices.value)),
+  ]);
 
   // Latest captured error date per automation, merged onto each row as the
   // "Last Error" column. Comes from the automation_errors table (Make writes it
@@ -94,6 +116,7 @@ export default async function AutomationWebsitePage({
         iconColor={site.iconColor}
         initialRows={rows}
         authorChoices={authorChoices}
+        triggerEventChoices={triggerEventChoices}
         canSync={isSyncablePlatform(site.slug)}
         hasApiKey={platformHasApiKey(site.slug)}
         autoRefresh={autoRefresh}

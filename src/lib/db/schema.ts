@@ -1212,6 +1212,15 @@ export const automations = pgTable(
       () => automationDropdownChoices.id,
       { onDelete: "set null" },
     ),
+    /** Selected Trigger Event option (single-select dropdown column, mirrors
+     *  Author). Nullable FK to an `automation_dropdown_choices` row with
+     *  column_key = 'trigger_event'. Optional; set only via the Add/Edit Workflow
+     *  dialog, never by a sync. ON DELETE SET NULL. The display value is resolved
+     *  by joining to the choice's `value`. */
+    triggerEventChoiceId: uuid("trigger_event_choice_id").references(
+      () => automationDropdownChoices.id,
+      { onDelete: "set null" },
+    ),
 
     createdBy: uuid("created_by").references(() => adminUsers.id),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -1225,6 +1234,7 @@ export const automations = pgTable(
     uniqueIndex("uniq_automations_external_url").on(table.externalUrl),
     index("idx_automations_platform").on(table.platform),
     index("idx_automations_author_choice").on(table.authorChoiceId),
+    index("idx_automations_trigger_event_choice").on(table.triggerEventChoiceId),
   ],
 );
 

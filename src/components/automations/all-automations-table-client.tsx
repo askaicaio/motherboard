@@ -269,7 +269,7 @@ export function AllAutomationsTableClient({
             {/* Same shell as the per-website table: bounded scroll, sticky
                 header (Option B), frozen Name column, horizontal scroll once the
                 columns exceed the card width. */}
-            <table className="w-full min-w-[1800px] text-sm">
+            <table className="w-full min-w-[1960px] text-sm">
               <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
                 <tr>
                   {/* Corner cell: frozen Name column, sticky on both axes. */}
@@ -302,6 +302,11 @@ export function AllAutomationsTableClient({
                       Status
                       <SortArrow active={sortKey === "status"} dir={sortDir} />
                     </span>
+                  </th>
+                  {/* Trigger Event: mirrors the Per Website column, after Status.
+                      Display-only, not sortable, 160px. */}
+                  <th className="sticky top-0 z-10 w-[160px] min-w-[160px] max-w-[160px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
+                    Trigger Event
                   </th>
                   <th className="sticky top-0 z-10 w-[240px] min-w-[240px] max-w-[240px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
                     Purpose
@@ -359,7 +364,7 @@ export function AllAutomationsTableClient({
                 {filtered.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={9}
+                      colSpan={10}
                       className="px-3 py-16 text-center text-sm text-zinc-500"
                     >
                       {rows.length === 0
@@ -424,6 +429,19 @@ export function AllAutomationsTableClient({
                         >
                           {r.status === "active" ? "Active" : "Paused"}
                         </span>
+                      </td>
+                      {/* Trigger Event: the selected option's value, or red
+                          "None" when unset (mirrors the Per Website column). */}
+                      <td className="w-[160px] min-w-[160px] max-w-[160px] px-3 py-2 text-center align-top">
+                        {r.triggerEvent ? (
+                          <span className="text-xs text-zinc-700 break-words">
+                            {r.triggerEvent}
+                          </span>
+                        ) : (
+                          <span className="text-xs font-medium text-red-600">
+                            None
+                          </span>
+                        )}
                       </td>
                       <td className="w-[240px] min-w-[240px] max-w-[240px] px-3 py-2 text-left align-top">
                         {/* Purpose: a preview that fills the FIXED-WIDTH column

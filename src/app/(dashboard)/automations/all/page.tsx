@@ -12,6 +12,7 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { automations, automationDropdownChoices } from "@/lib/db/schema";
+import { alias } from "drizzle-orm/pg-core";
 import { asc, eq } from "drizzle-orm";
 import { requireAuth } from "@/lib/auth/guard";
 import { ArrowLeft } from "lucide-react";
@@ -24,6 +25,10 @@ export default async function AllAutomationsPage() {
   await requireAuth();
 
   // Every automation, all platforms, name-ascending (the client re-sorts).
+  // Second self-join of the choices table for Trigger Event (Author already
+  // joins it unaliased).
+  const triggerChoices = alias(automationDropdownChoices, "trigger_choices");
+
   const baseRows = await db
     .select({
       id: automations.id,
@@ -38,11 +43,18 @@ export default async function AllAutomationsPage() {
       // Author: stored id + resolved display value (left join → null when unset).
       authorChoiceId: automations.authorChoiceId,
       author: automationDropdownChoices.value,
+      // Trigger Event: same, via the aliased second join.
+      triggerEventChoiceId: automations.triggerEventChoiceId,
+      triggerEvent: triggerChoices.value,
     })
     .from(automations)
     .leftJoin(
       automationDropdownChoices,
       eq(automations.authorChoiceId, automationDropdownChoices.id),
+    )
+    .leftJoin(
+      triggerChoices,
+      eq(automations.triggerEventChoiceId, triggerChoices.id),
     )
     .orderBy(asc(automations.name));
 

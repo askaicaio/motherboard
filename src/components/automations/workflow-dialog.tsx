@@ -45,6 +45,8 @@ interface Props {
   existing?: AutomationRow;
   /** Configured Author options for the single-select Author dropdown. */
   authorChoices?: ChoiceOption[];
+  /** Configured Trigger Event options for its single-select dropdown. */
+  triggerEventChoices?: ChoiceOption[];
   onCreated?: (row: AutomationRow) => void;
   onSaved?: (row: AutomationRow) => void;
 }
@@ -55,6 +57,7 @@ export function WorkflowDialog({
   platform,
   existing,
   authorChoices = [],
+  triggerEventChoices = [],
   onCreated,
   onSaved,
 }: Props) {
@@ -70,6 +73,8 @@ export function WorkflowDialog({
   const [notes, setNotes] = useState("");
   // Author: the selected Author choice id ("" = none). Single-select dropdown.
   const [authorChoiceId, setAuthorChoiceId] = useState("");
+  // Trigger Event: the selected choice id ("" = none). Single-select dropdown.
+  const [triggerEventChoiceId, setTriggerEventChoiceId] = useState("");
   // Inline error shown as red text inside the dialog (e.g. duplicate link).
   const [error, setError] = useState<string | null>(null);
 
@@ -82,6 +87,7 @@ export function WorkflowDialog({
     setPurpose(existing?.purpose ?? "");
     setNotes(existing?.notes ?? "");
     setAuthorChoiceId(existing?.authorChoiceId ?? "");
+    setTriggerEventChoiceId(existing?.triggerEventChoiceId ?? "");
     setError(null);
   }, [open, existing]);
 
@@ -99,11 +105,12 @@ export function WorkflowDialog({
         ? `/api/automations/${existing!.id}`
         : "/api/automations";
       const method = isEdit ? "PATCH" : "POST";
-      // authorChoiceId: send the selected id, or null to clear it.
+      // single-select ids: send the selected id, or null to clear it.
       const authorPayload = authorChoiceId || null;
+      const triggerEventPayload = triggerEventChoiceId || null;
       const body = isEdit
-        ? { name: name.trim(), externalUrl: externalUrl.trim(), status, purpose: purpose.trim(), notes: notes.trim(), authorChoiceId: authorPayload }
-        : { platform, name: name.trim(), externalUrl: externalUrl.trim(), status, purpose: purpose.trim(), notes: notes.trim(), authorChoiceId: authorPayload };
+        ? { name: name.trim(), externalUrl: externalUrl.trim(), status, purpose: purpose.trim(), notes: notes.trim(), authorChoiceId: authorPayload, triggerEventChoiceId: triggerEventPayload }
+        : { platform, name: name.trim(), externalUrl: externalUrl.trim(), status, purpose: purpose.trim(), notes: notes.trim(), authorChoiceId: authorPayload, triggerEventChoiceId: triggerEventPayload };
 
       const res = await fetch(endpoint, {
         method,
@@ -140,6 +147,11 @@ export function WorkflowDialog({
         author:
           authorChoices.find((c) => c.id === savedAuthorChoiceId)?.value ??
           null,
+        triggerEventChoiceId: saved.triggerEventChoiceId ?? null,
+        triggerEvent:
+          triggerEventChoices.find(
+            (c) => c.id === saved.triggerEventChoiceId,
+          )?.value ?? null,
         // Sync-only fields, carried through so an edit doesn't blank them in the
         // table (not editable here; the API returns the current values).
         lastRunAt: saved.lastRunAt,
@@ -272,6 +284,24 @@ export function WorkflowDialog({
               searchPlaceholder="Search authors…"
               emptyLabel="None"
               noResultsLabel="No authors found."
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="wf-trigger-event">Trigger Event</Label>
+            {/* Single-select: pick ONE Trigger Event option from the configured
+                choices (managed on the Dropdown Configuration page). Optional;
+                the "None" row clears it. Mirrors the Author dropdown. */}
+            <SingleChoiceCombobox
+              id="wf-trigger-event"
+              options={triggerEventChoices}
+              value={triggerEventChoiceId}
+              onChange={(v) => {
+                setTriggerEventChoiceId(v);
+                setError(null);
+              }}
+              searchPlaceholder="Search trigger events…"
+              emptyLabel="None"
+              noResultsLabel="No trigger events found."
             />
           </div>
           <div className="space-y-1.5">

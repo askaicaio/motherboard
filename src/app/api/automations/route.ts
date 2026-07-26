@@ -25,20 +25,21 @@ const createSchema = z.object({
   // Author (single-select): the chosen automation_dropdown_choices id, or null
   // for none. Validated below to be a real 'author' option.
   authorChoiceId: z.string().uuid().nullable().optional(),
+  // Trigger Event (single-select): the chosen id, or null. Validated below to
+  // be a real 'trigger_event' option.
+  triggerEventChoiceId: z.string().uuid().nullable().optional(),
 });
 
-const UNKNOWN_AUTHOR_ERROR = "Unknown author option.";
-
-/** True when `id` is a real Author option (column_key = 'author'). Guards the
- *  FK against a valid-but-wrong-column choice id. */
-async function isAuthorChoice(id: string): Promise<boolean> {
+/** True when `id` is a real option for `columnKey` in automation_dropdown_choices.
+ *  Guards a single-select FK against a valid-but-wrong-column choice id. */
+async function isChoiceOfColumn(id: string, columnKey: string): Promise<boolean> {
   const [row] = await db
     .select({ id: automationDropdownChoices.id })
     .from(automationDropdownChoices)
     .where(
       and(
         eq(automationDropdownChoices.id, id),
-        eq(automationDropdownChoices.columnKey, "author"),
+        eq(automationDropdownChoices.columnKey, columnKey),
       ),
     )
     .limit(1);
@@ -101,10 +102,16 @@ export async function POST(request: NextRequest) {
 
   const externalUrl = body.externalUrl.trim();
 
-  // Reject an author id that isn't a real 'author' option (the FK alone would
-  // also allow a choice from another column).
-  if (body.authorChoiceId && !(await isAuthorChoice(body.authorChoiceId))) {
-    return NextResponse.json({ error: UNKNOWN_AUTHOR_ERROR }, { status: 400 });
+  // Reject a single-select id that isn't a real option for its column (the FK
+  // alone would also allow a choice from another column).
+  if (body.authorChoiceId && !(await isChoiceOfColumn(body.authorChoiceId, "author"))) {
+    return NextResponse.json({ error: "Unknown author option." }, { status: 400 });
+  }
+  if (
+    body.triggerEventChoiceId &&
+    !(await isChoiceOfColumn(body.triggerEventChoiceId, "trigger_event"))
+  ) {
+    return NextResponse.json({ error: "Unknown trigger event option." }, { status: 400 });
   }
 
   // Deterministic duplicate check (the link is the automation's identity).
@@ -128,6 +135,7 @@ export async function POST(request: NextRequest) {
         purpose: body.purpose.trim() || null,
         notes: body.notes.trim() || null,
         authorChoiceId: body.authorChoiceId ?? null,
+        triggerEventChoiceId: body.triggerEventChoiceId ?? null,
         createdBy: user.id,
       })
       .returning();
