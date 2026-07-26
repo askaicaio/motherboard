@@ -63,26 +63,42 @@ export interface ChoiceColor {
 }
 
 // Order = the swatch order in the pickers (this array is only iterated there).
-// Neutrals first (Black, Gray, White, user-set 2026-07-26), then the vibrant set.
+// Neutrals first (Black, Gray, White, user-set 2026-07-26), then each vibrant
+// colour immediately followed by its PALE counterpart (user-set 2026-07-26).
 export const CHOICE_COLOR_OPTIONS: ChoiceColor[] = [
   { key: "black", label: "Black", hex: "#111827" },
   { key: "gray", label: "Gray", hex: "#6b7280" },
   { key: "white", label: "White", hex: "#ffffff" },
   { key: "teal", label: "Teal", hex: "#14b8a6" },
+  { key: "pale-teal", label: "Pale Teal", hex: "#ccfbf1" },
   { key: "green", label: "Green", hex: "#22c55e" },
+  { key: "pale-green", label: "Pale Green", hex: "#dcfce7" },
   { key: "mint", label: "Mint", hex: "#6ee7b7" },
+  { key: "pale-mint", label: "Pale Mint", hex: "#d1fae5" },
   { key: "cyan", label: "Cyan", hex: "#06b6d4" },
+  { key: "pale-cyan", label: "Pale Cyan", hex: "#cffafe" },
   { key: "blue", label: "Blue", hex: "#3b82f6" },
+  { key: "pale-blue", label: "Pale Blue", hex: "#dbeafe" },
   { key: "indigo", label: "Indigo", hex: "#6366f1" },
+  { key: "pale-indigo", label: "Pale Indigo", hex: "#e0e7ff" },
   { key: "lavender", label: "Lavender", hex: "#c4b5fd" },
+  { key: "pale-lavender", label: "Pale Lavender", hex: "#ede9fe" },
   { key: "purple", label: "Purple", hex: "#8b5cf6" },
+  { key: "pale-purple", label: "Pale Purple", hex: "#f3e8ff" },
   { key: "pink", label: "Pink", hex: "#ec4899" },
+  { key: "pale-pink", label: "Pale Pink", hex: "#fce7f3" },
   { key: "rose", label: "Rose", hex: "#f43f5e" },
+  { key: "pale-rose", label: "Pale Rose", hex: "#ffe4e6" },
   { key: "red", label: "Red", hex: "#ef4444" },
+  { key: "pale-red", label: "Pale Red", hex: "#fee2e2" },
   { key: "orange", label: "Orange", hex: "#f97316" },
+  { key: "pale-orange", label: "Pale Orange", hex: "#ffedd5" },
   { key: "gold", label: "Gold", hex: "#f59e0b" },
+  { key: "pale-gold", label: "Pale Gold", hex: "#fef3c7" },
   { key: "yellow", label: "Yellow", hex: "#facc15" },
+  { key: "pale-yellow", label: "Pale Yellow", hex: "#fef9c3" },
   { key: "brown", label: "Brown", hex: "#92400e" },
+  { key: "pale-brown", label: "Pale Brown", hex: "#ede0d4" },
 ];
 
 /** Look up a colour's hex by key (undefined for an unknown/unset key). */
