@@ -43,38 +43,56 @@ export interface ChoiceSubmit {
   textColor?: string | null;
 }
 
-/** A compact swatch picker: a "none" chip + one circle per palette colour; the
- *  selected swatch gets a ring. Value is the colour key ("" = none). */
+/** Text-colour swatch order: Black first (it takes the old "none" slot, since an
+ *  unset text colour renders black anyway), then the rest of the palette. */
+const TEXT_COLOR_OPTIONS = [
+  ...CHOICE_COLOR_OPTIONS.filter((c) => c.key === "black"),
+  ...CHOICE_COLOR_OPTIONS.filter((c) => c.key !== "black"),
+];
+
+/** A compact swatch picker: an optional "none" chip + one circle per palette
+ *  colour; the selected swatch gets a ring. Value is the colour key ("" = none).
+ *  `disabled` dims the whole section and blocks interaction. */
 function ColorSwatchPicker({
   label,
   value,
   onChange,
+  options = CHOICE_COLOR_OPTIONS,
+  showNone = true,
+  disabled = false,
 }: {
   label: string;
   value: string;
   onChange: (key: string) => void;
+  options?: typeof CHOICE_COLOR_OPTIONS;
+  showNone?: boolean;
+  disabled?: boolean;
 }) {
   return (
-    <div className="space-y-1.5">
+    <div className={cn("space-y-1.5", disabled && "pointer-events-none opacity-40")}>
       <Label>{label}</Label>
       <div className="flex flex-wrap gap-1.5">
-        <button
-          type="button"
-          onClick={() => onChange("")}
-          aria-label="None"
-          title="None"
-          className={cn(
-            "flex h-6 w-6 items-center justify-center rounded-full border border-zinc-300 text-[11px] text-zinc-400",
-            value === "" && "ring-2 ring-zinc-900 ring-offset-1",
-          )}
-        >
-          &times;
-        </button>
-        {CHOICE_COLOR_OPTIONS.map((c) => (
+        {showNone && (
+          <button
+            type="button"
+            onClick={() => onChange("")}
+            disabled={disabled}
+            aria-label="None"
+            title="None"
+            className={cn(
+              "flex h-6 w-6 items-center justify-center rounded-full border border-zinc-300 text-[11px] text-zinc-400",
+              value === "" && "ring-2 ring-zinc-900 ring-offset-1",
+            )}
+          >
+            &times;
+          </button>
+        )}
+        {options.map((c) => (
           <button
             key={c.key}
             type="button"
             onClick={() => onChange(c.key)}
+            disabled={disabled}
             aria-label={c.label}
             title={c.label}
             className={cn(
@@ -175,8 +193,14 @@ export function ChoiceDialog({
         value: trimmed,
         ...(showStatus ? { status } : {}),
         ...(showNotes ? { notes } : {}),
+        // No badge colour → no pill, so clear both. Badge set but no explicit
+        // text colour → default it to black (the effective default), so the
+        // stored value matches what the picker shows + what renders.
         ...(showColors
-          ? { badgeColor: badgeColor || null, textColor: textColor || null }
+          ? {
+              badgeColor: badgeColor || null,
+              textColor: badgeColor ? textColor || "black" : null,
+            }
           : {}),
       });
       if (err) {
@@ -292,13 +316,20 @@ export function ChoiceDialog({
                   setError(null);
                 }}
               />
+              {/* Text colour: no "none" chip (unset = black anyway, so Black
+                  takes that slot). Disabled + dimmed when there's no badge colour,
+                  since the pill (and thus its text colour) isn't shown then.
+                  Defaults the highlight to Black when unset. */}
               <ColorSwatchPicker
                 label="Text color"
-                value={textColor}
+                value={textColor || "black"}
                 onChange={(k) => {
                   setTextColor(k);
                   setError(null);
                 }}
+                options={TEXT_COLOR_OPTIONS}
+                showNone={false}
+                disabled={badgeColor === ""}
               />
             </>
           )}
