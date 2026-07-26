@@ -1106,12 +1106,15 @@ export function AutomationsTableClient({
                         )}
                       </td>
                       <td className="px-3 py-2 text-center align-top">
+                        {/* Status pill (badge): green for Active, neutral gray
+                            for Paused. Matches the house badge convention
+                            (Subscriptions / GHL-tag StatusBadge). */}
                         <span
                           className={cn(
-                            "text-xs font-medium",
+                            "inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium",
                             r.status === "active"
-                              ? "text-green-600"
-                              : "text-zinc-900",
+                              ? "bg-emerald-100 text-emerald-700"
+                              : "bg-zinc-100 text-zinc-700",
                           )}
                         >
                           {r.status === "active" ? "Active" : "Paused"}
