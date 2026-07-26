@@ -650,7 +650,14 @@ function ChoiceTableSection({
               </tbody>
             </table>
           ) : (
-            <ul className="divide-y">
+            <div>
+              {/* Sticky column header naming the single column (e.g. "Trigger
+                  Event"), matching the rich tables' header row. Simple lists had
+                  no header before, which read as an unnamed column. */}
+              <div className="sticky top-0 z-10 border-b border-zinc-200 bg-zinc-50 px-3 py-2 text-xs uppercase tracking-wide text-zinc-500">
+                {table.rowLabel ?? table.title}
+              </div>
+              <ul className="divide-y">
               {filtered.map((item) => (
                 <li
                   key={item.id}
@@ -687,7 +694,8 @@ function ChoiceTableSection({
                   </button>
                 </li>
               ))}
-            </ul>
+              </ul>
+            </div>
           )}
         </CardContent>
       </Card>
