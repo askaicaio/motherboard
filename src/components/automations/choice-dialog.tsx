@@ -249,23 +249,6 @@ export function ChoiceDialog({
               </Select>
             </div>
           )}
-          {showNotes && (
-            <div className="space-y-1.5">
-              <Label htmlFor="choice-notes">Notes</Label>
-              <Textarea
-                id="choice-notes"
-                value={notes}
-                onChange={(e) => {
-                  setNotes(e.target.value);
-                  setError(null);
-                }}
-                maxLength={5000}
-                rows={3}
-                placeholder="Optional note…"
-                className="block resize-none overflow-hidden [overflow-wrap:anywhere]"
-              />
-            </div>
-          )}
           {showColors && (
             <>
               {/* Live preview: the value rendered as a pill with the currently
@@ -309,6 +292,23 @@ export function ChoiceDialog({
                 }}
               />
             </>
+          )}
+          {showNotes && (
+            <div className="space-y-1.5">
+              <Label htmlFor="choice-notes">Notes</Label>
+              <Textarea
+                id="choice-notes"
+                value={notes}
+                onChange={(e) => {
+                  setNotes(e.target.value);
+                  setError(null);
+                }}
+                maxLength={5000}
+                rows={3}
+                placeholder="Optional note…"
+                className="block resize-none overflow-hidden [overflow-wrap:anywhere]"
+              />
+            </div>
           )}
           {error && (
             <p className="text-sm font-medium text-red-600" role="alert">

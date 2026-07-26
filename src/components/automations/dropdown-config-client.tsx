@@ -633,20 +633,24 @@ function ChoiceTableSection({
                   {table.hasStatus && (
                     <th className="w-[120px] px-3 py-2 text-left">Status</th>
                   )}
-                  {table.hasNotes && (
-                    <th className="px-3 py-2 text-left">Notes</th>
-                  )}
                   {table.hasColor && (
                     <>
                       {/* Badge + Text Color: 120px each (same as the Author
-                          table's Status column). The empty spacer <th> has no
-                          width, so (like Notes on the other rich tables) it
-                          absorbs the leftover width and the first column holds
-                          at 400px instead of stretching. */}
+                          table's Status column). Rendered BEFORE Notes so on the
+                          Trigger Event table they sit right after the value and
+                          Notes is the last, flexing column (4th column). */}
                       <th className="w-[120px] px-3 py-2 text-left">Badge Color</th>
                       <th className="w-[120px] px-3 py-2 text-left">Text Color</th>
-                      <th className="px-3 py-2" />
                     </>
+                  )}
+                  {table.hasNotes && (
+                    <th className="px-3 py-2 text-left">Notes</th>
+                  )}
+                  {/* Spacer: only needed when a colour block has NO Notes column
+                      to flex; a no-width col absorbs the leftover so the fixed
+                      columns hold (first column stays 400px, not stretched). */}
+                  {table.hasColor && !table.hasNotes && (
+                    <th className="px-3 py-2" />
                   )}
                   {/* Delete column: fixed width, pinned right (last column),
                       always present so toggling Edit mode doesn't reflow the
@@ -693,6 +697,16 @@ function ChoiceTableSection({
                         />
                       </td>
                     )}
+                    {table.hasColor && (
+                      <>
+                        <td className="w-[120px] px-3 py-2 align-top">
+                          <ColorCell colorKey={item.badgeColor} />
+                        </td>
+                        <td className="w-[120px] px-3 py-2 align-top">
+                          <ColorCell colorKey={item.textColor} />
+                        </td>
+                      </>
+                    )}
                     {table.hasNotes && (
                       <td className="px-3 py-2 align-top">
                         {item.notes ? (
@@ -724,17 +738,9 @@ function ChoiceTableSection({
                         )}
                       </td>
                     )}
-                    {table.hasColor && (
-                      <>
-                        <td className="w-[120px] px-3 py-2 align-top">
-                          <ColorCell colorKey={item.badgeColor} />
-                        </td>
-                        <td className="w-[120px] px-3 py-2 align-top">
-                          <ColorCell colorKey={item.textColor} />
-                        </td>
-                        {/* Spacer: absorbs leftover width (see header note). */}
-                        <td className="px-3 py-2" />
-                      </>
+                    {/* Spacer: only when colour block has no Notes to flex. */}
+                    {table.hasColor && !table.hasNotes && (
+                      <td className="px-3 py-2" />
                     )}
                     <td className="px-2 py-2 align-top">
                       <button
