@@ -653,8 +653,11 @@ function ChoiceTableSection({
             <div>
               {/* Sticky column header naming the single column (e.g. "Trigger
                   Event"), matching the rich tables' header row. Simple lists had
-                  no header before, which read as an unnamed column. */}
-              <div className="sticky top-0 z-10 border-b border-zinc-200 bg-zinc-50 px-3 py-2 text-xs uppercase tracking-wide text-zinc-500">
+                  no header before, which read as an unnamed column.
+                  `font-bold`: the other tables' headers are <th> cells, which the
+                  browser renders bold by default (Tailwind Preflight doesn't reset
+                  th), so this <div> needs it explicitly to match their weight. */}
+              <div className="sticky top-0 z-10 border-b border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-bold uppercase tracking-wide text-zinc-500">
                 {table.rowLabel ?? table.title}
               </div>
               <ul className="divide-y">
