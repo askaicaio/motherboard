@@ -46,6 +46,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { WorkflowDialog } from "./workflow-dialog";
+import { ColorBadge } from "./color-badge";
 import type { ChoiceOption } from "@/lib/automations/dropdown-config";
 
 /** 24 hours in ms — the auto-refresh cadence (client-side copy; the server is
@@ -224,6 +225,10 @@ export interface AutomationRow {
   // resolved display value (both null when unset). Manual only; never synced.
   triggerEventChoiceId?: string | null;
   triggerEvent?: string | null;
+  // The selected Trigger Event choice's badge + text colour keys (resolved from
+  // the choices table), so the cell can render a coloured pill.
+  triggerEventBadgeColor?: string | null;
+  triggerEventTextColor?: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -1136,13 +1141,17 @@ export function AutomationsTableClient({
                           </span>
                         )}
                       </td>
-                      {/* Trigger Event: the selected option's value, or red "None"
-                          when unset (mirrors Author). Center-aligned, 160px. */}
+                      {/* Trigger Event: the selected option rendered as a
+                          coloured pill (its configured badge + text colours;
+                          plain text if no badge colour), or red "None" when
+                          unset. Center-aligned, 160px. */}
                       <td className="w-[160px] min-w-[160px] max-w-[160px] px-3 py-2 text-center align-top">
                         {r.triggerEvent ? (
-                          <span className="text-xs text-zinc-700 break-words">
-                            {r.triggerEvent}
-                          </span>
+                          <ColorBadge
+                            value={r.triggerEvent}
+                            badgeColor={r.triggerEventBadgeColor}
+                            textColor={r.triggerEventTextColor}
+                          />
                         ) : (
                           <span className="text-xs font-medium text-red-600">
                             None

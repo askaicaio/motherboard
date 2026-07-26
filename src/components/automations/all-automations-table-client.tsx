@@ -36,6 +36,7 @@ import {
 import { Search, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AUTOMATION_SITES } from "@/lib/automations/sites";
+import { ColorBadge } from "./color-badge";
 import type { AutomationRow } from "./automations-table-client";
 
 /** A combined-table row: the per-website row shape + which platform it's from. */
@@ -449,13 +450,16 @@ export function AllAutomationsTableClient({
                           </span>
                         )}
                       </td>
-                      {/* Trigger Event: the selected option's value, or red
+                      {/* Trigger Event: the selected option as a coloured pill
+                          (badge + text colours; plain text if none), or red
                           "None" when unset (mirrors the Per Website column). */}
                       <td className="w-[160px] min-w-[160px] max-w-[160px] px-3 py-2 text-center align-top">
                         {r.triggerEvent ? (
-                          <span className="text-xs text-zinc-700 break-words">
-                            {r.triggerEvent}
-                          </span>
+                          <ColorBadge
+                            value={r.triggerEvent}
+                            badgeColor={r.triggerEventBadgeColor}
+                            textColor={r.triggerEventTextColor}
+                          />
                         ) : (
                           <span className="text-xs font-medium text-red-600">
                             None

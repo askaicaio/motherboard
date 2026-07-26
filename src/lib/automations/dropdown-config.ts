@@ -242,4 +242,8 @@ export interface WebhookChoiceRow {
 export interface ChoiceOption {
   id: string;
   value: string;
+  /** Colour-bearing columns only (Trigger Event): the option's badge + text
+   *  colour keys, so a picked value can render as a coloured pill. */
+  badgeColor?: string | null;
+  textColor?: string | null;
 }
