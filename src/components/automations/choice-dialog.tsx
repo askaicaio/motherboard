@@ -27,13 +27,65 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { StatusOption } from "@/lib/automations/dropdown-config";
+import {
+  CHOICE_COLOR_OPTIONS,
+  type StatusOption,
+} from "@/lib/automations/dropdown-config";
+import { cn } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
 
 export interface ChoiceSubmit {
   value: string;
   status?: string;
   notes?: string;
+  badgeColor?: string | null;
+  textColor?: string | null;
+}
+
+/** A compact swatch picker: a "none" chip + one circle per palette colour; the
+ *  selected swatch gets a ring. Value is the colour key ("" = none). */
+function ColorSwatchPicker({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (key: string) => void;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label>{label}</Label>
+      <div className="flex flex-wrap gap-1.5">
+        <button
+          type="button"
+          onClick={() => onChange("")}
+          aria-label="None"
+          title="None"
+          className={cn(
+            "flex h-6 w-6 items-center justify-center rounded-full border border-zinc-300 text-[11px] text-zinc-400",
+            value === "" && "ring-2 ring-zinc-900 ring-offset-1",
+          )}
+        >
+          &times;
+        </button>
+        {CHOICE_COLOR_OPTIONS.map((c) => (
+          <button
+            key={c.key}
+            type="button"
+            onClick={() => onChange(c.key)}
+            aria-label={c.label}
+            title={c.label}
+            className={cn(
+              "h-6 w-6 rounded-full",
+              value === c.key && "ring-2 ring-zinc-900 ring-offset-1",
+            )}
+            style={{ backgroundColor: c.hex, border: "1px solid rgba(0,0,0,0.12)" }}
+          />
+        ))}
+      </div>
+    </div>
+  );
 }
 
 interface Props {
@@ -54,6 +106,10 @@ interface Props {
   /** Show a Purpose-style Notes textarea (GHL Tags). */
   showNotes?: boolean;
   initialNotes?: string;
+  /** Show Badge Color + Text Color swatch pickers (Trigger Event). */
+  showColors?: boolean;
+  initialBadgeColor?: string;
+  initialTextColor?: string;
   /** Performs the save. Resolves to an error message, or null on success. */
   onSubmit: (payload: ChoiceSubmit) => Promise<string | null>;
 }
@@ -73,11 +129,16 @@ export function ChoiceDialog({
   initialStatus,
   showNotes,
   initialNotes,
+  showColors,
+  initialBadgeColor,
+  initialTextColor,
   onSubmit,
 }: Props) {
   const [value, setValue] = useState("");
   const [status, setStatus] = useState("");
   const [notes, setNotes] = useState("");
+  const [badgeColor, setBadgeColor] = useState("");
+  const [textColor, setTextColor] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -86,8 +147,10 @@ export function ChoiceDialog({
     setValue(initialValue);
     setStatus(initialStatus ?? "");
     setNotes(initialNotes ?? "");
+    setBadgeColor(initialBadgeColor ?? "");
+    setTextColor(initialTextColor ?? "");
     setError(null);
-  }, [open, initialValue, initialStatus, initialNotes]);
+  }, [open, initialValue, initialStatus, initialNotes, initialBadgeColor, initialTextColor]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -111,6 +174,9 @@ export function ChoiceDialog({
         value: trimmed,
         ...(showStatus ? { status } : {}),
         ...(showNotes ? { notes } : {}),
+        ...(showColors
+          ? { badgeColor: badgeColor || null, textColor: textColor || null }
+          : {}),
       });
       if (err) {
         setError(err);
@@ -198,6 +264,26 @@ export function ChoiceDialog({
                 className="block resize-none overflow-hidden [overflow-wrap:anywhere]"
               />
             </div>
+          )}
+          {showColors && (
+            <>
+              <ColorSwatchPicker
+                label="Badge color"
+                value={badgeColor}
+                onChange={(k) => {
+                  setBadgeColor(k);
+                  setError(null);
+                }}
+              />
+              <ColorSwatchPicker
+                label="Text color"
+                value={textColor}
+                onChange={(k) => {
+                  setTextColor(k);
+                  setError(null);
+                }}
+              />
+            </>
           )}
           {error && (
             <p className="text-sm font-medium text-red-600" role="alert">

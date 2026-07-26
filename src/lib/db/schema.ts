@@ -1329,6 +1329,11 @@ export const automationDropdownChoices = pgTable(
     /** GHL Tags only: free-text note, presented + edited like the Per Website
      *  "Purpose" column. Null for the other columns. */
     notes: text("notes"),
+    /** Trigger Event only: pill/background colour key (from CHOICE_COLOR_OPTIONS,
+     *  e.g. 'blue'). Null for the other columns. */
+    badgeColor: text("badge_color"),
+    /** Trigger Event only: text colour key (same palette). Null otherwise. */
+    textColor: text("text_color"),
     createdBy: uuid("created_by").references(() => adminUsers.id),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
