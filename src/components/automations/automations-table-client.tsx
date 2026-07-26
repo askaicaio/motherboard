@@ -240,7 +240,9 @@ const EXPORT_COLUMNS: { header: string; value: (r: AutomationRow) => string }[] 
     { header: "Name", value: (r) => r.name ?? "" },
     { header: "Link", value: (r) => r.externalUrl ?? "" },
     { header: "Status", value: (r) => r.status },
-    // Trigger Event sits right after Status on the table, so it does here too.
+    // Author + Trigger Event (the two dropdown columns) sit together right after
+    // Status on the table, Author first; export mirrors that order.
+    { header: "Author", value: (r) => r.author ?? "" },
     { header: "Trigger Event", value: (r) => r.triggerEvent ?? "" },
     { header: "Purpose", value: (r) => r.purpose ?? "" },
     // Notes sits immediately right of Purpose on the table, so it does here too.
@@ -257,8 +259,6 @@ const EXPORT_COLUMNS: { header: string; value: (r: AutomationRow) => string }[] 
       header: "Last Error",
       value: (r) => (r.lastErrorAt ? formatDateCell(r.lastErrorAt) : ""),
     },
-    // Author is the last data column on the table, so it's last here too.
-    { header: "Author", value: (r) => r.author ?? "" },
   ];
 
 /** Escape one CSV field: wrap in double-quotes (doubling internal quotes) when
@@ -923,8 +923,28 @@ export function AutomationsTableClient({
                       <SortArrow active={sortKey === "status"} dir={sortDir} />
                     </span>
                   </th>
+                  {/* Author: single-select dropdown column, center-aligned.
+                      Sortable alphabetically (A-Z); "None" rows sink to the
+                      bottom. Never synced (set in the Add/Edit dialog). Sits
+                      between Status and Trigger Event (the two dropdown cols). */}
+                  <th
+                    onClick={() => toggleSort("author")}
+                    aria-sort={
+                      sortKey === "author"
+                        ? sortDir === "asc"
+                          ? "ascending"
+                          : "descending"
+                        : "none"
+                    }
+                    className="sticky top-0 z-10 w-[160px] min-w-[160px] max-w-[160px] cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700"
+                  >
+                    <span className="inline-flex items-center justify-center gap-1">
+                      Author
+                      <SortArrow active={sortKey === "author"} dir={sortDir} />
+                    </span>
+                  </th>
                   {/* Trigger Event: single-select dropdown column, center-aligned,
-                      display-only (not sortable), never synced. Sits after Status. */}
+                      display-only (not sortable), never synced. Sits after Author. */}
                   <th className="sticky top-0 z-10 w-[160px] min-w-[160px] max-w-[160px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
                     Trigger Event
                   </th>
@@ -1002,26 +1022,6 @@ export function AutomationsTableClient({
                       )}
                       Last Error
                       <SortArrow active={sortKey === "lastErrorAt"} dir={sortDir} />
-                    </span>
-                  </th>
-                  {/* Author: single-select dropdown column, center-aligned like
-                      the other new columns. Sortable alphabetically (A-Z);
-                      "None" rows sink to the bottom. Never synced (set in the
-                      Add/Edit dialog). */}
-                  <th
-                    onClick={() => toggleSort("author")}
-                    aria-sort={
-                      sortKey === "author"
-                        ? sortDir === "asc"
-                          ? "ascending"
-                          : "descending"
-                        : "none"
-                    }
-                    className="sticky top-0 z-10 w-[160px] min-w-[160px] max-w-[160px] cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700"
-                  >
-                    <span className="inline-flex items-center justify-center gap-1">
-                      Author
-                      <SortArrow active={sortKey === "author"} dir={sortDir} />
                     </span>
                   </th>
                   {/* Actions (delete) column. ALWAYS rendered, even when edit
@@ -1116,6 +1116,22 @@ export function AutomationsTableClient({
                         >
                           {r.status === "active" ? "Active" : "Paused"}
                         </span>
+                      </td>
+                      {/* Author: the selected option's value, or red "None" when
+                          unset (mirrors the Purpose empty state). Set in the
+                          Add/Edit dialog; break-words so a long name wraps inside
+                          the fixed 160px column. Sits between Status and Trigger
+                          Event. */}
+                      <td className="w-[160px] min-w-[160px] max-w-[160px] px-3 py-2 text-center align-top">
+                        {r.author ? (
+                          <span className="text-xs text-zinc-700 break-words">
+                            {r.author}
+                          </span>
+                        ) : (
+                          <span className="text-xs font-medium text-red-600">
+                            None
+                          </span>
+                        )}
                       </td>
                       {/* Trigger Event: the selected option's value, or red "None"
                           when unset (mirrors Author). Center-aligned, 160px. */}
@@ -1250,21 +1266,6 @@ export function AutomationsTableClient({
                           </span>
                         ) : (
                           <span className="text-xs text-zinc-400">-</span>
-                        )}
-                      </td>
-                      {/* Author: the selected option's value, or red "None"
-                          when unset (mirrors the Purpose empty state). Set in
-                          the Add/Edit dialog; break-words so a long name wraps
-                          inside the fixed 160px column. */}
-                      <td className="w-[160px] min-w-[160px] max-w-[160px] px-3 py-2 text-center align-top">
-                        {r.author ? (
-                          <span className="text-xs text-zinc-700 break-words">
-                            {r.author}
-                          </span>
-                        ) : (
-                          <span className="text-xs font-medium text-red-600">
-                            None
-                          </span>
                         )}
                       </td>
                       {/* Actions cell: always present (reserves the column
