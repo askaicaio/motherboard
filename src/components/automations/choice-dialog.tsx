@@ -64,7 +64,13 @@ function ColorSwatchPicker({
   return (
     <div className={cn("space-y-1.5", disabled && "pointer-events-none opacity-40")}>
       <Label>{label}</Label>
-      <div className="flex flex-wrap gap-1.5">
+      {/* Fixed 15 swatches per row (grid), so the palette always lays out the
+          same regardless of how many colours there are. Swatches fill their
+          column (aspect-square), so 15 fit at any dialog width. */}
+      <div
+        className="grid gap-1.5"
+        style={{ gridTemplateColumns: "repeat(15, minmax(0, 1fr))" }}
+      >
         {options.map((c) => (
           <button
             key={c.key}
@@ -74,13 +80,13 @@ function ColorSwatchPicker({
             aria-label={c.label}
             title={c.label}
             className={cn(
-              "h-6 w-6 rounded-full",
+              "aspect-square w-full rounded-full",
               value === c.key && "ring-2 ring-zinc-900 ring-offset-1",
             )}
             style={{ backgroundColor: c.hex, border: "1px solid rgba(0,0,0,0.12)" }}
           />
         ))}
-        {/* "None" chip last (at the very end of the row). */}
+        {/* "None" chip last (at the very end of the grid). */}
         {showNone && (
           <button
             type="button"
@@ -89,7 +95,7 @@ function ColorSwatchPicker({
             aria-label="None"
             title="None"
             className={cn(
-              "flex h-6 w-6 items-center justify-center rounded-full border border-zinc-300 text-[11px] text-zinc-400",
+              "flex aspect-square w-full items-center justify-center rounded-full border border-zinc-300 text-[11px] text-zinc-400",
               value === "" && "ring-2 ring-zinc-900 ring-offset-1",
             )}
           >
@@ -225,7 +231,12 @@ export function ChoiceDialog({
       }}
     >
       <DialogContent
-        className="flex max-h-[85vh] flex-col sm:max-w-md"
+        className={cn(
+          "flex max-h-[85vh] flex-col",
+          // A touch wider for the colour tables so the 15-per-row swatch grid
+          // has comfortable room; other tables stay compact.
+          showColors ? "sm:max-w-lg" : "sm:max-w-md",
+        )}
         overlayClassName="bg-black/70"
       >
         <DialogHeader>
