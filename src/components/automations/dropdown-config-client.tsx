@@ -638,8 +638,14 @@ function ChoiceTableSection({
                   )}
                   {table.hasColor && (
                     <>
-                      <th className="w-[150px] px-3 py-2 text-left">Badge Color</th>
-                      <th className="w-[150px] px-3 py-2 text-left">Text Color</th>
+                      {/* Badge + Text Color: 120px each (same as the Author
+                          table's Status column). The empty spacer <th> has no
+                          width, so (like Notes on the other rich tables) it
+                          absorbs the leftover width and the first column holds
+                          at 400px instead of stretching. */}
+                      <th className="w-[120px] px-3 py-2 text-left">Badge Color</th>
+                      <th className="w-[120px] px-3 py-2 text-left">Text Color</th>
+                      <th className="px-3 py-2" />
                     </>
                   )}
                   {/* Delete column: fixed width, pinned right (last column),
@@ -720,12 +726,14 @@ function ChoiceTableSection({
                     )}
                     {table.hasColor && (
                       <>
-                        <td className="px-3 py-2 align-top">
+                        <td className="w-[120px] px-3 py-2 align-top">
                           <ColorCell colorKey={item.badgeColor} />
                         </td>
-                        <td className="px-3 py-2 align-top">
+                        <td className="w-[120px] px-3 py-2 align-top">
                           <ColorCell colorKey={item.textColor} />
                         </td>
+                        {/* Spacer: absorbs leftover width (see header note). */}
+                        <td className="px-3 py-2" />
                       </>
                     )}
                     <td className="px-2 py-2 align-top">
