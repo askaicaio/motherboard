@@ -38,6 +38,7 @@ const QUICK_LINKS: { group: string; links: QuickLink[] }[] = [
     links: [
       { label: "Stripe", href: "https://dashboard.stripe.com" },
       { label: "GoHighLevel", href: "https://app.gohighlevel.com" },
+      { label: "AI context (llms.txt)", href: "https://chiefaiofficer.com/llms.txt" },
     ],
   },
 ];
