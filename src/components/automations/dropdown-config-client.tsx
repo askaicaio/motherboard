@@ -10,10 +10,10 @@
 // GHL Tags and GHL Forms are richer 3-column tables:
 // <rowLabel> | Status (per-column dropdown, default Unknown) | Notes (free text,
 // presented + edited like the Per Website Purpose column). Their status set is
-// Keep/To Remove/Unknown/Removed, and they group rows by status. Author and
-// Trigger Event are colour tables: <rowLabel> | Badge Color | Text Color | Notes,
-// with the value rendered as a coloured pill (Author's Status column was removed
-// 2026-07-29). The other tables are simple single-column lists.
+// Keep/To Remove/Unknown/Removed, and they group rows by status. Author, Trigger
+// Event, and Automation Tags are colour tables: <rowLabel> | Badge Color | Text
+// Color | Notes, with the value rendered as a coloured pill (Author's Status
+// column was removed 2026-07-29). Webhook Links is a simple single-column list.
 //
 // The four generic columns write to /api/automations/dropdown-choices; Webhook
 // Links writes to /api/automations/webhook-choices. Editing is off by default.
