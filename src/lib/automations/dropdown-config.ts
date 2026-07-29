@@ -42,14 +42,6 @@ export const GHL_TAG_STATUS_OPTIONS: StatusOption[] = [
   { value: "Removed", badge: "bg-yellow-100 text-yellow-800", text: "text-yellow-700" },
 ];
 
-/** Status set for the Author column (user-set 2026-07-25): Active = green,
- *  Inactive = red, Unknown = black. */
-export const AUTHOR_STATUS_OPTIONS: StatusOption[] = [
-  { value: "Active", badge: "bg-emerald-100 text-emerald-700", text: "text-emerald-700" },
-  { value: "Inactive", badge: "bg-red-100 text-red-700", text: "text-red-700" },
-  { value: "Unknown", badge: "bg-zinc-100 text-zinc-900", text: "text-zinc-900" },
-];
-
 /** One selectable colour swatch for the colour-driven columns (Trigger Event).
  *  `key` is stored on the choice (in `badge_color` / `text_color`); `hex` is the
  *  actual colour rendered (inline style, so it's independent of the app's pale
@@ -146,10 +138,10 @@ export interface DropdownColumnConfig {
    *  GHL-gated column (no visible tag on the Config page). */
   ghlOnly?: boolean;
   /** True → rows carry a Status. When set, `statusOptions` lists the choices and
-   *  `defaultStatus` is used for a new entry. GHL Tags, GHL Forms, Author. */
+   *  `defaultStatus` is used for a new entry. GHL Tags, GHL Forms. */
   hasStatus?: boolean;
   /** This column's Status choices (present iff hasStatus). PER COLUMN: GHL Tags +
-   *  GHL Forms use GHL_TAG_STATUS_OPTIONS; Author uses AUTHOR_STATUS_OPTIONS. */
+   *  GHL Forms use GHL_TAG_STATUS_OPTIONS. */
   statusOptions?: StatusOption[];
   /** Default status for a new entry (present iff hasStatus). */
   defaultStatus?: string;
@@ -162,7 +154,7 @@ export interface DropdownColumnConfig {
   hasNotes?: boolean;
   /** True → rows carry a Badge Color + Text Color (chosen independently from
    *  CHOICE_COLOR_OPTIONS), and the value renders as a coloured pill preview.
-   *  Trigger Event. Renders as a rich table (like hasStatus/hasNotes do). */
+   *  Trigger Event, Author. Renders as a rich table (like hasStatus/hasNotes do). */
   hasColor?: boolean;
   /** Header for the FIRST column in the rich (Status/Notes/Color) table view,
    *  e.g. "Tag" for GHL Tags, "Form" for GHL Forms, "Author" for Author,
@@ -173,18 +165,18 @@ export interface DropdownColumnConfig {
 // Order here is the top-to-bottom order the tables render on the Config page.
 export const DROPDOWN_COLUMNS: DropdownColumnConfig[] = [
   {
-    // Author / Status / Notes table. Rich (hasStatus + hasNotes) like GHL Tags,
-    // but with its OWN status set (Active/Inactive/Unknown) and NOT status-grouped
-    // (kept plain alphabetical by author name, per user 2026-07-25).
+    // Author / Badge Color / Text Color / Notes table. Colour table (hasColor +
+    // hasNotes), mirroring Trigger Event: the author value renders as a coloured
+    // pill (badge + text colours chosen independently in the Add/Edit dialog),
+    // plus the two colour columns and a Purpose-style Notes column. (Formerly had
+    // a Status column; removed 2026-07-29 in favour of the colour columns.)
     key: "author",
     title: "Author",
     singular: "author",
     fieldLabel: "Author",
     placeholder: "e.g. Jane Doe",
     rowLabel: "Author",
-    hasStatus: true,
-    statusOptions: AUTHOR_STATUS_OPTIONS,
-    defaultStatus: DEFAULT_STATUS,
+    hasColor: true,
     hasNotes: true,
   },
   {
@@ -248,17 +240,17 @@ export interface DropdownChoiceRow {
   id: string;
   columnKey: DropdownColumnKey;
   value: string;
-  /** Status-bearing columns only (GHL Tags, GHL Forms, Author): one of that
-   *  column's `statusOptions` values. Null/undefined for the plain columns. */
+  /** Status-bearing columns only (GHL Tags, GHL Forms): one of that column's
+   *  `statusOptions` values. Null/undefined for the plain columns. */
   status?: string | null;
   /** Notes-bearing columns only (GHL Tags, GHL Forms, Author, Trigger Event):
    *  free-text note. Null/undefined for the plain columns. */
   notes?: string | null;
-  /** Color-bearing columns only (Trigger Event): the chosen pill/background
+  /** Color-bearing columns only (Trigger Event, Author): the chosen pill/background
    *  colour key (from CHOICE_COLOR_OPTIONS). Null/undefined otherwise. */
   badgeColor?: string | null;
-  /** Color-bearing columns only (Trigger Event): the chosen text colour key.
-   *  Null/undefined otherwise. */
+  /** Color-bearing columns only (Trigger Event, Author): the chosen text colour
+   *  key. Null/undefined otherwise. */
   textColor?: string | null;
 }
 
@@ -275,8 +267,8 @@ export interface WebhookChoiceRow {
 export interface ChoiceOption {
   id: string;
   value: string;
-  /** Colour-bearing columns only (Trigger Event): the option's badge + text
-   *  colour keys, so a picked value can render as a coloured pill. */
+  /** Colour-bearing columns only (Trigger Event, Author): the option's badge +
+   *  text colour keys, so a picked value can render as a coloured pill. */
   badgeColor?: string | null;
   textColor?: string | null;
 }

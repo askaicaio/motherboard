@@ -220,6 +220,11 @@ export interface AutomationRow {
   // or from the loaded choices (after a dialog save).
   authorChoiceId?: string | null;
   author?: string | null;
+  // The selected Author choice's badge + text colour keys (resolved from the
+  // choices table), so the Author cell can render a coloured pill (mirrors
+  // Trigger Event). Null when unset / no colour chosen.
+  authorBadgeColor?: string | null;
+  authorTextColor?: string | null;
   // Trigger Event (single-select dropdown column, mirrors Author).
   // `triggerEventChoiceId` is the stored choice id; `triggerEvent` is its
   // resolved display value (both null when unset). Manual only; never synced.
@@ -1125,16 +1130,17 @@ export function AutomationsTableClient({
                           {r.status === "active" ? "Active" : "Paused"}
                         </span>
                       </td>
-                      {/* Author: the selected option's value, or red "None" when
-                          unset (mirrors the Purpose empty state). Set in the
-                          Add/Edit dialog; break-words so a long name wraps inside
-                          the fixed 160px column. Sits between Status and Trigger
-                          Event. */}
+                      {/* Author: the selected option rendered as a coloured pill
+                          (its configured badge + text colours; plain text if no
+                          badge colour), or red "None" when unset. Mirrors the
+                          Trigger Event cell. Center-aligned, 160px. */}
                       <td className="w-[160px] min-w-[160px] max-w-[160px] px-3 py-2 text-center align-top">
                         {r.author ? (
-                          <span className="text-xs text-zinc-700 break-words">
-                            {r.author}
-                          </span>
+                          <ColorBadge
+                            value={r.author}
+                            badgeColor={r.authorBadgeColor}
+                            textColor={r.authorTextColor}
+                          />
                         ) : (
                           <span className="text-xs font-medium text-red-600">
                             None

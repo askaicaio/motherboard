@@ -152,9 +152,11 @@ export function WorkflowDialog({
       }
 
       const saved = data.automation;
-      // Author: the API returns the stored id; resolve its display value from
-      // the loaded choices so the table cell updates without a reload.
+      // Author: the API returns the stored id; resolve the chosen option (value
+      // + colours) from the loaded choices so the table cell updates (as its
+      // coloured pill) without a reload.
       const savedAuthorChoiceId = saved.authorChoiceId ?? null;
+      const savedAuthor = authorChoices.find((c) => c.id === savedAuthorChoiceId);
       // Trigger Event: resolve the chosen option (value + colours) the same way.
       const savedTriggerEvent = triggerEventChoices.find(
         (c) => c.id === saved.triggerEventChoiceId,
@@ -167,9 +169,9 @@ export function WorkflowDialog({
         purpose: saved.purpose,
         notes: saved.notes,
         authorChoiceId: savedAuthorChoiceId,
-        author:
-          authorChoices.find((c) => c.id === savedAuthorChoiceId)?.value ??
-          null,
+        author: savedAuthor?.value ?? null,
+        authorBadgeColor: savedAuthor?.badgeColor ?? null,
+        authorTextColor: savedAuthor?.textColor ?? null,
         triggerEventChoiceId: saved.triggerEventChoiceId ?? null,
         triggerEvent: savedTriggerEvent?.value ?? null,
         // Resolve the chosen option's colours too, so the pill shows immediately

@@ -7,13 +7,13 @@
 // reveals the active table's single "Add Option", row-click editing, and per-row
 // delete.
 //
-// Author, GHL Tags, and GHL Forms are richer 3-column tables:
+// GHL Tags and GHL Forms are richer 3-column tables:
 // <rowLabel> | Status (per-column dropdown, default Unknown) | Notes (free text,
-// presented + edited like the Per Website Purpose column). Each has its OWN
-// status set (Author: Active/Inactive/Unknown; GHL: Keep/To Remove/Unknown/
-// Removed) via its column config. GHL Tags + GHL Forms group rows by status;
-// Author stays plain alphabetical. The other tables are simple single-column
-// lists.
+// presented + edited like the Per Website Purpose column). Their status set is
+// Keep/To Remove/Unknown/Removed, and they group rows by status. Author and
+// Trigger Event are colour tables: <rowLabel> | Badge Color | Text Color | Notes,
+// with the value rendered as a coloured pill (Author's Status column was removed
+// 2026-07-29). The other tables are simple single-column lists.
 //
 // The four generic columns write to /api/automations/dropdown-choices; Webhook
 // Links writes to /api/automations/webhook-choices. Editing is off by default.
@@ -635,10 +635,10 @@ function ChoiceTableSection({
                   )}
                   {table.hasColor && (
                     <>
-                      {/* Badge + Text Color: 120px each (same as the Author
-                          table's Status column). Rendered BEFORE Notes so on the
-                          Trigger Event table they sit right after the value and
-                          Notes is the last, flexing column (4th column). */}
+                      {/* Badge + Text Color: fixed 120px each. Rendered BEFORE
+                          Notes so on the colour tables (Trigger Event, Author)
+                          they sit right after the value and Notes is the last,
+                          flexing column (4th column). */}
                       <th className="w-[120px] px-3 py-2 text-left">Badge Color</th>
                       <th className="w-[120px] px-3 py-2 text-left">Text Color</th>
                     </>

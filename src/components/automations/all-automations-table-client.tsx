@@ -436,14 +436,16 @@ export function AllAutomationsTableClient({
                           {r.status === "active" ? "Active" : "Paused"}
                         </span>
                       </td>
-                      {/* Author: the selected option's value, or red "None" when
-                          unset (mirrors the Per Website column). Sits between
-                          Status and Trigger Event. */}
+                      {/* Author: the selected option as a coloured pill (badge +
+                          text colours; plain text if none), or red "None" when
+                          unset (mirrors the Per Website column). */}
                       <td className="w-[160px] min-w-[160px] max-w-[160px] px-3 py-2 text-center align-top">
                         {r.author ? (
-                          <span className="text-xs text-zinc-700 break-words">
-                            {r.author}
-                          </span>
+                          <ColorBadge
+                            value={r.author}
+                            badgeColor={r.authorBadgeColor}
+                            textColor={r.authorTextColor}
+                          />
                         ) : (
                           <span className="text-xs font-medium text-red-600">
                             None
