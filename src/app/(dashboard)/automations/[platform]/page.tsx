@@ -47,9 +47,12 @@ export default async function AutomationWebsitePage({
       lastRunAt: automations.lastRunAt,
       lastEditedAt: automations.lastEditedAt,
       // Author: the stored choice id + its resolved display value (left join,
-      // so rows with no author come back null).
+      // so rows with no author come back null), plus the choice's badge + text
+      // colours so the cell can render a coloured pill (mirrors Trigger Event).
       authorChoiceId: automations.authorChoiceId,
       author: automationDropdownChoices.value,
+      authorBadgeColor: automationDropdownChoices.badgeColor,
+      authorTextColor: automationDropdownChoices.textColor,
       // Trigger Event: same, via the aliased second join, plus the choice's
       // badge + text colours so the cell can render a coloured pill.
       triggerEventChoiceId: automations.triggerEventChoiceId,
@@ -76,6 +79,9 @@ export default async function AutomationWebsitePage({
       .select({
         id: automationDropdownChoices.id,
         value: automationDropdownChoices.value,
+        // Author now carries colours too, so the picker shows its pill.
+        badgeColor: automationDropdownChoices.badgeColor,
+        textColor: automationDropdownChoices.textColor,
       })
       .from(automationDropdownChoices)
       .where(eq(automationDropdownChoices.columnKey, "author"))

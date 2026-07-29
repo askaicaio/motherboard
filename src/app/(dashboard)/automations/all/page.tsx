@@ -40,9 +40,12 @@ export default async function AllAutomationsPage() {
       lastRunAt: automations.lastRunAt,
       lastEditedAt: automations.lastEditedAt,
       platform: automations.platform,
-      // Author: stored id + resolved display value (left join → null when unset).
+      // Author: stored id + resolved display value (left join → null when unset),
+      // plus its badge + text colours so the cell can render a coloured pill.
       authorChoiceId: automations.authorChoiceId,
       author: automationDropdownChoices.value,
+      authorBadgeColor: automationDropdownChoices.badgeColor,
+      authorTextColor: automationDropdownChoices.textColor,
       // Trigger Event: same, via the aliased second join, plus its badge + text
       // colours so the cell can render a coloured pill.
       triggerEventChoiceId: automations.triggerEventChoiceId,
