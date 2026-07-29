@@ -23,8 +23,11 @@ export function ColorBadge({
 }) {
   const bg = choiceColorHex(badgeColor);
   if (!bg) {
+    // [overflow-wrap:anywhere] (NOT break-words) so a single very long unbroken
+    // token wraps inside the fixed-width column instead of stretching it — see
+    // [[long-word-overflow-wrap-anywhere]].
     return (
-      <span className={cn("text-xs text-zinc-700", truncate ? "truncate" : "break-words")}>
+      <span className={cn("text-xs text-zinc-700", truncate ? "truncate" : "[overflow-wrap:anywhere]")}>
         {value}
       </span>
     );
@@ -33,8 +36,12 @@ export function ColorBadge({
   return (
     <span
       className={cn(
-        "inline-block rounded-md px-3 py-0.5 text-xs font-medium",
-        truncate ? "max-w-full truncate" : "break-words",
+        // max-w-full caps the inline-block at the column width and
+        // [overflow-wrap:anywhere] lets a long unbroken word wrap rather than
+        // stretch the pill/column (break-words does NOT shrink min-content, so
+        // the inline-block kept growing) — see [[long-word-overflow-wrap-anywhere]].
+        "inline-block max-w-full rounded-md px-3 py-0.5 text-xs font-medium",
+        truncate ? "truncate" : "[overflow-wrap:anywhere]",
       )}
       style={{ backgroundColor: bg, color: fg, border: "1px solid rgba(0,0,0,0.08)" }}
     >

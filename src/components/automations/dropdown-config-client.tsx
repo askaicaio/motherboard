@@ -466,11 +466,15 @@ function ColorPill({
   textColor?: string | null;
 }) {
   const bg = choiceColorHex(badgeColor);
-  if (!bg) return <span className="text-sm text-zinc-700 break-words">{value}</span>;
+  // [overflow-wrap:anywhere] (NOT break-words) so a long unbroken token wraps
+  // inside the column instead of stretching it — see
+  // [[long-word-overflow-wrap-anywhere]].
+  if (!bg)
+    return <span className="text-sm text-zinc-700 [overflow-wrap:anywhere]">{value}</span>;
   const fg = choiceColorHex(textColor) ?? "#111827";
   return (
     <span
-      className="inline-block break-words rounded-md px-3 py-0.5 text-xs font-medium"
+      className="inline-block max-w-full [overflow-wrap:anywhere] rounded-md px-3 py-0.5 text-xs font-medium"
       style={{ backgroundColor: bg, color: fg, border: "1px solid rgba(0,0,0,0.08)" }}
     >
       {value}
