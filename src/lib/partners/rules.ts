@@ -130,6 +130,59 @@ export function refundWindowPassed(refundWindowEndsAt: Date, now: Date): boolean
   return now.getTime() >= refundWindowEndsAt.getTime();
 }
 
+/**
+ * The next monthly payout date (day-of-month = payoutDayOfMonth) on or after
+ * `clearsOn`. This mirrors what the engine actually does: a conversion clears
+ * to "earned" once its refund window passes, then the monthly auto-payout cron
+ * (which no-ops except on payoutDayOfMonth) sweeps all earned+unbatched rows.
+ * payoutDayOfMonth is clamped to 1–28 (matching the settings constraint) so it
+ * always exists in every month.
+ */
+export function nextPayoutDateOnOrAfter(
+  clearsOn: Date,
+  payoutDayOfMonth: number,
+): Date {
+  const day = Math.min(Math.max(Math.trunc(payoutDayOfMonth), 1), 28);
+  const y = clearsOn.getUTCFullYear();
+  const m = clearsOn.getUTCMonth();
+  let candidate = new Date(Date.UTC(y, m, day));
+  // Compare by calendar date (ignore time-of-day): if this month's payout day
+  // already fell before the row cleared, the next batch is next month.
+  const clearsDateOnly = Date.UTC(y, m, clearsOn.getUTCDate());
+  if (candidate.getTime() < clearsDateOnly) {
+    candidate = new Date(Date.UTC(y, m + 1, day));
+  }
+  return candidate;
+}
+
+/**
+ * Expected payout date for a conversion, or null when there's nothing to pay
+ * (reversed/rejected have no payout; paid rows should show the real batch
+ * paidAt supplied by the caller instead). For pending/earned rows the estimate
+ * is the next monthly batch (payoutDayOfMonth) on or after the row clears to
+ * earned — i.e. earnedAt if known, else refundWindowEndsAt.
+ *
+ * NOTE (engine vs. advertised terms): the payout engine has NO 45-day timer —
+ * it pays on the monthly batch gated by the 7-day refund clearance, the $100
+ * minimum, and a connected Stripe payout account. The portal separately
+ * advertises "Net-45"; that copy is not what the engine does. This estimate
+ * reflects the ENGINE. If the team decides to honor Net-45 instead, change this
+ * one function (and the hover copy) rather than scattering the rule.
+ */
+export function computeExpectedPayoutDate(
+  input: {
+    status: "pending" | "earned" | "paid" | "reversed" | "rejected";
+    earnedAt: Date | null;
+    refundWindowEndsAt: Date;
+  },
+  payoutDayOfMonth: number,
+): Date | null {
+  if (input.status === "reversed" || input.status === "rejected") return null;
+  if (input.status === "paid") return null; // caller shows real paidAt
+  const clearsOn = input.earnedAt ?? input.refundWindowEndsAt;
+  return nextPayoutDateOnOrAfter(clearsOn, payoutDayOfMonth);
+}
+
 /** Is a click still within the cookie window, measured from the click time? */
 export function clickWithinWindow(
   clickCreatedAt: Date,
