@@ -35,6 +35,25 @@ import { toast } from "sonner";
 import type { AutomationRow } from "./automations-table-client";
 import { SingleChoiceCombobox } from "./single-choice-combobox";
 import type { ChoiceOption } from "@/lib/automations/dropdown-config";
+import { cn } from "@/lib/utils";
+
+/** The Status value as its badge pill: green capsule for Active, neutral gray
+ *  for Paused. Same emerald/zinc convention as the table's Status column (just
+ *  sized text-xs to sit in the dialog). Rendered in the Status dropdown's list
+ *  items and on its closed trigger, so the colour reads at a glance. */
+function StatusPill({ status }: { status: string }) {
+  const active = status === "active";
+  return (
+    <span
+      className={cn(
+        "inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium",
+        active ? "bg-emerald-100 text-emerald-700" : "bg-zinc-100 text-zinc-700",
+      )}
+    >
+      {active ? "Active" : "Paused"}
+    </span>
+  );
+}
 
 interface Props {
   open: boolean;
@@ -259,17 +278,25 @@ export function WorkflowDialog({
           <div className="space-y-1.5">
             <Label htmlFor="wf-status">Status</Label>
             <Select value={status} onValueChange={(v) => setStatus(v ?? "paused")}>
-              {/* Base UI's SelectValue renders the raw lowercase value
-                  ("paused"); `capitalize` forces the trigger to display it
-                  as "Paused" / "Active". The stored value is unchanged. */}
-              <SelectTrigger id="wf-status" className="w-40 capitalize">
-                <SelectValue placeholder="Status" />
+              {/* Trigger + list items render the value as its StatusPill badge
+                  (green Active / gray Paused), matching the table's Status
+                  column. SelectValue's function child formats the closed
+                  trigger; status always has a value ("paused" default), so the
+                  fallback is just defensive. */}
+              <SelectTrigger id="wf-status" className="w-40">
+                <SelectValue placeholder="Status">
+                  {(v) => (
+                    <StatusPill status={typeof v === "string" ? v : "paused"} />
+                  )}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="active">
-                  <span className="text-green-600">Active</span>
+                  <StatusPill status="active" />
                 </SelectItem>
-                <SelectItem value="paused">Paused</SelectItem>
+                <SelectItem value="paused">
+                  <StatusPill status="paused" />
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
