@@ -26,7 +26,8 @@ import {
 } from "@/components/ui/command";
 import { Check, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { ChoiceOption } from "@/lib/automations/dropdown-config";
+import { choiceColorHex, type ChoiceOption } from "@/lib/automations/dropdown-config";
+import { ColorBadge } from "./color-badge";
 
 export function SingleChoiceCombobox({
   options,
@@ -50,6 +51,9 @@ export function SingleChoiceCombobox({
 }) {
   const [open, setOpen] = useState(false);
   const selected = value === "" ? null : options.find((o) => o.id === value) ?? null;
+  // Colour-bearing option (Trigger Event) → show its pill on the closed trigger.
+  // Author options have no badge colour, so this is null and they stay plain.
+  const selectedHex = selected ? choiceColorHex(selected.badgeColor) : null;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -63,9 +67,20 @@ export function SingleChoiceCombobox({
           value === "" && "font-medium text-red-600",
         )}
       >
-        <span className="min-w-0 truncate">
-          {selected ? selected.value : emptyLabel}
-        </span>
+        {selected && selectedHex ? (
+          // Selected colour-bearing value → render it as its pill (truncating so
+          // the trigger stays a single line).
+          <ColorBadge
+            value={selected.value}
+            badgeColor={selected.badgeColor}
+            textColor={selected.textColor}
+            truncate
+          />
+        ) : (
+          <span className="min-w-0 truncate">
+            {selected ? selected.value : emptyLabel}
+          </span>
+        )}
         <ChevronDown className="h-4 w-4 shrink-0 text-zinc-400" />
       </PopoverTrigger>
       <PopoverContent className="w-(--anchor-width) min-w-64 p-0" align="start">
@@ -98,7 +113,17 @@ export function SingleChoiceCombobox({
                     setOpen(false);
                   }}
                 >
-                  <span className="truncate">{o.value}</span>
+                  {/* Colour-bearing option → show its pill so it's easy to spot
+                      while scrolling; otherwise plain text (unchanged Author). */}
+                  {choiceColorHex(o.badgeColor) ? (
+                    <ColorBadge
+                      value={o.value}
+                      badgeColor={o.badgeColor}
+                      textColor={o.textColor}
+                    />
+                  ) : (
+                    <span className="truncate">{o.value}</span>
+                  )}
                   {value === o.id && <Check className="ml-auto h-4 w-4" />}
                 </CommandItem>
               ))}

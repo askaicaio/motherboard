@@ -5,24 +5,37 @@
 // look as the Trigger Event config table's value pill.
 
 import { choiceColorHex } from "@/lib/automations/dropdown-config";
+import { cn } from "@/lib/utils";
 
 export function ColorBadge({
   value,
   badgeColor,
   textColor,
+  truncate = false,
 }: {
   value: string;
   badgeColor?: string | null;
   textColor?: string | null;
+  /** Single-line + ellipsis instead of wrapping. Used where the pill sits in a
+   *  fixed-height row (e.g. a closed dropdown trigger). Tables leave this off so
+   *  long values wrap and stay fully readable. */
+  truncate?: boolean;
 }) {
   const bg = choiceColorHex(badgeColor);
   if (!bg) {
-    return <span className="text-xs text-zinc-700 break-words">{value}</span>;
+    return (
+      <span className={cn("text-xs text-zinc-700", truncate ? "truncate" : "break-words")}>
+        {value}
+      </span>
+    );
   }
   const fg = choiceColorHex(textColor) ?? "#111827";
   return (
     <span
-      className="inline-block break-words rounded-md px-3 py-0.5 text-xs font-medium"
+      className={cn(
+        "inline-block rounded-md px-3 py-0.5 text-xs font-medium",
+        truncate ? "max-w-full truncate" : "break-words",
+      )}
       style={{ backgroundColor: bg, color: fg, border: "1px solid rgba(0,0,0,0.08)" }}
     >
       {value}
