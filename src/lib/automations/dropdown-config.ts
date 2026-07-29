@@ -150,11 +150,12 @@ export interface DropdownColumnConfig {
    *  (Author). */
   statusGrouped?: boolean;
   /** True → rows carry a free-text Notes field (Purpose-style). GHL Tags, GHL
-   *  Forms, Author. */
+   *  Forms, Author, Trigger Event, Automation Tags. */
   hasNotes?: boolean;
   /** True → rows carry a Badge Color + Text Color (chosen independently from
    *  CHOICE_COLOR_OPTIONS), and the value renders as a coloured pill preview.
-   *  Trigger Event, Author. Renders as a rich table (like hasStatus/hasNotes do). */
+   *  Trigger Event, Author, Automation Tags. Renders as a rich table (like
+   *  hasStatus/hasNotes do). */
   hasColor?: boolean;
   /** Header for the FIRST column in the rich (Status/Notes/Color) table view,
    *  e.g. "Tag" for GHL Tags, "Form" for GHL Forms, "Author" for Author,
@@ -180,11 +181,18 @@ export const DROPDOWN_COLUMNS: DropdownColumnConfig[] = [
     hasNotes: true,
   },
   {
+    // Automation Tags / Badge Color / Text Color / Notes table. Colour table
+    // (hasColor + hasNotes), same shape as Trigger Event; the first column header
+    // is "Tag" (rowLabel). Config-page choices only so far — the Per Website
+    // multi-select column that consumes these isn't built yet.
     key: "automation_tags",
     title: "Automation Tags",
     singular: "tag",
     fieldLabel: "Tag",
     placeholder: "e.g. Lead capture",
+    rowLabel: "Tag",
+    hasColor: true,
+    hasNotes: true,
   },
   {
     key: "ghl_tags",
@@ -246,11 +254,12 @@ export interface DropdownChoiceRow {
   /** Notes-bearing columns only (GHL Tags, GHL Forms, Author, Trigger Event):
    *  free-text note. Null/undefined for the plain columns. */
   notes?: string | null;
-  /** Color-bearing columns only (Trigger Event, Author): the chosen pill/background
-   *  colour key (from CHOICE_COLOR_OPTIONS). Null/undefined otherwise. */
+  /** Color-bearing columns only (Trigger Event, Author, Automation Tags): the
+   *  chosen pill/background colour key (from CHOICE_COLOR_OPTIONS). Null/undefined
+   *  otherwise. */
   badgeColor?: string | null;
-  /** Color-bearing columns only (Trigger Event, Author): the chosen text colour
-   *  key. Null/undefined otherwise. */
+  /** Color-bearing columns only (Trigger Event, Author, Automation Tags): the
+   *  chosen text colour key. Null/undefined otherwise. */
   textColor?: string | null;
 }
 
