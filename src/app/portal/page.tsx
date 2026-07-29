@@ -85,6 +85,12 @@ export default async function PortalDashboardPage() {
       hint: "Sends buyers straight to checkout",
       href: `${base}/r?aff=${ref}&dest=${enrollDest}`,
     },
+    {
+      key: "assessment",
+      title: "AI Readiness Assessment",
+      hint: "Share the free quiz — great top-of-funnel opener",
+      href: `${base}/r?aff=${ref}&dest=${encodeURIComponent("https://assessment.chiefaiofficer.com/")}`,
+    },
     ...(communityUrl
       ? [
           {
