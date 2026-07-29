@@ -297,7 +297,10 @@ export function ChoiceDialog({
                 <div>
                   {badgeColor ? (
                     <span
-                      className="inline-block break-words rounded-md px-3 py-0.5 text-xs font-medium"
+                      // max-w-full + [overflow-wrap:anywhere] so a long unbroken
+                      // token wraps inside the dialog instead of stretching the
+                      // pill — see [[long-word-overflow-wrap-anywhere]].
+                      className="inline-block max-w-full [overflow-wrap:anywhere] rounded-md px-3 py-0.5 text-xs font-medium"
                       style={{
                         backgroundColor: choiceColorHex(badgeColor),
                         color: choiceColorHex(textColor) ?? "#111827",
