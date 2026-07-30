@@ -36,25 +36,14 @@ import type { AutomationRow } from "./automations-table-client";
 import { SingleChoiceCombobox } from "./single-choice-combobox";
 import { MultiChoiceCombobox } from "./multi-choice-combobox";
 import type { ChoiceOption } from "@/lib/automations/dropdown-config";
-import { cn } from "@/lib/utils";
 
-/** The Status value as its badge pill: green capsule for Active, neutral gray
- *  for Paused. Same emerald/zinc convention as the table's Status column (just
- *  sized text-xs to sit in the dialog). Rendered in the Status dropdown's list
- *  items and on its closed trigger, so the colour reads at a glance. */
-function StatusPill({ status }: { status: string }) {
-  const active = status === "active";
-  return (
-    <span
-      className={cn(
-        "inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium",
-        active ? "bg-emerald-100 text-emerald-700" : "bg-zinc-100 text-zinc-700",
-      )}
-    >
-      {active ? "Active" : "Paused"}
-    </span>
-  );
-}
+/** Status options rendered as COLOURED TEXT in the Status dropdown, mirroring
+ *  the GHL Forms Status dropdown (green Active, neutral-gray Paused). Replaces
+ *  the earlier filled pill, which read as cramped in the side-opening popup. */
+const WF_STATUS_OPTIONS = [
+  { value: "active", label: "Active", text: "text-emerald-700" },
+  { value: "paused", label: "Paused", text: "text-zinc-700" },
+];
 
 interface Props {
   open: boolean;
@@ -314,9 +303,9 @@ export function WorkflowDialog({
           <div className="space-y-1.5">
             <Label htmlFor="wf-status">Status</Label>
             <Select value={status} onValueChange={(v) => setStatus(v ?? "paused")}>
-              {/* Trigger + list items render the value as its StatusPill badge
-                  (green Active / gray Paused), matching the table's Status
-                  column. SelectValue's function child formats the closed
+              {/* Trigger + list items render the value as COLOURED TEXT (green
+                  Active / neutral Paused), mirroring the GHL Forms Status
+                  dropdown. SelectValue's function child formats the closed
                   trigger; status always has a value ("paused" default), so the
                   fallback is just defensive. */}
               {/* Clearer field look (matches the other Add/Edit fields): zinc-300
@@ -330,9 +319,10 @@ export function WorkflowDialog({
                 className="w-full border-zinc-300 shadow-sm data-[popup-open]:border-ring data-[popup-open]:ring-3 data-[popup-open]:ring-ring/50"
               >
                 <SelectValue placeholder="Status">
-                  {(v) => (
-                    <StatusPill status={typeof v === "string" ? v : "paused"} />
-                  )}
+                  {(v) => {
+                    const o = WF_STATUS_OPTIONS.find((x) => x.value === v);
+                    return <span className={o?.text}>{o?.label ?? "Paused"}</span>;
+                  }}
                 </SelectValue>
               </SelectTrigger>
               {/* Status is a LEFT-column field, so its menu opens to the LEFT
@@ -345,12 +335,11 @@ export function WorkflowDialog({
                 sideOffset={8}
                 alignItemWithTrigger={false}
               >
-                <SelectItem value="active">
-                  <StatusPill status="active" />
-                </SelectItem>
-                <SelectItem value="paused">
-                  <StatusPill status="paused" />
-                </SelectItem>
+                {WF_STATUS_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value} className={o.text}>
+                    {o.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
