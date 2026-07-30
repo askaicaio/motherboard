@@ -54,6 +54,7 @@ import {
   Send,
   MessageSquare,
   MailQuestion,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -898,7 +899,7 @@ function PartnerTableRow({
   };
 
   return (
-    <TableRow onClick={onOpen} className="cursor-pointer">
+    <TableRow onClick={onOpen} className="group/row cursor-pointer">
       {columns.map((c) => cellFor(c.key))}
       <TableCell
         className="text-right"
@@ -925,11 +926,33 @@ function RowActions({
   const [viewing, setViewing] = useState(false);
   const [resending, setResending] = useState(false);
   const [requesting, setRequesting] = useState(false);
+  const [approving, setApproving] = useState(false);
+  const [declineOpen, setDeclineOpen] = useState(false);
   const canOffboard = ["active", "approved", "suspended"].includes(
     partner.status,
   );
   const canView = ["active", "approved"].includes(partner.status);
+  const isApplied = partner.status === "applied";
   const firstName = partner.name.trim().split(/\s+/)[0] || partner.name;
+
+  async function approve() {
+    setApproving(true);
+    try {
+      const res = await fetch(`/api/partners/${partner.id}/approve`, {
+        method: "POST",
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.error || "Could not approve this application.");
+        return;
+      }
+      if (data.partner) onUpdated(data.partner);
+      toast.success(`Approved ${firstName} — welcome email sent.`);
+      router.refresh();
+    } finally {
+      setApproving(false);
+    }
+  }
 
   async function requestTaxForm(mode: "request" | "redo") {
     setRequesting(true);
@@ -993,6 +1016,38 @@ function RowActions({
 
   return (
     <div className="group inline-flex items-center justify-end gap-1.5">
+      {/* Applied: approve / decline — revealed on row hover. Decline opens a
+          floating dialog for an optional reason (emailed to the applicant). */}
+      {isApplied && (
+        <>
+          <button
+            type="button"
+            onClick={approve}
+            disabled={approving}
+            title={`Approve ${partner.name}`}
+            className="inline-flex h-7 items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 text-xs font-medium text-emerald-700 opacity-0 transition hover:bg-emerald-100 focus-visible:opacity-100 group-hover/row:opacity-100 disabled:opacity-50"
+          >
+            <Check className="h-3 w-3" />
+            Approve
+          </button>
+          <button
+            type="button"
+            onClick={() => setDeclineOpen(true)}
+            title={`Decline ${partner.name}`}
+            className="inline-flex h-7 items-center gap-1 rounded-md border border-red-200 bg-red-50 px-2 text-xs font-medium text-red-600 opacity-0 transition hover:bg-red-100 focus-visible:opacity-100 group-hover/row:opacity-100"
+          >
+            <X className="h-3 w-3" />
+            Decline
+          </button>
+          <DeclineDialog
+            partner={partner}
+            open={declineOpen}
+            onOpenChange={setDeclineOpen}
+            onUpdated={onUpdated}
+            router={router}
+          />
+        </>
+      )}
       {canView && (
         <button
           type="button"
@@ -1101,6 +1156,95 @@ function RowActions({
         router={router}
       />
     </div>
+  );
+}
+
+// ─── Decline application dialog (floating; optional reason → emailed) ───────
+
+function DeclineDialog({
+  partner,
+  open,
+  onOpenChange,
+  onUpdated,
+  router,
+}: {
+  partner: PartnerRow;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  onUpdated: (p: Partial<PartnerRow> & { id: string }) => void;
+  router: ReturnType<typeof useRouter>;
+}) {
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+  const firstName = partner.name.trim().split(/\s+/)[0] || partner.name;
+
+  async function submit() {
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/partners/${partner.id}/decline`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: reason.trim() || null }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.error || "Could not decline this application.");
+        return;
+      }
+      if (data.partner) onUpdated(data.partner);
+      toast.success(`Declined ${firstName}'s application.`);
+      onOpenChange(false);
+      setReason("");
+      router.refresh();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent onClick={(e) => e.stopPropagation()}>
+        <DialogHeader>
+          <DialogTitle>Decline {partner.name}</DialogTitle>
+          <DialogDescription>
+            Add an optional reason. If you include one, it&apos;s added to the
+            decline email {firstName} receives — otherwise a courteous default is
+            sent.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2">
+          <Label htmlFor="decline-reason" className="text-xs text-zinc-500">
+            Decline reason (optional)
+          </Label>
+          <Textarea
+            id="decline-reason"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="e.g. Your audience isn't a fit for our program right now."
+            rows={4}
+          />
+        </div>
+        <DialogFooter>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onOpenChange(false)}
+            disabled={busy}
+          >
+            Cancel
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-red-200 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700"
+            onClick={submit}
+            disabled={busy}
+          >
+            {busy ? "Declining…" : "Decline application"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

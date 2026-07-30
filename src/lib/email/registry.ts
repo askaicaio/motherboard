@@ -123,6 +123,37 @@ export const EMAIL_TEMPLATES: EmailTemplateDescriptor[] = [
     ],
   },
 
+  // ── application_declined — to the applicant ──────────────────────────────
+  {
+    key: "application_declined",
+    name: "Application declined",
+    trigger:
+      "Fires when an admin declines a pending application. Lets the applicant know politely and, if the admin entered a reason, includes it.",
+    recipient: "Affiliate",
+    defaultSubject: "Update on your Chief AI Officer affiliate application",
+    defaultHeading: "An update on your application",
+    defaultBodyHtml: `<p>Hi {{firstName}},</p>
+<p>Thank you for your interest in the Chief AI Officer Affiliate Program and for taking the time to apply.</p>
+<p>After reviewing your application, we're not able to move forward with it at this time.</p>
+{{reasonBlock}}
+<p>This isn't necessarily a permanent no — our program and needs evolve, and you're welcome to re-apply down the road. If you have questions, just reply to this email.</p>
+<p>Wishing you all the best,<br/>The Chief AI Officer Team</p>`,
+    variables: [
+      {
+        name: "firstName",
+        sample: "Jordan",
+        description: "Applicant's first name (used in the greeting).",
+      },
+      {
+        name: "reasonBlock",
+        sample:
+          `<p style="margin:16px 0;padding:12px 16px;background:#f8fafc;border-left:3px solid #4f46e5;border-radius:4px;color:#334155;"><strong>A note from our team:</strong><br/>Your audience isn't a fit for our program right now.</p>`,
+        description:
+          "Optional HTML block with the admin-entered decline reason; empty when no reason was given.",
+      },
+    ],
+  },
+
   // ── approved — temp password — to the affiliate ──────────────────────────
   {
     key: "approved",

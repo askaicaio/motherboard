@@ -7,6 +7,17 @@ import { db } from "@/lib/db";
 import { partners } from "@/lib/db/schema";
 import { requireRole } from "@/lib/auth/guard";
 import { eq } from "drizzle-orm";
+import { sendTemplatedEmail } from "@/lib/email/render";
+
+/** Escape user-entered text before embedding it in the decline email HTML. */
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
 
 const declineSchema = z.object({
   reason: z.string().max(2000).nullable().optional(),
@@ -36,12 +47,13 @@ export async function POST(
   }
 
   const now = new Date();
+  const reason = body.reason?.trim() || null;
   const [updated] = await db
     .update(partners)
     .set({
       status: "declined",
       declinedAt: now,
-      declineReason: body.reason?.trim() || null,
+      declineReason: reason,
       // Revoke any pending portal set-password/reset token.
       passwordToken: null,
       passwordTokenExpiresAt: null,
@@ -53,5 +65,22 @@ export async function POST(
   if (!updated) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
+
+  // Notify the applicant — best-effort (sendTemplatedEmail never throws). The
+  // admin-entered reason, when present, is escaped and wrapped in a styled block
+  // so it shows inside the branded email; otherwise the block collapses away.
+  const firstName = updated.name?.trim().split(/\s+/)[0] || "there";
+  const reasonBlock = reason
+    ? `<p style="margin:16px 0;padding:12px 16px;background:#f8fafc;border-left:3px solid #4f46e5;border-radius:4px;color:#334155;"><strong>A note from our team:</strong><br/>${escapeHtml(
+        reason,
+      )}</p>`
+    : "";
+  if (updated.email) {
+    await sendTemplatedEmail("application_declined", updated.email, {
+      firstName,
+      reasonBlock,
+    });
+  }
+
   return NextResponse.json({ partner: updated });
 }

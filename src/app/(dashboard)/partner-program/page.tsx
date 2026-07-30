@@ -273,6 +273,22 @@ export default async function PartnerProgramPage() {
             Resources
           </NextLink>
           <NextLink
+            href="/partner-program/messages"
+            aria-label={
+              unreadMessagesCount > 0
+                ? `Messages — ${unreadMessagesCount} unread`
+                : "Messages"
+            }
+            className="relative inline-flex h-9 w-9 items-center justify-center rounded-md border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
+          >
+            <MessageSquare className="h-4 w-4" />
+            {unreadMessagesCount > 0 && (
+              <span className="absolute -right-1.5 -top-1.5 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white ring-2 ring-white">
+                {unreadMessagesCount > 99 ? "99+" : unreadMessagesCount}
+              </span>
+            )}
+          </NextLink>
+          <NextLink
             href="/partner-program/emails"
             aria-label="Email templates"
             className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
