@@ -64,7 +64,10 @@ export function SingleChoiceCombobox({
           // Clearer zinc-300 resting border + faint shadow-sm. Focus MATCHES the
           // shared text inputs (the ring), NOT a border-colour change: same
           // `outline-none` + focus-visible ring classes as <Input>/<Textarea>.
-          "flex w-full items-center justify-between gap-2 rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-left text-sm shadow-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
+          // ALSO show the ring while the popover is OPEN (data-popup-open): a
+          // click moves focus into the popover, so focus-visible alone never
+          // shows on click — the open-state ring is the "clicked/active" cue.
+          "flex w-full items-center justify-between gap-2 rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-left text-sm shadow-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 data-[popup-open]:border-ring data-[popup-open]:ring-3 data-[popup-open]:ring-ring/50",
           // Empty = the red "None" treatment, matching the table cell's red
           // "None" for an unset value.
           value === "" && "font-medium text-red-600",

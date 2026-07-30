@@ -307,12 +307,14 @@ export function WorkflowDialog({
                   trigger; status always has a value ("paused" default), so the
                   fallback is just defensive. */}
               {/* Clearer field look (matches the other Add/Edit fields): zinc-300
-                  resting border + shadow-sm. Focus keeps the shared SelectTrigger's
-                  built-in ring (same as the text inputs). Per-instance override so
-                  selects elsewhere in the app are unaffected. */}
+                  resting border + shadow-sm. Keeps the shared SelectTrigger's
+                  built-in focus ring AND shows it while the menu is open
+                  (data-popup-open), so a click activates the ring like the other
+                  dropdowns. Per-instance override so selects elsewhere are
+                  unaffected. */}
               <SelectTrigger
                 id="wf-status"
-                className="w-40 border-zinc-300 shadow-sm"
+                className="w-40 border-zinc-300 shadow-sm data-[popup-open]:border-ring data-[popup-open]:ring-3 data-[popup-open]:ring-ring/50"
               >
                 <SelectValue placeholder="Status">
                   {(v) => (
