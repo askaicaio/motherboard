@@ -41,6 +41,7 @@ import {
 } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { confirmDialog } from "@/components/ui/confirm";
 import { EditSubscriptionDialog } from "./edit-subscription-dialog";
 
 /** A row marked for rendering — children get a transient _isChild flag. */
@@ -532,7 +533,15 @@ export function SubscriptionsPageClient({
     const shown = row.parentId
       ? row.label || row.ownerEmail || "this credential"
       : row.serviceName || row.name;
-    if (!confirm(`Archive "${shown}"?`)) return;
+    if (
+      !(await confirmDialog({
+        title: "Archive subscription",
+        body: `Archive "${shown}"? It moves to the archived list — you can restore it later.`,
+        confirmLabel: "Archive",
+        destructive: true,
+      }))
+    )
+      return;
     const res = await fetch(`/api/subscriptions/${row.id}`, {
       method: "DELETE",
     });

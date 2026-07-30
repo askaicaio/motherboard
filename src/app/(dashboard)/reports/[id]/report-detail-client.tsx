@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { confirmDialog } from "@/components/ui/confirm";
 import { ResearchProgress } from "@/components/reports/research-progress";
 import { GammaProgress } from "@/components/reports/gamma-progress";
 import { DossierViewer } from "@/components/reports/dossier-viewer";
@@ -129,7 +130,14 @@ export function ReportDetailClient({
   }, [report.researchStatus, report.gammaStatus]);
 
   async function resetStuckResearch() {
-    if (!confirm("Reset this stuck job? It will be marked as failed and you can retry.")) {
+    if (
+      !(await confirmDialog({
+        title: "Reset stuck job",
+        body: "Reset this stuck job? It will be marked as failed and you can retry.",
+        confirmLabel: "Reset",
+        destructive: true,
+      }))
+    ) {
       return;
     }
     try {
@@ -147,7 +155,14 @@ export function ReportDetailClient({
   }
 
   async function resetStuckGamma() {
-    if (!confirm("Reset stuck Gamma generation? It will be marked as failed and you can retry.")) {
+    if (
+      !(await confirmDialog({
+        title: "Reset Gamma generation",
+        body: "Reset stuck Gamma generation? It will be marked as failed and you can retry.",
+        confirmLabel: "Reset",
+        destructive: true,
+      }))
+    ) {
       return;
     }
     try {
@@ -232,7 +247,14 @@ export function ReportDetailClient({
   }
 
   async function archiveReport() {
-    if (!confirm(`Archive "${report.companyName}"?\n\nIt will be moved to the Archived list. You can restore it later.`)) {
+    if (
+      !(await confirmDialog({
+        title: "Archive report",
+        body: `Archive "${report.companyName}"?\n\nIt will be moved to the Archived list. You can restore it later.`,
+        confirmLabel: "Archive",
+        destructive: true,
+      }))
+    ) {
       return;
     }
     try {
@@ -266,9 +288,12 @@ export function ReportDetailClient({
 
   async function deletePermanently() {
     if (
-      !confirm(
-        `PERMANENTLY DELETE "${report.companyName}"?\n\nThis removes the database record entirely. This cannot be undone.`,
-      )
+      !(await confirmDialog({
+        title: "Permanently delete report",
+        body: `PERMANENTLY DELETE "${report.companyName}"?\n\nThis removes the database record entirely. This cannot be undone.`,
+        confirmLabel: "Delete",
+        destructive: true,
+      }))
     ) {
       return;
     }

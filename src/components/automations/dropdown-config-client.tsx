@@ -50,6 +50,7 @@ import {
 } from "@/lib/automations/dropdown-config";
 import { useFitViewportHeight } from "@/lib/automations/use-fit-viewport-height";
 import { ChoiceDialog } from "./choice-dialog";
+import { confirmDialog } from "@/components/ui/confirm";
 
 /** A unified row shown in any of the tables. */
 interface Item {
@@ -271,7 +272,15 @@ export function DropdownConfigClient({
 
   async function handleDelete(table: TableDescriptor, item: Item) {
     const shown = table.isUrl ? item.value : `"${item.value}"`;
-    if (!confirm(`Remove ${shown} from ${table.title}?`)) return;
+    if (
+      !(await confirmDialog({
+        title: "Remove option",
+        body: `Remove ${shown} from ${table.title}?`,
+        confirmLabel: "Remove",
+        destructive: true,
+      }))
+    )
+      return;
     const isWebhook = table.id === "webhooks";
     const endpoint = isWebhook
       ? `/api/automations/webhook-choices/${item.id}`

@@ -33,6 +33,7 @@ import {
 import { format, formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { confirmDialog } from "@/components/ui/confirm";
 import { LeadJourneyDialog } from "./lead-journey-dialog";
 
 interface Campaign {
@@ -686,9 +687,12 @@ function WebhookSetupCard({
 
   async function rotateSecret() {
     if (
-      !confirm(
-        "Rotate the webhook secret? The current URL will stop working immediately — you'll need to update GHL with the new URL.",
-      )
+      !(await confirmDialog({
+        title: "Rotate webhook secret",
+        body: "Rotate the webhook secret? The current URL will stop working immediately — you'll need to update GHL with the new URL.",
+        confirmLabel: "Rotate",
+        destructive: true,
+      }))
     )
       return;
     setRotating(true);

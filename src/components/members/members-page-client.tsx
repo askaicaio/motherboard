@@ -46,6 +46,7 @@ import {
   type Department,
 } from "@/types";
 import { toast } from "sonner";
+import { confirmDialog } from "@/components/ui/confirm";
 import { InviteMemberDialog } from "./invite-member-dialog";
 import { MemberRowActions } from "./member-row-actions";
 import { MemberDetailDialog } from "./member-detail-dialog";
@@ -237,7 +238,16 @@ export function MembersPageClient({
     confirmMsg?: string;
   }) {
     if (selected.size === 0) return;
-    if (payload.confirmMsg && !confirm(payload.confirmMsg)) return;
+    if (
+      payload.confirmMsg &&
+      !(await confirmDialog({
+        title: "Confirm bulk action",
+        body: payload.confirmMsg,
+        confirmLabel: "Continue",
+        destructive: true,
+      }))
+    )
+      return;
     setBulkBusy(true);
     try {
       const res = await fetch("/api/members/bulk", {

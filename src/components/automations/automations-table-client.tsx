@@ -47,6 +47,7 @@ import {
 } from "@/components/ui/tooltip";
 import { WorkflowDialog } from "./workflow-dialog";
 import { ColorBadge } from "./color-badge";
+import { confirmDialog } from "@/components/ui/confirm";
 import type { ChoiceOption, SelectedChoice } from "@/lib/automations/dropdown-config";
 
 /** 24 hours in ms — the auto-refresh cadence (client-side copy; the server is
@@ -691,7 +692,15 @@ export function AutomationsTableClient({
   // Hard delete, permanently removes the row after a confirm.
   const handleDelete = async (row: AutomationRow) => {
     const label = row.name || "this automation";
-    if (!confirm(`Delete ${label}? This can't be undone.`)) return;
+    if (
+      !(await confirmDialog({
+        title: "Delete automation",
+        body: `Delete ${label}? This can't be undone.`,
+        confirmLabel: "Delete",
+        destructive: true,
+      }))
+    )
+      return;
     const res = await fetch(`/api/automations/${row.id}`, { method: "DELETE" });
     if (!res.ok) {
       toast.error("Failed to delete");

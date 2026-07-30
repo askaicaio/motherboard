@@ -35,6 +35,7 @@ import { toast } from "sonner";
 import { detectSource } from "@/lib/documents/source";
 import { DocSourceIcon } from "./doc-source-icon";
 import { AddDocDialog } from "./add-doc-dialog";
+import { confirmDialog } from "@/components/ui/confirm";
 
 export interface DocItem {
   id: string;
@@ -132,7 +133,15 @@ export function DocsPageClient({
   };
 
   const handleDelete = async (doc: DocItem) => {
-    if (!confirm(`Remove "${doc.title}" from the docs library?`)) return;
+    if (
+      !(await confirmDialog({
+        title: "Remove doc",
+        body: `Remove "${doc.title}" from the docs library?`,
+        confirmLabel: "Remove",
+        destructive: true,
+      }))
+    )
+      return;
     const res = await fetch(`/api/documents/${doc.id}`, { method: "DELETE" });
     if (!res.ok) {
       toast.error("Failed to remove");

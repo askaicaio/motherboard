@@ -20,6 +20,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { confirmDialog } from "@/components/ui/confirm";
 import { EditMemberDialog } from "./edit-member-dialog";
 import type { Member } from "./member-types";
 
@@ -67,9 +68,12 @@ export function MemberRowActions({ member, canManage, isSelf }: Props) {
 
   async function permanentDelete() {
     if (
-      !confirm(
-        `PERMANENTLY DELETE ${member.name} (${member.email})?\n\nThis removes the database record entirely. This cannot be undone.`,
-      )
+      !(await confirmDialog({
+        title: "Delete member permanently",
+        body: `PERMANENTLY DELETE ${member.name} (${member.email})?\n\nThis removes the database record entirely. This cannot be undone.`,
+        confirmLabel: "Delete",
+        destructive: true,
+      }))
     ) {
       return;
     }

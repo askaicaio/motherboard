@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { confirmDialog } from "@/components/ui/confirm";
 import { MoreHorizontal, Archive, ArchiveRestore, Trash2, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import type { ReportListItem } from "./report-list-types";
@@ -64,9 +65,12 @@ export function ReportRowActions({ report, onChanged }: Props) {
 
   async function permanentlyDelete() {
     if (
-      !confirm(
-        `PERMANENTLY DELETE "${report.companyName}"?\n\nThis removes all research, sources, and the database record. This cannot be undone.`,
-      )
+      !(await confirmDialog({
+        title: "Permanently delete report",
+        body: `PERMANENTLY DELETE "${report.companyName}"?\n\nThis removes all research, sources, and the database record. This cannot be undone.`,
+        confirmLabel: "Delete",
+        destructive: true,
+      }))
     ) {
       return;
     }

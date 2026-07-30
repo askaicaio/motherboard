@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { SessionProvider } from "next-auth/react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Toaster } from "@/components/ui/sonner";
+import { ConfirmHost } from "@/components/ui/confirm";
 import { getOptionalAuth } from "@/lib/auth/guard";
 import { getDepartmentTabVisibility } from "@/lib/layout/visibility";
 import { hiddenTabsForDepartment } from "@/lib/layout/nav";
@@ -36,6 +37,7 @@ export default async function DashboardLayout({
         </div>
       </div>
       <Toaster position="top-right" />
+      <ConfirmHost />
     </SessionProvider>
   );
 }
