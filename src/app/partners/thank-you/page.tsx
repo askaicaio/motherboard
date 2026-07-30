@@ -46,7 +46,7 @@ export default async function ThankYouPage({
           alt="Chief AI Officer — in partnership with Scaling Up"
           width={4000}
           height={1000}
-          className="mx-auto mb-8 h-8 w-auto"
+          className="mx-auto mb-8 h-16 w-auto"
           priority
         />
 
@@ -97,10 +97,16 @@ export default async function ThankYouPage({
 
         <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
           <Link
+            href="/partners"
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-6 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+          >
+            Home
+          </Link>
+          <Link
             href="https://chiefaiofficer.com"
             className="inline-flex items-center gap-2 rounded-lg bg-[#4f46e5] px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#4338ca]"
           >
-            Go to chiefaiofficer.com
+            Go to CAIO Homepage
           </Link>
           <a
             href={`mailto:${CONTACT_EMAIL}`}

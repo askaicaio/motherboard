@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { LegalFooter } from "@/components/partners/legal-footer";
 
 export const metadata = {
   title: "Privacy Policy — CAIO Affiliate Program",
@@ -230,38 +231,3 @@ function Section({
   );
 }
 
-function LegalFooter() {
-  return (
-    <footer className="border-t border-slate-100 bg-white">
-      <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 py-8 sm:flex-row">
-        <a
-          href="https://chiefaiofficer.com"
-          className="flex items-center"
-          aria-label="Chief AI Officer — in partnership with Scaling Up"
-        >
-          <Image
-            src="/caio-scalingup.png"
-            alt="Chief AI Officer — in partnership with Scaling Up"
-            width={4000}
-            height={1000}
-            className="h-6 w-auto"
-          />
-        </a>
-        <div className="flex items-center gap-6 text-sm text-slate-500">
-          <Link href="/partners" className="transition hover:text-[#4f46e5]">
-            Affiliate home
-          </Link>
-          <Link href="/partners/privacy" className="transition hover:text-[#4f46e5]">
-            Privacy
-          </Link>
-          <Link href="/partners/terms" className="transition hover:text-[#4f46e5]">
-            Terms
-          </Link>
-        </div>
-      </div>
-      <div className="border-t border-slate-50 py-4 text-center text-xs text-slate-400">
-        &copy; {new Date().getFullYear()} Chief AI Officer. All rights reserved.
-      </div>
-    </footer>
-  );
-}
