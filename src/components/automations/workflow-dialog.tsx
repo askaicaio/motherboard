@@ -328,12 +328,15 @@ export function WorkflowDialog({
               {/* Status is a LEFT-column field, so its menu opens to the LEFT
                   (outward from the dialog). alignItemWithTrigger={false} is
                   required for `side` to take effect on a Base UI Select (its
-                  default native-like item-over-trigger alignment ignores side). */}
+                  default native-like item-over-trigger alignment ignores side).
+                  w-44 pins the popup to the GHL Forms Status dropdown's width
+                  (the reference), instead of matching the full-width trigger. */}
               <SelectContent
                 side="left"
                 align="start"
                 sideOffset={8}
                 alignItemWithTrigger={false}
+                className="w-44"
               >
                 {WF_STATUS_OPTIONS.map((o) => (
                   <SelectItem key={o.value} value={o.value} className={o.text}>
