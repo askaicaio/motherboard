@@ -275,6 +275,9 @@ export function WorkflowDialog({
               // Input) and only grows when the text actually needs it.
               className="border-zinc-300 shadow-sm block min-h-9 resize-none overflow-hidden [overflow-wrap:anywhere]"
             />
+            <p className="text-[10px] text-zinc-500">
+              The exact name of the automation as seen from its home website.
+            </p>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="wf-url">
@@ -297,6 +300,9 @@ export function WorkflowDialog({
               placeholder="https://…"
               className="border-zinc-300 shadow-sm"
             />
+            <p className="text-[10px] text-zinc-500">
+              The link that leads directly to the editor view of the automation.
+            </p>
           </div>
           {/* The four dropdowns in a 2-col grid: Status | Author (row 1),
               Automation Tags | Trigger Event (row 2). Left-column fields (Status,
@@ -387,6 +393,9 @@ export function WorkflowDialog({
               noResultsLabel="No tags found."
               side="left"
             />
+            <p className="text-[10px] text-zinc-500">
+              Short labels regarding the automation&apos;s scope.
+            </p>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="wf-trigger-event">Trigger Event</Label>
@@ -406,6 +415,9 @@ export function WorkflowDialog({
               noResultsLabel="No trigger events found."
               side="right"
             />
+            <p className="text-[10px] text-zinc-500">
+              This is how the automation is activated.
+            </p>
           </div>
           </div>
           <div className="space-y-1.5">
