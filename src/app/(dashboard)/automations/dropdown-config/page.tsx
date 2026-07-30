@@ -19,8 +19,9 @@ import { db } from "@/lib/db";
 import {
   automationDropdownChoices,
   automationWebhookChoices,
+  automationWebhooks,
 } from "@/lib/db/schema";
-import { asc } from "drizzle-orm";
+import { asc, count } from "drizzle-orm";
 import { DropdownConfigClient } from "@/components/automations/dropdown-config-client";
 import type {
   DropdownChoiceRow,
@@ -50,10 +51,25 @@ export default async function AutomationsDropdownConfigPage() {
       .select({
         id: automationWebhookChoices.id,
         url: automationWebhookChoices.url,
+        notes: automationWebhookChoices.notes,
       })
       .from(automationWebhookChoices)
       .orderBy(asc(automationWebhookChoices.url)),
   ]);
+
+  // Relationships: how many automations use each webhook (junction row counts).
+  // Empty until the Per Website Webhook Links column populates the junction, so
+  // every webhook reads 0 for now.
+  const webhookCountRows = await db
+    .select({
+      webhookChoiceId: automationWebhooks.webhookChoiceId,
+      n: count(),
+    })
+    .from(automationWebhooks)
+    .groupBy(automationWebhooks.webhookChoiceId);
+  const webhookCounts = new Map(
+    webhookCountRows.map((r) => [r.webhookChoiceId, r.n]),
+  );
 
   const choices: DropdownChoiceRow[] = choiceRows.map((r) => ({
     id: r.id,
@@ -67,6 +83,8 @@ export default async function AutomationsDropdownConfigPage() {
   const webhooks: WebhookChoiceRow[] = webhookRows.map((r) => ({
     id: r.id,
     url: r.url,
+    notes: r.notes,
+    relationships: webhookCounts.get(r.id) ?? 0,
   }));
 
   return (

@@ -12,6 +12,8 @@ import { eq } from "drizzle-orm";
 
 const createSchema = z.object({
   url: z.string().url().max(1000),
+  // Optional free-text note (Webhook Links Notes column); stored null when blank.
+  notes: z.string().max(5000).optional(),
 });
 
 const DUPLICATE_ERROR = "That webhook URL already exists.";
@@ -63,10 +65,10 @@ export async function POST(request: NextRequest) {
   try {
     const [created] = await db
       .insert(automationWebhookChoices)
-      .values({ url, createdBy: user.id })
+      .values({ url, notes: body.notes?.trim() || null, createdBy: user.id })
       .returning();
     return NextResponse.json(
-      { webhook: { id: created.id, url: created.url } },
+      { webhook: { id: created.id, url: created.url, notes: created.notes } },
       { status: 201 },
     );
   } catch (err) {

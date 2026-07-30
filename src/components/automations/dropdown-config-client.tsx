@@ -60,6 +60,8 @@ interface Item {
   notes?: string | null;
   badgeColor?: string | null;
   textColor?: string | null;
+  /** Webhook Links only: count of automations using this webhook. */
+  relationships?: number;
 }
 
 /** Describes one table on the page. */
@@ -80,6 +82,9 @@ interface TableDescriptor {
   hasNotes?: boolean;
   /** Rows carry Badge + Text colours; value renders as a pill (Trigger Event). */
   hasColor?: boolean;
+  /** Webhook Links only: show a numeric "Relationships" column (count of
+   *  automations using each webhook). */
+  hasRelationships?: boolean;
   /** First-column header for the rich table view ("Tag", "Form", "Author"). */
   rowLabel?: string;
 }
@@ -90,6 +95,10 @@ const WEBHOOK_TABLE: TableDescriptor = {
   fieldLabel: "Webhook URL",
   placeholder: "https://…",
   isUrl: true,
+  // Rich 3-column table: Webhook Link | Relationships | Notes.
+  rowLabel: "Webhook Link",
+  hasRelationships: true,
+  hasNotes: true,
 };
 
 const TABLES: TableDescriptor[] = [
@@ -157,7 +166,12 @@ export function DropdownConfigClient({
         textColor: c.textColor,
       });
     }
-    m.webhooks = webhooks.map((w) => ({ id: w.id, value: w.url }));
+    m.webhooks = webhooks.map((w) => ({
+      id: w.id,
+      value: w.url,
+      notes: w.notes,
+      relationships: w.relationships ?? 0,
+    }));
     return m;
   }, [choices, webhooks]);
 
@@ -188,7 +202,7 @@ export function DropdownConfigClient({
         : "/api/automations/dropdown-choices";
     const method = isEdit ? "PATCH" : "POST";
     const body = isWebhook
-      ? { url: payload.value }
+      ? { url: payload.value, ...(hasNotes ? { notes: payload.notes ?? "" } : {}) }
       : {
           ...(isEdit ? {} : { columnKey: activeTable.id }),
           value: payload.value,
@@ -216,7 +230,7 @@ export function DropdownConfigClient({
         badgeColor?: string | null;
         textColor?: string | null;
       };
-      webhook?: { id: string };
+      webhook?: { id: string; notes?: string | null };
     } = {};
     try {
       data = await res.json();
@@ -230,8 +244,20 @@ export function DropdownConfigClient({
       if (!saved) return "Save failed";
       setWebhooks((prev) =>
         isEdit
-          ? prev.map((w) => (w.id === saved.id ? { id: saved.id, url: payload.value } : w))
-          : [{ id: saved.id, url: payload.value }, ...prev],
+          ? prev.map((w) =>
+              w.id === saved.id
+                ? { ...w, url: payload.value, notes: saved.notes }
+                : w,
+            )
+          : [
+              {
+                id: saved.id,
+                url: payload.value,
+                notes: saved.notes,
+                relationships: 0,
+              },
+              ...prev,
+            ],
       );
     } else {
       const saved = data.choice;
@@ -546,8 +572,14 @@ function ChoiceTableSection({
     );
   }, [items, query, table.statusGrouped, table.statusOptions]);
 
-  // GHL Tags renders a richer multi-column table; the others are simple lists.
-  const rich = !!(table.hasStatus || table.hasNotes || table.hasColor);
+  // Rich (multi-column) table when a column carries Status, Notes, Colour, or
+  // Relationships; otherwise a simple single-column list.
+  const rich = !!(
+    table.hasStatus ||
+    table.hasNotes ||
+    table.hasColor ||
+    table.hasRelationships
+  );
 
   // Adaptive Notes clamp (GHL Tags): show as many lines of Notes as fit the
   // row's height, which is driven by the Tag cell (measured below, independent
@@ -656,6 +688,11 @@ function ChoiceTableSection({
                       <th className="w-[120px] px-3 py-2 text-left">Text Color</th>
                     </>
                   )}
+                  {/* Relationships (Webhook Links): a numeric count, centered,
+                      120px. Sits between the value and Notes. */}
+                  {table.hasRelationships && (
+                    <th className="w-[120px] px-3 py-2 text-center">Relationships</th>
+                  )}
                   {table.hasNotes && (
                     <th className="px-3 py-2 text-left">Notes</th>
                   )}
@@ -719,6 +756,23 @@ function ChoiceTableSection({
                           <ColorCell colorKey={item.textColor} />
                         </td>
                       </>
+                    )}
+                    {/* Relationships (Webhook Links): count of automations using
+                        this webhook, muted when 0 (nothing links yet until the
+                        Per Website Webhook Links column ships). Centered, 120px. */}
+                    {table.hasRelationships && (
+                      <td className="w-[120px] px-3 py-2 text-center align-top">
+                        <span
+                          className={cn(
+                            "text-xs",
+                            (item.relationships ?? 0) > 0
+                              ? "font-medium text-zinc-900"
+                              : "text-zinc-400",
+                          )}
+                        >
+                          {item.relationships ?? 0}
+                        </span>
+                      </td>
                     )}
                     {table.hasNotes && (
                       <td className="px-3 py-2 align-top">

@@ -1360,6 +1360,9 @@ export const automationWebhookChoices = pgTable(
     id: uuid("id").defaultRandom().primaryKey(),
     /** The webhook URL. Treated as the choice's identity, so it is unique. */
     url: text("url").notNull(),
+    /** Free-text note, presented + edited like the GHL Tags / Purpose Notes
+     *  column. Null for none. */
+    notes: text("notes"),
     createdBy: uuid("created_by").references(() => adminUsers.id),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
@@ -1369,6 +1372,36 @@ export const automationWebhookChoices = pgTable(
       .notNull(),
   },
   (table) => [uniqueIndex("uniq_webhook_choices_url").on(table.url)],
+);
+
+// Junction: which webhook choice(s) an automation uses. Powers the Webhook Links
+// "Relationships" count (how many automations use each webhook). SEPARATE from
+// automation_dropdown_selections because Webhook Links has its own choices table
+// (automation_webhook_choices). Cascades on delete of either side. Nothing
+// writes to it yet — the Per Website Webhook Links column that populates it isn't
+// built, so counts read 0 until then.
+export const automationWebhooks = pgTable(
+  "automation_webhooks",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    automationId: uuid("automation_id")
+      .notNull()
+      .references(() => automations.id, { onDelete: "cascade" }),
+    webhookChoiceId: uuid("webhook_choice_id")
+      .notNull()
+      .references(() => automationWebhookChoices.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("uniq_automation_webhooks").on(
+      table.automationId,
+      table.webhookChoiceId,
+    ),
+    index("idx_automation_webhooks_choice").on(table.webhookChoiceId),
+    index("idx_automation_webhooks_automation").on(table.automationId),
+  ],
 );
 
 // Junction: which multi-select dropdown choice(s) an automation has selected.

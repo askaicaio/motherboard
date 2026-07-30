@@ -267,6 +267,11 @@ export interface DropdownChoiceRow {
 export interface WebhookChoiceRow {
   id: string;
   url: string;
+  /** Free-text note (like the GHL Tags Notes column). Null/undefined for none. */
+  notes?: string | null;
+  /** Count of automations that use this webhook, via the automation_webhooks
+   *  junction. 0 until the Per Website Webhook Links column populates it. */
+  relationships?: number;
 }
 
 /** One selectable option handed to a Per Website dropdown column's picker
