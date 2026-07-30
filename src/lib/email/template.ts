@@ -5,7 +5,9 @@
 
 const SITE = "https://chiefaiofficer.com";
 const AFFILIATES = "https://affiliates.chiefaiofficer.com";
-const LOGO_URL = `${AFFILIATES}/caio-logo-white.png`;
+// White partnership wordmark — shows clearly on the dark header.
+const LOGO_URL = `${AFFILIATES}/caio-scalingup-white.png`;
+const CONTACT_EMAIL = "dani@chiefaiofficer.com";
 const ADDRESS = "2021 Guadalupe Street, Suite 260, Austin, TX 78705, United States";
 
 // Kept short so the row stays on a single line across clients.
@@ -14,7 +16,8 @@ const FOOTER_LINKS: { label: string; href: string }[] = [
   { label: "Why Us", href: `${SITE}/why-us` },
   { label: "Blog", href: `${SITE}/blog` },
   { label: "Community", href: `${SITE}/community` },
-  { label: "Contact", href: `${SITE}/contact` },
+  // No contact page on the site — email Dani directly.
+  { label: "Contact", href: `mailto:${CONTACT_EMAIL}` },
 ];
 
 export interface BrandedEmailOptions {
@@ -52,9 +55,8 @@ export function renderBrandedEmail({
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">
 
       <!-- Header -->
-      <tr><td style="background:#0b0b0f;border-radius:14px 14px 0 0;padding:20px 32px;" align="left">
-        <img src="${LOGO_URL}" alt="Chief AI Officer" height="26" style="height:26px;vertical-align:middle;border:0;">
-        <span style="vertical-align:middle;margin-left:10px;font-size:17px;font-weight:700;color:#ffffff;letter-spacing:-0.01em;">Chief AI Officer</span>
+      <tr><td style="background:#0b0b0f;border-radius:14px 14px 0 0;padding:22px 32px;" align="left">
+        <img src="${LOGO_URL}" alt="Chief AI Officer — in partnership with Scaling Up" height="36" style="height:36px;width:auto;vertical-align:middle;border:0;">
       </td></tr>
 
       <!-- Content card -->
