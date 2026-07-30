@@ -32,6 +32,7 @@ import {
   Pencil,
   Archive,
   Copy,
+  X,
 } from "lucide-react";
 import {
   format,
@@ -710,14 +711,25 @@ export function SubscriptionsPageClient({
 
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2">
-        <div className="relative flex-1 min-w-[200px]">
+        <div className="group relative flex-1 min-w-[200px]">
           <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
           <Input
             placeholder="Search name, owner, notes, tag…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="pl-8"
+            className="pl-8 pr-8"
           />
+          {query && (
+            <button
+              type="button"
+              onClick={() => setQuery("")}
+              aria-label="Clear search"
+              title="Clear search"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-1 text-zinc-400 opacity-0 transition hover:bg-zinc-100 hover:text-zinc-700 focus-visible:opacity-100 group-hover:opacity-100 group-focus-within:opacity-100"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
 
         {/* View mode */}
