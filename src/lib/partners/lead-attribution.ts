@@ -40,6 +40,8 @@ export interface RecordAffiliateLeadInput {
   type: "direct_intro" | "tracked_link";
   /** Free-form provenance, e.g. "ghl_appointment" or "ai_readiness_quiz". */
   sourceDetail: string;
+  /** For a booked call, the scheduled appointment time (drives "in progress"). */
+  scheduledAt?: Date | null;
   /**
    * Stable id of the originating external event (GHL appointment id, quiz
    * submission id). When present, dedup is atomic via the external_ref unique
@@ -111,6 +113,10 @@ export async function recordAffiliateLead(
     proposalSentAt: null,
     isValid: true,
     externalRef,
+    scheduledAt:
+      input.scheduledAt && !Number.isNaN(input.scheduledAt.getTime())
+        ? input.scheduledAt
+        : null,
     createdBy: null,
   });
 

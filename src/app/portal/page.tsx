@@ -6,10 +6,15 @@ import {
   CircleDollarSign,
   BadgeCheck,
   AlertTriangle,
+  CalendarClock,
 } from "lucide-react";
 import { and, eq, ne, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { partnerClicks, partnerConversions } from "@/lib/db/schema";
+import {
+  partnerClicks,
+  partnerConversions,
+  partnerAttributionEvents,
+} from "@/lib/db/schema";
 import { requirePartner } from "@/lib/partners/session";
 import { CopyLinkButton } from "@/components/portal/copy-link-button";
 
@@ -57,8 +62,35 @@ export default async function PortalDashboardPage() {
   const earnedCents = byStatus.get("earned") ?? 0;
   const paidCents = byStatus.get("paid") ?? 0;
 
+  // Leads in progress: booked calls (direct_intro) this partner sourced that
+  // haven't converted yet AND are still "live" — a booking counts until 3 days
+  // after its scheduled time (or, if the appointment time is unknown, 30 days
+  // after it was recorded), so a lead that never closes ages out instead of
+  // sitting here forever.
+  const [inProgressRow] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(partnerAttributionEvents)
+    .where(
+      and(
+        eq(partnerAttributionEvents.partnerId, partner.id),
+        eq(partnerAttributionEvents.type, "direct_intro"),
+        eq(partnerAttributionEvents.isValid, true),
+        sql`coalesce(${partnerAttributionEvents.scheduledAt} + interval '3 days', ${partnerAttributionEvents.recordedAt} + interval '30 days') >= now()`,
+        sql`NOT EXISTS (
+          SELECT 1 FROM partner_conversions c
+          WHERE c.partner_id = ${partnerAttributionEvents.partnerId}
+            AND c.source <> 'clawback'
+            AND (
+              c.attribution_event_id = ${partnerAttributionEvents.id}
+              OR lower(c.buyer_email) = lower(${partnerAttributionEvents.prospectEmail})
+            )
+        )`,
+      ),
+    );
+
   const totalClicks = clicksRow?.count ?? 0;
   const totalConversions = conversionsRow?.count ?? 0;
+  const leadsInProgress = inProgressRow?.count ?? 0;
 
   const firstName = partner.name.trim().split(/\s+/)[0] || partner.name;
 
@@ -115,6 +147,11 @@ export default async function PortalDashboardPage() {
       label: "Conversions",
       value: totalConversions.toLocaleString("en-US"),
       icon: Users,
+    },
+    {
+      label: "Leads in progress",
+      value: leadsInProgress.toLocaleString("en-US"),
+      icon: CalendarClock,
     },
     { label: "Pending", value: usd(pendingCents), icon: Clock },
     {
@@ -191,7 +228,7 @@ export default async function PortalDashboardPage() {
       </section>
 
       {/* Metric cards */}
-      <section className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+      <section className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
         {metrics.map((m) => {
           const Icon = m.icon;
           return (

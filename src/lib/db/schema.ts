@@ -1630,6 +1630,15 @@ export const partnerAttributionEvents = pgTable(
      */
     externalRef: text("external_ref"),
 
+    /**
+     * For a booked call, the scheduled appointment time. Drives the affiliate's
+     * "leads in progress" view: a booking counts as in-progress until shortly
+     * after this time (then it ages out — a booking that never converts doesn't
+     * linger forever). NULL for events with no appointment (e.g. quiz leads,
+     * manual intros) — those age out on a recorded_at window instead.
+     */
+    scheduledAt: timestamp("scheduled_at", { withTimezone: true }),
+
     createdBy: uuid("created_by").references(() => adminUsers.id),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()

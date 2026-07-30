@@ -119,6 +119,12 @@ export async function POST(req: NextRequest) {
     pick(payload, "appointmentId", "appointment_id") ??
     pick(appt, "id", "appointmentId");
 
+  // The scheduled slot time — for the affiliate "leads in progress" aging only
+  // (NOT the attribution anchor, which stays the creation time above).
+  const startRaw =
+    pick(payload, "startTime", "start_time") ??
+    pick(appt, "startTime", "start_time");
+
   const result = await recordAffiliateLead({
     refCode,
     email,
@@ -128,6 +134,7 @@ export async function POST(req: NextRequest) {
     type: "direct_intro",
     sourceDetail: "ghl_appointment",
     externalRef: appointmentId ? `ghl_appt:${appointmentId}` : null,
+    scheduledAt: startRaw ? new Date(startRaw) : null,
   });
 
   return NextResponse.json({ ok: true, ...result });
