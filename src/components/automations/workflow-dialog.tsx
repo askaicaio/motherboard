@@ -298,6 +298,13 @@ export function WorkflowDialog({
               className="border-zinc-300 shadow-sm"
             />
           </div>
+          {/* The four dropdowns in a 2-col grid: Status | Author (row 1),
+              Automation Tags | Trigger Event (row 2). Left-column fields (Status,
+              Automation Tags) open their menus to the LEFT; right-column (Author,
+              Trigger Event) to the RIGHT — menus open outward from the dialog.
+              items-start so a taller field (e.g. Tags with many chips) doesn't
+              stretch its row-mate. */}
+          <div className="grid grid-cols-2 items-start gap-3">
           <div className="space-y-1.5">
             <Label htmlFor="wf-status">Status</Label>
             <Select value={status} onValueChange={(v) => setStatus(v ?? "paused")}>
@@ -314,7 +321,7 @@ export function WorkflowDialog({
                   unaffected. */}
               <SelectTrigger
                 id="wf-status"
-                className="w-40 border-zinc-300 shadow-sm data-[popup-open]:border-ring data-[popup-open]:ring-3 data-[popup-open]:ring-ring/50"
+                className="w-full border-zinc-300 shadow-sm data-[popup-open]:border-ring data-[popup-open]:ring-3 data-[popup-open]:ring-ring/50"
               >
                 <SelectValue placeholder="Status">
                   {(v) => (
@@ -322,12 +329,12 @@ export function WorkflowDialog({
                   )}
                 </SelectValue>
               </SelectTrigger>
-              {/* Opens to the RIGHT of the trigger (not overlaying it), matching
-                  the other Add/Edit dropdowns. alignItemWithTrigger={false} is
+              {/* Status is a LEFT-column field, so its menu opens to the LEFT
+                  (outward from the dialog). alignItemWithTrigger={false} is
                   required for `side` to take effect on a Base UI Select (its
                   default native-like item-over-trigger alignment ignores side). */}
               <SelectContent
-                side="right"
+                side="left"
                 align="start"
                 sideOffset={8}
                 alignItemWithTrigger={false}
@@ -357,6 +364,7 @@ export function WorkflowDialog({
               searchPlaceholder="Search authors…"
               emptyLabel="None"
               noResultsLabel="No authors found."
+              side="right"
             />
           </div>
           <div className="space-y-1.5">
@@ -377,6 +385,7 @@ export function WorkflowDialog({
               searchPlaceholder="Search tags…"
               emptyLabel="None"
               noResultsLabel="No tags found."
+              side="left"
             />
           </div>
           <div className="space-y-1.5">
@@ -395,7 +404,9 @@ export function WorkflowDialog({
               searchPlaceholder="Search trigger events…"
               emptyLabel="None"
               noResultsLabel="No trigger events found."
+              side="right"
             />
+          </div>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="wf-purpose">Purpose</Label>
