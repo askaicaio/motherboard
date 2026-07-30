@@ -2136,3 +2136,72 @@ export const partnerMessages = pgTable(
     index("idx_partner_messages_created_at").on(table.createdAt),
   ],
 );
+
+// ── Staff notifications (in-app inbox) ─────────────────────────────────────
+// One row per recipient staff member, powering the sidebar bell. Created by
+// notifyProgramEvent() when an enabled affiliate-program event fires.
+export const staffNotifications = pgTable(
+  "staff_notifications",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    /** Recipient staff member. */
+    userId: uuid("user_id")
+      .references(() => adminUsers.id, { onDelete: "cascade" })
+      .notNull(),
+    /** Event key: 'application' | 'message' | 'conversion' | 'dispute'. */
+    type: text("type").notNull(),
+    title: text("title").notNull(),
+    body: text("body"),
+    /** Relative in-app path the notification opens (e.g. /partner-program/…). */
+    linkHref: text("link_href"),
+    isRead: boolean("is_read").notNull().default(false),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    isArchived: boolean("is_archived").notNull().default(false),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("idx_staff_notifications_user").on(table.userId),
+    index("idx_staff_notifications_user_unread").on(
+      table.userId,
+      table.isRead,
+    ),
+    index("idx_staff_notifications_created_at").on(table.createdAt),
+  ],
+);
+
+// ── Affiliate-program notification config ──────────────────────────────────
+// Single global row: which event types are allowed to generate notifications.
+export const partnerNotificationSettings = pgTable(
+  "partner_notification_settings",
+  {
+    id: text("id").primaryKey().default("default"),
+    /** Enabled event keys, e.g. ["application","message","conversion","dispute"]. */
+    events: jsonb("events")
+      .$type<string[]>()
+      .notNull()
+      .default(
+        sql`'["application","message","conversion","dispute"]'::jsonb`,
+      ),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+);
+
+// Who receives affiliate-program notifications. In-app is always on for a
+// subscriber; email is opt-in (off by default).
+export const partnerNotificationSubscribers = pgTable(
+  "partner_notification_subscribers",
+  {
+    userId: uuid("user_id")
+      .references(() => adminUsers.id, { onDelete: "cascade" })
+      .primaryKey(),
+    emailEnabled: boolean("email_enabled").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+);

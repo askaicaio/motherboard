@@ -8,6 +8,7 @@ import { db } from "@/lib/db";
 import { partnerDisputes, partnerConversions } from "@/lib/db/schema";
 import { and, eq } from "drizzle-orm";
 import { getPartnerSession, getImpersonation } from "@/lib/partners/session";
+import { notifyProgramEvent } from "@/lib/notifications/notify";
 import { disputeWithinWindow } from "@/lib/partners/rules";
 
 export const dynamic = "force-dynamic";
@@ -182,6 +183,19 @@ export async function POST(request: NextRequest) {
       status: "open",
     })
     .returning();
+
+  // Notify subscribed staff — skip sample affiliates to avoid noise.
+  if (!partner.isSample) {
+    await notifyProgramEvent({
+      type: "dispute",
+      title: `New dispute filed by ${partner.name}`,
+      body:
+        body.evidence.trim().length > 140
+          ? `${body.evidence.trim().slice(0, 140)}…`
+          : body.evidence.trim(),
+      linkHref: "/partner-program/disputes",
+    });
+  }
 
   return NextResponse.json({ dispute: created }, { status: 201 });
 }

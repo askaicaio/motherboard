@@ -9,6 +9,7 @@ import { db } from "@/lib/db";
 import { partners } from "@/lib/db/schema";
 import { sendTemplatedEmail } from "@/lib/email/render";
 import { standardTaxFormName } from "@/lib/partners/tax";
+import { notifyProgramEvent } from "@/lib/notifications/notify";
 
 export const maxDuration = 60;
 
@@ -253,6 +254,14 @@ export async function POST(request: NextRequest) {
     audienceSize: String(body.audienceSize),
     taxLink,
     reviewLink,
+  });
+
+  // (c) In-app / email notification to subscribed staff — best-effort.
+  await notifyProgramEvent({
+    type: "application",
+    title: `New affiliate application: ${name}`,
+    body: `${body.city}, ${body.state}, ${body.country} · heard via ${body.howDidYouHear}`,
+    linkHref: "/partner-program/applications",
   });
 
   return NextResponse.json({ ok: true });

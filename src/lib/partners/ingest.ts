@@ -40,6 +40,7 @@ import {
   type AttributionCandidate,
 } from "./rules";
 import { syncConversionToGhl } from "@/lib/integrations/ghl-affiliate-sync";
+import { notifyProgramEvent } from "@/lib/notifications/notify";
 
 const ELIGIBLE_PARTNER_STATUSES = ["approved", "active"];
 
@@ -349,6 +350,20 @@ export async function ingestConversion(input: IngestInput): Promise<IngestResult
         commissionCents,
       }).catch((err) => {
         console.warn("[ingest] syncConversionToGhl failed:", err);
+      });
+
+      // Notify subscribed staff of the new referred sale (best-effort).
+      const commissionUsd = `$${(commissionCents / 100).toLocaleString(
+        "en-US",
+        { maximumFractionDigits: 0 },
+      )}`;
+      void notifyProgramEvent({
+        type: "conversion",
+        title: `New conversion — ${
+          partnerRow?.name ?? "an affiliate"
+        } earned ${commissionUsd}`,
+        body: `Buyer ${email}${program.name ? ` · ${program.name}` : ""}`,
+        linkHref: "/partner-program/events",
       });
     } catch (err) {
       // Fetching partner info or kicking off the sync must never break ingest.

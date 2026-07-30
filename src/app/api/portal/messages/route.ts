@@ -12,6 +12,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { partnerMessages } from "@/lib/db/schema";
 import { getPartnerSession, getImpersonation } from "@/lib/partners/session";
+import { notifyProgramEvent } from "@/lib/notifications/notify";
 import { and, asc, eq, isNull } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
@@ -128,6 +129,20 @@ export async function POST(request: NextRequest) {
       isSample: partner.isSample,
     })
     .returning();
+
+  // Notify subscribed staff — skip sample affiliates to avoid noise.
+  if (!partner.isSample) {
+    const preview =
+      parsed.body.length > 140
+        ? `${parsed.body.slice(0, 140)}…`
+        : parsed.body;
+    await notifyProgramEvent({
+      type: "message",
+      title: `New message from ${partner.name}`,
+      body: preview,
+      linkHref: `/partner-program/messages?partner=${partner.id}`,
+    });
+  }
 
   return NextResponse.json(
     {

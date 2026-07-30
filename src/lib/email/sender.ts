@@ -5,6 +5,8 @@
 
 interface SendEmailParams {
   to: string;
+  /** Optional additional recipients, all visible to each other (CC). */
+  cc?: string[];
   subject: string;
   html: string;
   plain: string;
@@ -25,6 +27,7 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
     // Development mode: log instead of sending
     console.log("[EMAIL] Would send email:");
     console.log(`  To: ${params.to}`);
+    if (params.cc?.length) console.log(`  Cc: ${params.cc.join(", ")}`);
     console.log(`  Subject: ${params.subject}`);
     console.log(`  Body length: ${params.html.length} chars`);
     return { success: true, messageId: `dev_${Date.now()}` };
@@ -40,6 +43,7 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
       body: JSON.stringify({
         from: `${fromName} <${fromAddress}>`,
         to: [params.to],
+        ...(params.cc?.length ? { cc: params.cc } : {}),
         subject: params.subject,
         html: params.html,
         text: params.plain,

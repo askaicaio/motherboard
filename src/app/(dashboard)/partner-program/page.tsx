@@ -34,6 +34,7 @@ import { cn } from "@/lib/utils";
 import NextLink from "next/link";
 import { format } from "date-fns";
 import { stripeMode } from "@/lib/integrations/stripe-client";
+import { NotificationSettingsPopover } from "@/components/partner-program/notification-settings-popover";
 
 export const dynamic = "force-dynamic";
 
@@ -295,6 +296,7 @@ export default async function PartnerProgramPage() {
           >
             <Mail className="h-4 w-4" />
           </NextLink>
+          <NotificationSettingsPopover />
           <NextLink
             href="/partner-program/settings"
             aria-label="Program settings"

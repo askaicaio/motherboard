@@ -22,9 +22,9 @@ import {
   Sparkles,
   LogOut,
   UserRound,
-  ChevronUp,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -180,9 +180,10 @@ export function Sidebar({ hiddenTabs = [] }: { hiddenTabs?: string[] }) {
           Environment label sits below as a thin status line. */}
       <div className="border-t p-2">
         {user && (
-          <DropdownMenu>
+          <div className="flex items-center gap-1">
+            <DropdownMenu>
             <DropdownMenuTrigger
-              className="flex w-full items-center gap-2 rounded-md px-2 py-2 hover:bg-zinc-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-200 cursor-pointer"
+              className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-2 hover:bg-zinc-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-200 cursor-pointer"
               aria-label="Account menu"
             >
               <Avatar className="h-7 w-7 shrink-0">
@@ -197,7 +198,6 @@ export function Sidebar({ hiddenTabs = [] }: { hiddenTabs?: string[] }) {
                   {user.email}
                 </div>
               </div>
-              <ChevronUp className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
             </DropdownMenuTrigger>
             <DropdownMenuContent side="top" align="start" className="w-56">
               <DropdownMenuLabel className="font-normal">
@@ -224,7 +224,9 @@ export function Sidebar({ hiddenTabs = [] }: { hiddenTabs?: string[] }) {
                 Sign out
               </DropdownMenuItem>
             </DropdownMenuContent>
-          </DropdownMenu>
+            </DropdownMenu>
+            <NotificationBell />
+          </div>
         )}
         <div className="mt-1 flex items-center justify-between px-2 py-1 text-[10px] uppercase tracking-wide text-zinc-400">
           <span>
