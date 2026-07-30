@@ -73,18 +73,16 @@ function fmtCalendar(iso: string | null): string {
   );
 }
 
-function ordinal(n: number): string {
-  const s = ["th", "st", "nd", "rd"];
-  const v = n % 100;
-  return n + (s[(v - 20) % 10] ?? s[v] ?? s[0]);
-}
-
 export function ActivityClient({
   rows,
-  payoutDayOfMonth,
+  payoutTermsDays,
+  minPayoutCents,
+  refundWindowDays,
 }: {
   rows: ActivityRow[];
-  payoutDayOfMonth: number;
+  payoutTermsDays: number;
+  minPayoutCents: number;
+  refundWindowDays: number;
 }) {
   const columns: DataTableColumn<ActivityRow>[] = useMemo(() => [
     {
@@ -149,11 +147,12 @@ export function ActivityClient({
       align: "right",
       headerTooltip: (
         <span>
-          New commissions are held for a 7-day refund grace period before they
-          clear to Earned. Cleared balances are paid in the next monthly payout
-          batch (the {ordinal(payoutDayOfMonth)}), once your balance reaches the
-          $100 minimum and your Stripe payout account + tax form are on file —
-          otherwise the balance rolls to the following cycle.
+          New commissions are held for a {refundWindowDays}-day refund grace
+          period, then clear to Earned. On Net-{payoutTermsDays} terms they
+          become payable {payoutTermsDays} days after the end of the month they
+          were earned in, once your balance reaches the {usd(minPayoutCents)}{" "}
+          minimum and your Stripe payout account + tax form are on file —
+          otherwise the balance rolls to the next cycle.
         </span>
       ),
       cell: (r) => {
@@ -176,7 +175,7 @@ export function ActivityClient({
         return iso ? Date.parse(iso) : null;
       },
     },
-  ], [payoutDayOfMonth]);
+  ], [payoutTermsDays, minPayoutCents, refundWindowDays]);
 
   return (
     <DataTable

@@ -131,43 +131,33 @@ export function refundWindowPassed(refundWindowEndsAt: Date, now: Date): boolean
 }
 
 /**
- * The next monthly payout date (day-of-month = payoutDayOfMonth) on or after
- * `clearsOn`. This mirrors what the engine actually does: a conversion clears
- * to "earned" once its refund window passes, then the monthly auto-payout cron
- * (which no-ops except on payoutDayOfMonth) sweeps all earned+unbatched rows.
- * payoutDayOfMonth is clamped to 1–28 (matching the settings constraint) so it
- * always exists in every month.
+ * The "close of the period" for a date: the first instant (00:00 UTC) of the
+ * NEXT calendar month. Commissions accrue within a calendar-month period; the
+ * period closes at month end, which is the same instant as the 1st of the
+ * following month.
  */
-export function nextPayoutDateOnOrAfter(
-  clearsOn: Date,
-  payoutDayOfMonth: number,
-): Date {
-  const day = Math.min(Math.max(Math.trunc(payoutDayOfMonth), 1), 28);
-  const y = clearsOn.getUTCFullYear();
-  const m = clearsOn.getUTCMonth();
-  let candidate = new Date(Date.UTC(y, m, day));
-  // Compare by calendar date (ignore time-of-day): if this month's payout day
-  // already fell before the row cleared, the next batch is next month.
-  const clearsDateOnly = Date.UTC(y, m, clearsOn.getUTCDate());
-  if (candidate.getTime() < clearsDateOnly) {
-    candidate = new Date(Date.UTC(y, m + 1, day));
-  }
-  return candidate;
+export function periodCloseUTC(d: Date): Date {
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1));
+}
+
+/**
+ * Net-N payout maturity (Terms: "earned commissions are paid N days after the
+ * close of the period"). A commission that cleared to Earned in a given
+ * calendar month becomes payable `payoutTermsDays` days after that month
+ * closes. This is the single source of truth for the Net-45 rule — the payout
+ * engine's maturity gate and the affiliate's "expected payout" estimate both
+ * call it, so the term flips in exactly one place.
+ */
+export function computePayableAt(earnedAt: Date, payoutTermsDays: number): Date {
+  return addDays(periodCloseUTC(earnedAt), payoutTermsDays);
 }
 
 /**
  * Expected payout date for a conversion, or null when there's nothing to pay
  * (reversed/rejected have no payout; paid rows should show the real batch
- * paidAt supplied by the caller instead). For pending/earned rows the estimate
- * is the next monthly batch (payoutDayOfMonth) on or after the row clears to
- * earned — i.e. earnedAt if known, else refundWindowEndsAt.
- *
- * NOTE (engine vs. advertised terms): the payout engine has NO 45-day timer —
- * it pays on the monthly batch gated by the 7-day refund clearance, the $100
- * minimum, and a connected Stripe payout account. The portal separately
- * advertises "Net-45"; that copy is not what the engine does. This estimate
- * reflects the ENGINE. If the team decides to honor Net-45 instead, change this
- * one function (and the hover copy) rather than scattering the rule.
+ * paidAt supplied by the caller instead). For pending/earned rows it's the
+ * Net-`payoutTermsDays` maturity date computed from when the row clears to
+ * earned — earnedAt if known, else the projected refundWindowEndsAt.
  */
 export function computeExpectedPayoutDate(
   input: {
@@ -175,12 +165,19 @@ export function computeExpectedPayoutDate(
     earnedAt: Date | null;
     refundWindowEndsAt: Date;
   },
-  payoutDayOfMonth: number,
+  payoutTermsDays: number,
 ): Date | null {
   if (input.status === "reversed" || input.status === "rejected") return null;
   if (input.status === "paid") return null; // caller shows real paidAt
-  const clearsOn = input.earnedAt ?? input.refundWindowEndsAt;
-  return nextPayoutDateOnOrAfter(clearsOn, payoutDayOfMonth);
+  // Earned rows anchor on the real earnedAt. For PENDING rows we project the
+  // earn instant from refundWindowEndsAt, but the promotion cron stamps
+  // earnedAt at its own wall-clock time (always >= refundWindowEndsAt). A refund
+  // window ending near a month boundary can therefore actually earn in the NEXT
+  // month, pushing the real payable date a whole period later. Add a 1-day
+  // margin to the projection so the shown estimate is never EARLIER than the
+  // engine can pay (better to slightly over-estimate than to promise too soon).
+  const clearsOn = input.earnedAt ?? addDays(input.refundWindowEndsAt, 1);
+  return computePayableAt(clearsOn, payoutTermsDays);
 }
 
 /** Is a click still within the cookie window, measured from the click time? */

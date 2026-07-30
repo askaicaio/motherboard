@@ -25,6 +25,7 @@ import {
 } from "@/lib/db/schema";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { getActiveSettings } from "./queries";
+import { computePayableAt } from "./rules";
 import { getStripe } from "@/lib/integrations/stripe-client";
 
 export interface PayoutLine {
@@ -52,14 +53,20 @@ export interface PayoutPreview {
  * tax gate against the CURRENT active settings.
  */
 export async function previewPayout(): Promise<PayoutPreview> {
-  const settings = await getActiveSettings(new Date());
+  const now = new Date();
+  const settings = await getActiveSettings(now);
   const minPayoutCents = settings?.minPayoutCents ?? 10000;
+  // Net-N terms: an earned commission is only payable N days after the close of
+  // the calendar-month period in which it was earned.
+  const payoutTermsDays = settings?.payoutTermsDays ?? 45;
 
   // All earned, not-yet-batched conversions joined to their partner.
   const rows = await db
     .select({
       conversionId: partnerConversions.id,
       commissionCents: partnerConversions.commissionCents,
+      earnedAt: partnerConversions.earnedAt,
+      source: partnerConversions.source,
       partnerId: partners.id,
       name: partners.name,
       email: partners.email,
@@ -80,12 +87,22 @@ export async function previewPayout(): Promise<PayoutPreview> {
       ),
     );
 
-  // Aggregate per partner.
+  // Aggregate per partner — but only commissions that have MATURED under Net-45.
+  // Immature positive rows are simply left out and roll into a future run.
+  // Clawback rows (negative, source='clawback') are always included so a refund
+  // of an already-paid commission nets a partner's balance down immediately
+  // rather than waiting out its own maturity window.
   const byPartner = new Map<
     string,
     PayoutLine & { partnerStatus: string; connectStatus: string }
   >();
   for (const r of rows) {
+    const isClawback = r.source === "clawback";
+    const mature =
+      isClawback ||
+      (r.earnedAt != null &&
+        computePayableAt(r.earnedAt, payoutTermsDays).getTime() <= now.getTime());
+    if (!mature) continue;
     let line = byPartner.get(r.partnerId);
     if (!line) {
       line = {
@@ -202,7 +219,16 @@ export async function buildPayoutCsv(batchId: string): Promise<string> {
     })
     .from(partnerConversions)
     .innerJoin(partners, eq(partnerConversions.partnerId, partners.id))
-    .where(eq(partnerConversions.payoutBatchId, batchId));
+    // Only rows STILL owed manually. Connect-ready affiliates are auto-paid via
+    // Stripe (their rows flip to 'paid') while the batch can remain 'draft', so
+    // a CSV without this filter would re-list already-paid affiliates and cause
+    // a double-pay when finance runs the ACH/Zelle export.
+    .where(
+      and(
+        eq(partnerConversions.payoutBatchId, batchId),
+        eq(partnerConversions.status, "earned"),
+      ),
+    );
 
   const byPartner = new Map<
     string,

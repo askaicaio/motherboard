@@ -358,8 +358,8 @@ export function SettingsClient({
             />
             <Field
               id="payoutDayOfMonth"
-              label="Payout day of month"
-              hint="Day (1–28) the auto-payout batch is generated."
+              label="Payout day of month (legacy)"
+              hint="No longer used — payouts now run daily as commissions mature under Net-45. Kept for historical records only."
               value={payoutDayOfMonth}
               onChange={setPayoutDayOfMonth}
             />

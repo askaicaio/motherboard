@@ -11,6 +11,9 @@ import {
   isDirectIntroValid,
   pickFirstAttribution,
   generateRefCode,
+  periodCloseUTC,
+  computePayableAt,
+  computeExpectedPayoutDate,
 } from "../rules";
 
 describe("parseRate", () => {
@@ -182,5 +185,73 @@ describe("generateRefCode", () => {
     const seen = new Set<string>();
     for (let i = 0; i < 5000; i++) seen.add(generateRefCode());
     expect(seen.size).toBe(5000);
+  });
+});
+
+describe("periodCloseUTC — close of the calendar-month period", () => {
+  it("returns 00:00 UTC on the 1st of the next month", () => {
+    expect(periodCloseUTC(new Date("2026-03-15T12:34:56Z")).toISOString()).toBe(
+      "2026-04-01T00:00:00.000Z",
+    );
+  });
+  it("rolls the year over from December", () => {
+    expect(periodCloseUTC(new Date("2026-12-15T00:00:00Z")).toISOString()).toBe(
+      "2027-01-01T00:00:00.000Z",
+    );
+  });
+  it("a date exactly at the month start still closes at the next month", () => {
+    expect(periodCloseUTC(new Date("2026-03-01T00:00:00Z")).toISOString()).toBe(
+      "2026-04-01T00:00:00.000Z",
+    );
+  });
+});
+
+describe("computePayableAt — Net-N from period close", () => {
+  it("is period close + N days", () => {
+    // Earned March 15 → period closes Apr 1 → +45d = May 16.
+    expect(
+      computePayableAt(new Date("2026-03-15T09:00:00Z"), 45).toISOString(),
+    ).toBe("2026-05-16T00:00:00.000Z");
+  });
+  it("honors a custom term length", () => {
+    expect(
+      computePayableAt(new Date("2026-03-15T09:00:00Z"), 30).toISOString(),
+    ).toBe("2026-05-01T00:00:00.000Z");
+  });
+});
+
+describe("computeExpectedPayoutDate", () => {
+  const earnedAt = new Date("2026-03-10T00:00:00Z");
+  const refundWindowEndsAt = new Date("2026-03-08T00:00:00Z");
+
+  it("returns null for paid / reversed / rejected", () => {
+    for (const status of ["paid", "reversed", "rejected"] as const) {
+      expect(
+        computeExpectedPayoutDate({ status, earnedAt, refundWindowEndsAt }, 45),
+      ).toBeNull();
+    }
+  });
+  it("earned rows anchor on the real earnedAt", () => {
+    // Earned Mar 10 → close Apr 1 → +45 = May 16.
+    expect(
+      computeExpectedPayoutDate(
+        { status: "earned", earnedAt, refundWindowEndsAt },
+        45,
+      )?.toISOString(),
+    ).toBe("2026-05-16T00:00:00.000Z");
+  });
+  it("pending rows project from refundWindowEndsAt with a 1-day safety margin", () => {
+    // Refund window ends on the last day of March; +1d margin lands in April,
+    // so the projected period close is May 1 → +45 = Jun 15 (never too early).
+    expect(
+      computeExpectedPayoutDate(
+        {
+          status: "pending",
+          earnedAt: null,
+          refundWindowEndsAt: new Date("2026-03-31T23:00:00Z"),
+        },
+        45,
+      )?.toISOString(),
+    ).toBe("2026-06-15T00:00:00.000Z");
   });
 });

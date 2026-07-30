@@ -54,7 +54,9 @@ export default async function ActivityPage() {
     getActiveSettings(new Date()),
   ]);
 
-  const payoutDayOfMonth = settings?.payoutDayOfMonth ?? 1;
+  const payoutTermsDays = settings?.payoutTermsDays ?? 45;
+  const minPayoutCents = settings?.minPayoutCents ?? 10000;
+  const refundWindowDays = settings?.refundWindowDays ?? 7;
 
   const activityRows: ActivityRow[] = rows.map((r) => {
     const status = (r.status as ActivityRow["status"]) ?? "pending";
@@ -64,7 +66,7 @@ export default async function ActivityPage() {
         earnedAt: r.earnedAt,
         refundWindowEndsAt: r.refundWindowEndsAt,
       },
-      payoutDayOfMonth,
+      payoutTermsDays,
     );
     return {
       id: r.id,
@@ -92,7 +94,12 @@ export default async function ActivityPage() {
         </p>
       </header>
 
-      <ActivityClient rows={activityRows} payoutDayOfMonth={payoutDayOfMonth} />
+      <ActivityClient
+        rows={activityRows}
+        payoutTermsDays={payoutTermsDays}
+        minPayoutCents={minPayoutCents}
+        refundWindowDays={refundWindowDays}
+      />
 
       <div className="mt-6 rounded-2xl border border-slate-200 bg-white px-5 py-4">
         <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
@@ -105,8 +112,8 @@ export default async function ActivityPage() {
             </span>
             <span>
               Your referral purchased. New commissions are held for a short
-              7-day window in case the customer requests a refund — once it
-              passes with no refund, this clears to Earned.
+              {" "}{refundWindowDays}-day window in case the customer requests a
+              refund — once it passes with no refund, this clears to Earned.
             </span>
           </li>
           <li className="flex items-start gap-2.5">
