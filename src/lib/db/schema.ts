@@ -1371,6 +1371,37 @@ export const automationWebhookChoices = pgTable(
   (table) => [uniqueIndex("uniq_webhook_choices_url").on(table.url)],
 );
 
+// Junction: which multi-select dropdown choice(s) an automation has selected.
+// GENERIC across all multi-select columns (Automation Tags first; GHL Tags /
+// GHL Forms reuse it) — the column is implied by the linked choice's own
+// `column_key`, so no per-column junction is needed. One row per (automation,
+// choice); cascades on delete of either side so links vanish when an automation
+// or a choice is removed. Webhook Links keeps its OWN junction later (it points
+// at automation_webhook_choices, a different table).
+export const automationDropdownSelections = pgTable(
+  "automation_dropdown_selections",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    automationId: uuid("automation_id")
+      .notNull()
+      .references(() => automations.id, { onDelete: "cascade" }),
+    choiceId: uuid("choice_id")
+      .notNull()
+      .references(() => automationDropdownChoices.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("uniq_automation_dropdown_selections").on(
+      table.automationId,
+      table.choiceId,
+    ),
+    index("idx_automation_dropdown_selections_automation").on(table.automationId),
+    index("idx_automation_dropdown_selections_choice").on(table.choiceId),
+  ],
+);
+
 // ========================================================================
 // Partner Program (affiliate system)
 // ========================================================================

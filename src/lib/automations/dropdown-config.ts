@@ -281,3 +281,14 @@ export interface ChoiceOption {
   badgeColor?: string | null;
   textColor?: string | null;
 }
+
+/** One selected choice of a MULTI-select column (e.g. an Automation Tag),
+ *  resolved from the junction to its value + colours so the cell can render it
+ *  as a coloured chip. Same shape as ChoiceOption; named distinctly to read
+ *  clearly at the (many-per-row) call sites. */
+export interface SelectedChoice {
+  id: string;
+  value: string;
+  badgeColor?: string | null;
+  textColor?: string | null;
+}

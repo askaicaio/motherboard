@@ -17,6 +17,7 @@ import { getAutomationSite, isSyncablePlatform } from "@/lib/automations/sites";
 import { platformHasApiKey } from "@/lib/automations/credentials";
 import { getAutoRefreshFor } from "@/lib/automations/autorefresh";
 import { getLastErrorAtByPlatform } from "@/lib/automations/errors";
+import { getSelectionsByColumn } from "@/lib/automations/dropdown-selections";
 import { AutomationsTableClient } from "@/components/automations/automations-table-client";
 
 export const dynamic = "force-dynamic";
@@ -74,37 +75,56 @@ export default async function AutomationWebsitePage({
 
   // Options for the single-select dropdowns (managed on the Dropdown
   // Configuration page). Passed to the table's Add/Edit Workflow dialog.
-  const [authorChoices, triggerEventChoices] = await Promise.all([
-    db
-      .select({
-        id: automationDropdownChoices.id,
-        value: automationDropdownChoices.value,
-        // Author now carries colours too, so the picker shows its pill.
-        badgeColor: automationDropdownChoices.badgeColor,
-        textColor: automationDropdownChoices.textColor,
-      })
-      .from(automationDropdownChoices)
-      .where(eq(automationDropdownChoices.columnKey, "author"))
-      .orderBy(asc(automationDropdownChoices.value)),
-    db
-      .select({
-        id: automationDropdownChoices.id,
-        value: automationDropdownChoices.value,
-        badgeColor: automationDropdownChoices.badgeColor,
-        textColor: automationDropdownChoices.textColor,
-      })
-      .from(automationDropdownChoices)
-      .where(eq(automationDropdownChoices.columnKey, "trigger_event"))
-      .orderBy(asc(automationDropdownChoices.value)),
-  ]);
+  const [authorChoices, triggerEventChoices, automationTagChoices] =
+    await Promise.all([
+      db
+        .select({
+          id: automationDropdownChoices.id,
+          value: automationDropdownChoices.value,
+          // Author now carries colours too, so the picker shows its pill.
+          badgeColor: automationDropdownChoices.badgeColor,
+          textColor: automationDropdownChoices.textColor,
+        })
+        .from(automationDropdownChoices)
+        .where(eq(automationDropdownChoices.columnKey, "author"))
+        .orderBy(asc(automationDropdownChoices.value)),
+      db
+        .select({
+          id: automationDropdownChoices.id,
+          value: automationDropdownChoices.value,
+          badgeColor: automationDropdownChoices.badgeColor,
+          textColor: automationDropdownChoices.textColor,
+        })
+        .from(automationDropdownChoices)
+        .where(eq(automationDropdownChoices.columnKey, "trigger_event"))
+        .orderBy(asc(automationDropdownChoices.value)),
+      // Automation Tags (multi-select): the options for the dialog's chip picker.
+      db
+        .select({
+          id: automationDropdownChoices.id,
+          value: automationDropdownChoices.value,
+          badgeColor: automationDropdownChoices.badgeColor,
+          textColor: automationDropdownChoices.textColor,
+        })
+        .from(automationDropdownChoices)
+        .where(eq(automationDropdownChoices.columnKey, "automation_tags"))
+        .orderBy(asc(automationDropdownChoices.value)),
+    ]);
 
   // Latest captured error date per automation, merged onto each row as the
   // "Last Error" column. Comes from the automation_errors table (Make writes it
   // today); a row with no captured error is left null and renders "-".
   const lastErrorByAutomation = await getLastErrorAtByPlatform(site.slug);
+  // Automation Tags (multi-select): each row's selected tag choices, rendered
+  // as chips. Scoped to this platform's automations.
+  const tagsByAutomation = await getSelectionsByColumn(
+    "automation_tags",
+    baseRows.map((r) => r.id),
+  );
   const rows = baseRows.map((r) => ({
     ...r,
     lastErrorAt: lastErrorByAutomation.get(r.id) ?? null,
+    automationTags: tagsByAutomation.get(r.id) ?? [],
   }));
 
   const autoRefresh = await getAutoRefreshFor(site.slug);
@@ -128,6 +148,7 @@ export default async function AutomationWebsitePage({
         initialRows={rows}
         authorChoices={authorChoices}
         triggerEventChoices={triggerEventChoices}
+        automationTagChoices={automationTagChoices}
         canSync={isSyncablePlatform(site.slug)}
         hasApiKey={platformHasApiKey(site.slug)}
         autoRefresh={autoRefresh}

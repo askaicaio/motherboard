@@ -3,9 +3,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { automations, automationDropdownChoices } from "@/lib/db/schema";
+import {
+  automations,
+  automationDropdownChoices,
+  automationDropdownSelections,
+} from "@/lib/db/schema";
 import { getOptionalAuth } from "@/lib/auth/guard";
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, inArray, ne } from "drizzle-orm";
 
 const patchSchema = z.object({
   // Name is optional (may be set to ""); Link must be a valid URL when present.
@@ -22,6 +26,10 @@ const patchSchema = z.object({
   // Trigger Event (single-select): the chosen id, or null to clear it. Only
   // applied when present. Validated below.
   triggerEventChoiceId: z.string().uuid().nullable().optional(),
+  // Automation Tags (MULTI-select): the FULL desired set of tag choice ids.
+  // Only synced when the key is present (absent = leave tags untouched). Each
+  // validated below.
+  automationTagChoiceIds: z.array(z.string().uuid()).optional(),
 });
 
 /** True when `id` is a real option for `columnKey` in automation_dropdown_choices.
@@ -98,6 +106,18 @@ export async function PATCH(
   ) {
     return NextResponse.json({ error: "Unknown trigger event option." }, { status: 400 });
   }
+  // Automation Tags (multi-select): validate each provided id when the key is
+  // present (absent leaves the tags untouched).
+  if (body.automationTagChoiceIds !== undefined) {
+    for (const tagId of body.automationTagChoiceIds) {
+      if (!(await isChoiceOfColumn(tagId, "automation_tags"))) {
+        return NextResponse.json(
+          { error: "Unknown automation tag option." },
+          { status: 400 },
+        );
+      }
+    }
+  }
 
   const patch: Record<string, unknown> = { updatedAt: new Date() };
   if (body.name !== undefined) patch.name = body.name.trim();
@@ -125,11 +145,45 @@ export async function PATCH(
   }
 
   try {
-    const [updated] = await db
-      .update(automations)
-      .set(patch)
-      .where(eq(automations.id, id))
-      .returning();
+    // Update the automation and (when provided) re-sync its tag selections
+    // atomically. Absent automationTagChoiceIds leaves the tags untouched.
+    const updated = await db.transaction(async (tx) => {
+      const [row] = await tx
+        .update(automations)
+        .set(patch)
+        .where(eq(automations.id, id))
+        .returning();
+      if (!row) return null;
+
+      if (body.automationTagChoiceIds !== undefined) {
+        const tagChoiceIds = [...new Set(body.automationTagChoiceIds)];
+        // Scope the wipe to the Automation Tags column's choices, so other
+        // multi-select columns' selections for this automation are untouched.
+        const tagColumnChoices = await tx
+          .select({ id: automationDropdownChoices.id })
+          .from(automationDropdownChoices)
+          .where(eq(automationDropdownChoices.columnKey, "automation_tags"));
+        const tagColumnIds = tagColumnChoices.map((c) => c.id);
+        if (tagColumnIds.length > 0) {
+          await tx
+            .delete(automationDropdownSelections)
+            .where(
+              and(
+                eq(automationDropdownSelections.automationId, id),
+                inArray(automationDropdownSelections.choiceId, tagColumnIds),
+              ),
+            );
+        }
+        if (tagChoiceIds.length > 0) {
+          await tx
+            .insert(automationDropdownSelections)
+            .values(
+              tagChoiceIds.map((choiceId) => ({ automationId: id, choiceId })),
+            );
+        }
+      }
+      return row;
+    });
 
     if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });
     return NextResponse.json({ automation: updated });

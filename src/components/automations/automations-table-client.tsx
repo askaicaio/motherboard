@@ -47,7 +47,7 @@ import {
 } from "@/components/ui/tooltip";
 import { WorkflowDialog } from "./workflow-dialog";
 import { ColorBadge } from "./color-badge";
-import type { ChoiceOption } from "@/lib/automations/dropdown-config";
+import type { ChoiceOption, SelectedChoice } from "@/lib/automations/dropdown-config";
 
 /** 24 hours in ms — the auto-refresh cadence (client-side copy; the server is
  *  the source of truth, this is only for the instant optimistic countdown). */
@@ -234,6 +234,11 @@ export interface AutomationRow {
   // the choices table), so the cell can render a coloured pill.
   triggerEventBadgeColor?: string | null;
   triggerEventTextColor?: string | null;
+  // Automation Tags (MULTI-select dropdown column). The set of selected tag
+  // choices (id + value + colours), resolved from the junction; rendered as
+  // wrapping coloured chips. Empty array when none. Set only via the Add/Edit
+  // Workflow dialog, never by a sync.
+  automationTags?: SelectedChoice[];
 }
 
 // ---------------------------------------------------------------------------
@@ -253,6 +258,12 @@ const EXPORT_COLUMNS: { header: string; value: (r: AutomationRow) => string }[] 
     // Author + Trigger Event (the two dropdown columns) sit together right after
     // Status on the table, Author first; export mirrors that order.
     { header: "Author", value: (r) => r.author ?? "" },
+    // Automation Tags (multi-select): comma-joined tag values, in the same
+    // between-Author-and-Trigger-Event slot as the on-screen column.
+    {
+      header: "Automation Tags",
+      value: (r) => (r.automationTags ?? []).map((t) => t.value).join(", "),
+    },
     { header: "Trigger Event", value: (r) => r.triggerEvent ?? "" },
     { header: "Purpose", value: (r) => r.purpose ?? "" },
     // Notes sits immediately right of Purpose on the table, so it does here too.
@@ -295,6 +306,7 @@ export function AutomationsTableClient({
   initialRows,
   authorChoices = [],
   triggerEventChoices = [],
+  automationTagChoices = [],
   canSync = false,
   hasApiKey = false,
   autoRefresh = { enabled: false, nextRefreshAt: null },
@@ -312,6 +324,8 @@ export function AutomationsTableClient({
   authorChoices?: ChoiceOption[];
   /** Trigger Event options for its single-select dropdown (Add/Edit dialog). */
   triggerEventChoices?: ChoiceOption[];
+  /** Automation Tags options for the multi-select chip picker (Add/Edit dialog). */
+  automationTagChoices?: ChoiceOption[];
   /** When true, "Refresh List" performs a real sync; otherwise it shows the
    *  temporary placeholder error (platforms whose sync isn't built yet). */
   canSync?: boolean;
@@ -872,7 +886,7 @@ export function AutomationsTableClient({
             stands in for the row border, which would otherwise scroll away.
 
             Horizontal scroll + frozen Name column: the table carries a
-            `min-w-[1810px]` so once columns exceed the card width it overflows
+            `min-w-[2010px]` so once columns exceed the card width it overflows
             and the existing overflow-auto shows a horizontal scrollbar (drag,
             Shift+wheel, or trackpad swipe). The first column (Name + its link)
             is `sticky left-0` on both the header and every body row so the
@@ -888,7 +902,7 @@ export function AutomationsTableClient({
             style={scrollStyle}
             className="max-h-[70vh] overflow-auto p-0"
           >
-            <table className="w-full min-w-[1810px] text-sm">
+            <table className="w-full min-w-[2010px] text-sm">
               <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
                 <tr>
                   {/* Corner cell: pinned to BOTH the top (header) and the left
@@ -952,6 +966,13 @@ export function AutomationsTableClient({
                       Author
                       <SortArrow active={sortKey === "author"} dir={sortDir} />
                     </span>
+                  </th>
+                  {/* Automation Tags: MULTI-select dropdown column, center-aligned,
+                      display-only (not sortable — a row has many tags), never
+                      synced. Renders wrapping coloured chips; 200px gives them
+                      room. Sits between Author and Trigger Event. */}
+                  <th className="sticky top-0 z-10 w-[200px] min-w-[200px] max-w-[200px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
+                    Automation Tags
                   </th>
                   {/* Trigger Event: single-select dropdown column, center-aligned,
                       display-only (not sortable), never synced. Sits after Author. */}
@@ -1046,7 +1067,7 @@ export function AutomationsTableClient({
                 {filtered.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={10}
+                      colSpan={11}
                       className="px-3 py-16 text-center text-sm text-zinc-500"
                     >
                       {rows.length === 0
@@ -1141,6 +1162,29 @@ export function AutomationsTableClient({
                             badgeColor={r.authorBadgeColor}
                             textColor={r.authorTextColor}
                           />
+                        ) : (
+                          <span className="text-xs font-medium text-red-600">
+                            None
+                          </span>
+                        )}
+                      </td>
+                      {/* Automation Tags: the selected tags as wrapping coloured
+                          chips (ColorBadge each; plain text for a tag with no
+                          badge colour), or red "None" when empty. Multi-select,
+                          set in the Add/Edit dialog. 200px, between Author and
+                          Trigger Event. */}
+                      <td className="w-[200px] min-w-[200px] max-w-[200px] px-3 py-2 text-center align-top">
+                        {r.automationTags && r.automationTags.length > 0 ? (
+                          <span className="flex flex-wrap justify-center gap-1">
+                            {r.automationTags.map((t) => (
+                              <ColorBadge
+                                key={t.id}
+                                value={t.value}
+                                badgeColor={t.badgeColor}
+                                textColor={t.textColor}
+                              />
+                            ))}
+                          </span>
                         ) : (
                           <span className="text-xs font-medium text-red-600">
                             None
@@ -1323,6 +1367,7 @@ export function AutomationsTableClient({
         platform={platform}
         authorChoices={authorChoices}
         triggerEventChoices={triggerEventChoices}
+        automationTagChoices={automationTagChoices}
         onCreated={handleCreated}
       />
       {/* Edit */}
@@ -1333,6 +1378,7 @@ export function AutomationsTableClient({
         existing={editing ?? undefined}
         authorChoices={authorChoices}
         triggerEventChoices={triggerEventChoices}
+        automationTagChoices={automationTagChoices}
         onSaved={handleSaved}
       />
 
