@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { getPartnerSession, getImpersonation } from "@/lib/partners/session";
 import { PortalHeader } from "@/components/portal/portal-header";
 import { ImpersonationBanner } from "@/components/portal/impersonation-banner";
+import { ChatWidget } from "@/components/portal/chat-widget";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +33,8 @@ export default async function PortalLayout({
         partner={partner ? { name: partner.name, email: partner.email } : null}
       />
       <main>{children}</main>
+      {/* Chat with the CAIO team — only for a signed-in affiliate. */}
+      {partner && <ChatWidget impersonating={impersonating} />}
     </div>
   );
 }

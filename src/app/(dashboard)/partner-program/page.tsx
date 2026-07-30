@@ -8,9 +8,10 @@ import {
   partnerConversions,
   partnerPrograms,
   partnerDisputes,
+  partnerMessages,
 } from "@/lib/db/schema";
 import { requireAuth } from "@/lib/auth/guard";
-import { eq, and, inArray, sql, desc } from "drizzle-orm";
+import { eq, and, inArray, sql, desc, isNull } from "drizzle-orm";
 import {
   Handshake,
   Users,
@@ -26,6 +27,7 @@ import {
   ChevronRight,
   Mail,
   FlaskConical,
+  MessageSquare,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -108,6 +110,18 @@ export default async function PartnerProgramPage() {
       and(
         eq(partnerDisputes.status, "open"),
         eq(partnerDisputes.isSample, false),
+      ),
+    );
+
+  // Unread affiliate messages (partner→CAIO, not yet read), excluding samples
+  const [{ unreadMessagesCount }] = await db
+    .select({ unreadMessagesCount: sql<number>`COUNT(*)::int` })
+    .from(partnerMessages)
+    .where(
+      and(
+        eq(partnerMessages.senderType, "partner"),
+        isNull(partnerMessages.readByAdminAt),
+        eq(partnerMessages.isSample, false),
       ),
     );
 
@@ -215,6 +229,14 @@ export default async function PartnerProgramPage() {
       desc: "Affiliate-submitted conversion disputes",
       badge: openDisputesCount > 0 ? String(openDisputesCount) : undefined,
       badgeTone: "indigo",
+    },
+    {
+      href: "/partner-program/messages",
+      icon: MessageSquare,
+      label: "Messages",
+      desc: "Chat with affiliates",
+      badge: unreadMessagesCount > 0 ? String(unreadMessagesCount) : undefined,
+      badgeTone: "amber",
     },
   ];
 

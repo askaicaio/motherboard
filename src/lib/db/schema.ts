@@ -2065,3 +2065,41 @@ export const partnerResources = pgTable(
     index("idx_partner_resources_archived").on(table.archivedAt),
   ],
 );
+
+/**
+ * Chat between an affiliate and the CAIO team. One append-only thread per
+ * partner (the affiliate portal widget + the staff inbox both read it).
+ * Admin messages can be attributed to the individual or to "CAIO Team".
+ */
+export const partnerMessages = pgTable(
+  "partner_messages",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    partnerId: uuid("partner_id")
+      .references(() => partners.id, { onDelete: "cascade" })
+      .notNull(),
+    /** 'partner' (the affiliate) | 'admin' (the CAIO team) */
+    senderType: text("sender_type").notNull(),
+    /** Who actually sent it — set only for admin messages. */
+    authorAdminId: uuid("author_admin_id").references(() => adminUsers.id),
+    /** Snapshot of the admin's name at send time (display fallback). */
+    authorName: text("author_name"),
+    /**
+     * How an admin message is shown to the affiliate: 'caio_team' → "CAIO
+     * Team"; 'admin' → the individual's name. Null for partner messages.
+     */
+    displayAs: text("display_as"),
+    body: text("body").notNull(),
+    /** Read receipts for the two unread counters. */
+    readByPartnerAt: timestamp("read_by_partner_at", { withTimezone: true }),
+    readByAdminAt: timestamp("read_by_admin_at", { withTimezone: true }),
+    isSample: boolean("is_sample").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("idx_partner_messages_partner").on(table.partnerId),
+    index("idx_partner_messages_created_at").on(table.createdAt),
+  ],
+);

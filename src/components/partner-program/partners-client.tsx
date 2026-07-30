@@ -52,6 +52,7 @@ import {
   UserMinus,
   Eye,
   Send,
+  MessageSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -975,6 +976,20 @@ function RowActions({
         >
           <Eye className="h-3 w-3" />
           View as
+        </Button>
+      )}
+      {canView && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 gap-1 px-2 text-xs"
+          onClick={() =>
+            router.push(`/partner-program/messages?partner=${partner.id}`)
+          }
+          title="Open the chat thread with this affiliate"
+        >
+          <MessageSquare className="h-3 w-3" />
+          Message
         </Button>
       )}
       {canView && (
