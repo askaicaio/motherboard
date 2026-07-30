@@ -978,6 +978,13 @@ export default function PartnerApplyPage() {
                   type="text"
                   tabIndex={-1}
                   autoComplete="off"
+                  // Tell password managers to SKIP this hidden trap — otherwise
+                  // 1Password/LastPass/etc. autofill it and silently flag the
+                  // real applicant as a bot.
+                  data-1p-ignore="true"
+                  data-lpignore="true"
+                  data-bwignore="true"
+                  data-form-type="other"
                   value={form.company_website}
                   onChange={handleChange}
                 />

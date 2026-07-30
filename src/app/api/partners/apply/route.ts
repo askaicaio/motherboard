@@ -89,8 +89,12 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // --- Honeypot: silently drop bots ---
+  // --- Honeypot: silently drop bots (but LOG it — a real applicant whose
+  // password manager autofilled the trap would otherwise vanish invisibly). ---
   if (body.company_website && body.company_website.trim() !== "") {
+    console.warn(
+      `[partners/apply] honeypot triggered — dropped submission for "${body.email}" (${body.firstName} ${body.lastName}). If this was a real person, their password manager likely autofilled the hidden field.`,
+    );
     return NextResponse.json({ ok: true });
   }
 
