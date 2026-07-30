@@ -21,7 +21,7 @@
 // store — NOT the private TAX_ token) from .env.local or the environment.
 // =============================================================
 
-import { put } from "@vercel/blob";
+import { put, del } from "@vercel/blob";
 import postgres from "postgres";
 import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -176,18 +176,23 @@ async function main() {
   let skipped = 0;
 
   for (const it of ITEMS) {
-    // Idempotency: skip if a live row with this title already exists.
-    if (!FORCE) {
-      const existing = await sql`
-        SELECT id FROM partner_resources
-        WHERE title = ${it.title} AND archived_at IS NULL
-        LIMIT 1
-      `;
-      if (existing.length > 0) {
-        console.log(`→ Skip "${it.title}" — already uploaded (${existing[0].id}). Use --force to re-add.`);
+    const existing = await sql`
+      SELECT id FROM partner_resources
+      WHERE title = ${it.title} AND archived_at IS NULL
+    `;
+    if (existing.length > 0) {
+      if (!FORCE) {
+        console.log(`→ Skip "${it.title}" — already uploaded (${existing[0].id}). Use --force to replace.`);
         skipped++;
         continue;
       }
+      // --force: archive the existing live row(s) first so we don't leave two
+      // live rows with the same title (the portal would render duplicate cards).
+      await sql`
+        UPDATE partner_resources SET archived_at = now()
+        WHERE title = ${it.title} AND archived_at IS NULL
+      `;
+      console.log(`→ Archived ${existing.length} existing "${it.title}" row(s) (--force).`);
     }
 
     const buf = readFileSync(join(RESOURCES_DIR, it.file));
@@ -198,16 +203,27 @@ async function main() {
       contentType: it.mime,
     });
 
-    const [row] = await sql`
-      INSERT INTO partner_resources
-        (title, description, category, file_url, file_name, mime_type, size_bytes, is_public, sort_order)
-      VALUES
-        (${it.title}, ${it.description}, ${it.category}, ${blob.url}, ${it.file},
-         ${it.mime}, ${buf.byteLength}, ${it.isPublic}, ${it.sortOrder})
-      RETURNING id
-    `;
-    console.log(`✓ Uploaded "${it.title}"  →  ${row.id}`);
-    uploaded++;
+    try {
+      const [row] = await sql`
+        INSERT INTO partner_resources
+          (title, description, category, file_url, file_name, mime_type, size_bytes, is_public, sort_order)
+        VALUES
+          (${it.title}, ${it.description}, ${it.category}, ${blob.url}, ${it.file},
+           ${it.mime}, ${buf.byteLength}, ${it.isPublic}, ${it.sortOrder})
+        RETURNING id
+      `;
+      console.log(`✓ Uploaded "${it.title}"  →  ${row.id}`);
+      uploaded++;
+    } catch (err) {
+      // Compensate: the DB row failed, so delete the blob we just uploaded
+      // rather than orphaning a public file with no row pointing at it.
+      try {
+        await del(blob.url);
+      } catch {
+        // best-effort cleanup
+      }
+      throw err;
+    }
   }
 
   console.log(`\n✓ Done. ${uploaded} uploaded, ${skipped} skipped.`);

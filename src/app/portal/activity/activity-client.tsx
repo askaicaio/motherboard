@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { format } from "date-fns";
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
 
@@ -53,8 +54,29 @@ function maskEmail(email: string): string {
   return `${local.slice(0, 1)}•••@${domain ?? ""}`;
 }
 
+/** Format a real instant in the viewer's local time. */
 function fmt(iso: string | null): string {
   return iso ? format(new Date(iso), "MMM d, yyyy") : "—";
+}
+
+/**
+ * Format a UTC CALENDAR date (e.g. the synthetic payout date, built at UTC
+ * midnight) as that same calendar day for every viewer — reading the UTC Y/M/D
+ * and reformatting locally avoids the one-day-earlier shift in the Americas.
+ */
+function fmtCalendar(iso: string | null): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  return format(
+    new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()),
+    "MMM d, yyyy",
+  );
+}
+
+function ordinal(n: number): string {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] ?? s[v] ?? s[0]);
 }
 
 export function ActivityClient({
@@ -64,13 +86,7 @@ export function ActivityClient({
   rows: ActivityRow[];
   payoutDayOfMonth: number;
 }) {
-  const ordinal = (n: number) => {
-    const s = ["th", "st", "nd", "rd"];
-    const v = n % 100;
-    return n + (s[(v - 20) % 10] ?? s[v] ?? s[0]);
-  };
-
-  const columns: DataTableColumn<ActivityRow>[] = [
+  const columns: DataTableColumn<ActivityRow>[] = useMemo(() => [
     {
       key: "program",
       header: "Program",
@@ -142,27 +158,25 @@ export function ActivityClient({
       ),
       cell: (r) => {
         if (r.status === "paid") {
+          // paidAt is the batch finalization time; a conversion can flip to
+          // paid before its batch is stamped, so guard the missing date.
           return (
             <span className="text-emerald-600">
-              Paid {r.paidAt ? fmt(r.paidAt) : ""}
+              {r.paidAt ? `Paid ${fmt(r.paidAt)}` : "Paid"}
             </span>
           );
         }
         if (r.status === "reversed" || r.status === "rejected") {
           return <span className="text-slate-400">—</span>;
         }
-        return (
-          <span className="text-slate-600">
-            ~ {fmt(r.expectedPayoutAt)}
-          </span>
-        );
+        return <span className="text-slate-600">~ {fmtCalendar(r.expectedPayoutAt)}</span>;
       },
       sortAccessor: (r) => {
         const iso = r.status === "paid" ? r.paidAt : r.expectedPayoutAt;
         return iso ? Date.parse(iso) : null;
       },
     },
-  ];
+  ], [payoutDayOfMonth]);
 
   return (
     <DataTable

@@ -73,6 +73,12 @@ export interface DataTableProps<T> {
   className?: string;
 }
 
+/**
+ * NOTE: memoize (or hoist) the `columns` and `groupBy` props in the caller.
+ * The internal filter/sort/group memos depend on them, so a fresh array/object
+ * identity every render makes those memos recompute each render. Correctness is
+ * unaffected — it's purely a perf consideration for large tables.
+ */
 export function DataTable<T>({
   data,
   columns,
@@ -110,11 +116,16 @@ export function DataTable<T>({
     const acc = col.sortAccessor;
     const arr = [...filtered];
     arr.sort((a, b) => {
-      const va = acc(a);
-      const vb = acc(b);
+      let va = acc(a);
+      let vb = acc(b);
+      // Treat NaN like null so the comparator stays transitive.
+      if (typeof va === "number" && Number.isNaN(va)) va = null;
+      if (typeof vb === "number" && Number.isNaN(vb)) vb = null;
       if (va == null && vb == null) return 0;
-      if (va == null) return 1; // nulls always last
+      if (va == null) return 1; // nulls/NaN always last
       if (vb == null) return -1;
+      // Numeric subtraction only when BOTH are finite numbers; otherwise
+      // compare as strings for every pair (keeps mixed-type columns transitive).
       const cmp =
         typeof va === "number" && typeof vb === "number"
           ? va - vb
@@ -213,14 +224,11 @@ export function DataTable<T>({
                             ? sortDir === "asc"
                               ? "ascending"
                               : "descending"
-                            : undefined
+                            : sortable
+                              ? "none"
+                              : undefined
                         }
-                        className={cn(
-                          "px-5 py-3",
-                          col.align === "right" && "text-right",
-                          sortable && "cursor-pointer select-none",
-                        )}
-                        onClick={sortable ? () => handleSort(col.key) : undefined}
+                        className={cn("px-5 py-3", col.align === "right" && "text-right")}
                       >
                         <span
                           className={cn(
@@ -228,13 +236,34 @@ export function DataTable<T>({
                             col.align === "right" && "flex-row-reverse",
                           )}
                         >
-                          {col.header}
+                          {sortable ? (
+                            // Real button so sorting is keyboard-reachable and
+                            // announced to assistive tech.
+                            <button
+                              type="button"
+                              onClick={() => handleSort(col.key)}
+                              className="inline-flex items-center gap-1 rounded outline-none hover:text-slate-600 focus-visible:ring-2 focus-visible:ring-indigo-500/40"
+                            >
+                              {col.header}
+                              {active ? (
+                                sortDir === "asc" ? (
+                                  <ChevronUp className="h-3.5 w-3.5" />
+                                ) : (
+                                  <ChevronDown className="h-3.5 w-3.5" />
+                                )
+                              ) : (
+                                <ChevronsUpDown className="h-3.5 w-3.5 opacity-40" />
+                              )}
+                            </button>
+                          ) : (
+                            col.header
+                          )}
                           {col.headerTooltip && (
                             <Tooltip>
                               <TooltipTrigger
                                 type="button"
-                                onClick={(e) => e.stopPropagation()}
-                                className="inline-flex text-slate-400 hover:text-slate-600"
+                                className="inline-flex text-slate-400 outline-none hover:text-slate-600 focus-visible:text-slate-600"
+                                aria-label="More info"
                               >
                                 <Info className="h-3.5 w-3.5" />
                               </TooltipTrigger>
@@ -243,16 +272,6 @@ export function DataTable<T>({
                               </TooltipContent>
                             </Tooltip>
                           )}
-                          {sortable &&
-                            (active ? (
-                              sortDir === "asc" ? (
-                                <ChevronUp className="h-3.5 w-3.5" />
-                              ) : (
-                                <ChevronDown className="h-3.5 w-3.5" />
-                              )
-                            ) : (
-                              <ChevronsUpDown className="h-3.5 w-3.5 opacity-40" />
-                            ))}
                         </span>
                       </th>
                     );
