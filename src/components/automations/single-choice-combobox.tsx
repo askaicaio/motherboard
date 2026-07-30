@@ -37,6 +37,7 @@ export function SingleChoiceCombobox({
   searchPlaceholder = "Search…",
   emptyLabel = "None",
   noResultsLabel = "No options found.",
+  side = "right",
 }: {
   options: ChoiceOption[];
   /** Selected choice id, or "" for nothing selected. */
@@ -48,6 +49,9 @@ export function SingleChoiceCombobox({
    *  nothing is selected). */
   emptyLabel?: string;
   noResultsLabel?: string;
+  /** Which side the popover opens on (default right). Pass "left" for a
+   *  left-column field so the menu opens away from the dialog. */
+  side?: "left" | "right" | "top" | "bottom";
 }) {
   const [open, setOpen] = useState(false);
   const selected = value === "" ? null : options.find((o) => o.id === value) ?? null;
@@ -89,13 +93,13 @@ export function SingleChoiceCombobox({
         )}
         <ChevronDown className="h-4 w-4 shrink-0 text-zinc-400" />
       </PopoverTrigger>
-      {/* Opens to the RIGHT of the trigger (aligned to its top), NOT below, so
-          it doesn't cover the dialog fields underneath while open. Matches the
-          multi-select picker; Base UI's positioner auto-flips to the left if the
-          right lacks room. Fixed compact width (not the full trigger width). */}
+      {/* Opens to the side of the trigger (aligned to its top), NOT below, so it
+          doesn't cover the dialog fields underneath while open. `side` defaults
+          to right; left-column fields pass "left" so the menu opens outward. Base
+          UI's positioner auto-flips if that side lacks room. Fixed compact width. */}
       <PopoverContent
         className="w-72 p-0"
-        side="right"
+        side={side}
         align="start"
         sideOffset={8}
       >

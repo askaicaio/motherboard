@@ -36,6 +36,7 @@ export function MultiChoiceCombobox({
   searchPlaceholder = "Search…",
   emptyLabel = "None",
   noResultsLabel = "No options found.",
+  side = "right",
 }: {
   options: ChoiceOption[];
   /** Selected choice ids (order preserved as given). */
@@ -46,6 +47,9 @@ export function MultiChoiceCombobox({
   /** Shown (in red) on the trigger when nothing is selected. */
   emptyLabel?: string;
   noResultsLabel?: string;
+  /** Which side the popover opens on (default right). Pass "left" for a
+   *  left-column field so the menu opens away from the dialog. */
+  side?: "left" | "right" | "top" | "bottom";
 }) {
   const [open, setOpen] = useState(false);
   const selectedSet = new Set(values);
@@ -96,14 +100,14 @@ export function MultiChoiceCombobox({
         )}
         <ChevronDown className="h-4 w-4 shrink-0 text-zinc-400" />
       </PopoverTrigger>
-      {/* Opens to the RIGHT of the trigger (aligned to its top), NOT below, so
-          the long multi-select list doesn't cover the dialog fields underneath
-          (Purpose/Notes/buttons) while it stays open for picking. Base UI's
-          positioner auto-flips to the left if the right lacks room. Fixed width
-          (not the full trigger width) so it sits neatly beside the dialog. */}
+      {/* Opens to the side of the trigger (aligned to its top), NOT below, so the
+          long multi-select list doesn't cover the dialog fields underneath while
+          it stays open for picking. `side` defaults to right; left-column fields
+          pass "left" so the menu opens outward. Base UI auto-flips if that side
+          lacks room. Fixed width (not the full trigger width). */}
       <PopoverContent
         className="w-72 p-0"
-        side="right"
+        side={side}
         align="start"
         sideOffset={8}
       >
