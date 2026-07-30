@@ -18,6 +18,7 @@ import { get, put, del } from "@vercel/blob";
 import { db } from "@/lib/db";
 import { partners } from "@/lib/db/schema";
 import { getPartnerSession, getImpersonation } from "@/lib/partners/session";
+import { standardTaxFormName } from "@/lib/partners/tax";
 import { eq } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
@@ -150,16 +151,23 @@ export async function POST(request: NextRequest) {
   }
   const newValue = pathname; // private — store only the pathname
 
+  // Standardized download name (LASTNAME_FIRSTNAME_YYYY-MM-DD_TAX-FORM.pdf),
+  // derived from the partner's name (best-effort split).
+  const nameParts = partner.name.trim().split(/\s+/);
+  const firstName = nameParts[0] || partner.name;
+  const lastName = nameParts.slice(1).join(" ") || nameParts[0] || partner.name;
+  const standardName = standardTaxFormName(firstName, lastName);
+
   const previous = partner.taxFormUrl;
   await db
     .update(partners)
-    .set({ taxFormUrl: newValue, taxFormName: file.name, updatedAt: new Date() })
+    .set({ taxFormUrl: newValue, taxFormName: standardName, updatedAt: new Date() })
     .where(eq(partners.id, partner.id));
 
   // Clean up the superseded file after the row points at the new one.
   if (previous && previous !== newValue) await deleteTaxBlob(previous);
 
-  return NextResponse.json({ ok: true, fileName: file.name });
+  return NextResponse.json({ ok: true, fileName: standardName });
 }
 
 // ---- DELETE: remove the file ---------------------------------------------

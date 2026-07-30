@@ -8,6 +8,7 @@ import { put } from "@vercel/blob";
 import { db } from "@/lib/db";
 import { partners } from "@/lib/db/schema";
 import { sendTemplatedEmail } from "@/lib/email/render";
+import { standardTaxFormName } from "@/lib/partners/tax";
 
 export const maxDuration = 60;
 
@@ -30,6 +31,9 @@ const applySchema = z.object({
   state: z.string().min(1).max(200),
   postalCode: z.string().min(1).max(50),
   country: z.string().min(1).max(200),
+  // Derived client-side from country (US → w9, Canada → w8ben). Optional so
+  // older/other clients still validate; defaults to "none" in the insert.
+  taxFormStatus: z.enum(["w9", "w8ben", "w8bene"]).optional(),
   dateOfBirth: z.string().min(1).max(20),
   howDidYouHear: z.string().min(1).max(200),
   website: z.string().max(2000).optional().default(""),
@@ -177,10 +181,14 @@ export async function POST(request: NextRequest) {
         state: body.state,
         postalCode: body.postalCode,
         country: body.country,
+        // W-9 / W-8BEN derived from country on the apply form (defaults to
+        // "none" for older clients that don't send it).
+        taxFormStatus: body.taxFormStatus ?? "none",
         dateOfBirth: body.dateOfBirth,
         audienceSize: body.audienceSize,
         taxFormUrl,
-        taxFormName: file.name,
+        // Standardized download name: LASTNAME_FIRSTNAME_YYYY-MM-DD_TAX-FORM.pdf
+        taxFormName: standardTaxFormName(body.firstName, body.lastName),
         applicationData,
       })
       .returning({ id: partners.id });

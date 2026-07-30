@@ -50,6 +50,20 @@ const AUDIENCE_OPTIONS = [
   "Other",
 ];
 
+// Program is US + Canada only for now. The tax-form type is derived from this
+// (US → W-9, Canada → W-8BEN) so we never have to ask the applicant.
+const COUNTRY_OPTIONS = ["United States", "Canada"];
+
+const MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+function daysInMonth(year: number, month1: number): number {
+  if (!year || !month1) return 31;
+  return new Date(year, month1, 0).getDate();
+}
+
 const MAX_FILE_BYTES = 10 * 1024 * 1024; // ~10MB
 
 // Real domain with a dot + TLD — rejects typos like "you@gmailcom".
@@ -111,8 +125,14 @@ export default function PartnerApplyPage() {
   const [platformOther, setPlatformOther] = useState("");
   const [targetAudience, setTargetAudience] = useState<string[]>([]);
   const [audienceOther, setAudienceOther] = useState("");
+  const [hearOther, setHearOther] = useState("");
   const [websites, setWebsites] = useState<string[]>([""]);
   const [taxForm, setTaxForm] = useState<File | null>(null);
+
+  // Fields adapt to the selected country.
+  const isCanada = form.country === "Canada";
+  const stateLabel = isCanada ? "Province" : "State";
+  const postalLabel = isCanada ? "Postal code" : "ZIP code";
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -222,6 +242,10 @@ export default function PartnerApplyPage() {
       next.audienceOther = "Please specify your other audience.";
     }
 
+    if (form.howDidYouHear === "Other" && !hearOther.trim()) {
+      next.hearOther = "Please tell us how you heard about us.";
+    }
+
     if (!taxForm) next.taxForm = "Please upload your W-9 or W-8BEN (PDF).";
 
     // Optional, but guard the total length so it can't blow past the server cap.
@@ -270,8 +294,13 @@ export default function PartnerApplyPage() {
         state: form.state.trim(),
         postalCode: form.postalCode.trim(),
         country: form.country.trim(),
+        // W-9 for US residents, W-8BEN for Canadian (non-US) individuals.
+        taxFormStatus: form.country === "United States" ? "w9" : "w8ben",
         dateOfBirth: form.dateOfBirth,
-        howDidYouHear: form.howDidYouHear,
+        howDidYouHear:
+          form.howDidYouHear === "Other"
+            ? `Other: ${hearOther.trim()}`
+            : form.howDidYouHear,
         website,
         profession: form.profession.trim(),
         promoExperience: form.promoExperience === "yes",
@@ -436,7 +465,7 @@ export default function PartnerApplyPage() {
                 </div>
                 <div className="space-y-1.5">
                   <label htmlFor="state" className={labelCls}>
-                    State <span className="text-red-500">*</span>
+                    {stateLabel} <span className="text-red-500">*</span>
                   </label>
                   <input
                     id="state"
@@ -455,7 +484,7 @@ export default function PartnerApplyPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label htmlFor="postalCode" className={labelCls}>
-                    Postal code <span className="text-red-500">*</span>
+                    {postalLabel} <span className="text-red-500">*</span>
                   </label>
                   <input
                     id="postalCode"
@@ -474,32 +503,37 @@ export default function PartnerApplyPage() {
                     Country of Residence{" "}
                     <span className="text-red-500">*</span>
                   </label>
-                  <input
+                  <select
                     id="country"
                     name="country"
-                    type="text"
                     autoComplete="country-name"
                     value={form.country}
                     onChange={handleChange}
                     data-invalid={err("country") || undefined}
                     className={cn(inputCls, err("country") && errRing)}
-                  />
+                  >
+                    <option value="">Select…</option>
+                    {COUNTRY_OPTIONS.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
                   <FieldError msg={errors.country} />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label htmlFor="dateOfBirth" className={labelCls}>
+                <label className={labelCls}>
                   Date of birth <span className="text-red-500">*</span>
                 </label>
-                <input
-                  id="dateOfBirth"
-                  name="dateOfBirth"
-                  type="date"
+                <DobPicker
                   value={form.dateOfBirth}
-                  onChange={handleChange}
-                  data-invalid={err("dateOfBirth") || undefined}
-                  className={cn(inputCls, err("dateOfBirth") && errRing)}
+                  invalid={err("dateOfBirth")}
+                  onChange={(v) => {
+                    setForm((prev) => ({ ...prev, dateOfBirth: v }));
+                    clearErr("dateOfBirth");
+                  }}
                 />
                 <FieldError msg={errors.dateOfBirth} />
               </div>
@@ -525,7 +559,22 @@ export default function PartnerApplyPage() {
                     </option>
                   ))}
                 </select>
+                {form.howDidYouHear === "Other" && (
+                  <input
+                    type="text"
+                    value={hearOther}
+                    onChange={(e) => {
+                      setHearOther(e.target.value);
+                      clearErr("hearOther");
+                    }}
+                    maxLength={190}
+                    placeholder="Please tell us how you heard about us"
+                    data-invalid={err("hearOther") || undefined}
+                    className={cn(inputCls, "mt-1", err("hearOther") && errRing)}
+                  />
+                )}
                 <FieldError msg={errors.howDidYouHear} />
+                <FieldError msg={errors.hearOther} />
               </div>
 
               {/* Website / social links — add more with the + (on hover) */}
@@ -592,6 +641,7 @@ export default function PartnerApplyPage() {
                   id="profession"
                   name="profession"
                   rows={3}
+                  placeholder="Write your answer here…"
                   value={form.profession}
                   onChange={handleChange}
                   data-invalid={err("profession") || undefined}
@@ -642,6 +692,7 @@ export default function PartnerApplyPage() {
                   id="promoExperienceDesc"
                   name="promoExperienceDesc"
                   rows={3}
+                  placeholder="Write your answer here…"
                   value={form.promoExperienceDesc}
                   onChange={handleChange}
                   className={`${inputCls} resize-none`}
@@ -814,6 +865,7 @@ export default function PartnerApplyPage() {
                   id="homeRun"
                   name="homeRun"
                   rows={3}
+                  placeholder="Write your answer here…"
                   value={form.homeRun}
                   onChange={handleChange}
                   data-invalid={err("homeRun") || undefined}
@@ -831,6 +883,7 @@ export default function PartnerApplyPage() {
                   id="anythingElse"
                   name="anythingElse"
                   rows={3}
+                  placeholder="Write your answer here…"
                   value={form.anythingElse}
                   onChange={handleChange}
                   className={`${inputCls} resize-none`}
@@ -990,4 +1043,109 @@ export default function PartnerApplyPage() {
 function FieldError({ msg }: { msg?: string }) {
   if (!msg) return null;
   return <p className="text-xs text-red-600">{msg}</p>;
+}
+
+/**
+ * Fast date-of-birth picker: three native selects (Month / Day / Year) instead
+ * of the sluggish native date widget. Years are limited to 18–100 years ago,
+ * the day list adapts to the chosen month/year, and it emits a `YYYY-MM-DD`
+ * string (or "" until all three are chosen) to stay compatible with the DB
+ * `date` column + the existing required-field validation.
+ */
+function DobPicker({
+  value,
+  onChange,
+  invalid,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  invalid?: boolean;
+}) {
+  const parts = value ? value.split("-").map(Number) : [];
+  const [year, setYear] = useState<number>(parts[0] || 0);
+  const [month, setMonth] = useState<number>(parts[1] || 0);
+  const [day, setDay] = useState<number>(parts[2] || 0);
+
+  const now = new Date();
+  const maxYear = now.getFullYear() - 18;
+  const minYear = now.getFullYear() - 100;
+  const years: number[] = [];
+  for (let y = maxYear; y >= minYear; y--) years.push(y);
+
+  const maxDay = daysInMonth(year, month);
+  const days: number[] = [];
+  for (let d = 1; d <= maxDay; d++) days.push(d);
+
+  function emit(y: number, m: number, d: number) {
+    if (y && m && d) {
+      const clamped = Math.min(d, daysInMonth(y, m));
+      onChange(
+        `${y}-${String(m).padStart(2, "0")}-${String(clamped).padStart(2, "0")}`,
+      );
+    } else {
+      onChange("");
+    }
+  }
+
+  const selectCls = cn(inputCls, invalid && errRing);
+
+  return (
+    <div className="grid grid-cols-3 gap-2" data-invalid={invalid || undefined}>
+      <select
+        aria-label="Birth month"
+        value={month || ""}
+        onChange={(e) => {
+          const m = Number(e.target.value);
+          const d = day > daysInMonth(year, m) ? 0 : day;
+          setMonth(m);
+          if (d !== day) setDay(d);
+          emit(year, m, d);
+        }}
+        className={selectCls}
+      >
+        <option value="">Month</option>
+        {MONTHS.map((name, i) => (
+          <option key={name} value={i + 1}>
+            {name}
+          </option>
+        ))}
+      </select>
+      <select
+        aria-label="Birth day"
+        value={day || ""}
+        onChange={(e) => {
+          const d = Number(e.target.value);
+          setDay(d);
+          emit(year, month, d);
+        }}
+        className={selectCls}
+      >
+        <option value="">Day</option>
+        {days.map((d) => (
+          <option key={d} value={d}>
+            {d}
+          </option>
+        ))}
+      </select>
+      <select
+        aria-label="Birth year"
+        value={year || ""}
+        onChange={(e) => {
+          const y = Number(e.target.value);
+          const d = day > daysInMonth(y, month) ? 0 : day;
+          setYear(y);
+          if (d !== day) setDay(d);
+          emit(y, month, d);
+        }}
+        className={selectCls}
+      >
+        <option value="">Year</option>
+        {years.map((y) => (
+          <option key={y} value={y}>
+            {y}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
 }
