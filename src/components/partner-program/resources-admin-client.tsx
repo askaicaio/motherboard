@@ -28,6 +28,7 @@ import {
   Loader2,
   Eye,
   EyeOff,
+  FileUp,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -75,23 +76,88 @@ export function ResourcesAdminClient({
   const [resources, setResources] = useState(initialResources);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<ResourceItem | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  // File-version replace: one hidden input, driven by whichever card was clicked.
+  const replaceInputRef = useRef<HTMLInputElement>(null);
+  const replaceTargetRef = useRef<ResourceItem | null>(null);
+  const [replacingId, setReplacingId] = useState<string | null>(null);
 
   const handleCreated = (r: ResourceItem) => {
     setResources((prev) => [r, ...prev]);
   };
 
-  const handleDelete = async (r: ResourceItem) => {
-    if (!confirm(`Remove "${r.title}"?`)) return;
-    const res = await fetch(`/api/partners/resources/${r.id}`, {
-      method: "DELETE",
-    });
-    if (!res.ok) {
-      toast.error("Failed to remove");
-      return;
+  // Uses a confirmation Dialog rather than window.confirm() — the native prompt
+  // is silently blocked in embedded/iframed browser panes (returns false), which
+  // made delete appear to do nothing.
+  const confirmDelete = async () => {
+    const r = pendingDelete;
+    if (!r) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/partners/resources/${r.id}`, {
+        method: "DELETE",
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.error || "Failed to remove");
+        return;
+      }
+      setResources((prev) => prev.filter((x) => x.id !== r.id));
+      toast.success("Removed");
+      setPendingDelete(null);
+      router.refresh();
+    } finally {
+      setDeleting(false);
     }
-    setResources((prev) => prev.filter((x) => x.id !== r.id));
-    toast.success("Removed");
-    router.refresh();
+  };
+
+  const startReplace = (r: ResourceItem) => {
+    replaceTargetRef.current = r;
+    if (replaceInputRef.current) {
+      replaceInputRef.current.value = "";
+      replaceInputRef.current.click();
+    }
+  };
+
+  const onReplaceFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    const r = replaceTargetRef.current;
+    if (!file || !r) return;
+    setReplacingId(r.id);
+    try {
+      const fd = new FormData();
+      fd.set("file", file);
+      const res = await fetch(`/api/partners/resources/${r.id}`, {
+        method: "PUT",
+        body: fd,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.error || "Failed to update file");
+        return;
+      }
+      const u = data.resource as ResourceItem;
+      setResources((prev) =>
+        prev.map((x) =>
+          x.id === r.id
+            ? {
+                ...x,
+                fileUrl: u.fileUrl,
+                fileName: u.fileName,
+                mimeType: u.mimeType,
+                sizeBytes: u.sizeBytes,
+                externalUrl: u.externalUrl,
+              }
+            : x,
+        ),
+      );
+      toast.success("File updated");
+      router.refresh();
+    } finally {
+      setReplacingId(null);
+      replaceTargetRef.current = null;
+    }
   };
 
   const togglePublic = async (r: ResourceItem) => {
@@ -189,6 +255,21 @@ export function ResourcesAdminClient({
                       {r.sizeBytes ? ` · ${fmtSize(r.sizeBytes)}` : ""}
                     </a>
                     <div className="flex items-center gap-2">
+                      {r.fileUrl && (
+                        <button
+                          type="button"
+                          onClick={() => startReplace(r)}
+                          disabled={replacingId === r.id}
+                          title="Replace file (upload a new version)"
+                          className="text-zinc-400 opacity-0 transition hover:text-zinc-900 focus-visible:opacity-100 group-hover:opacity-100 disabled:opacity-100"
+                        >
+                          {replacingId === r.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <FileUp className="h-3.5 w-3.5" />
+                          )}
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => togglePublic(r)}
@@ -203,7 +284,7 @@ export function ResourcesAdminClient({
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleDelete(r)}
+                        onClick={() => setPendingDelete(r)}
                         className="text-zinc-400 hover:text-red-600"
                         title="Remove"
                       >
@@ -217,6 +298,60 @@ export function ResourcesAdminClient({
           })}
         </div>
       )}
+
+      {/* Hidden input that backs every card's "replace file" button. */}
+      <input
+        ref={replaceInputRef}
+        type="file"
+        accept="application/pdf,image/*,.doc,.docx,.ppt,.pptx"
+        className="hidden"
+        onChange={onReplaceFile}
+      />
+
+      {/* Delete confirmation (replaces the unreliable window.confirm). */}
+      <Dialog
+        open={!!pendingDelete}
+        onOpenChange={(o) => {
+          if (!o) setPendingDelete(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Remove resource</DialogTitle>
+            <DialogDescription>
+              Remove{" "}
+              <span className="font-medium text-foreground">
+                {pendingDelete?.title}
+              </span>{" "}
+              from the affiliate resources page? It stops appearing for
+              affiliates immediately. You can re-upload it later.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setPendingDelete(null)}
+              disabled={deleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={confirmDelete}
+              disabled={deleting}
+            >
+              {deleting ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="mr-2 h-4 w-4" />
+              )}
+              Remove
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <UploadDialog open={uploadOpen} onOpenChange={setUploadOpen} onCreated={handleCreated} />
       <LinkDialog open={linkOpen} onOpenChange={setLinkOpen} onCreated={handleCreated} />
