@@ -2,9 +2,18 @@
 
 // Partner-facing form to set tax form type + payout method/details.
 // Posts to /api/portal/tax-form (scoped to the logged-in partner server-side).
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import {
+  Loader2,
+  CheckCircle2,
+  AlertCircle,
+  AlertTriangle,
+  FileText,
+  Download,
+  Trash2,
+  Upload,
+} from "lucide-react";
 
 const TAX_OPTIONS: { value: "w9" | "w8ben" | "w8bene"; label: string; hint: string }[] = [
   { value: "w9", label: "W-9", hint: "US persons & US-based entities" },
@@ -21,12 +30,75 @@ export function TaxFormClient({
   taxFormStatus,
   payoutMethod,
   payoutDetails,
+  taxFormUrl,
+  taxFormName,
 }: {
   taxFormStatus: string;
   payoutMethod: string;
   payoutDetails: string | null;
+  taxFormUrl: string | null;
+  taxFormName: string | null;
 }) {
   const router = useRouter();
+
+  // --- Tax-form DOCUMENT (the actual PDF), separate from the type above ---
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [hasFile, setHasFile] = useState(!!taxFormUrl);
+  const [fileName, setFileName] = useState(taxFormName);
+  const [uploading, setUploading] = useState(false);
+  const [removing, setRemoving] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState(false);
+  const [fileError, setFileError] = useState<string | null>(null);
+
+  async function onUploadFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (!file) return;
+    setFileError(null);
+    if (file.type !== "application/pdf") {
+      setFileError("Your tax form must be a PDF.");
+      return;
+    }
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.set("file", file);
+      const res = await fetch("/api/portal/tax-form/file", {
+        method: "POST",
+        body: fd,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setFileError(data?.error || "Upload failed. Please try again.");
+        return;
+      }
+      setHasFile(true);
+      setFileName(data.fileName ?? file.name);
+      setConfirmRemove(false);
+      router.refresh();
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function onRemoveFile() {
+    setFileError(null);
+    setRemoving(true);
+    try {
+      const res = await fetch("/api/portal/tax-form/file", { method: "DELETE" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setFileError(data?.error || "Could not remove the file. Please try again.");
+        return;
+      }
+      setHasFile(false);
+      setFileName(null);
+      setConfirmRemove(false);
+      router.refresh();
+    } finally {
+      setRemoving(false);
+    }
+  }
 
   const [tax, setTax] = useState<"w9" | "w8ben" | "w8bene">(
     taxFormStatus === "w9" || taxFormStatus === "w8ben" || taxFormStatus === "w8bene"
@@ -75,7 +147,111 @@ export function TaxFormClient({
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-6">
+    <div className="space-y-8">
+      {/* Tax-form DOCUMENT — download / remove / upload + warning-if-none */}
+      <div>
+        <label className="block text-sm font-medium text-[#1e1b4b]">
+          Tax form document
+        </label>
+        <p className="mt-0.5 text-xs text-slate-500">
+          Your signed W-9 or W-8BEN PDF. Stored securely — only the CAIO team
+          can view it.
+        </p>
+
+        {fileError && (
+          <div className="mt-3 flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-800">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>{fileError}</span>
+          </div>
+        )}
+
+        {hasFile ? (
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3.5 py-3">
+            <div className="flex min-w-0 items-center gap-2">
+              <FileText className="h-4 w-4 shrink-0 text-slate-500" />
+              <span className="truncate text-sm font-medium text-[#1e1b4b]">
+                {fileName || "tax-form.pdf"}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <a
+                href="/api/portal/tax-form/file"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+              >
+                <Download className="h-3.5 w-3.5" />
+                Download
+              </a>
+              {confirmRemove ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={onRemoveFile}
+                    disabled={removing}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 disabled:opacity-60"
+                  >
+                    {removing ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-3.5 w-3.5" />
+                    )}
+                    Confirm remove
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmRemove(false)}
+                    disabled={removing}
+                    className="rounded-lg px-2 py-1.5 text-xs text-slate-500 transition hover:text-slate-700"
+                  >
+                    Cancel
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setConfirmRemove(true)}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-rose-200 hover:text-rose-600"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Remove
+                </button>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="mt-3 space-y-3">
+            <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3 text-sm text-amber-800">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+              <span>
+                No tax form document on file. We can&apos;t release a payout
+                until your signed W-9 / W-8BEN PDF is uploaded.
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-[#1e1b4b] transition hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {uploading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Upload className="h-4 w-4" />
+              )}
+              {uploading ? "Uploading…" : "Upload tax form (PDF)"}
+            </button>
+          </div>
+        )}
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="application/pdf"
+          className="hidden"
+          onChange={onUploadFile}
+        />
+      </div>
+
+      <form onSubmit={onSubmit} className="space-y-6">
       <div>
         <label className="block text-sm font-medium text-[#1e1b4b]">Tax form type</label>
         <p className="mt-0.5 text-xs text-slate-500">
@@ -185,6 +361,7 @@ export function TaxFormClient({
           {saving ? "Saving…" : "Save payout details"}
         </button>
       </div>
-    </form>
+      </form>
+    </div>
   );
 }

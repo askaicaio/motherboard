@@ -263,6 +263,8 @@ export default async function PayoutsPage({
           taxFormStatus={partner.taxFormStatus}
           payoutMethod={partner.payoutMethod}
           payoutDetails={partner.payoutDetails}
+          taxFormUrl={partner.taxFormUrl}
+          taxFormName={partner.taxFormName}
         />
       </section>
     </div>
