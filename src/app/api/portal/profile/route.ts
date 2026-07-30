@@ -1,20 +1,24 @@
-// POST /api/portal/tax-form — partner sets their tax form type from the portal.
-// Scoped to the logged-in partner only. (Bank details are collected by Stripe
-// Connect now — we no longer take ACH/Zelle details here.)
+// PATCH /api/portal/profile — the logged-in affiliate updates their own contact
+// address. Name/email stay admin-managed; tax + payout live on their own pages.
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { partners } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { getPartnerSession, getImpersonation } from "@/lib/partners/session";
+import { COUNTRY_OPTIONS } from "@/lib/partners/geo";
 
 export const dynamic = "force-dynamic";
 
 const schema = z.object({
-  taxFormStatus: z.enum(["w9", "w8ben", "w8bene"]),
+  address: z.string().trim().min(1).max(500),
+  city: z.string().trim().min(1).max(200),
+  state: z.string().trim().min(1).max(200),
+  postalCode: z.string().trim().min(1).max(50),
+  country: z.enum(COUNTRY_OPTIONS as unknown as [string, ...string[]]),
 });
 
-export async function POST(request: NextRequest) {
+export async function PATCH(request: NextRequest) {
   const partner = await getPartnerSession();
   if (!partner) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -26,30 +30,30 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  let body;
+  let body: z.infer<typeof schema>;
   try {
     body = schema.parse(await request.json());
   } catch (err) {
     if (err instanceof z.ZodError) {
       return NextResponse.json(
-        { error: "Validation failed", issues: err.issues },
+        { error: "Please fill in every address field." },
         { status: 400 },
       );
     }
     throw err;
   }
 
-  const [updated] = await db
+  await db
     .update(partners)
     .set({
-      taxFormStatus: body.taxFormStatus,
+      address: body.address,
+      city: body.city,
+      state: body.state,
+      postalCode: body.postalCode,
+      country: body.country,
       updatedAt: new Date(),
     })
-    .where(eq(partners.id, partner.id))
-    .returning();
+    .where(eq(partners.id, partner.id));
 
-  return NextResponse.json({
-    ok: true,
-    taxFormStatus: updated.taxFormStatus,
-  });
+  return NextResponse.json({ ok: true });
 }

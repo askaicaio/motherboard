@@ -49,12 +49,6 @@ const TAX_LABEL: Record<string, string> = {
   invalid: "Invalid — please resubmit",
 };
 
-const METHOD_LABEL: Record<string, string> = {
-  none: "Not set",
-  ach: "ACH (bank transfer)",
-  zelle: "Zelle",
-};
-
 const VALID_TAX = ["w9", "w8ben", "w8bene"];
 
 export default async function PayoutsPage({
@@ -107,7 +101,8 @@ export default async function PayoutsPage({
       <header className="mb-8">
         <h1 className="text-2xl font-bold tracking-tight text-[#1e1b4b]">Payouts</h1>
         <p className="mt-1 text-sm text-slate-500">
-          Your payout history and the tax + banking details we use to pay you.
+          Your payout history, your Stripe payout account, and the tax form we
+          keep on file.
         </p>
       </header>
 
@@ -144,9 +139,10 @@ export default async function PayoutsPage({
         </div>
         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
           <ShieldCheck className="h-5 w-5 text-slate-500" />
-          <p className="mt-2 text-sm font-semibold text-[#1e1b4b]">ACH or Zelle</p>
+          <p className="mt-2 text-sm font-semibold text-[#1e1b4b]">Paid via Stripe</p>
           <p className="mt-0.5 text-xs text-slate-500">
-            A valid W-9 / W-8BEN is required before any payout is released.
+            Connect your bank through Stripe below. A valid W-9 / W-8BEN is also
+            required before a payout is released.
           </p>
         </div>
       </section>
@@ -224,45 +220,34 @@ export default async function PayoutsPage({
         />
       </section>
 
-      {/* Tax form + payout details — fallback for affiliates who don't connect */}
+      {/* Tax form — required alongside a connected Stripe payout account */}
       <section className="rounded-2xl border border-slate-200 bg-white p-6">
         <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 className="text-sm font-semibold text-[#1e1b4b]">
-              Tax form &amp; payout details
-            </h2>
+            <h2 className="text-sm font-semibold text-[#1e1b4b]">Tax form</h2>
             <p className="mt-1 text-xs text-slate-500">
-              Keep these current so we can release your earnings without delay.
+              Keep this current so we can release your earnings without delay.
+              Your bank details are handled securely by Stripe above.
             </p>
           </div>
-          <div className="flex flex-col items-end gap-1 text-xs">
-            <span
-              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-medium ring-1 ring-inset ${
-                taxValid
-                  ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
-                  : "bg-amber-50 text-amber-700 ring-amber-200"
-              }`}
-            >
-              {taxValid ? (
-                <ShieldCheck className="h-3.5 w-3.5" />
-              ) : (
-                <AlertTriangle className="h-3.5 w-3.5" />
-              )}
-              Tax form: {TAX_LABEL[partner.taxFormStatus] ?? partner.taxFormStatus}
-            </span>
-            <span className="text-slate-500">
-              Payout method:{" "}
-              <span className="font-medium text-[#1e1b4b]">
-                {METHOD_LABEL[partner.payoutMethod] ?? partner.payoutMethod}
-              </span>
-            </span>
-          </div>
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${
+              taxValid
+                ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
+                : "bg-amber-50 text-amber-700 ring-amber-200"
+            }`}
+          >
+            {taxValid ? (
+              <ShieldCheck className="h-3.5 w-3.5" />
+            ) : (
+              <AlertTriangle className="h-3.5 w-3.5" />
+            )}
+            Tax form: {TAX_LABEL[partner.taxFormStatus] ?? partner.taxFormStatus}
+          </span>
         </div>
 
         <TaxFormClient
           taxFormStatus={partner.taxFormStatus}
-          payoutMethod={partner.payoutMethod}
-          payoutDetails={partner.payoutDetails}
           taxFormUrl={partner.taxFormUrl}
           taxFormName={partner.taxFormName}
         />
