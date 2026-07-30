@@ -108,13 +108,19 @@ export async function setImpersonationSession(partnerId: string): Promise<void> 
 
 export async function clearPartnerSession(): Promise<void> {
   const jar = await cookies();
-  // Clear both the domain-scoped and any legacy host-only cookie.
+  // Delete the cookie EXACTLY as it was set — same domain + path — so the
+  // browser removes it. A bare jar.delete() emits a host-only Set-Cookie (no
+  // Domain), which does NOT match the domain-scoped cookie and, because the
+  // response cookie jar is keyed by name, it OVERWRITES this correct clear.
+  // That was the sign-out bug: logout returned 200 but the cookie survived.
   jar.set(PARTNER_COOKIE, "", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
     path: "/",
     maxAge: 0,
     domain: COOKIE_DOMAIN,
   });
-  jar.delete(PARTNER_COOKIE);
 }
 
 /** True when the current portal session is an admin impersonation ("View as"). */

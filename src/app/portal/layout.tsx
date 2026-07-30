@@ -27,12 +27,12 @@ export default async function PortalLayout({
   const partner = await getPartnerSession();
   const impersonating = partner ? await getImpersonation() : false;
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-900 antialiased">
+    <div className="flex min-h-screen flex-col bg-slate-50 font-sans text-slate-900 antialiased">
       {impersonating && partner && <ImpersonationBanner name={partner.name} />}
       <PortalHeader
         partner={partner ? { name: partner.name, email: partner.email } : null}
       />
-      <main>{children}</main>
+      <main className="flex flex-1 flex-col">{children}</main>
       {/* Chat with the CAIO team — only for a signed-in affiliate. */}
       {partner && <ChatWidget impersonating={impersonating} />}
     </div>
