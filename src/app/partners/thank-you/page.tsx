@@ -1,4 +1,4 @@
-import { CheckCircle } from "lucide-react";
+import { CheckCircle, Home } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -98,9 +98,11 @@ export default async function ThankYouPage({
         <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
           <Link
             href="/partners"
-            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-6 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+            aria-label="Affiliate program home"
+            title="Home"
+            className="inline-flex items-center justify-center rounded-lg border border-gray-200 px-3 py-2.5 text-gray-700 transition hover:bg-gray-50"
           >
-            Home
+            <Home className="h-4 w-4" />
           </Link>
           <Link
             href="https://chiefaiofficer.com"
