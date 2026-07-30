@@ -305,7 +305,14 @@ export function WorkflowDialog({
                   column. SelectValue's function child formats the closed
                   trigger; status always has a value ("paused" default), so the
                   fallback is just defensive. */}
-              <SelectTrigger id="wf-status" className="w-40">
+              {/* Clearer field look (matches the other Add/Edit dropdowns):
+                  zinc-300 resting border + shadow-sm, zinc-500 on focus. Override
+                  the shared SelectTrigger's fainter border-input per-instance so
+                  selects elsewhere in the app are unaffected. */}
+              <SelectTrigger
+                id="wf-status"
+                className="w-40 border-zinc-300 shadow-sm focus:border-zinc-500"
+              >
                 <SelectValue placeholder="Status">
                   {(v) => (
                     <StatusPill status={typeof v === "string" ? v : "paused"} />
