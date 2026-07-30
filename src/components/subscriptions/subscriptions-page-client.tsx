@@ -31,6 +31,7 @@ import {
   Filter,
   Pencil,
   Archive,
+  Copy,
 } from "lucide-react";
 import {
   format,
@@ -544,6 +545,51 @@ export function SubscriptionsPageClient({
     router.refresh();
   };
 
+  const handleDuplicate = async (row: SubscriptionRow) => {
+    // New name = base + the next free "(n)". Strip any existing "(k)" so a
+    // second duplicate becomes (2) rather than "(1) (1)".
+    const base = row.name.replace(/\s*\(\d+\)\s*$/, "").trim() || row.name;
+    const taken = new Set(rows.map((r) => r.name));
+    let n = 1;
+    while (taken.has(`${base} (${n})`)) n += 1;
+    const newName = `${base} (${n})`;
+
+    const res = await fetch("/api/subscriptions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: newName,
+        serviceName: row.serviceName,
+        ownerEmail: row.ownerEmail,
+        label: row.label,
+        isStarred: row.isStarred,
+        websiteUrl: row.websiteUrl,
+        departments: row.departments,
+        inOnePassword: row.inOnePassword,
+        monthlyCostUsd: row.monthlyCostUsd,
+        annualCostUsd: row.annualCostUsd,
+        seats: row.seats,
+        perSeatCostUsd: row.perSeatCostUsd,
+        renewalDate: row.renewalDate,
+        renewalDayOfMonth: row.renewalDayOfMonth,
+        notes: row.notes,
+        tag: row.tag,
+        status: row.status,
+        // A duplicate is always a fresh top-level row (never nested), and it
+        // does not carry over the original's seats/credentials child rows.
+      }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      toast.error(data?.error || "Failed to duplicate");
+      return;
+    }
+    const { subscription } = await res.json();
+    setRows((prev) => [subscription, ...prev]);
+    toast.success(`Duplicated as "${newName}"`);
+    router.refresh();
+  };
+
   const exportCsv = () => {
     const headers = [
       "Name",
@@ -821,6 +867,7 @@ export function SubscriptionsPageClient({
                   editMode={editMode}
                   onRowClick={(r) => setEditing(r)}
                   onArchive={handleArchive}
+                  onDuplicate={handleDuplicate}
                   onAddCredential={openAddCredential}
                   childrenByParent={childrenByParent}
                   expanded={expanded}
@@ -987,6 +1034,7 @@ function TableView({
   editMode,
   onRowClick,
   onArchive,
+  onDuplicate,
   onAddCredential,
   childrenByParent,
   expanded,
@@ -999,6 +1047,7 @@ function TableView({
   editMode: boolean;
   onRowClick: (r: SubscriptionRow) => void;
   onArchive: (r: SubscriptionRow) => void;
+  onDuplicate: (r: SubscriptionRow) => void;
   onAddCredential: (r: SubscriptionRow) => void;
   childrenByParent: Map<string, SubscriptionRow[]>;
   expanded: Set<string>;
@@ -1233,6 +1282,20 @@ function TableView({
                           className="rounded p-1 text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700"
                         >
                           <Plus className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                      {!r._isChild && (
+                        <button
+                          type="button"
+                          title="Duplicate this subscription"
+                          aria-label="Duplicate"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDuplicate(r);
+                          }}
+                          className="rounded p-1 text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700"
+                        >
+                          <Copy className="h-3.5 w-3.5" />
                         </button>
                       )}
                       <button
