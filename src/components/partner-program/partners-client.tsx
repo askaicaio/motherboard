@@ -53,6 +53,7 @@ import {
   Eye,
   Send,
   MessageSquare,
+  MailQuestion,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -923,10 +924,38 @@ function RowActions({
   const [offboardOpen, setOffboardOpen] = useState(false);
   const [viewing, setViewing] = useState(false);
   const [resending, setResending] = useState(false);
+  const [requesting, setRequesting] = useState(false);
   const canOffboard = ["active", "approved", "suspended"].includes(
     partner.status,
   );
   const canView = ["active", "approved"].includes(partner.status);
+  const firstName = partner.name.trim().split(/\s+/)[0] || partner.name;
+
+  async function requestTaxForm(mode: "request" | "redo") {
+    setRequesting(true);
+    try {
+      const res = await fetch(
+        `/api/partners/${partner.id}/request-tax-form`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mode }),
+        },
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.error || "Could not send the request.");
+        return;
+      }
+      toast.success(
+        mode === "redo"
+          ? `Asked ${firstName} to re-submit their tax form (chat + email).`
+          : `Requested a tax form from ${firstName} (chat + email).`,
+      );
+    } finally {
+      setRequesting(false);
+    }
+  }
 
   async function viewAs() {
     setViewing(true);
@@ -963,18 +992,21 @@ function RowActions({
   }
 
   return (
-    <div className="inline-flex items-center justify-end gap-1.5">
+    <div className="group inline-flex items-center justify-end gap-1.5">
       {canView && (
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-7 gap-1 px-2 text-xs"
-          disabled={viewing}
+        <button
+          type="button"
           onClick={viewAs}
+          disabled={viewing}
+          title={`View as ${partner.name}`}
+          aria-label={`View as ${partner.name}`}
+          className="group/va inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-xs text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900 disabled:opacity-50"
         >
-          <Eye className="h-3 w-3" />
-          View as
-        </Button>
+          <Eye className="h-3.5 w-3.5" />
+          <span className="hidden whitespace-nowrap group-hover/va:inline">
+            View as {firstName}
+          </span>
+        </button>
       )}
       {canView && (
         <Button
@@ -1003,18 +1035,52 @@ function RowActions({
           Resend
         </Button>
       )}
-      {partner.taxFormUrl && (
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-7 gap-1 px-2 text-xs"
+      {/* Tax form: light-purple when on file (click to download), crossed-off
+          light-grey when missing. */}
+      {partner.taxFormUrl ? (
+        <button
+          type="button"
           onClick={() =>
             window.open(`/api/partners/${partner.id}/tax-form`, "_blank")
           }
+          title="Download the tax form"
+          className="inline-flex h-7 items-center gap-1 rounded-md border border-purple-200 bg-purple-50 px-2 text-xs font-medium text-purple-700 transition hover:bg-purple-100"
         >
           <FileText className="h-3 w-3" />
           Tax form
-        </Button>
+        </button>
+      ) : canView ? (
+        <span
+          title="No tax form on file"
+          className="inline-flex h-7 items-center gap-1 rounded-md border border-zinc-200 bg-zinc-50 px-2 text-xs font-medium text-zinc-400 line-through"
+        >
+          <FileText className="h-3 w-3" />
+          Tax form
+        </span>
+      ) : null}
+
+      {/* Request / re-request tax form — hover-revealed icon → dropdown; sends
+          a templated message via the affiliate chat AND an email. */}
+      {canView && (
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            type="button"
+            disabled={requesting}
+            title="Request tax form"
+            aria-label="Request tax form"
+            className="inline-flex h-7 w-7 items-center justify-center rounded-md text-zinc-400 opacity-0 transition hover:bg-zinc-100 hover:text-zinc-700 focus-visible:opacity-100 group-hover:opacity-100 data-[popup-open]:opacity-100 disabled:opacity-50"
+          >
+            <MailQuestion className="h-3.5 w-3.5" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => requestTaxForm("request")}>
+              Request tax form
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => requestTaxForm("redo")}>
+              Request to redo tax form
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       )}
       {canOffboard && (
         <Button
