@@ -269,7 +269,14 @@ export function ChoiceDialog({
             <div className="space-y-1.5">
               <Label htmlFor="choice-status">Status</Label>
               <Select value={status} onValueChange={(v) => setStatus(v ?? "")}>
-                <SelectTrigger id="choice-status" className="w-44">
+                {/* Clearer field look (matches the other Add/Edit dropdowns):
+                    zinc-300 resting border + shadow-sm, zinc-500 on focus.
+                    Per-instance override of the shared SelectTrigger's fainter
+                    border-input, so selects elsewhere are unaffected. */}
+                <SelectTrigger
+                  id="choice-status"
+                  className="w-44 border-zinc-300 shadow-sm focus:border-zinc-500"
+                >
                   <SelectValue
                     placeholder="Status"
                     className={

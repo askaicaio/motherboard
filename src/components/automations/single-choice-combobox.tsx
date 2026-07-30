@@ -61,7 +61,10 @@ export function SingleChoiceCombobox({
         id={id}
         type="button"
         className={cn(
-          "flex w-full items-center justify-between gap-2 rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-left text-sm",
+          // Field look mirrors the Subscriptions "Nest under" select the user
+          // liked: a clearer zinc-300 resting border + faint shadow-sm, darkening
+          // to zinc-500 on focus (was the fainter zinc-200 with no shadow).
+          "flex w-full items-center justify-between gap-2 rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-left text-sm shadow-sm focus:border-zinc-500 focus:outline-none",
           // Empty = the red "None" treatment, matching the table cell's red
           // "None" for an unset value.
           value === "" && "font-medium text-red-600",
