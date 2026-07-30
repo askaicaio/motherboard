@@ -156,16 +156,17 @@ if (DRY_RUN) {
 }
 
 const dbUrl = process.env.DATABASE_URL || null;
-if (!dbUrl) {
+if (!dbUrl || !process.env.BLOB_READ_WRITE_TOKEN) {
   fail(
-    "DATABASE_URL is required (we insert a partner_resources row per file).\n" +
-      "  Add it to .env.local or run:  DATABASE_URL='postgres://...' node scripts/upload-affiliate-resources.mjs",
-  );
-}
-if (!process.env.BLOB_READ_WRITE_TOKEN) {
-  fail(
-    "BLOB_READ_WRITE_TOKEN (the PUBLIC affiliates-system store) is required.\n" +
-      "  It is NOT the private TAX_ token. Pull it from Vercel or .env.local.",
+    "This script needs two secrets from your Vercel project:\n" +
+      "    DATABASE_URL           (Postgres connection string)\n" +
+      "    BLOB_READ_WRITE_TOKEN  (the PUBLIC blob store — NOT the TAX_ token)\n\n" +
+      "  Easiest: create a file named  .env.local  in the project root (it is\n" +
+      "  gitignored) with these two lines, then re-run this script:\n" +
+      "    DATABASE_URL=postgresql://...\n" +
+      "    BLOB_READ_WRITE_TOKEN=vercel_blob_rw_...\n\n" +
+      "  Both values are in Vercel → your project → Settings → Environment Variables.\n" +
+      "  (One-off in PowerShell instead:  $env:DATABASE_URL='...'; $env:BLOB_READ_WRITE_TOKEN='...'; node scripts/upload-affiliate-resources.mjs )",
   );
 }
 
