@@ -271,12 +271,14 @@ export function ChoiceDialog({
               <Label htmlFor="choice-status">Status</Label>
               <Select value={status} onValueChange={(v) => setStatus(v ?? "")}>
                 {/* Clearer field look (matches the other Add/Edit fields): zinc-300
-                    resting border + shadow-sm. Focus keeps the shared SelectTrigger's
-                    built-in ring (same as the text inputs). Per-instance override so
-                    selects elsewhere are unaffected. */}
+                    resting border + shadow-sm. Keeps the shared SelectTrigger's
+                    built-in focus ring AND shows it while the menu is open
+                    (data-popup-open), so a click activates the ring like the other
+                    dropdowns. Per-instance override so selects elsewhere are
+                    unaffected. */}
                 <SelectTrigger
                   id="choice-status"
-                  className="w-44 border-zinc-300 shadow-sm"
+                  className="w-44 border-zinc-300 shadow-sm data-[popup-open]:border-ring data-[popup-open]:ring-3 data-[popup-open]:ring-ring/50"
                 >
                   <SelectValue
                     placeholder="Status"
