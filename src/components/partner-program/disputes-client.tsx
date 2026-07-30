@@ -382,8 +382,8 @@ export function DisputesClient({
                       </span>
                     </Label>
                     <p className="mt-0.5 text-xs text-zinc-500">
-                      Creates an earned commission that appears in Events and the
-                      next payout — no manual entry needed.
+                      Creates an earned commission that appears in Activity and
+                      the next payout — no manual entry needed.
                     </p>
                   </div>
                   <div className="grid grid-cols-2 gap-3">

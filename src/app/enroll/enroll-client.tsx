@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import { ArrowRight, CalendarClock, Sparkles, Loader2, AlertCircle } from "lucide-react";
+import { SiteLogo } from "@/components/partners/site-logo";
 
 interface Program {
   id: string;
@@ -90,14 +90,7 @@ export default function EnrollClient({
             className="flex items-center"
             aria-label="Chief AI Officer — in partnership with Scaling Up"
           >
-            <Image
-              src="/caio-scalingup.png"
-              alt="Chief AI Officer — in partnership with Scaling Up"
-              width={4000}
-              height={1000}
-              className="h-8 w-auto"
-              priority
-            />
+            <SiteLogo variant="header" priority />
           </a>
         </div>
       </header>
@@ -276,13 +269,7 @@ export default function EnrollClient({
             className="inline-flex items-center"
             aria-label="Chief AI Officer — in partnership with Scaling Up"
           >
-            <Image
-              src="/caio-scalingup.png"
-              alt="Chief AI Officer — in partnership with Scaling Up"
-              width={4000}
-              height={1000}
-              className="h-6 w-auto"
-            />
+            <SiteLogo variant="footer" />
           </a>
           <p className="text-sm text-slate-500">
             Questions?{" "}

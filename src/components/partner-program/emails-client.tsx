@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/dialog";
 import { renderBrandedEmail } from "@/lib/email/template";
 import type { EmailVariable } from "@/lib/email/registry";
+import { cn } from "@/lib/utils";
 
 export interface TemplateRow {
   key: string;
@@ -116,7 +117,16 @@ export function EmailTemplatesClient({
         {/* Main column — template cards */}
         <div className="min-w-0 flex-1 space-y-5">
           {rows.map((row) => (
-            <Card key={row.key} id={row.key} className="scroll-mt-6">
+            <Card
+              key={row.key}
+              id={row.key}
+              className={cn(
+                "scroll-mt-6",
+                // Internal/admin-recipient templates get a yellow container so
+                // they're instantly distinguishable from affiliate-facing ones.
+                row.recipient === "Admin" && "bg-yellow-50 ring-yellow-300",
+              )}
+            >
               <CardContent className="p-0">
                 {/* Meta header */}
                 <div className="border-b border-zinc-100 p-4">
@@ -172,8 +182,9 @@ export function EmailTemplatesClient({
           ))}
         </div>
 
-        {/* Sticky outline / table of contents */}
-        <nav className="lg:sticky lg:top-6 lg:w-60 lg:shrink-0">
+        {/* Sticky outline / table of contents — stays put while scrolling the
+            long card column; self-scrolls if the list ever outgrows the viewport. */}
+        <nav className="lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:w-60 lg:shrink-0 lg:self-start lg:overflow-y-auto">
           <div className="rounded-md border border-zinc-200 bg-white p-3">
             <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-zinc-400">
               Templates

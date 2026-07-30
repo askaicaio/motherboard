@@ -507,7 +507,7 @@ export default async function AffiliateTestingGuidePage() {
               <Step n={3} title="See the sale credited to the affiliate">
                 Back in Motherboard, open{" "}
                 <GuideLink href="/partner-program/events">
-                  Affiliate Program → Events
+                  Affiliate Program → Activity
                 </GuideLink>
                 .
                 <SeeThis>
@@ -532,8 +532,8 @@ export default async function AffiliateTestingGuidePage() {
 
               <Step n={5} title="Put the payout together">
                 Still in the admin, open the <strong>Payouts</strong> tab (it sits
-                next to Activity, inside{" "}
-                <GuideLink href="/partner-program/events">Events</GuideLink>) and
+                next to Conversions, inside{" "}
+                <GuideLink href="/partner-program/events">Activity</GuideLink>) and
                 click <strong>&quot;Generate payout batch&quot;</strong> — that
                 just gathers up everyone who&apos;s owed money right now.
                 <SeeThis>
@@ -545,7 +545,7 @@ export default async function AffiliateTestingGuidePage() {
               <Step n={6} title="Mark it paid">
                 On that payout, click <strong>&quot;Mark paid&quot;</strong>.
                 <SeeThis>
-                  the sale flips to <strong>Paid</strong> in Events — the
+                  the sale flips to <strong>Paid</strong> in Activity — the
                   affiliate is now recorded as paid.
                 </SeeThis>
                 <p className="mt-2 text-[13px] leading-relaxed text-zinc-500">

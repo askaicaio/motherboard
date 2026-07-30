@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
+import { SiteLogo } from "@/components/partners/site-logo";
 import { Plus, X, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -376,13 +376,7 @@ export default function PartnerApplyPage() {
         {/* Logo / wordmark area */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center mb-4">
-            <Image
-              src="/caio-scalingup.png"
-              alt="Chief AI Officer — in partnership with Scaling Up"
-              width={4000}
-              height={1000}
-              className="h-9 w-auto"
-            />
+            <SiteLogo variant="header" />
           </div>
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
             Affiliate Application

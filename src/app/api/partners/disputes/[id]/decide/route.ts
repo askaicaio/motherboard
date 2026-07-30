@@ -40,7 +40,7 @@ async function notifyAffiliate(
   // creditLine: a sentence about the credit when one was created, else "".
   const creditLine =
     upheld && credited
-      ? `<p style="margin:0 0 16px;">We've added the earned commission to your account. It now appears in your Events and will be included in your next payout — no further action needed.</p>`
+      ? `<p style="margin:0 0 16px;">We've added the earned commission to your account. It now appears in your Activity and will be included in your next payout — no further action needed.</p>`
       : "";
 
   // resolution: the optional "note from our team" block, escaped, else "".

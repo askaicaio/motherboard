@@ -400,7 +400,9 @@ function nowLocalInput(): string {
 type Section = "activity" | "attribution" | "payouts";
 
 const SECTIONS: { id: Section; label: string; icon: typeof Activity }[] = [
-  { id: "activity", label: "Activity", icon: Activity },
+  // Tab label is "Conversions" (the ledger); the page itself is titled
+  // "Activity" — keep the id "activity" so saved state/links don't break.
+  { id: "activity", label: "Conversions", icon: Activity },
   { id: "attribution", label: "Attribution", icon: GitBranch },
   { id: "payouts", label: "Payouts", icon: Wallet },
 ];
@@ -435,7 +437,7 @@ export function EventsClient({
       <div>
         <div className="flex items-center gap-2">
           <Activity className="h-5 w-5 text-zinc-500" />
-          <h1 className="text-2xl font-semibold tracking-tight">Events</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Activity</h1>
         </div>
         <p className="mt-1 text-sm text-zinc-500">
           The unified affiliate pipeline — attribution, conversions, and

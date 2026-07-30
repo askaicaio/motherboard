@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Image from "next/image";
+import { SiteLogo } from "@/components/partners/site-logo";
 import {
   Link2,
   DollarSign,
@@ -243,14 +243,7 @@ export default function PartnersLandingPage() {
             className="flex items-center"
             aria-label="Chief AI Officer — in partnership with Scaling Up"
           >
-            <Image
-              src="/caio-scalingup.png"
-              alt="Chief AI Officer — in partnership with Scaling Up"
-              width={4000}
-              height={1000}
-              className="h-9 w-auto sm:h-10"
-              priority
-            />
+            <SiteLogo variant="header" priority />
           </a>
           <div className="flex items-center gap-5">
             <Link
@@ -534,12 +527,10 @@ export default function PartnersLandingPage() {
           }}
         />
         <div className="relative mx-auto max-w-2xl px-6">
-          <Image
-            src="/caio-scalingup-white.png"
-            alt="Chief AI Officer — in partnership with Scaling Up"
-            width={4000}
-            height={1000}
-            className="mx-auto mb-6 h-10 w-auto opacity-95"
+          <SiteLogo
+            variant="header"
+            color="white"
+            className="mx-auto mb-6 opacity-95"
           />
           <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
             Start earning with your network
@@ -571,13 +562,7 @@ export default function PartnersLandingPage() {
               className="inline-flex items-center"
               aria-label="Chief AI Officer — in partnership with Scaling Up"
             >
-              <Image
-                src="/caio-scalingup.png"
-                alt="Chief AI Officer — in partnership with Scaling Up"
-                width={4000}
-                height={1000}
-                className="h-7 w-auto"
-              />
+              <SiteLogo variant="footer" />
             </a>
             <p className="mt-3 max-w-xs text-sm leading-relaxed text-slate-500">
               Earn 10% introducing executives and boards to the programs shaping

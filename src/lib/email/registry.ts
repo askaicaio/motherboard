@@ -164,16 +164,16 @@ export const EMAIL_TEMPLATES: EmailTemplateDescriptor[] = [
     defaultSubject: "You're approved for the CAIO Affiliate Program",
     defaultHeading: "You're approved!",
     defaultBodyHtml: `<p>Hi {{name}},</p>
-<p>Great news — your application to the CAIO Affiliate Program has been approved!</p>
-<p>Your personal referral link is:</p>
-<p><a href="{{referralLink}}">{{referralLink}}</a></p>
-<p>Share it with anyone who could benefit from working with a Chief AI Officer. When they engage through your link, you'll earn commission on qualifying sales.</p>
-<p>Sign in to your affiliate portal to track your clicks, conversions, and payouts.</p>
-<p>Your temporary password is: <strong>{{tempPassword}}</strong></p>
+<p>Great news — your application to the CAIO Affiliate Program has been approved. Welcome aboard!</p>
+<p>Here's how to get set up in three quick steps:</p>
+<p style="margin:18px 0 4px;"><strong>1. Sign in to your portal.</strong> Everything lives here — your referral links, clicks, conversions, and payouts. Your temporary password is <strong>{{tempPassword}}</strong> (you'll choose your own on first sign-in).</p>
 <table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 4px;"><tr><td style="border-radius:8px;background:#4f46e5;">
   <a href="{{loginUrl}}" style="display:inline-block;padding:13px 26px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:8px;">Sign in to your portal →</a>
 </td></tr></table>
-<p>You'll be asked to choose your own password on first sign-in.</p>
+<p style="margin:18px 0 4px;"><strong>2. Connect your payout account.</strong> Before we can pay you, open <strong>Payouts</strong> in your portal and connect your bank through Stripe. It takes a couple of minutes and securely handles your tax form and payments. <strong>You won't receive any payouts until this is done</strong>, so it's worth doing right away.</p>
+<p style="margin:18px 0 4px;"><strong>3. Start sharing your referral link:</strong></p>
+<p><a href="{{referralLink}}">{{referralLink}}</a></p>
+<p>This link books people straight into a call with our team — the best way to turn a referral into a closed deal. You'll find more link options (and can copy them anytime) inside your portal.</p>
 <p>Welcome aboard,<br/>The CAIO Team</p>`,
     variables: [
       { name: "name", sample: "Jordan Avery", description: "Affiliate's full name." },
@@ -247,7 +247,7 @@ export const EMAIL_TEMPLATES: EmailTemplateDescriptor[] = [
       {
         name: "creditLine",
         sample:
-          `<p style="margin:0 0 16px;">We've added the earned commission to your account. It now appears in your Events and will be included in your next payout — no further action needed.</p>`,
+          `<p style="margin:0 0 16px;">We've added the earned commission to your account. It now appears in your Activity and will be included in your next payout — no further action needed.</p>`,
         description:
           "Optional HTML sentence about the credit when one was created; empty otherwise.",
       },

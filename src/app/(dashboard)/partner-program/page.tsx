@@ -35,6 +35,7 @@ import NextLink from "next/link";
 import { format } from "date-fns";
 import { stripeMode } from "@/lib/integrations/stripe-client";
 import { NotificationSettingsPopover } from "@/components/partner-program/notification-settings-popover";
+import { Fragment } from "react";
 
 export const dynamic = "force-dynamic";
 
@@ -215,7 +216,7 @@ export default async function PartnerProgramPage() {
     {
       href: "/partner-program/events",
       icon: Activity,
-      label: "Events",
+      label: "Activity",
       desc: "Attribution, conversions & payouts pipeline",
       badge:
         pendingConversionsCount > 0
@@ -333,12 +334,12 @@ export default async function PartnerProgramPage() {
         />
       </div>
 
-      {/* Public affiliate-facing pages — quick links to every public entry point */}
+      {/* Quick Links — public affiliate-facing entry points, bullet-separated */}
       <div className="flex flex-col gap-2 rounded-lg border border-zinc-200 bg-zinc-50/60 px-3 py-2 sm:flex-row sm:items-center">
-        <span className="shrink-0 text-[11px] font-medium uppercase tracking-wide text-zinc-400">
-          Public pages
+        <span className="shrink-0 text-[11px] font-medium uppercase tracking-wide text-zinc-400 sm:border-r sm:border-zinc-200 sm:pr-3">
+          Quick Links
         </span>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
           {[
             { href: `${publicBase}/partners`, label: "Landing page" },
             { href: `${publicBase}/partners/apply`, label: "Apply to join" },
@@ -346,17 +347,23 @@ export default async function PartnerProgramPage() {
             { href: `${publicBase}/portal/login`, label: "Affiliate sign-in" },
             { href: `${publicBase}/partners/terms`, label: "Terms" },
             { href: `${publicBase}/partners/privacy`, label: "Privacy" },
-          ].map((l) => (
-            <a
-              key={l.href}
-              href={l.href}
-              target="_blank"
-              rel="noreferrer"
-              className="group inline-flex items-center gap-1 text-sm font-medium text-zinc-700 hover:text-indigo-600"
-            >
-              {l.label}
-              <ExternalLink className="h-3 w-3 text-zinc-400 group-hover:text-indigo-500" />
-            </a>
+          ].map((l, i) => (
+            <Fragment key={l.href}>
+              {i > 0 && (
+                <span aria-hidden className="text-zinc-300">
+                  ·
+                </span>
+              )}
+              <a
+                href={l.href}
+                target="_blank"
+                rel="noreferrer"
+                className="group inline-flex items-center gap-1 text-sm font-medium text-zinc-700 hover:text-indigo-600"
+              >
+                {l.label}
+                <ExternalLink className="h-3 w-3 text-zinc-400 group-hover:text-indigo-500" />
+              </a>
+            </Fragment>
           ))}
         </div>
       </div>

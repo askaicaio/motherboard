@@ -1,5 +1,5 @@
 import { CheckCircle, Home } from "lucide-react";
-import Image from "next/image";
+import { SiteLogo } from "@/components/partners/site-logo";
 import Link from "next/link";
 
 // This page serves two flows:
@@ -41,14 +41,7 @@ export default async function ThankYouPage({
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#f8f7ff] px-4 py-16 font-sans antialiased">
       <div className="w-full max-w-lg text-center">
-        <Image
-          src="/caio-scalingup.png"
-          alt="Chief AI Officer — in partnership with Scaling Up"
-          width={4000}
-          height={1000}
-          className="mx-auto mb-8 h-16 w-auto"
-          priority
-        />
+        <SiteLogo variant="hero" priority className="mx-auto mb-8" />
 
         <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-indigo-50">
           <CheckCircle className="h-10 w-10 text-[#4f46e5]" strokeWidth={1.5} />
