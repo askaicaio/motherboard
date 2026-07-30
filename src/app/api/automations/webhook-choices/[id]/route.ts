@@ -10,6 +10,8 @@ import { and, eq, ne } from "drizzle-orm";
 
 const patchSchema = z.object({
   url: z.string().url().max(1000),
+  // Optional free-text note; only applied when the key is present. Blank → null.
+  notes: z.string().max(5000).optional(),
 });
 
 const DUPLICATE_ERROR = "That webhook URL already exists.";
@@ -64,14 +66,19 @@ export async function PATCH(
     return NextResponse.json({ error: DUPLICATE_ERROR }, { status: 409 });
   }
 
+  const patch: Record<string, unknown> = { url, updatedAt: new Date() };
+  if (body.notes !== undefined) patch.notes = body.notes.trim() || null;
+
   try {
     const [updated] = await db
       .update(automationWebhookChoices)
-      .set({ url, updatedAt: new Date() })
+      .set(patch)
       .where(eq(automationWebhookChoices.id, id))
       .returning();
     if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });
-    return NextResponse.json({ webhook: { id: updated.id, url: updated.url } });
+    return NextResponse.json({
+      webhook: { id: updated.id, url: updated.url, notes: updated.notes },
+    });
   } catch (err) {
     if (isUniqueViolation(err)) {
       return NextResponse.json({ error: DUPLICATE_ERROR }, { status: 409 });
