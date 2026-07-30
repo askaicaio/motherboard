@@ -54,6 +54,25 @@ const AUDIENCE_OPTIONS = [
 // (US → W-9, Canada → W-8BEN) so we never have to ask the applicant.
 const COUNTRY_OPTIONS = ["United States", "Canada"];
 
+const US_STATES = [
+  "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado",
+  "Connecticut", "Delaware", "District of Columbia", "Florida", "Georgia",
+  "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky",
+  "Louisiana", "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota",
+  "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire",
+  "New Jersey", "New Mexico", "New York", "North Carolina", "North Dakota",
+  "Ohio", "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island",
+  "South Carolina", "South Dakota", "Tennessee", "Texas", "Utah", "Vermont",
+  "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming",
+];
+
+const CA_PROVINCES = [
+  "Alberta", "British Columbia", "Manitoba", "New Brunswick",
+  "Newfoundland and Labrador", "Northwest Territories", "Nova Scotia",
+  "Nunavut", "Ontario", "Prince Edward Island", "Quebec", "Saskatchewan",
+  "Yukon",
+];
+
 const MONTHS = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
@@ -119,8 +138,10 @@ export default function PartnerApplyPage() {
     homeRun: "",
     anythingElse: "",
     signature: "",
-    company_website: "", // honeypot
   });
+  // Honeypot — a hidden CHECKBOX (autofill never ticks checkboxes, so a real
+  // applicant can't be false-flagged the way a text honeypot was).
+  const [hpChecked, setHpChecked] = useState(false);
   const [platforms, setPlatforms] = useState<string[]>([]);
   const [platformOther, setPlatformOther] = useState("");
   const [targetAudience, setTargetAudience] = useState<string[]>([]);
@@ -313,7 +334,7 @@ export default function PartnerApplyPage() {
         homeRun: form.homeRun.trim(),
         anythingElse: form.anythingElse.trim(),
         signature: form.signature.trim(),
-        company_website: form.company_website, // honeypot
+        hp_confirm: hpChecked, // honeypot (should always be false for humans)
       };
 
       const fd = new FormData();
@@ -467,16 +488,29 @@ export default function PartnerApplyPage() {
                   <label htmlFor="state" className={labelCls}>
                     {stateLabel} <span className="text-red-500">*</span>
                   </label>
-                  <input
+                  <select
                     id="state"
                     name="state"
-                    type="text"
                     autoComplete="address-level1"
                     value={form.state}
                     onChange={handleChange}
+                    disabled={!form.country}
                     data-invalid={err("state") || undefined}
-                    className={cn(inputCls, err("state") && errRing)}
-                  />
+                    className={cn(
+                      inputCls,
+                      err("state") && errRing,
+                      !form.country && "opacity-60",
+                    )}
+                  >
+                    <option value="">
+                      {form.country ? "Select…" : "Select a country first"}
+                    </option>
+                    {(isCanada ? CA_PROVINCES : US_STATES).map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
                   <FieldError msg={errors.state} />
                 </div>
               </div>
@@ -508,7 +542,17 @@ export default function PartnerApplyPage() {
                     name="country"
                     autoComplete="country-name"
                     value={form.country}
-                    onChange={handleChange}
+                    onChange={(e) => {
+                      // Reset the state/province when the country changes so a
+                      // stale US state can't linger under Canada (and vice versa).
+                      setForm((prev) => ({
+                        ...prev,
+                        country: e.target.value,
+                        state: "",
+                      }));
+                      clearErr("country");
+                      clearErr("state");
+                    }}
                     data-invalid={err("country") || undefined}
                     className={cn(inputCls, err("country") && errRing)}
                   >
@@ -957,7 +1001,9 @@ export default function PartnerApplyPage() {
                 <FieldError msg={errors.signature} />
               </div>
 
-              {/* Honeypot — visually hidden, not for humans */}
+              {/* Honeypot — a hidden CHECKBOX. Autofill/password managers fill
+                  text fields but never TICK checkboxes, so a real applicant is
+                  never false-flagged; only a bot that ticks everything trips it. */}
               <div
                 aria-hidden="true"
                 style={{
@@ -969,24 +1015,17 @@ export default function PartnerApplyPage() {
                   whiteSpace: "nowrap",
                 }}
               >
-                <label htmlFor="company_website">
-                  Company website (leave blank)
-                </label>
+                <label htmlFor="hp_confirm">Leave this box unchecked</label>
                 <input
-                  id="company_website"
-                  name="company_website"
-                  type="text"
+                  id="hp_confirm"
+                  name="hp_confirm"
+                  type="checkbox"
                   tabIndex={-1}
                   autoComplete="off"
-                  // Tell password managers to SKIP this hidden trap — otherwise
-                  // 1Password/LastPass/etc. autofill it and silently flag the
-                  // real applicant as a bot.
                   data-1p-ignore="true"
                   data-lpignore="true"
-                  data-bwignore="true"
-                  data-form-type="other"
-                  value={form.company_website}
-                  onChange={handleChange}
+                  checked={hpChecked}
+                  onChange={(e) => setHpChecked(e.target.checked)}
                 />
               </div>
 

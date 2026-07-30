@@ -50,7 +50,7 @@ const applySchema = z.object({
   // Optional — applicants shouldn't be blocked by this one.
   anythingElse: z.string().max(5000).optional().default(""),
   signature: z.string().min(1).max(300),
-  company_website: z.string().optional().default(""), // honeypot
+  hp_confirm: z.boolean().optional().default(false), // honeypot checkbox
 });
 
 export async function POST(request: NextRequest) {
@@ -89,11 +89,12 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // --- Honeypot: silently drop bots (but LOG it — a real applicant whose
-  // password manager autofilled the trap would otherwise vanish invisibly). ---
-  if (body.company_website && body.company_website.trim() !== "") {
+  // --- Honeypot: silently drop bots (but LOG it — so a false positive is
+  // traceable instead of vanishing). The trap is a hidden checkbox, which
+  // autofill never ticks. ---
+  if (body.hp_confirm) {
     console.warn(
-      `[partners/apply] honeypot triggered — dropped submission for "${body.email}" (${body.firstName} ${body.lastName}). If this was a real person, their password manager likely autofilled the hidden field.`,
+      `[partners/apply] honeypot triggered — dropped submission for "${body.email}" (${body.firstName} ${body.lastName}).`,
     );
     return NextResponse.json({ ok: true });
   }
