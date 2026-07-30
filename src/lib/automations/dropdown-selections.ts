@@ -10,9 +10,11 @@ import { db } from "@/lib/db";
 import {
   automationDropdownSelections,
   automationDropdownChoices,
+  automationWebhooks,
+  automationWebhookChoices,
 } from "@/lib/db/schema";
 import { and, asc, eq, inArray } from "drizzle-orm";
-import type { SelectedChoice } from "./dropdown-config";
+import type { SelectedChoice, SelectedWebhook } from "./dropdown-config";
 
 /**
  * Selected choices for `columnKey`, grouped by automation id. Pass a platform's
@@ -60,6 +62,47 @@ export async function getSelectionsByColumn(
       badgeColor: r.badgeColor,
       textColor: r.textColor,
     };
+    if (list) list.push(entry);
+    else map.set(r.automationId, [entry]);
+  }
+  return map;
+}
+
+/**
+ * Webhooks each automation uses (the Webhook Links column), grouped by
+ * automation id, from the `automation_webhooks` junction (SEPARATE from the
+ * generic selections junction, since Webhook Links has its own choices table).
+ * Pass a platform's automation ids to scope (Per Website page); omit to load
+ * across all automations (View All Lists). URLs come back alphabetical within
+ * each automation.
+ */
+export async function getWebhooksByAutomation(
+  automationIds?: string[],
+): Promise<Map<string, SelectedWebhook[]>> {
+  const map = new Map<string, SelectedWebhook[]>();
+  if (automationIds && automationIds.length === 0) return map;
+
+  const rows = await db
+    .select({
+      automationId: automationWebhooks.automationId,
+      id: automationWebhookChoices.id,
+      url: automationWebhookChoices.url,
+    })
+    .from(automationWebhooks)
+    .innerJoin(
+      automationWebhookChoices,
+      eq(automationWebhooks.webhookChoiceId, automationWebhookChoices.id),
+    )
+    .where(
+      automationIds
+        ? inArray(automationWebhooks.automationId, automationIds)
+        : undefined,
+    )
+    .orderBy(asc(automationWebhookChoices.url));
+
+  for (const r of rows) {
+    const list = map.get(r.automationId);
+    const entry: SelectedWebhook = { id: r.id, url: r.url };
     if (list) list.push(entry);
     else map.set(r.automationId, [entry]);
   }

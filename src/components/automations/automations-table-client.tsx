@@ -48,7 +48,11 @@ import {
 import { WorkflowDialog } from "./workflow-dialog";
 import { ColorBadge } from "./color-badge";
 import { confirmDialog } from "@/components/ui/confirm";
-import type { ChoiceOption, SelectedChoice } from "@/lib/automations/dropdown-config";
+import type {
+  ChoiceOption,
+  SelectedChoice,
+  SelectedWebhook,
+} from "@/lib/automations/dropdown-config";
 
 /** 24 hours in ms — the auto-refresh cadence (client-side copy; the server is
  *  the source of truth, this is only for the instant optimistic countdown). */
@@ -240,6 +244,11 @@ export interface AutomationRow {
   // wrapping coloured chips. Empty array when none. Set only via the Add/Edit
   // Workflow dialog, never by a sync.
   automationTags?: SelectedChoice[];
+  // Webhook Links (MULTI-select dropdown column). The selected webhook choices
+  // (id + url), resolved from the automation_webhooks junction; rendered one
+  // truncated line per webhook. Empty array when none. Set only via the Add/Edit
+  // Workflow dialog, never by a sync.
+  webhooks?: SelectedWebhook[];
 }
 
 // ---------------------------------------------------------------------------
@@ -269,6 +278,12 @@ const EXPORT_COLUMNS: { header: string; value: (r: AutomationRow) => string }[] 
     { header: "Purpose", value: (r) => r.purpose ?? "" },
     // Notes sits immediately right of Purpose on the table, so it does here too.
     { header: "Notes", value: (r) => r.notes ?? "" },
+    // Webhook Links (multi-select): the selected webhook URLs joined, in the same
+    // after-Notes slot as the on-screen column.
+    {
+      header: "Webhook Links",
+      value: (r) => (r.webhooks ?? []).map((w) => w.url).join(", "),
+    },
     {
       header: "Last Edited",
       value: (r) => (r.lastEditedAt ? formatDateCell(r.lastEditedAt) : ""),
@@ -308,6 +323,7 @@ export function AutomationsTableClient({
   authorChoices = [],
   triggerEventChoices = [],
   automationTagChoices = [],
+  webhookChoices = [],
   canSync = false,
   hasApiKey = false,
   autoRefresh = { enabled: false, nextRefreshAt: null },
@@ -327,6 +343,8 @@ export function AutomationsTableClient({
   triggerEventChoices?: ChoiceOption[];
   /** Automation Tags options for the multi-select chip picker (Add/Edit dialog). */
   automationTagChoices?: ChoiceOption[];
+  /** Webhook Links options (URL as value) for the multi-select picker. */
+  webhookChoices?: ChoiceOption[];
   /** When true, "Refresh List" performs a real sync; otherwise it shows the
    *  temporary placeholder error (platforms whose sync isn't built yet). */
   canSync?: boolean;
@@ -895,7 +913,7 @@ export function AutomationsTableClient({
             stands in for the row border, which would otherwise scroll away.
 
             Horizontal scroll + frozen Name column: the table carries a
-            `min-w-[2010px]` so once columns exceed the card width it overflows
+            `min-w-[2250px]` so once columns exceed the card width it overflows
             and the existing overflow-auto shows a horizontal scrollbar (drag,
             Shift+wheel, or trackpad swipe). The first column (Name + its link)
             is `sticky left-0` on both the header and every body row so the
@@ -911,7 +929,7 @@ export function AutomationsTableClient({
             style={scrollStyle}
             className="max-h-[70vh] overflow-auto p-0"
           >
-            <table className="w-full min-w-[2010px] text-sm">
+            <table className="w-full min-w-[2250px] text-sm">
               <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
                 <tr>
                   {/* Corner cell: pinned to BOTH the top (header) and the left
@@ -996,6 +1014,12 @@ export function AutomationsTableClient({
                   <th className="sticky top-0 z-10 w-[240px] min-w-[240px] max-w-[240px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
                     Notes
                   </th>
+                  {/* Webhook Links: MULTI-select dropdown column, display-only
+                      (not sortable). Selected webhooks render one truncated line
+                      each. Sits after Notes, before the date columns. 240px. */}
+                  <th className="sticky top-0 z-10 w-[240px] min-w-[240px] max-w-[240px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
+                    Webhook Links
+                  </th>
                   <th
                     onClick={() => toggleSort("lastEditedAt")}
                     aria-sort={
@@ -1076,7 +1100,7 @@ export function AutomationsTableClient({
                 {filtered.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={11}
+                      colSpan={12}
                       className="px-3 py-16 text-center text-sm text-zinc-500"
                     >
                       {rows.length === 0
@@ -1304,6 +1328,28 @@ export function AutomationsTableClient({
                           </span>
                         )}
                       </td>
+                      {/* Webhook Links: one truncated line per selected webhook
+                          (hover title shows the full URL); red "None" when empty.
+                          Multi-select, set in the Add/Edit dialog. 240px. */}
+                      <td className="w-[240px] min-w-[240px] max-w-[240px] px-3 py-2 text-left align-top">
+                        {r.webhooks && r.webhooks.length > 0 ? (
+                          <div className="space-y-0.5">
+                            {r.webhooks.map((w) => (
+                              <div
+                                key={w.id}
+                                title={w.url}
+                                className="truncate text-xs text-zinc-700"
+                              >
+                                {w.url}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-xs font-medium text-red-600">
+                            None
+                          </span>
+                        )}
+                      </td>
                       <td className="px-3 py-2 align-top text-center">
                         {/* Last Edited: sync/import-filled date (MM-DD-YYYY). A
                             plain "-" when empty (sync-only, never manual). */}
@@ -1377,6 +1423,7 @@ export function AutomationsTableClient({
         authorChoices={authorChoices}
         triggerEventChoices={triggerEventChoices}
         automationTagChoices={automationTagChoices}
+        webhookChoices={webhookChoices}
         onCreated={handleCreated}
       />
       {/* Edit */}
@@ -1388,6 +1435,7 @@ export function AutomationsTableClient({
         authorChoices={authorChoices}
         triggerEventChoices={triggerEventChoices}
         automationTagChoices={automationTagChoices}
+        webhookChoices={webhookChoices}
         onSaved={handleSaved}
       />
 

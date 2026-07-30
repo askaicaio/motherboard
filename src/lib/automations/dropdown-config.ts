@@ -297,3 +297,10 @@ export interface SelectedChoice {
   badgeColor?: string | null;
   textColor?: string | null;
 }
+
+/** One webhook an automation uses (from the automation_webhooks junction),
+ *  resolved to its URL for the Webhook Links cell + the multi-select picker. */
+export interface SelectedWebhook {
+  id: string;
+  url: string;
+}

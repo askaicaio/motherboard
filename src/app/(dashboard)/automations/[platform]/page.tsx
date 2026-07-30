@@ -8,7 +8,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import { automations, automationDropdownChoices } from "@/lib/db/schema";
+import {
+  automations,
+  automationDropdownChoices,
+  automationWebhookChoices,
+} from "@/lib/db/schema";
 import { alias } from "drizzle-orm/pg-core";
 import { asc, eq } from "drizzle-orm";
 import { requireAuth } from "@/lib/auth/guard";
@@ -17,7 +21,10 @@ import { getAutomationSite, isSyncablePlatform } from "@/lib/automations/sites";
 import { platformHasApiKey } from "@/lib/automations/credentials";
 import { getAutoRefreshFor } from "@/lib/automations/autorefresh";
 import { getLastErrorAtByPlatform } from "@/lib/automations/errors";
-import { getSelectionsByColumn } from "@/lib/automations/dropdown-selections";
+import {
+  getSelectionsByColumn,
+  getWebhooksByAutomation,
+} from "@/lib/automations/dropdown-selections";
 import { AutomationsTableClient } from "@/components/automations/automations-table-client";
 
 export const dynamic = "force-dynamic";
@@ -75,7 +82,7 @@ export default async function AutomationWebsitePage({
 
   // Options for the single-select dropdowns (managed on the Dropdown
   // Configuration page). Passed to the table's Add/Edit Workflow dialog.
-  const [authorChoices, triggerEventChoices, automationTagChoices] =
+  const [authorChoices, triggerEventChoices, automationTagChoices, webhookChoices] =
     await Promise.all([
       db
         .select({
@@ -109,6 +116,15 @@ export default async function AutomationWebsitePage({
         .from(automationDropdownChoices)
         .where(eq(automationDropdownChoices.columnKey, "automation_tags"))
         .orderBy(asc(automationDropdownChoices.value)),
+      // Webhook Links (multi-select): options for the dialog's chip picker. Maps
+      // the webhook URL to the picker's `value` (its own choices table).
+      db
+        .select({
+          id: automationWebhookChoices.id,
+          value: automationWebhookChoices.url,
+        })
+        .from(automationWebhookChoices)
+        .orderBy(asc(automationWebhookChoices.url)),
     ]);
 
   // Latest captured error date per automation, merged onto each row as the
@@ -121,10 +137,16 @@ export default async function AutomationWebsitePage({
     "automation_tags",
     baseRows.map((r) => r.id),
   );
+  // Webhook Links (multi-select): each row's selected webhooks, via the
+  // automation_webhooks junction. Scoped to this platform's automations.
+  const webhooksByAutomation = await getWebhooksByAutomation(
+    baseRows.map((r) => r.id),
+  );
   const rows = baseRows.map((r) => ({
     ...r,
     lastErrorAt: lastErrorByAutomation.get(r.id) ?? null,
     automationTags: tagsByAutomation.get(r.id) ?? [],
+    webhooks: webhooksByAutomation.get(r.id) ?? [],
   }));
 
   const autoRefresh = await getAutoRefreshFor(site.slug);
@@ -149,6 +171,7 @@ export default async function AutomationWebsitePage({
         authorChoices={authorChoices}
         triggerEventChoices={triggerEventChoices}
         automationTagChoices={automationTagChoices}
+        webhookChoices={webhookChoices}
         canSync={isSyncablePlatform(site.slug)}
         hasApiKey={platformHasApiKey(site.slug)}
         autoRefresh={autoRefresh}
