@@ -66,10 +66,10 @@ export function MultiChoiceCombobox({
         id={id}
         type="button"
         className={cn(
-          // Field look mirrors the Subscriptions "Nest under" select the user
-          // liked: a clearer zinc-300 resting border + faint shadow-sm, darkening
-          // to zinc-500 on focus (was the fainter zinc-200 with no shadow).
-          "flex w-full items-center justify-between gap-2 rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-left text-sm shadow-sm focus:border-zinc-500 focus:outline-none",
+          // Clearer zinc-300 resting border + faint shadow-sm. Focus MATCHES the
+          // shared text inputs (the ring), NOT a border-colour change: same
+          // `outline-none` + focus-visible ring classes as <Input>/<Textarea>.
+          "flex w-full items-center justify-between gap-2 rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-left text-sm shadow-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
           // Empty = the red "None" treatment, matching the table cell's red
           // "None" for an unset value (same as the single-select combobox).
           selected.length === 0 && "font-medium text-red-600",
