@@ -312,7 +312,16 @@ export function WorkflowDialog({
                   )}
                 </SelectValue>
               </SelectTrigger>
-              <SelectContent>
+              {/* Opens to the RIGHT of the trigger (not overlaying it), matching
+                  the other Add/Edit dropdowns. alignItemWithTrigger={false} is
+                  required for `side` to take effect on a Base UI Select (its
+                  default native-like item-over-trigger alignment ignores side). */}
+              <SelectContent
+                side="right"
+                align="start"
+                sideOffset={8}
+                alignItemWithTrigger={false}
+              >
                 <SelectItem value="active">
                   <StatusPill status="active" />
                 </SelectItem>

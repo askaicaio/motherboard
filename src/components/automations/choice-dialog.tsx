@@ -277,7 +277,15 @@ export function ChoiceDialog({
                     }
                   />
                 </SelectTrigger>
-                <SelectContent>
+                {/* Opens to the RIGHT of the trigger (not overlaying it), matching
+                    the other Add/Edit dropdowns. alignItemWithTrigger={false} is
+                    required for `side` to take effect on a Base UI Select. */}
+                <SelectContent
+                  side="right"
+                  align="start"
+                  sideOffset={8}
+                  alignItemWithTrigger={false}
+                >
                   {(statusOptions ?? []).map((o) => (
                     <SelectItem key={o.value} value={o.value} className={o.text}>
                       {o.value}

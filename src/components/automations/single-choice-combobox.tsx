@@ -83,7 +83,16 @@ export function SingleChoiceCombobox({
         )}
         <ChevronDown className="h-4 w-4 shrink-0 text-zinc-400" />
       </PopoverTrigger>
-      <PopoverContent className="w-(--anchor-width) min-w-64 p-0" align="start">
+      {/* Opens to the RIGHT of the trigger (aligned to its top), NOT below, so
+          it doesn't cover the dialog fields underneath while open. Matches the
+          multi-select picker; Base UI's positioner auto-flips to the left if the
+          right lacks room. Fixed compact width (not the full trigger width). */}
+      <PopoverContent
+        className="w-72 p-0"
+        side="right"
+        align="start"
+        sideOffset={8}
+      >
         <Command
           filter={(itemValue, search) =>
             itemValue.toLowerCase().includes(search.toLowerCase()) ? 1 : 0
