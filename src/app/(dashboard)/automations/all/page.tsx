@@ -17,7 +17,10 @@ import { asc, eq } from "drizzle-orm";
 import { requireAuth } from "@/lib/auth/guard";
 import { ArrowLeft } from "lucide-react";
 import { getLastErrorAtAllAutomations } from "@/lib/automations/errors";
-import { getSelectionsByColumn } from "@/lib/automations/dropdown-selections";
+import {
+  getSelectionsByColumn,
+  getWebhooksByAutomation,
+} from "@/lib/automations/dropdown-selections";
 import { AllAutomationsTableClient } from "@/components/automations/all-automations-table-client";
 
 export const dynamic = "force-dynamic";
@@ -72,10 +75,15 @@ export default async function AllAutomationsPage() {
     "automation_tags",
     baseRows.map((r) => r.id),
   );
+  // Webhook Links (multi-select): each row's selected webhooks (junction).
+  const webhooksByAutomation = await getWebhooksByAutomation(
+    baseRows.map((r) => r.id),
+  );
   const rows = baseRows.map((r) => ({
     ...r,
     lastErrorAt: lastErrorByAutomation.get(r.id) ?? null,
     automationTags: tagsByAutomation.get(r.id) ?? [],
+    webhooks: webhooksByAutomation.get(r.id) ?? [],
   }));
 
   return (

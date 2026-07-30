@@ -8,6 +8,8 @@ import {
   automations,
   automationDropdownChoices,
   automationDropdownSelections,
+  automationWebhooks,
+  automationWebhookChoices,
 } from "@/lib/db/schema";
 import { getOptionalAuth } from "@/lib/auth/guard";
 import { and, asc, eq } from "drizzle-orm";
@@ -35,6 +37,9 @@ const createSchema = z.object({
   // Automation Tags (MULTI-select): the chosen automation_dropdown_choices ids
   // (column_key = 'automation_tags'). Each validated below; empty = no tags.
   automationTagChoiceIds: z.array(z.string().uuid()).optional().default([]),
+  // Webhook Links (MULTI-select): the chosen automation_webhook_choices ids.
+  // Each validated below; empty = no webhooks.
+  webhookChoiceIds: z.array(z.string().uuid()).optional().default([]),
 });
 
 /** True when `id` is a real option for `columnKey` in automation_dropdown_choices.
@@ -49,6 +54,16 @@ async function isChoiceOfColumn(id: string, columnKey: string): Promise<boolean>
         eq(automationDropdownChoices.columnKey, columnKey),
       ),
     )
+    .limit(1);
+  return !!row;
+}
+
+/** True when `id` is a real webhook choice (automation_webhook_choices). */
+async function isWebhookChoice(id: string): Promise<boolean> {
+  const [row] = await db
+    .select({ id: automationWebhookChoices.id })
+    .from(automationWebhookChoices)
+    .where(eq(automationWebhookChoices.id, id))
     .limit(1);
   return !!row;
 }
@@ -133,6 +148,15 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // Webhook Links (multi-select): dedupe, then reject any id that isn't a real
+  // webhook choice.
+  const webhookChoiceIds = [...new Set(body.webhookChoiceIds)];
+  for (const wid of webhookChoiceIds) {
+    if (!(await isWebhookChoice(wid))) {
+      return NextResponse.json({ error: "Unknown webhook option." }, { status: 400 });
+    }
+  }
+
   // Deterministic duplicate check (the link is the automation's identity).
   const existing = await db
     .select({ id: automations.id })
@@ -163,6 +187,14 @@ export async function POST(request: NextRequest) {
       if (tagChoiceIds.length > 0) {
         await tx.insert(automationDropdownSelections).values(
           tagChoiceIds.map((choiceId) => ({ automationId: row.id, choiceId })),
+        );
+      }
+      if (webhookChoiceIds.length > 0) {
+        await tx.insert(automationWebhooks).values(
+          webhookChoiceIds.map((webhookChoiceId) => ({
+            automationId: row.id,
+            webhookChoiceId,
+          })),
         );
       }
       return row;

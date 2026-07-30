@@ -58,6 +58,8 @@ interface Props {
   triggerEventChoices?: ChoiceOption[];
   /** Configured Automation Tags options for the multi-select chip picker. */
   automationTagChoices?: ChoiceOption[];
+  /** Configured Webhook Links options (URL as value) for the multi-select picker. */
+  webhookChoices?: ChoiceOption[];
   onCreated?: (row: AutomationRow) => void;
   onSaved?: (row: AutomationRow) => void;
 }
@@ -70,6 +72,7 @@ export function WorkflowDialog({
   authorChoices = [],
   triggerEventChoices = [],
   automationTagChoices = [],
+  webhookChoices = [],
   onCreated,
   onSaved,
 }: Props) {
@@ -89,6 +92,8 @@ export function WorkflowDialog({
   const [triggerEventChoiceId, setTriggerEventChoiceId] = useState("");
   // Automation Tags: the selected tag choice ids (multi-select). Empty = none.
   const [automationTagChoiceIds, setAutomationTagChoiceIds] = useState<string[]>([]);
+  // Webhook Links: the selected webhook choice ids (multi-select). Empty = none.
+  const [webhookChoiceIds, setWebhookChoiceIds] = useState<string[]>([]);
   // Inline error shown as red text inside the dialog (e.g. duplicate link).
   const [error, setError] = useState<string | null>(null);
 
@@ -103,6 +108,7 @@ export function WorkflowDialog({
     setAuthorChoiceId(existing?.authorChoiceId ?? "");
     setTriggerEventChoiceId(existing?.triggerEventChoiceId ?? "");
     setAutomationTagChoiceIds((existing?.automationTags ?? []).map((t) => t.id));
+    setWebhookChoiceIds((existing?.webhooks ?? []).map((w) => w.id));
     setError(null);
   }, [open, existing]);
 
@@ -124,8 +130,8 @@ export function WorkflowDialog({
       const authorPayload = authorChoiceId || null;
       const triggerEventPayload = triggerEventChoiceId || null;
       const body = isEdit
-        ? { name: name.trim(), externalUrl: externalUrl.trim(), status, purpose: purpose.trim(), notes: notes.trim(), authorChoiceId: authorPayload, triggerEventChoiceId: triggerEventPayload, automationTagChoiceIds }
-        : { platform, name: name.trim(), externalUrl: externalUrl.trim(), status, purpose: purpose.trim(), notes: notes.trim(), authorChoiceId: authorPayload, triggerEventChoiceId: triggerEventPayload, automationTagChoiceIds };
+        ? { name: name.trim(), externalUrl: externalUrl.trim(), status, purpose: purpose.trim(), notes: notes.trim(), authorChoiceId: authorPayload, triggerEventChoiceId: triggerEventPayload, automationTagChoiceIds, webhookChoiceIds }
+        : { platform, name: name.trim(), externalUrl: externalUrl.trim(), status, purpose: purpose.trim(), notes: notes.trim(), authorChoiceId: authorPayload, triggerEventChoiceId: triggerEventPayload, automationTagChoiceIds, webhookChoiceIds };
 
       const res = await fetch(endpoint, {
         method,
@@ -187,6 +193,14 @@ export function WorkflowDialog({
             textColor: c.textColor,
           }))
           .sort((a, b) => a.value.localeCompare(b.value)),
+        // Webhook Links: resolve the selected ids to their {id, url} from the
+        // loaded webhook choices, so the cell renders immediately. Alphabetical
+        // by url to match the loader's ordering.
+        webhooks: webhookChoiceIds
+          .map((wid) => webhookChoices.find((c) => c.id === wid))
+          .filter((c): c is ChoiceOption => !!c)
+          .map((c) => ({ id: c.id, url: c.value }))
+          .sort((a, b) => a.url.localeCompare(b.url)),
         // Sync-only fields, carried through so an edit doesn't blank them in the
         // table (not editable here; the API returns the current values).
         lastRunAt: saved.lastRunAt,
@@ -449,6 +463,26 @@ export function WorkflowDialog({
               rows={3}
               placeholder="Any extra notes…"
               className="border-zinc-300 shadow-sm block resize-none overflow-hidden [overflow-wrap:anywhere]"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="wf-webhook-links">Webhook Links</Label>
+            {/* Multi-select: pick ANY number of Webhook Links from the configured
+                choices (managed on the Dropdown Configuration page). Optional; the
+                trigger shows the selected URLs as chips, red "None" when empty.
+                Sits after Notes, matching the table column order. */}
+            <MultiChoiceCombobox
+              id="wf-webhook-links"
+              options={webhookChoices}
+              values={webhookChoiceIds}
+              onChange={(v) => {
+                setWebhookChoiceIds(v);
+                setError(null);
+              }}
+              searchPlaceholder="Search webhooks…"
+              emptyLabel="None"
+              noResultsLabel="No webhooks found."
+              side="right"
             />
           </div>
           {error && (

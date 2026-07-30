@@ -7,6 +7,8 @@ import {
   automations,
   automationDropdownChoices,
   automationDropdownSelections,
+  automationWebhooks,
+  automationWebhookChoices,
 } from "@/lib/db/schema";
 import { getOptionalAuth } from "@/lib/auth/guard";
 import { and, eq, inArray, ne } from "drizzle-orm";
@@ -30,6 +32,9 @@ const patchSchema = z.object({
   // Only synced when the key is present (absent = leave tags untouched). Each
   // validated below.
   automationTagChoiceIds: z.array(z.string().uuid()).optional(),
+  // Webhook Links (MULTI-select): the FULL desired set of webhook choice ids.
+  // Only synced when the key is present (absent = leave webhooks untouched).
+  webhookChoiceIds: z.array(z.string().uuid()).optional(),
 });
 
 /** True when `id` is a real option for `columnKey` in automation_dropdown_choices.
@@ -44,6 +49,16 @@ async function isChoiceOfColumn(id: string, columnKey: string): Promise<boolean>
         eq(automationDropdownChoices.columnKey, columnKey),
       ),
     )
+    .limit(1);
+  return !!row;
+}
+
+/** True when `id` is a real webhook choice (automation_webhook_choices). */
+async function isWebhookChoice(id: string): Promise<boolean> {
+  const [row] = await db
+    .select({ id: automationWebhookChoices.id })
+    .from(automationWebhookChoices)
+    .where(eq(automationWebhookChoices.id, id))
     .limit(1);
   return !!row;
 }
@@ -118,6 +133,14 @@ export async function PATCH(
       }
     }
   }
+  // Webhook Links (multi-select): validate each provided id when present.
+  if (body.webhookChoiceIds !== undefined) {
+    for (const wid of body.webhookChoiceIds) {
+      if (!(await isWebhookChoice(wid))) {
+        return NextResponse.json({ error: "Unknown webhook option." }, { status: 400 });
+      }
+    }
+  }
 
   const patch: Record<string, unknown> = { updatedAt: new Date() };
   if (body.name !== undefined) patch.name = body.name.trim();
@@ -180,6 +203,23 @@ export async function PATCH(
             .values(
               tagChoiceIds.map((choiceId) => ({ automationId: id, choiceId })),
             );
+        }
+      }
+
+      if (body.webhookChoiceIds !== undefined) {
+        const webhookChoiceIds = [...new Set(body.webhookChoiceIds)];
+        // The automation_webhooks junction only holds webhook links, so wipe all
+        // of this automation's rows then re-insert the desired set.
+        await tx
+          .delete(automationWebhooks)
+          .where(eq(automationWebhooks.automationId, id));
+        if (webhookChoiceIds.length > 0) {
+          await tx.insert(automationWebhooks).values(
+            webhookChoiceIds.map((webhookChoiceId) => ({
+              automationId: id,
+              webhookChoiceId,
+            })),
+          );
         }
       }
       return row;
