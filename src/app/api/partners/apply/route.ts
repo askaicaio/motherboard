@@ -51,6 +51,7 @@ const applySchema = z.object({
   anythingElse: z.string().max(5000).optional().default(""),
   signature: z.string().min(1).max(300),
   hp_confirm: z.boolean().optional().default(false), // honeypot checkbox
+  elapsedMs: z.number().nullable().optional(), // time trap
 });
 
 export async function POST(request: NextRequest) {
@@ -95,6 +96,16 @@ export async function POST(request: NextRequest) {
   if (body.hp_confirm) {
     console.warn(
       `[partners/apply] honeypot triggered — dropped submission for "${body.email}" (${body.firstName} ${body.lastName}).`,
+    );
+    return NextResponse.json({ ok: true });
+  }
+
+  // --- Time trap: no human fills this form + picks a PDF in under 2s. Catches
+  // fast automated bots that skip the honeypot checkbox. Never false-positives
+  // a real applicant (they take far longer). Skipped if elapsedMs is absent. ---
+  if (typeof body.elapsedMs === "number" && body.elapsedMs < 2000) {
+    console.warn(
+      `[partners/apply] time-trap triggered (${body.elapsedMs}ms) — dropped submission for "${body.email}".`,
     );
     return NextResponse.json({ ok: true });
   }

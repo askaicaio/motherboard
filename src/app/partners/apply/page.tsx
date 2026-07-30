@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Plus, X, HelpCircle } from "lucide-react";
@@ -142,6 +142,13 @@ export default function PartnerApplyPage() {
   // Honeypot — a hidden CHECKBOX (autofill never ticks checkboxes, so a real
   // applicant can't be false-flagged the way a text honeypot was).
   const [hpChecked, setHpChecked] = useState(false);
+  // Time trap: when the form first mounted (client-only, so no SSR mismatch).
+  // A submission faster than a human could possibly fill this form + pick a
+  // file is almost certainly a bot — catches bots the checkbox misses.
+  const formStartRef = useRef<number>(0);
+  useEffect(() => {
+    formStartRef.current = Date.now();
+  }, []);
   const [platforms, setPlatforms] = useState<string[]>([]);
   const [platformOther, setPlatformOther] = useState("");
   const [targetAudience, setTargetAudience] = useState<string[]>([]);
@@ -335,6 +342,10 @@ export default function PartnerApplyPage() {
         anythingElse: form.anythingElse.trim(),
         signature: form.signature.trim(),
         hp_confirm: hpChecked, // honeypot (should always be false for humans)
+        // How long the form was open before submit — the time trap.
+        elapsedMs: formStartRef.current
+          ? Date.now() - formStartRef.current
+          : null,
       };
 
       const fd = new FormData();
