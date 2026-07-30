@@ -19,7 +19,10 @@ export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  await requireAuth();
+  const me = await requireAuth();
+  // Read-only viewers can READ the thread but must not clear the team's unread
+  // receipts (a GET should stay side-effect-free for them).
+  const canMarkRead = me.role === "admin" || me.role === "super_admin";
   const { id } = await params;
 
   const [partner] = await db
@@ -37,8 +40,11 @@ export async function GET(
     .where(eq(partnerMessages.partnerId, id))
     .orderBy(asc(partnerMessages.createdAt));
 
-  // Mark affiliate→CAIO messages read.
-  if (rows.some((r) => r.senderType === "partner" && r.readByAdminAt === null)) {
+  // Mark affiliate→CAIO messages read (admins only — see canMarkRead).
+  if (
+    canMarkRead &&
+    rows.some((r) => r.senderType === "partner" && r.readByAdminAt === null)
+  ) {
     await db
       .update(partnerMessages)
       .set({ readByAdminAt: new Date() })

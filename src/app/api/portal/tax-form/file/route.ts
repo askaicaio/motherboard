@@ -123,26 +123,24 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Fail CLOSED for tax documents (they carry SSN/EIN): never fall back to a
+  // world-readable public blob. If the private store isn't configured, refuse
+  // the upload rather than store sensitive PII at an unauthenticated URL.
   const taxToken = process.env.TAX_BLOB_READ_WRITE_TOKEN;
+  if (!taxToken) {
+    return NextResponse.json(
+      { error: "Tax-form storage isn't configured yet. Please contact us." },
+      { status: 503 },
+    );
+  }
   const pathname = `tax-forms/${crypto.randomUUID()}.pdf`;
-  let newValue: string;
   try {
-    if (taxToken) {
-      await put(pathname, file, {
-        access: "private",
-        addRandomSuffix: false,
-        contentType: "application/pdf",
-        token: taxToken,
-      });
-      newValue = pathname; // private — store only the pathname
-    } else {
-      const blob = await put(pathname, file, {
-        access: "public",
-        addRandomSuffix: false,
-        contentType: "application/pdf",
-      });
-      newValue = blob.url;
-    }
+    await put(pathname, file, {
+      access: "private",
+      addRandomSuffix: false,
+      contentType: "application/pdf",
+      token: taxToken,
+    });
   } catch (err) {
     console.error("[portal/tax-form/file] upload failed:", err);
     return NextResponse.json(
@@ -150,6 +148,7 @@ export async function POST(request: NextRequest) {
       { status: 500 },
     );
   }
+  const newValue = pathname; // private — store only the pathname
 
   const previous = partner.taxFormUrl;
   await db
@@ -181,9 +180,16 @@ export async function DELETE() {
     return NextResponse.json({ ok: true }); // already absent — idempotent
   }
 
+  // Removing the document also clears the declared status, so payout gating +
+  // the finance CSV never show a valid W-9/W-8BEN with no file behind it.
   await db
     .update(partners)
-    .set({ taxFormUrl: null, taxFormName: null, updatedAt: new Date() })
+    .set({
+      taxFormUrl: null,
+      taxFormName: null,
+      taxFormStatus: "none",
+      updatedAt: new Date(),
+    })
     .where(eq(partners.id, partner.id));
 
   await deleteTaxBlob(value);
