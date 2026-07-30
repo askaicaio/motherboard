@@ -273,7 +273,7 @@ export function WorkflowDialog({
               // `min-h-9` overrides the shared Textarea's tall `min-h-16` floor
               // so a short name starts at single-line height (like the old
               // Input) and only grows when the text actually needs it.
-              className="block min-h-9 resize-none overflow-hidden [overflow-wrap:anywhere]"
+              className="border-zinc-300 shadow-sm block min-h-9 resize-none overflow-hidden [overflow-wrap:anywhere]"
             />
           </div>
           <div className="space-y-1.5">
@@ -295,6 +295,7 @@ export function WorkflowDialog({
               required
               maxLength={1000}
               placeholder="https://…"
+              className="border-zinc-300 shadow-sm"
             />
           </div>
           <div className="space-y-1.5">
@@ -305,13 +306,13 @@ export function WorkflowDialog({
                   column. SelectValue's function child formats the closed
                   trigger; status always has a value ("paused" default), so the
                   fallback is just defensive. */}
-              {/* Clearer field look (matches the other Add/Edit dropdowns):
-                  zinc-300 resting border + shadow-sm, zinc-500 on focus. Override
-                  the shared SelectTrigger's fainter border-input per-instance so
+              {/* Clearer field look (matches the other Add/Edit fields): zinc-300
+                  resting border + shadow-sm. Focus keeps the shared SelectTrigger's
+                  built-in ring (same as the text inputs). Per-instance override so
                   selects elsewhere in the app are unaffected. */}
               <SelectTrigger
                 id="wf-status"
-                className="w-40 border-zinc-300 shadow-sm focus:border-zinc-500"
+                className="w-40 border-zinc-300 shadow-sm"
               >
                 <SelectValue placeholder="Status">
                   {(v) => (
@@ -413,7 +414,7 @@ export function WorkflowDialog({
               // removes the manual resize grip - together they force all growth
               // into the outer fields scroll area, so there's a single scrollbar.
               // [overflow-wrap:anywhere] breaks over-long words.
-              className="block resize-none overflow-hidden [overflow-wrap:anywhere]"
+              className="border-zinc-300 shadow-sm block resize-none overflow-hidden [overflow-wrap:anywhere]"
             />
           </div>
           <div className="space-y-1.5">
@@ -430,7 +431,7 @@ export function WorkflowDialog({
               maxLength={5000}
               rows={3}
               placeholder="Any extra notes…"
-              className="block resize-none overflow-hidden [overflow-wrap:anywhere]"
+              className="border-zinc-300 shadow-sm block resize-none overflow-hidden [overflow-wrap:anywhere]"
             />
           </div>
           {error && (

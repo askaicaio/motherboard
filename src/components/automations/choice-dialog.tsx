@@ -263,19 +263,20 @@ export function ChoiceDialog({
               autoFocus
               maxLength={isUrl ? 1000 : 300}
               placeholder={placeholder}
+              className="border-zinc-300 shadow-sm"
             />
           </div>
           {showStatus && (
             <div className="space-y-1.5">
               <Label htmlFor="choice-status">Status</Label>
               <Select value={status} onValueChange={(v) => setStatus(v ?? "")}>
-                {/* Clearer field look (matches the other Add/Edit dropdowns):
-                    zinc-300 resting border + shadow-sm, zinc-500 on focus.
-                    Per-instance override of the shared SelectTrigger's fainter
-                    border-input, so selects elsewhere are unaffected. */}
+                {/* Clearer field look (matches the other Add/Edit fields): zinc-300
+                    resting border + shadow-sm. Focus keeps the shared SelectTrigger's
+                    built-in ring (same as the text inputs). Per-instance override so
+                    selects elsewhere are unaffected. */}
                 <SelectTrigger
                   id="choice-status"
-                  className="w-44 border-zinc-300 shadow-sm focus:border-zinc-500"
+                  className="w-44 border-zinc-300 shadow-sm"
                 >
                   <SelectValue
                     placeholder="Status"
@@ -368,7 +369,7 @@ export function ChoiceDialog({
                 maxLength={5000}
                 rows={3}
                 placeholder="Optional note…"
-                className="block resize-none overflow-hidden [overflow-wrap:anywhere]"
+                className="border-zinc-300 shadow-sm block resize-none overflow-hidden [overflow-wrap:anywhere]"
               />
             </div>
           )}
