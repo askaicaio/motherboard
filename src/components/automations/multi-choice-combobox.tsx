@@ -90,7 +90,17 @@ export function MultiChoiceCombobox({
         )}
         <ChevronDown className="h-4 w-4 shrink-0 text-zinc-400" />
       </PopoverTrigger>
-      <PopoverContent className="w-(--anchor-width) min-w-64 p-0" align="start">
+      {/* Opens to the RIGHT of the trigger (aligned to its top), NOT below, so
+          the long multi-select list doesn't cover the dialog fields underneath
+          (Purpose/Notes/buttons) while it stays open for picking. Base UI's
+          positioner auto-flips to the left if the right lacks room. Fixed width
+          (not the full trigger width) so it sits neatly beside the dialog. */}
+      <PopoverContent
+        className="w-72 p-0"
+        side="right"
+        align="start"
+        sideOffset={8}
+      >
         <Command
           filter={(itemValue, search) =>
             itemValue.toLowerCase().includes(search.toLowerCase()) ? 1 : 0
