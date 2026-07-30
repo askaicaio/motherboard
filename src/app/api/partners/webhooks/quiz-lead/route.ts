@@ -27,10 +27,13 @@ import { recordAffiliateLead } from "@/lib/partners/lead-attribution";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** Constant-time token check. In non-prod with no token set, allow. */
+/**
+ * Constant-time token check via the X-Leads-Token header. Fails closed
+ * everywhere unless explicitly running local dev with no token configured.
+ */
 function tokenOk(req: NextRequest): boolean {
   const expected = process.env.ASSESSMENT_LEADS_TOKEN;
-  if (!expected) return process.env.NODE_ENV !== "production";
+  if (!expected) return process.env.NODE_ENV === "development";
   const got = req.headers.get("x-leads-token") ?? "";
   const a = Buffer.from(got);
   const b = Buffer.from(expected);
@@ -47,6 +50,8 @@ const schema = z.object({
   company: z.string().max(200).nullable().optional(),
   edition: z.string().max(64).nullable().optional(),
   submittedAt: z.string().nullable().optional(), // ISO datetime
+  // Stable submission id for atomic replay dedup, if the quiz app sends one.
+  submissionId: z.string().max(128).nullable().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -83,6 +88,7 @@ export async function POST(req: NextRequest) {
     recordedAt: submittedAt,
     type: "tracked_link",
     sourceDetail,
+    externalRef: body.submissionId ? `quiz:${body.submissionId}` : null,
   });
 
   return NextResponse.json({ ok: true, ...result });

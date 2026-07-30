@@ -1621,6 +1621,15 @@ export const partnerAttributionEvents = pgTable(
     isValid: boolean("is_valid").notNull().default(true),
     notes: text("notes"),
 
+    /**
+     * Stable id of the originating external event (GHL appointment id, quiz
+     * submission id) when the row came from a webhook. Lets replays dedup
+     * atomically via the unique index below. NULL for staff-entered rows and
+     * webhook rows without an external id — Postgres treats NULLs as distinct,
+     * so the unique index never blocks those.
+     */
+    externalRef: text("external_ref"),
+
     createdBy: uuid("created_by").references(() => adminUsers.id),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
@@ -1631,6 +1640,7 @@ export const partnerAttributionEvents = pgTable(
     index("idx_attribution_email").on(table.prospectEmail),
     index("idx_attribution_recorded_at").on(table.recordedAt),
     index("idx_attribution_type").on(table.type),
+    uniqueIndex("uniq_attribution_external_ref").on(table.externalRef),
   ],
 );
 

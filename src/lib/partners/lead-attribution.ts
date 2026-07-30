@@ -40,6 +40,13 @@ export interface RecordAffiliateLeadInput {
   type: "direct_intro" | "tracked_link";
   /** Free-form provenance, e.g. "ghl_appointment" or "ai_readiness_quiz". */
   sourceDetail: string;
+  /**
+   * Stable id of the originating external event (GHL appointment id, quiz
+   * submission id). When present, dedup is atomic via the external_ref unique
+   * index — a replay can't create a duplicate even under a concurrent race.
+   * When absent, we fall back to a best-effort (partner, email, type) check.
+   */
+  externalRef?: string | null;
 }
 
 /**
@@ -63,22 +70,27 @@ export async function recordAffiliateLead(
     return { status: "skipped", reason: "unknown_or_ineligible_partner" };
   }
 
-  // App-level dedup — these tables have no unique constraint and the sources
-  // (GHL reschedules, quiz retakes) can fire repeatedly for the same prospect.
-  const [dupe] = await db
-    .select({ id: partnerAttributionEvents.id })
-    .from(partnerAttributionEvents)
-    .where(
-      and(
-        eq(partnerAttributionEvents.partnerId, partner.id),
-        eq(partnerAttributionEvents.prospectEmail, email),
-        eq(partnerAttributionEvents.type, input.type),
-        eq(partnerAttributionEvents.isValid, true),
-      ),
-    )
-    .limit(1);
-  if (dupe) {
-    return { status: "deduped", eventId: dupe.id, partnerId: partner.id };
+  const externalRef = input.externalRef?.trim() || null;
+
+  // Best-effort dedup when there's no external id to key on. Deliberately does
+  // NOT filter is_valid — an event an admin explicitly invalidated must still
+  // suppress a webhook replay, so revoked credit isn't silently resurrected.
+  // (When externalRef IS present, the unique index below is the real guard.)
+  if (!externalRef) {
+    const [dupe] = await db
+      .select({ id: partnerAttributionEvents.id })
+      .from(partnerAttributionEvents)
+      .where(
+        and(
+          eq(partnerAttributionEvents.partnerId, partner.id),
+          eq(partnerAttributionEvents.prospectEmail, email),
+          eq(partnerAttributionEvents.type, input.type),
+        ),
+      )
+      .limit(1);
+    if (dupe) {
+      return { status: "deduped", eventId: dupe.id, partnerId: partner.id };
+    }
   }
 
   const recordedAt =
@@ -86,21 +98,41 @@ export async function recordAffiliateLead(
       ? input.recordedAt
       : new Date();
 
-  const [event] = await db
-    .insert(partnerAttributionEvents)
-    .values({
-      partnerId: partner.id,
-      type: input.type,
-      prospectEmail: email,
-      prospectName: input.prospectName?.trim() || null,
-      company: input.company?.trim() || null,
-      sourceDetail: input.sourceDetail,
-      recordedAt,
-      proposalSentAt: null,
-      isValid: true,
-      createdBy: null,
-    })
-    .returning();
+  // Atomic dedup on externalRef via the unique index — race-proof against
+  // concurrent replays. onConflictDoNothing only fires when a target is given.
+  const insert = db.insert(partnerAttributionEvents).values({
+    partnerId: partner.id,
+    type: input.type,
+    prospectEmail: email,
+    prospectName: input.prospectName?.trim() || null,
+    company: input.company?.trim() || null,
+    sourceDetail: input.sourceDetail,
+    recordedAt,
+    proposalSentAt: null,
+    isValid: true,
+    externalRef,
+    createdBy: null,
+  });
+
+  const [event] = externalRef
+    ? await insert
+        .onConflictDoNothing({ target: partnerAttributionEvents.externalRef })
+        .returning()
+    : await insert.returning();
+
+  // Conflict on externalRef → the row already exists (a concurrent/earlier
+  // replay won). Return it as a dedup rather than a spurious failure.
+  if (!event) {
+    const [existing] = await db
+      .select({ id: partnerAttributionEvents.id })
+      .from(partnerAttributionEvents)
+      .where(eq(partnerAttributionEvents.externalRef, externalRef!))
+      .limit(1);
+    if (existing) {
+      return { status: "deduped", eventId: existing.id, partnerId: partner.id };
+    }
+    return { status: "skipped", reason: "unknown_or_ineligible_partner" };
+  }
 
   return { status: "created", eventId: event.id, partnerId: partner.id };
 }

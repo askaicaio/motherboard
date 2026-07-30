@@ -27,14 +27,17 @@ import { recordAffiliateLead } from "@/lib/partners/lead-attribution";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** Constant-time shared-secret check. In non-prod with no secret set, allow. */
+/**
+ * Constant-time shared-secret check via the X-Webhook-Secret HEADER only —
+ * never a query param, which would leak the long-lived secret into access/CDN
+ * logs. Fails closed everywhere unless explicitly running local dev with no
+ * secret configured (so a preview/staging deploy against a real DB can't
+ * silently accept anonymous attribution writes).
+ */
 function secretOk(req: NextRequest): boolean {
   const expected = process.env.GHL_WEBHOOK_SECRET;
-  if (!expected) return process.env.NODE_ENV !== "production";
-  const got =
-    req.headers.get("x-webhook-secret") ??
-    req.nextUrl.searchParams.get("secret") ??
-    "";
+  if (!expected) return process.env.NODE_ENV === "development";
+  const got = req.headers.get("x-webhook-secret") ?? "";
   const a = Buffer.from(got);
   const b = Buffer.from(expected);
   return a.length === b.length && timingSafeEqual(a, b);
@@ -71,6 +74,7 @@ export async function POST(req: NextRequest) {
     (payload.full_contact as Record<string, unknown> | undefined) ??
     payload;
   const attribution = payload.attribution as Record<string, unknown> | undefined;
+  const appt = payload.appointment as Record<string, unknown> | undefined;
 
   // First-rollout forensics: log the SHAPE (top-level keys only, no PII/values)
   // so the extractor can be aligned to the real GHL body if a field is missed.
@@ -100,18 +104,30 @@ export async function POST(req: NextRequest) {
   const company =
     pick(payload, "company", "companyName") ??
     pick(contact, "company", "companyName");
-  const bookedAtRaw =
-    pick(payload, "bookedAt", "startTime") ??
-    pick(payload.appointment, "startTime", "start_time");
+
+  // Anchor recordedAt on when the booking was CREATED, never the (future)
+  // scheduled slot time (startTime): recordedAt is both the first-attribution
+  // anchor and the input to isDirectIntroValid, so a future timestamp would
+  // wrongly invalidate the intro and mis-order first-attribution-wins.
+  const createdRaw =
+    pick(payload, "dateAdded", "date_added", "createdAt", "created_at") ??
+    pick(contact, "dateAdded", "date_added") ??
+    pick(appt, "dateAdded", "createdAt");
+
+  // Stable id for atomic replay dedup (reschedules re-fire the workflow).
+  const appointmentId =
+    pick(payload, "appointmentId", "appointment_id") ??
+    pick(appt, "id", "appointmentId");
 
   const result = await recordAffiliateLead({
     refCode,
     email,
     prospectName: name,
     company,
-    recordedAt: bookedAtRaw ? new Date(bookedAtRaw) : null,
+    recordedAt: createdRaw ? new Date(createdRaw) : null,
     type: "direct_intro",
     sourceDetail: "ghl_appointment",
+    externalRef: appointmentId ? `ghl_appt:${appointmentId}` : null,
   });
 
   return NextResponse.json({ ok: true, ...result });
