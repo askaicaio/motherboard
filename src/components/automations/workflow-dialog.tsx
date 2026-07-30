@@ -34,6 +34,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import type { AutomationRow } from "./automations-table-client";
 import { SingleChoiceCombobox } from "./single-choice-combobox";
+import { MultiChoiceCombobox } from "./multi-choice-combobox";
 import type { ChoiceOption } from "@/lib/automations/dropdown-config";
 import { cn } from "@/lib/utils";
 
@@ -66,6 +67,8 @@ interface Props {
   authorChoices?: ChoiceOption[];
   /** Configured Trigger Event options for its single-select dropdown. */
   triggerEventChoices?: ChoiceOption[];
+  /** Configured Automation Tags options for the multi-select chip picker. */
+  automationTagChoices?: ChoiceOption[];
   onCreated?: (row: AutomationRow) => void;
   onSaved?: (row: AutomationRow) => void;
 }
@@ -77,6 +80,7 @@ export function WorkflowDialog({
   existing,
   authorChoices = [],
   triggerEventChoices = [],
+  automationTagChoices = [],
   onCreated,
   onSaved,
 }: Props) {
@@ -94,6 +98,8 @@ export function WorkflowDialog({
   const [authorChoiceId, setAuthorChoiceId] = useState("");
   // Trigger Event: the selected choice id ("" = none). Single-select dropdown.
   const [triggerEventChoiceId, setTriggerEventChoiceId] = useState("");
+  // Automation Tags: the selected tag choice ids (multi-select). Empty = none.
+  const [automationTagChoiceIds, setAutomationTagChoiceIds] = useState<string[]>([]);
   // Inline error shown as red text inside the dialog (e.g. duplicate link).
   const [error, setError] = useState<string | null>(null);
 
@@ -107,6 +113,7 @@ export function WorkflowDialog({
     setNotes(existing?.notes ?? "");
     setAuthorChoiceId(existing?.authorChoiceId ?? "");
     setTriggerEventChoiceId(existing?.triggerEventChoiceId ?? "");
+    setAutomationTagChoiceIds((existing?.automationTags ?? []).map((t) => t.id));
     setError(null);
   }, [open, existing]);
 
@@ -128,8 +135,8 @@ export function WorkflowDialog({
       const authorPayload = authorChoiceId || null;
       const triggerEventPayload = triggerEventChoiceId || null;
       const body = isEdit
-        ? { name: name.trim(), externalUrl: externalUrl.trim(), status, purpose: purpose.trim(), notes: notes.trim(), authorChoiceId: authorPayload, triggerEventChoiceId: triggerEventPayload }
-        : { platform, name: name.trim(), externalUrl: externalUrl.trim(), status, purpose: purpose.trim(), notes: notes.trim(), authorChoiceId: authorPayload, triggerEventChoiceId: triggerEventPayload };
+        ? { name: name.trim(), externalUrl: externalUrl.trim(), status, purpose: purpose.trim(), notes: notes.trim(), authorChoiceId: authorPayload, triggerEventChoiceId: triggerEventPayload, automationTagChoiceIds }
+        : { platform, name: name.trim(), externalUrl: externalUrl.trim(), status, purpose: purpose.trim(), notes: notes.trim(), authorChoiceId: authorPayload, triggerEventChoiceId: triggerEventPayload, automationTagChoiceIds };
 
       const res = await fetch(endpoint, {
         method,
@@ -178,6 +185,19 @@ export function WorkflowDialog({
         // (not just after a reload).
         triggerEventBadgeColor: savedTriggerEvent?.badgeColor ?? null,
         triggerEventTextColor: savedTriggerEvent?.textColor ?? null,
+        // Automation Tags: resolve the selected ids to their choices (value +
+        // colours) so the row's chips render immediately, without a reload.
+        // Alphabetical by value to match the loader's ordering.
+        automationTags: automationTagChoiceIds
+          .map((tid) => automationTagChoices.find((c) => c.id === tid))
+          .filter((c): c is ChoiceOption => !!c)
+          .map((c) => ({
+            id: c.id,
+            value: c.value,
+            badgeColor: c.badgeColor,
+            textColor: c.textColor,
+          }))
+          .sort((a, b) => a.value.localeCompare(b.value)),
         // Sync-only fields, carried through so an edit doesn't blank them in the
         // table (not editable here; the API returns the current values).
         lastRunAt: saved.lastRunAt,
@@ -318,6 +338,26 @@ export function WorkflowDialog({
               searchPlaceholder="Search authors…"
               emptyLabel="None"
               noResultsLabel="No authors found."
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="wf-automation-tags">Automation Tags</Label>
+            {/* Multi-select: pick ANY number of Automation Tags from the
+                configured choices (managed on the Dropdown Configuration page).
+                Optional; the trigger shows the selected tags as chips, red
+                "None" when empty. Sits between Author and Trigger Event, matching
+                the table column order. */}
+            <MultiChoiceCombobox
+              id="wf-automation-tags"
+              options={automationTagChoices}
+              values={automationTagChoiceIds}
+              onChange={(v) => {
+                setAutomationTagChoiceIds(v);
+                setError(null);
+              }}
+              searchPlaceholder="Search tags…"
+              emptyLabel="None"
+              noResultsLabel="No tags found."
             />
           </div>
           <div className="space-y-1.5">

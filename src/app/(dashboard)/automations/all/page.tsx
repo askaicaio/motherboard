@@ -17,6 +17,7 @@ import { asc, eq } from "drizzle-orm";
 import { requireAuth } from "@/lib/auth/guard";
 import { ArrowLeft } from "lucide-react";
 import { getLastErrorAtAllAutomations } from "@/lib/automations/errors";
+import { getSelectionsByColumn } from "@/lib/automations/dropdown-selections";
 import { AllAutomationsTableClient } from "@/components/automations/all-automations-table-client";
 
 export const dynamic = "force-dynamic";
@@ -66,9 +67,15 @@ export default async function AllAutomationsPage() {
 
   // Latest captured error per automation (across all platforms) → Last Error.
   const lastErrorByAutomation = await getLastErrorAtAllAutomations();
+  // Automation Tags (multi-select): each row's selected tag choices as chips.
+  const tagsByAutomation = await getSelectionsByColumn(
+    "automation_tags",
+    baseRows.map((r) => r.id),
+  );
   const rows = baseRows.map((r) => ({
     ...r,
     lastErrorAt: lastErrorByAutomation.get(r.id) ?? null,
+    automationTags: tagsByAutomation.get(r.id) ?? [],
   }));
 
   return (

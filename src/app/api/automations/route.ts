@@ -4,7 +4,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { automations, automationDropdownChoices } from "@/lib/db/schema";
+import {
+  automations,
+  automationDropdownChoices,
+  automationDropdownSelections,
+} from "@/lib/db/schema";
 import { getOptionalAuth } from "@/lib/auth/guard";
 import { and, asc, eq } from "drizzle-orm";
 import { getAutomationSite } from "@/lib/automations/sites";
@@ -28,6 +32,9 @@ const createSchema = z.object({
   // Trigger Event (single-select): the chosen id, or null. Validated below to
   // be a real 'trigger_event' option.
   triggerEventChoiceId: z.string().uuid().nullable().optional(),
+  // Automation Tags (MULTI-select): the chosen automation_dropdown_choices ids
+  // (column_key = 'automation_tags'). Each validated below; empty = no tags.
+  automationTagChoiceIds: z.array(z.string().uuid()).optional().default([]),
 });
 
 /** True when `id` is a real option for `columnKey` in automation_dropdown_choices.
@@ -114,6 +121,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unknown trigger event option." }, { status: 400 });
   }
 
+  // Automation Tags (multi-select): dedupe, then reject any id that isn't a real
+  // 'automation_tags' option.
+  const tagChoiceIds = [...new Set(body.automationTagChoiceIds)];
+  for (const tagId of tagChoiceIds) {
+    if (!(await isChoiceOfColumn(tagId, "automation_tags"))) {
+      return NextResponse.json(
+        { error: "Unknown automation tag option." },
+        { status: 400 },
+      );
+    }
+  }
+
   // Deterministic duplicate check (the link is the automation's identity).
   const existing = await db
     .select({ id: automations.id })
@@ -125,20 +144,29 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const [created] = await db
-      .insert(automations)
-      .values({
-        platform: body.platform,
-        name: body.name.trim(),
-        externalUrl,
-        status: body.status,
-        purpose: body.purpose.trim() || null,
-        notes: body.notes.trim() || null,
-        authorChoiceId: body.authorChoiceId ?? null,
-        triggerEventChoiceId: body.triggerEventChoiceId ?? null,
-        createdBy: user.id,
-      })
-      .returning();
+    // Create the automation and its tag selections atomically.
+    const created = await db.transaction(async (tx) => {
+      const [row] = await tx
+        .insert(automations)
+        .values({
+          platform: body.platform,
+          name: body.name.trim(),
+          externalUrl,
+          status: body.status,
+          purpose: body.purpose.trim() || null,
+          notes: body.notes.trim() || null,
+          authorChoiceId: body.authorChoiceId ?? null,
+          triggerEventChoiceId: body.triggerEventChoiceId ?? null,
+          createdBy: user.id,
+        })
+        .returning();
+      if (tagChoiceIds.length > 0) {
+        await tx.insert(automationDropdownSelections).values(
+          tagChoiceIds.map((choiceId) => ({ automationId: row.id, choiceId })),
+        );
+      }
+      return row;
+    });
     return NextResponse.json({ automation: created }, { status: 201 });
   } catch (err) {
     // Backstop for a race between the check above and the insert.
