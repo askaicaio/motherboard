@@ -241,13 +241,13 @@ export function DocsPageClient({
           <DropdownMenuContent align="end">
             <DropdownMenuLabel className="text-xs">Sort by</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => setSort("recent")}>
+            <DropdownMenuItem onClick={() => setSort("recent")}>
               Recently added
             </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => setSort("updated")}>
+            <DropdownMenuItem onClick={() => setSort("updated")}>
               Recently updated
             </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => setSort("alpha")}>
+            <DropdownMenuItem onClick={() => setSort("alpha")}>
               A–Z
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -486,25 +486,17 @@ function RowMenu({
         <MoreHorizontal className="h-4 w-4" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-44">
-        <DropdownMenuItem
-          onSelect={(e) => {
-            e.preventDefault();
-            setTimeout(onEdit, 0);
-          }}
-        >
+        <DropdownMenuItem onClick={() => setTimeout(onEdit, 0)}>
           <Edit className="mr-2 h-4 w-4" />
           Edit
         </DropdownMenuItem>
-        <DropdownMenuItem onSelect={onTogglePin}>
+        <DropdownMenuItem onClick={onTogglePin}>
           <Pin className="mr-2 h-4 w-4" />
           {doc.pinned ? "Unpin" : "Pin to top"}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
-          onSelect={(e) => {
-            e.preventDefault();
-            setTimeout(onDelete, 0);
-          }}
+          onClick={() => setTimeout(onDelete, 0)}
           className="text-red-600 focus:text-red-700"
         >
           <Trash2 className="mr-2 h-4 w-4" />

@@ -111,10 +111,9 @@ export function MemberRowActions({ member, canManage, isSelf }: Props) {
           {!isArchived && (
             <>
               <DropdownMenuItem
-                onSelect={(e) => {
-                  // Prevent Radix dropdown from auto-closing in a way that
-                  // steals focus before the Dialog mounts. Defer one tick.
-                  e.preventDefault();
+                onClick={() => {
+                  // Defer one tick so the menu can close before the Dialog
+                  // mounts (avoids a focus-steal flash).
                   setTimeout(() => setEditOpen(true), 0);
                 }}
                 disabled={isSelf}
@@ -128,7 +127,7 @@ export function MemberRowActions({ member, canManage, isSelf }: Props) {
 
           {!isArchived && member.isActive && (
             <DropdownMenuItem
-              onSelect={() => lifecycle("deactivate")}
+              onClick={() => lifecycle("deactivate")}
               disabled={isSelf}
             >
               <UserMinus className="h-3.5 w-3.5 mr-2" />
@@ -139,14 +138,14 @@ export function MemberRowActions({ member, canManage, isSelf }: Props) {
           {!isArchived && !member.isActive && (
             <>
               <DropdownMenuItem
-                onSelect={() => lifecycle("reactivate")}
+                onClick={() => lifecycle("reactivate")}
                 disabled={isSelf}
               >
                 <UserCheck className="h-3.5 w-3.5 mr-2" />
                 Reactivate
               </DropdownMenuItem>
               <DropdownMenuItem
-                onSelect={() => lifecycle("archive")}
+                onClick={() => lifecycle("archive")}
                 disabled={isSelf}
               >
                 <Archive className="h-3.5 w-3.5 mr-2" />
@@ -158,7 +157,7 @@ export function MemberRowActions({ member, canManage, isSelf }: Props) {
           {isArchived && (
             <>
               <DropdownMenuItem
-                onSelect={() => lifecycle("unarchive")}
+                onClick={() => lifecycle("unarchive")}
                 disabled={isSelf}
               >
                 <ArchiveRestore className="h-3.5 w-3.5 mr-2" />
@@ -166,7 +165,7 @@ export function MemberRowActions({ member, canManage, isSelf }: Props) {
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                onSelect={permanentDelete}
+                onClick={permanentDelete}
                 disabled={isSelf}
                 className="text-red-600 focus:text-red-700"
               >

@@ -256,7 +256,8 @@ export function SubscriptionsPageClient({
   const [query, setQuery] = useState("");
   const [view, setView] = useState<ViewMode>("table");
   const [sort, setSort] = useState<SortKey>("name");
-  const [groupBy, setGroupBy] = useState<GroupKey>("none");
+  // Subscriptions default to grouping by status.
+  const [groupBy, setGroupBy] = useState<GroupKey>("status");
   const [editMode, setEditMode] = useState(false);
   const [deptFilter, setDeptFilter] = useState<Set<string>>(new Set());
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -680,11 +681,11 @@ export function SubscriptionsPageClient({
           <DropdownMenuContent align="end">
             <DropdownMenuLabel className="text-xs">Group by</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => setGroupBy("none")}>None</DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => setGroupBy("department")}>Department</DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => setGroupBy("owner")}>Owner</DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => setGroupBy("status")}>Status</DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => setGroupBy("renewalMonth")}>Renewal month</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setGroupBy("none")}>None</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setGroupBy("department")}>Department</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setGroupBy("owner")}>Owner</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setGroupBy("status")}>Status</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setGroupBy("renewalMonth")}>Renewal month</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
 
@@ -698,12 +699,12 @@ export function SubscriptionsPageClient({
           <DropdownMenuContent align="end">
             <DropdownMenuLabel className="text-xs">Sort by</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => setSort("name")}>Name A–Z</DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => setSort("monthlyDesc")}>Monthly: high → low</DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => setSort("monthlyAsc")}>Monthly: low → high</DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => setSort("annualDesc")}>Annual: high → low</DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => setSort("renewalSoonest")}>Renewal: soonest</DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => setSort("renewalLatest")}>Renewal: latest</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setSort("name")}>Name A–Z</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setSort("monthlyDesc")}>Monthly: high → low</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setSort("monthlyAsc")}>Monthly: low → high</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setSort("annualDesc")}>Annual: high → low</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setSort("renewalSoonest")}>Renewal: soonest</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setSort("renewalLatest")}>Renewal: latest</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
 
@@ -722,20 +723,16 @@ export function SubscriptionsPageClient({
           <DropdownMenuContent align="end" className="w-72 max-h-[70vh] overflow-y-auto">
             <DropdownMenuLabel className="text-xs">Status</DropdownMenuLabel>
             <DropdownMenuItem
-              onSelect={(e) => {
-                e.preventDefault();
-                setStatusFilter("all");
-              }}
+              closeOnClick={false}
+              onClick={() => setStatusFilter("all")}
             >
               {statusFilter === "all" ? "✓ " : "  "}All
             </DropdownMenuItem>
             {allStatuses.map((s) => (
               <DropdownMenuItem
                 key={s}
-                onSelect={(e) => {
-                  e.preventDefault();
-                  setStatusFilter(s);
-                }}
+                closeOnClick={false}
+                onClick={() => setStatusFilter(s)}
               >
                 {statusFilter === s ? "✓ " : "  "}
                 {s}
@@ -743,12 +740,12 @@ export function SubscriptionsPageClient({
             ))}
             <DropdownMenuSeparator />
             <DropdownMenuLabel className="text-xs">In 1Password</DropdownMenuLabel>
-            <DropdownMenuItem onSelect={() => setIn1pFilter("any")}>{in1pFilter === "any" ? "✓ " : "  "}Any</DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => setIn1pFilter("yes")}>{in1pFilter === "yes" ? "✓ " : "  "}In 1Password</DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => setIn1pFilter("no")}>{in1pFilter === "no" ? "✓ " : "  "}Not in 1Password</DropdownMenuItem>
+            <DropdownMenuItem closeOnClick={false} onClick={() => setIn1pFilter("any")}>{in1pFilter === "any" ? "✓ " : "  "}Any</DropdownMenuItem>
+            <DropdownMenuItem closeOnClick={false} onClick={() => setIn1pFilter("yes")}>{in1pFilter === "yes" ? "✓ " : "  "}In 1Password</DropdownMenuItem>
+            <DropdownMenuItem closeOnClick={false} onClick={() => setIn1pFilter("no")}>{in1pFilter === "no" ? "✓ " : "  "}Not in 1Password</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuLabel className="text-xs">Renewal</DropdownMenuLabel>
-            <DropdownMenuItem onSelect={() => setRenewSoon((v) => !v)}>
+            <DropdownMenuItem closeOnClick={false} onClick={() => setRenewSoon((v) => !v)}>
               {renewSoon ? "✓ " : "  "}Renewing within 30 days
             </DropdownMenuItem>
             <DropdownMenuSeparator />
@@ -759,15 +756,15 @@ export function SubscriptionsPageClient({
             {allDepartments.map((d) => (
               <DropdownMenuItem
                 key={d}
-                onSelect={(e) => {
-                  e.preventDefault();
+                closeOnClick={false}
+                onClick={() =>
                   setDeptFilter((prev) => {
                     const next = new Set(prev);
                     if (next.has(d)) next.delete(d);
                     else next.add(d);
                     return next;
-                  });
-                }}
+                  })
+                }
               >
                 {deptFilter.has(d) ? "✓ " : "  "}{d}
               </DropdownMenuItem>
@@ -779,7 +776,7 @@ export function SubscriptionsPageClient({
               <>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  onSelect={() => {
+                  onClick={() => {
                     setDeptFilter(new Set());
                     setStatusFilter("all");
                     setIn1pFilter("any");
@@ -1210,7 +1207,7 @@ function TableView({
                       {statusOptions.map((s) => (
                         <DropdownMenuItem
                           key={s}
-                          onSelect={() => {
+                          onClick={() => {
                             if (s !== r.status) onPatch(r, { status: s });
                           }}
                         >

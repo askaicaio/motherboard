@@ -100,7 +100,7 @@ export function ReportRowActions({ report, onChanged }: Props) {
       <DropdownMenuContent align="end">
         {report.gammaUrl && (
           <>
-            <DropdownMenuItem onSelect={() => window.open(report.gammaUrl!, "_blank")}>
+            <DropdownMenuItem onClick={() => window.open(report.gammaUrl!, "_blank")}>
               <ExternalLink className="h-3.5 w-3.5 mr-2" />
               Open Gamma deck
             </DropdownMenuItem>
@@ -109,7 +109,7 @@ export function ReportRowActions({ report, onChanged }: Props) {
         )}
 
         {!isArchived && (
-          <DropdownMenuItem onSelect={archive}>
+          <DropdownMenuItem onClick={archive}>
             <Archive className="h-3.5 w-3.5 mr-2" />
             Archive
           </DropdownMenuItem>
@@ -117,13 +117,13 @@ export function ReportRowActions({ report, onChanged }: Props) {
 
         {isArchived && (
           <>
-            <DropdownMenuItem onSelect={unarchive}>
+            <DropdownMenuItem onClick={unarchive}>
               <ArchiveRestore className="h-3.5 w-3.5 mr-2" />
               Restore from archive
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              onSelect={permanentlyDelete}
+              onClick={permanentlyDelete}
               className="text-red-600 focus:text-red-700"
             >
               <Trash2 className="h-3.5 w-3.5 mr-2" />

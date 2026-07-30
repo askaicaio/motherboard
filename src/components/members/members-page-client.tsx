@@ -366,10 +366,8 @@ export function MembersPageClient({
                 {COLUMN_DEFINITIONS.map((col) => (
                   <DropdownMenuItem
                     key={col.key}
-                    onSelect={(e) => {
-                      e.preventDefault();
-                      toggleColumn(col.key);
-                    }}
+                    closeOnClick={false}
+                    onClick={() => toggleColumn(col.key)}
                     className="gap-2"
                   >
                     <Checkbox
@@ -680,13 +678,13 @@ function BulkActionsMenu({
           Set role
         </div>
         <DropdownMenuItem
-          onSelect={() => onAction({ action: "update_role", role: "admin" })}
+          onClick={() => onAction({ action: "update_role", role: "admin" })}
         >
           <Shield className="h-3.5 w-3.5 mr-2 text-purple-500" />
           Make Admin
         </DropdownMenuItem>
         <DropdownMenuItem
-          onSelect={() => onAction({ action: "update_role", role: "user" })}
+          onClick={() => onAction({ action: "update_role", role: "user" })}
         >
           <UserIcon className="h-3.5 w-3.5 mr-2 text-zinc-500" />
           Make User
@@ -701,7 +699,7 @@ function BulkActionsMenu({
         {DEPARTMENTS_LIST.map((d) => (
           <DropdownMenuItem
             key={d.value}
-            onSelect={() =>
+            onClick={() =>
               onAction({
                 action: "update_department",
                 department: d.value as Department,
@@ -719,7 +717,7 @@ function BulkActionsMenu({
         {!showArchived && (
           <>
             <DropdownMenuItem
-              onSelect={() =>
+              onClick={() =>
                 onAction({
                   action: "deactivate",
                   confirmMsg: `Deactivate ${count} member(s)? They will lose access until reactivated.`,
@@ -730,7 +728,7 @@ function BulkActionsMenu({
               Deactivate
             </DropdownMenuItem>
             <DropdownMenuItem
-              onSelect={() =>
+              onClick={() =>
                 onAction({
                   action: "archive",
                   confirmMsg: `Archive ${count} member(s)? They'll be moved to the archive list.`,
@@ -744,7 +742,7 @@ function BulkActionsMenu({
         )}
         {showArchived && (
           <DropdownMenuItem
-            onSelect={() => onAction({ action: "unarchive" })}
+            onClick={() => onAction({ action: "unarchive" })}
           >
             <ArchiveRestore className="h-3.5 w-3.5 mr-2 text-zinc-500" />
             Restore from archive

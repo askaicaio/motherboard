@@ -207,17 +207,17 @@ export function Sidebar({ hiddenTabs = [] }: { hiddenTabs?: string[] }) {
                 </p>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={() => router.push("/members")}>
+              <DropdownMenuItem onClick={() => router.push("/members")}>
                 <UserRound className="mr-2 h-4 w-4" />
                 My profile
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => router.push("/settings")}>
+              <DropdownMenuItem onClick={() => router.push("/settings")}>
                 <Settings className="mr-2 h-4 w-4" />
                 Settings
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                onSelect={() => signOut({ callbackUrl: "/login" })}
+                onClick={() => signOut({ callbackUrl: "/login" })}
                 className="text-red-600 focus:text-red-700"
               >
                 <LogOut className="mr-2 h-4 w-4" />

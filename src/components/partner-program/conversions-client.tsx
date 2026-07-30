@@ -249,10 +249,8 @@ export function ConversionsClient({
             {STATUS_FILTERS.map((s) => (
               <DropdownMenuItem
                 key={s}
-                onSelect={(e) => {
-                  e.preventDefault();
-                  setStatusFilter(s);
-                }}
+                closeOnClick={false}
+                onClick={() => setStatusFilter(s)}
                 className="capitalize"
               >
                 {statusFilter === s ? "✓ " : "  "}

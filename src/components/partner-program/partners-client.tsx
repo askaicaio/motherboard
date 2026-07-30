@@ -570,10 +570,8 @@ export function PartnersClient({
             {COLUMN_DEFS.map((col) => (
               <DropdownMenuItem
                 key={col.key}
-                onSelect={(e) => {
-                  e.preventDefault();
-                  toggleColumn(col.key);
-                }}
+                closeOnClick={false}
+                onClick={() => toggleColumn(col.key)}
                 className="gap-2"
               >
                 <Checkbox

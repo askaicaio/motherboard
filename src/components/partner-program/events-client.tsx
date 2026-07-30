@@ -628,10 +628,8 @@ function ActivitySection({
             {STATUS_FILTERS.map((s) => (
               <DropdownMenuItem
                 key={s}
-                onSelect={(e) => {
-                  e.preventDefault();
-                  setStatusFilter(s);
-                }}
+                closeOnClick={false}
+                onClick={() => setStatusFilter(s)}
                 className="capitalize"
               >
                 {statusFilter === s ? "✓ " : "  "}
@@ -794,10 +792,7 @@ function RowActionsMenu({
       >
         <DropdownMenuItem
           disabled={!isPending || marking}
-          onSelect={(e) => {
-            e.preventDefault();
-            void markEarned();
-          }}
+          onClick={() => void markEarned()}
         >
           <Sparkles className="mr-2 h-3.5 w-3.5" />
           Mark earned now
