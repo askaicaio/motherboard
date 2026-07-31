@@ -493,45 +493,6 @@ export function WorkflowDialog({
               This is how the automation is activated.
             </p>
           </div>
-          {/* GHL Tags | GHL Forms: a third grid row, shown only on the GHL pages
-              (same gate as the table columns). Multi-select; plain options (no
-              colours). Left column opens left, right column opens right. */}
-          {showGhlTags && (
-            <div className="space-y-1.5">
-              <Label htmlFor="wf-ghl-tags">GHL Tags</Label>
-              <MultiChoiceCombobox
-                id="wf-ghl-tags"
-                options={ghlTagChoices}
-                values={ghlTagChoiceIds}
-                onChange={(v) => {
-                  setGhlTagChoiceIds(v);
-                  setError(null);
-                }}
-                searchPlaceholder="Search GHL tags…"
-                emptyLabel="None"
-                noResultsLabel="No GHL tags found."
-                side="left"
-              />
-            </div>
-          )}
-          {showGhlForms && (
-            <div className="space-y-1.5">
-              <Label htmlFor="wf-ghl-forms">GHL Forms</Label>
-              <MultiChoiceCombobox
-                id="wf-ghl-forms"
-                options={ghlFormChoices}
-                values={ghlFormChoiceIds}
-                onChange={(v) => {
-                  setGhlFormChoiceIds(v);
-                  setError(null);
-                }}
-                searchPlaceholder="Search GHL forms…"
-                emptyLabel="None"
-                noResultsLabel="No GHL forms found."
-                side="right"
-              />
-            </div>
-          )}
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="wf-purpose">Purpose</Label>
@@ -572,6 +533,47 @@ export function WorkflowDialog({
               className="border-zinc-300 shadow-sm block resize-none overflow-hidden [overflow-wrap:anywhere]"
             />
           </div>
+          {/* GHL Tags + GHL Forms: full-width fields, shown only on the GHL pages
+              (same gate as the table columns). Sit between Notes and Webhook Links
+              to match the table column order (user-set 2026-07-31). Full width
+              (not the old cramped 2-col grid row) so the many selected values have
+              room. Multi-select; plain options (no colours). */}
+          {showGhlTags && (
+            <div className="space-y-1.5">
+              <Label htmlFor="wf-ghl-tags">GHL Tags</Label>
+              <MultiChoiceCombobox
+                id="wf-ghl-tags"
+                options={ghlTagChoices}
+                values={ghlTagChoiceIds}
+                onChange={(v) => {
+                  setGhlTagChoiceIds(v);
+                  setError(null);
+                }}
+                searchPlaceholder="Search GHL tags…"
+                emptyLabel="None"
+                noResultsLabel="No GHL tags found."
+                side="right"
+              />
+            </div>
+          )}
+          {showGhlForms && (
+            <div className="space-y-1.5">
+              <Label htmlFor="wf-ghl-forms">GHL Forms</Label>
+              <MultiChoiceCombobox
+                id="wf-ghl-forms"
+                options={ghlFormChoices}
+                values={ghlFormChoiceIds}
+                onChange={(v) => {
+                  setGhlFormChoiceIds(v);
+                  setError(null);
+                }}
+                searchPlaceholder="Search GHL forms…"
+                emptyLabel="None"
+                noResultsLabel="No GHL forms found."
+                side="right"
+              />
+            </div>
+          )}
           <div className="space-y-1.5">
             <Label htmlFor="wf-webhook-links">Webhook Links</Label>
             {/* Multi-select: pick ANY number of Webhook Links from the configured
