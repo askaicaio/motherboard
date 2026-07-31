@@ -232,14 +232,6 @@ export default async function PartnerProgramPage() {
       badge: openDisputesCount > 0 ? String(openDisputesCount) : undefined,
       badgeTone: "indigo",
     },
-    {
-      href: "/partner-program/messages",
-      icon: MessageSquare,
-      label: "Messages",
-      desc: "Chat with affiliates",
-      badge: unreadMessagesCount > 0 ? String(unreadMessagesCount) : undefined,
-      badgeTone: "amber",
-    },
   ];
 
   return (
@@ -546,15 +538,15 @@ function MetricCard({
   highlight?: boolean;
 }) {
   return (
-    <Card>
-      <CardContent className="p-4">
+    <Card className="aspect-square">
+      <CardContent className="flex h-full flex-col justify-between p-4">
         <div className="flex items-center gap-1.5 text-xs uppercase tracking-wide text-zinc-500">
           {icon}
           {label}
         </div>
         <div
           className={cn(
-            "mt-1 text-xl font-semibold tabular-nums",
+            "text-3xl font-semibold tabular-nums",
             highlight ? "text-amber-700" : "text-zinc-900",
           )}
         >

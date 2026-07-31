@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 // of being hand-tuned per page.
 const SIZES = {
   header: "h-10 w-auto",
-  footer: "h-8 w-auto",
+  footer: "h-16 w-auto",
   hero: "h-16 w-auto",
 } as const;
 

@@ -11,6 +11,7 @@ import {
   uniqueIndex,
   index,
   pgEnum,
+  primaryKey,
 } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
 
@@ -2204,4 +2205,26 @@ export const partnerNotificationSubscribers = pgTable(
       .defaultNow()
       .notNull(),
   },
+);
+
+// ── Affiliate testing-guide checklist approvals ───────────────────────────
+// One row per (staff member, checklist item) they've ticked. Per-user state,
+// but every user can see who else has approved each item (avatars). Reset only
+// removes the current user's own rows.
+export const affiliateChecklistApprovals = pgTable(
+  "affiliate_checklist_approvals",
+  {
+    userId: uuid("user_id")
+      .references(() => adminUsers.id, { onDelete: "cascade" })
+      .notNull(),
+    /** Stable checklist item key (matches the CHECKLIST ids in the client). */
+    itemId: text("item_id").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.userId, table.itemId] }),
+    index("idx_affiliate_checklist_item").on(table.itemId),
+  ],
 );

@@ -1,15 +1,15 @@
 "use client";
 
-// Interactive "have we verified this?" checklist for the affiliate testing guide.
-// Each person's ticks are saved in their own browser (localStorage) so they can
-// track their own sign-off as they work through the guide. (Not shared across
-// users — see note in the guide; can be upgraded to a DB-backed team sign-off.)
+// Shared verification checklist for the affiliate testing guide. Every staff
+// member has their OWN checkmarks (an item is "checked" only for the people who
+// ticked it), but everyone can see which teammates have approved each item via
+// the avatars on the right. "Reset" clears only the current user's ticks.
+// Backed by /api/partner-program/checklist.
 
-import { useEffect, useState } from "react";
-import { CheckCircle2, Circle, RotateCcw } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { CheckCircle2, Circle, RotateCcw, Loader2 } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-
-const STORAGE_KEY = "caio.affiliate-testing-checklist.v1";
 
 const GROUPS: { title: string; items: { id: string; label: string }[] }[] = [
   {
@@ -61,36 +61,99 @@ const GROUPS: { title: string; items: { id: string; label: string }[] }[] = [
 
 const ALL_IDS = GROUPS.flatMap((g) => g.items.map((i) => i.id));
 
-export function LaunchChecklist() {
-  const [checked, setChecked] = useState<Record<string, boolean>>({});
-  const [loaded, setLoaded] = useState(false);
+interface Approver {
+  userId: string;
+  name: string;
+  avatarUrl: string | null;
+}
 
-  useEffect(() => {
+function initials(name: string): string {
+  return (
+    name
+      .split(/\s+/)
+      .map((p) => p[0])
+      .filter(Boolean)
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || "?"
+  );
+}
+
+export function LaunchChecklist() {
+  const [approvals, setApprovals] = useState<Record<string, Approver[]>>({});
+  const [me, setMe] = useState<Approver | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setChecked(JSON.parse(raw));
-    } catch {
-      /* ignore */
+      const res = await fetch("/api/partner-program/checklist", {
+        cache: "no-store",
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      setApprovals(data.approvals ?? {});
+      setMe(data.currentUser ?? null);
+    } finally {
+      setLoading(false);
     }
-    setLoaded(true);
   }, []);
 
   useEffect(() => {
-    if (!loaded) return;
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(checked));
-    } catch {
-      /* ignore */
-    }
-  }, [checked, loaded]);
+    load();
+  }, [load]);
 
-  const doneCount = ALL_IDS.filter((id) => checked[id]).length;
+  const myChecked = useCallback(
+    (itemId: string) =>
+      !!me && (approvals[itemId] ?? []).some((a) => a.userId === me.userId),
+    [approvals, me],
+  );
+
+  function toggle(itemId: string) {
+    if (!me) return;
+    const mine = myChecked(itemId);
+    // Optimistic
+    setApprovals((prev) => {
+      const cur = prev[itemId] ?? [];
+      return {
+        ...prev,
+        [itemId]: mine
+          ? cur.filter((a) => a.userId !== me.userId)
+          : [...cur, me],
+      };
+    });
+    fetch("/api/partner-program/checklist", {
+      method: mine ? "DELETE" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ itemId }),
+    }).then((r) => {
+      if (!r.ok) load();
+    });
+  }
+
+  function reset() {
+    if (!me) return;
+    setApprovals((prev) => {
+      const next: Record<string, Approver[]> = {};
+      for (const [k, v] of Object.entries(prev)) {
+        next[k] = v.filter((a) => a.userId !== me.userId);
+      }
+      return next;
+    });
+    fetch("/api/partner-program/checklist", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ all: true }),
+    }).then((r) => {
+      if (!r.ok) load();
+    });
+  }
+
+  const doneCount = useMemo(
+    () => ALL_IDS.filter((id) => myChecked(id)).length,
+    [myChecked],
+  );
   const total = ALL_IDS.length;
   const pct = total ? Math.round((doneCount / total) * 100) : 0;
-
-  function toggle(id: string) {
-    setChecked((c) => ({ ...c, [id]: !c[id] }));
-  }
 
   return (
     <div className="rounded-xl border border-zinc-200 bg-white p-5">
@@ -100,8 +163,8 @@ export function LaunchChecklist() {
             Verification checklist
           </h2>
           <p className="mt-0.5 text-xs text-zinc-500">
-            Tick each item as you verify it. Saved in your browser, so your
-            progress sticks between visits.
+            Tick items as <span className="font-medium">you</span> verify them.
+            Avatars on the right show which teammates have approved each one.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -110,16 +173,15 @@ export function LaunchChecklist() {
           </span>
           <button
             type="button"
-            onClick={() => setChecked({})}
+            onClick={reset}
             className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700"
           >
             <RotateCcw className="h-3.5 w-3.5" />
-            Reset
+            Reset mine
           </button>
         </div>
       </div>
 
-      {/* Progress bar */}
       <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-zinc-100">
         <div
           className="h-full rounded-full bg-emerald-500 transition-all"
@@ -127,45 +189,80 @@ export function LaunchChecklist() {
         />
       </div>
 
-      <div className="mt-5 space-y-5">
-        {GROUPS.map((group) => (
-          <div key={group.title}>
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
-              {group.title}
-            </p>
-            <ul className="space-y-1">
-              {group.items.map((item) => {
-                const isChecked = !!checked[item.id];
-                return (
-                  <li key={item.id}>
-                    <button
-                      type="button"
-                      onClick={() => toggle(item.id)}
-                      className="flex w-full items-start gap-2.5 rounded-md px-2 py-1.5 text-left transition hover:bg-zinc-50"
+      {loading ? (
+        <div className="flex items-center justify-center py-10 text-zinc-400">
+          <Loader2 className="h-4 w-4 animate-spin" />
+        </div>
+      ) : (
+        <div className="mt-5 space-y-5">
+          {GROUPS.map((group) => (
+            <div key={group.title}>
+              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
+                {group.title}
+              </p>
+              <ul className="space-y-0.5">
+                {group.items.map((item) => {
+                  const isChecked = myChecked(item.id);
+                  const approvers = approvals[item.id] ?? [];
+                  return (
+                    <li
+                      key={item.id}
+                      className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-zinc-50"
                     >
-                      {isChecked ? (
-                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
-                      ) : (
-                        <Circle className="mt-0.5 h-4 w-4 shrink-0 text-zinc-300" />
-                      )}
-                      <span
-                        className={cn(
-                          "text-sm",
-                          isChecked
-                            ? "text-zinc-400 line-through"
-                            : "text-zinc-700",
-                        )}
+                      <button
+                        type="button"
+                        onClick={() => toggle(item.id)}
+                        className="flex min-w-0 flex-1 items-start gap-2.5 text-left"
                       >
-                        {item.label}
-                      </span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        ))}
-      </div>
+                        {isChecked ? (
+                          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                        ) : (
+                          <Circle className="mt-0.5 h-4 w-4 shrink-0 text-zinc-300" />
+                        )}
+                        <span
+                          className={cn(
+                            "text-sm",
+                            isChecked
+                              ? "text-zinc-400 line-through"
+                              : "text-zinc-700",
+                          )}
+                        >
+                          {item.label}
+                        </span>
+                      </button>
+
+                      {/* Approver avatars (everyone who ticked it) */}
+                      {approvers.length > 0 && (
+                        <div
+                          className="flex shrink-0 -space-x-1.5"
+                          title={`Approved by: ${approvers.map((a) => a.name).join(", ")}`}
+                        >
+                          {approvers.slice(0, 5).map((a) => (
+                            <Avatar
+                              key={a.userId}
+                              className="h-5 w-5 ring-2 ring-white"
+                            >
+                              <AvatarImage src={a.avatarUrl ?? undefined} />
+                              <AvatarFallback className="text-[8px]">
+                                {initials(a.name)}
+                              </AvatarFallback>
+                            </Avatar>
+                          ))}
+                          {approvers.length > 5 && (
+                            <span className="flex h-5 items-center rounded-full bg-zinc-100 px-1.5 text-[9px] font-semibold text-zinc-500 ring-2 ring-white">
+                              +{approvers.length - 5}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

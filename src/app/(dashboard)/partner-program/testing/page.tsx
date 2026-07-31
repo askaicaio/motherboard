@@ -284,7 +284,7 @@ export default async function AffiliateTestingGuidePage() {
             </div>
             <p className="mt-1.5">
               Real cards will be charged and real payouts will send. Do{" "}
-              <strong>not</strong> run the money steps (Part&nbsp;2) while
+              <strong>not</strong>{" "}run the money steps (Part&nbsp;2) while
               you&apos;re in this mode.
             </p>
           </div>
