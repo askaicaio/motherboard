@@ -325,16 +325,6 @@ export function AllAutomationsTableClient({
                   <th className="sticky top-0 z-10 w-[200px] min-w-[200px] max-w-[200px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
                     Automation Tags
                   </th>
-                  {/* GHL Tags + GHL Forms: GHL-only columns; here on the combined
-                      table they always render, but each cell is populated only for
-                      GHL / GHL b2b rows (a muted "-" on the other platforms).
-                      Plain-text lines (like Webhook Links), not chips. 180px. */}
-                  <th className="sticky top-0 z-10 w-[180px] min-w-[180px] max-w-[180px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
-                    GHL Tags
-                  </th>
-                  <th className="sticky top-0 z-10 w-[180px] min-w-[180px] max-w-[180px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
-                    GHL Forms
-                  </th>
                   {/* Trigger Event: mirrors the Per Website column, after Author.
                       Display-only, not sortable, 160px. */}
                   <th className="sticky top-0 z-10 w-[160px] min-w-[160px] max-w-[160px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
@@ -348,7 +338,18 @@ export function AllAutomationsTableClient({
                   <th className="sticky top-0 z-10 w-[240px] min-w-[240px] max-w-[240px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
                     Notes
                   </th>
-                  {/* Webhook Links: mirrors the Per Website column, after Notes.
+                  {/* GHL Tags + GHL Forms: GHL-only columns; here on the combined
+                      table they always render, but each cell is populated only for
+                      GHL / GHL b2b rows (a muted "-" on the other platforms).
+                      Plain-text lines (like Webhook Links), not chips. 180px. Sit
+                      just LEFT of Webhook Links. */}
+                  <th className="sticky top-0 z-10 w-[180px] min-w-[180px] max-w-[180px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
+                    GHL Tags
+                  </th>
+                  <th className="sticky top-0 z-10 w-[180px] min-w-[180px] max-w-[180px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
+                    GHL Forms
+                  </th>
+                  {/* Webhook Links: mirrors the Per Website column, after GHL Forms.
                       One truncated line per selected webhook. Not sortable. 240px. */}
                   <th className="sticky top-0 z-10 w-[240px] min-w-[240px] max-w-[240px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
                     Webhook Links
@@ -495,51 +496,6 @@ export function AllAutomationsTableClient({
                           </span>
                         )}
                       </td>
-                      {/* GHL Tags + GHL Forms: plain-text lines (like Webhook
-                          Links), populated only for GHL / GHL b2b rows. Non-GHL
-                          rows show a muted "-" (the column doesn't apply). */}
-                      <td className="w-[180px] min-w-[180px] max-w-[180px] px-3 py-2 text-left align-top">
-                        {!columnVisibleOnPlatform("ghl_tags", r.platform) ? (
-                          <span className="text-xs text-zinc-400">-</span>
-                        ) : r.ghlTags && r.ghlTags.length > 0 ? (
-                          <div className="space-y-0.5">
-                            {r.ghlTags.map((t) => (
-                              <div
-                                key={t.id}
-                                title={t.value}
-                                className="truncate text-xs text-zinc-700"
-                              >
-                                {t.value}
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-xs font-medium text-red-600">
-                            None
-                          </span>
-                        )}
-                      </td>
-                      <td className="w-[180px] min-w-[180px] max-w-[180px] px-3 py-2 text-left align-top">
-                        {!columnVisibleOnPlatform("ghl_forms", r.platform) ? (
-                          <span className="text-xs text-zinc-400">-</span>
-                        ) : r.ghlForms && r.ghlForms.length > 0 ? (
-                          <div className="space-y-0.5">
-                            {r.ghlForms.map((f) => (
-                              <div
-                                key={f.id}
-                                title={f.value}
-                                className="truncate text-xs text-zinc-700"
-                              >
-                                {f.value}
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-xs font-medium text-red-600">
-                            None
-                          </span>
-                        )}
-                      </td>
                       {/* Trigger Event: the selected option as a coloured pill
                           (badge + text colours; plain text if none), or red
                           "None" when unset (mirrors the Per Website column). */}
@@ -615,6 +571,52 @@ export function AllAutomationsTableClient({
                               {r.notes}
                             </TooltipContent>
                           </Tooltip>
+                        ) : (
+                          <span className="text-xs font-medium text-red-600">
+                            None
+                          </span>
+                        )}
+                      </td>
+                      {/* GHL Tags + GHL Forms: plain-text lines (like Webhook
+                          Links), populated only for GHL / GHL b2b rows. Non-GHL
+                          rows show a muted "-" (the column doesn't apply). Sit
+                          just LEFT of Webhook Links. */}
+                      <td className="w-[180px] min-w-[180px] max-w-[180px] px-3 py-2 text-left align-top">
+                        {!columnVisibleOnPlatform("ghl_tags", r.platform) ? (
+                          <span className="text-xs text-zinc-400">-</span>
+                        ) : r.ghlTags && r.ghlTags.length > 0 ? (
+                          <div className="space-y-0.5">
+                            {r.ghlTags.map((t) => (
+                              <div
+                                key={t.id}
+                                title={t.value}
+                                className="truncate text-xs text-zinc-700"
+                              >
+                                {t.value}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-xs font-medium text-red-600">
+                            None
+                          </span>
+                        )}
+                      </td>
+                      <td className="w-[180px] min-w-[180px] max-w-[180px] px-3 py-2 text-left align-top">
+                        {!columnVisibleOnPlatform("ghl_forms", r.platform) ? (
+                          <span className="text-xs text-zinc-400">-</span>
+                        ) : r.ghlForms && r.ghlForms.length > 0 ? (
+                          <div className="space-y-0.5">
+                            {r.ghlForms.map((f) => (
+                              <div
+                                key={f.id}
+                                title={f.value}
+                                className="truncate text-xs text-zinc-700"
+                              >
+                                {f.value}
+                              </div>
+                            ))}
+                          </div>
                         ) : (
                           <span className="text-xs font-medium text-red-600">
                             None

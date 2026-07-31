@@ -287,8 +287,12 @@ const EXPORT_COLUMNS: {
       header: "Automation Tags",
       value: (r) => (r.automationTags ?? []).map((t) => t.value).join(", "),
     },
+    { header: "Trigger Event", value: (r) => r.triggerEvent ?? "" },
+    { header: "Purpose", value: (r) => r.purpose ?? "" },
+    // Notes sits immediately right of Purpose on the table, so it does here too.
+    { header: "Notes", value: (r) => r.notes ?? "" },
     // GHL Tags + GHL Forms (multi-select, GHL-only): comma-joined values, right
-    // after Automation Tags to mirror the table. Only emitted on GHL exports.
+    // before Webhook Links to mirror the table. Only emitted on GHL exports.
     {
       header: "GHL Tags",
       value: (r) => (r.ghlTags ?? []).map((t) => t.value).join(", "),
@@ -299,10 +303,6 @@ const EXPORT_COLUMNS: {
       value: (r) => (r.ghlForms ?? []).map((t) => t.value).join(", "),
       platforms: ["ghl", "ghl-b2b"],
     },
-    { header: "Trigger Event", value: (r) => r.triggerEvent ?? "" },
-    { header: "Purpose", value: (r) => r.purpose ?? "" },
-    // Notes sits immediately right of Purpose on the table, so it does here too.
-    { header: "Notes", value: (r) => r.notes ?? "" },
     // Webhook Links (multi-select): the selected webhook URLs joined, in the same
     // after-Notes slot as the on-screen column.
     {
@@ -1046,20 +1046,6 @@ export function AutomationsTableClient({
                   <th className="sticky top-0 z-10 w-[200px] min-w-[200px] max-w-[200px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
                     Automation Tags
                   </th>
-                  {/* GHL Tags + GHL Forms: MULTI-select dropdown columns, GHL-only
-                      (gated on visibleOnPlatforms), display-only, never synced.
-                      Plain-text lines in the cell (like Webhook Links), not chips.
-                      Sit between Automation Tags and Trigger Event. */}
-                  {showGhlTags && (
-                    <th className="sticky top-0 z-10 w-[180px] min-w-[180px] max-w-[180px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
-                      GHL Tags
-                    </th>
-                  )}
-                  {showGhlForms && (
-                    <th className="sticky top-0 z-10 w-[180px] min-w-[180px] max-w-[180px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
-                      GHL Forms
-                    </th>
-                  )}
                   {/* Trigger Event: single-select dropdown column, center-aligned,
                       display-only (not sortable), never synced. Sits after Author. */}
                   <th className="sticky top-0 z-10 w-[160px] min-w-[160px] max-w-[160px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
@@ -1073,9 +1059,23 @@ export function AutomationsTableClient({
                   <th className="sticky top-0 z-10 w-[240px] min-w-[240px] max-w-[240px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
                     Notes
                   </th>
+                  {/* GHL Tags + GHL Forms: MULTI-select dropdown columns, GHL-only
+                      (gated on visibleOnPlatforms), display-only, never synced.
+                      Plain-text lines in the cell (like Webhook Links), not chips.
+                      Sit just LEFT of Webhook Links (after Notes). */}
+                  {showGhlTags && (
+                    <th className="sticky top-0 z-10 w-[180px] min-w-[180px] max-w-[180px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
+                      GHL Tags
+                    </th>
+                  )}
+                  {showGhlForms && (
+                    <th className="sticky top-0 z-10 w-[180px] min-w-[180px] max-w-[180px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
+                      GHL Forms
+                    </th>
+                  )}
                   {/* Webhook Links: MULTI-select dropdown column, display-only
                       (not sortable). Selected webhooks render one truncated line
-                      each. Sits after Notes, before the date columns. 240px. */}
+                      each. Sits after GHL Forms, before the date columns. 240px. */}
                   <th className="sticky top-0 z-10 w-[240px] min-w-[240px] max-w-[240px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
                     Webhook Links
                   </th>
@@ -1283,52 +1283,6 @@ export function AutomationsTableClient({
                           </span>
                         )}
                       </td>
-                      {/* GHL Tags + GHL Forms: selected values as plain-text lines
-                          (one per value, hover title = full value), like the
-                          Webhook Links cell, NOT chips (their config has no
-                          colours). Red "None" when empty. GHL-only, 180px. */}
-                      {showGhlTags && (
-                        <td className="w-[180px] min-w-[180px] max-w-[180px] px-3 py-2 text-left align-top">
-                          {r.ghlTags && r.ghlTags.length > 0 ? (
-                            <div className="space-y-0.5">
-                              {r.ghlTags.map((t) => (
-                                <div
-                                  key={t.id}
-                                  title={t.value}
-                                  className="truncate text-xs text-zinc-700"
-                                >
-                                  {t.value}
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <span className="text-xs font-medium text-red-600">
-                              None
-                            </span>
-                          )}
-                        </td>
-                      )}
-                      {showGhlForms && (
-                        <td className="w-[180px] min-w-[180px] max-w-[180px] px-3 py-2 text-left align-top">
-                          {r.ghlForms && r.ghlForms.length > 0 ? (
-                            <div className="space-y-0.5">
-                              {r.ghlForms.map((f) => (
-                                <div
-                                  key={f.id}
-                                  title={f.value}
-                                  className="truncate text-xs text-zinc-700"
-                                >
-                                  {f.value}
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <span className="text-xs font-medium text-red-600">
-                              None
-                            </span>
-                          )}
-                        </td>
-                      )}
                       {/* Trigger Event: the selected option rendered as a
                           coloured pill (its configured badge + text colours;
                           plain text if no badge colour), or red "None" when
@@ -1433,6 +1387,53 @@ export function AutomationsTableClient({
                           </span>
                         )}
                       </td>
+                      {/* GHL Tags + GHL Forms: selected values as plain-text lines
+                          (one per value, hover title = full value), like the
+                          Webhook Links cell, NOT chips (their config has no
+                          colours). Red "None" when empty. GHL-only, 180px. Sit
+                          just LEFT of Webhook Links. */}
+                      {showGhlTags && (
+                        <td className="w-[180px] min-w-[180px] max-w-[180px] px-3 py-2 text-left align-top">
+                          {r.ghlTags && r.ghlTags.length > 0 ? (
+                            <div className="space-y-0.5">
+                              {r.ghlTags.map((t) => (
+                                <div
+                                  key={t.id}
+                                  title={t.value}
+                                  className="truncate text-xs text-zinc-700"
+                                >
+                                  {t.value}
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-xs font-medium text-red-600">
+                              None
+                            </span>
+                          )}
+                        </td>
+                      )}
+                      {showGhlForms && (
+                        <td className="w-[180px] min-w-[180px] max-w-[180px] px-3 py-2 text-left align-top">
+                          {r.ghlForms && r.ghlForms.length > 0 ? (
+                            <div className="space-y-0.5">
+                              {r.ghlForms.map((f) => (
+                                <div
+                                  key={f.id}
+                                  title={f.value}
+                                  className="truncate text-xs text-zinc-700"
+                                >
+                                  {f.value}
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-xs font-medium text-red-600">
+                              None
+                            </span>
+                          )}
+                        </td>
+                      )}
                       {/* Webhook Links: one truncated line per selected webhook
                           (hover title shows the full URL); red "None" when empty.
                           Multi-select, set in the Add/Edit dialog. 240px. */}
