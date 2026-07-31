@@ -16,14 +16,24 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-/** Below this much free space (px) on the configured side, open vertically.
- *  ~18rem = the comfortable min width a side-opening menu wants; under it the
- *  side menu would only shrink further, so we go vertical instead. */
+/** Default: below this much free space (px) on the configured side, open
+ *  vertically. ~18rem = the comfortable min width a side-opening combobox wants;
+ *  under it the side menu would only shrink further, so we go vertical instead.
+ *  Callers with a narrower fixed-width menu (e.g. a ~176px Status Select) pass a
+ *  smaller `narrowSpacePx` so they don't flip to vertical prematurely. */
 const NARROW_SIDE_SPACE_PX = 288;
+
+/** Threshold for a small fixed-width menu (the ~176px `w-44` Status Select):
+ *  only flip to vertical once even that narrow menu won't fit on the side, so it
+ *  doesn't go vertical as eagerly as the wide comboboxes. */
+export const NARROW_SIDE_SPACE_SELECT_PX = 200;
 
 type Side = "left" | "right" | "top" | "bottom";
 
-export function usePopoverSide(configuredSide: Side) {
+export function usePopoverSide(
+  configuredSide: Side,
+  narrowSpacePx: number = NARROW_SIDE_SPACE_PX,
+) {
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const [open, setOpenState] = useState(false);
   const [vertical, setVertical] = useState(false);
@@ -40,8 +50,8 @@ export function usePopoverSide(configuredSide: Side) {
         : configuredSide === "right"
           ? window.innerWidth - r.right
           : Infinity;
-    setVertical(sideSpace < NARROW_SIDE_SPACE_PX);
-  }, [configuredSide]);
+    setVertical(sideSpace < narrowSpacePx);
+  }, [configuredSide, narrowSpacePx]);
 
   // Decide the orientation BEFORE the popover renders open, so it opens on the
   // right side with no reposition flash. (measure() + setOpenState() batch into

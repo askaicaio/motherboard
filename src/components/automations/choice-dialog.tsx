@@ -32,6 +32,10 @@ import {
   choiceColorHex,
   type StatusOption,
 } from "@/lib/automations/dropdown-config";
+import {
+  usePopoverSide,
+  NARROW_SIDE_SPACE_SELECT_PX,
+} from "./use-popover-side";
 import { cn } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
 
@@ -160,6 +164,17 @@ export function ChoiceDialog({
   const [textColor, setTextColor] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Status dropdown orientation (standard dropdown behaviour): opens to the RIGHT
+  // pinned, or vertically when that side is too narrow. Small fixed-width menu, so
+  // it uses the smaller Select threshold. Hook is called unconditionally (only its
+  // outputs are used inside the showStatus block below).
+  const {
+    triggerRef: statusTriggerRef,
+    open: statusOpen,
+    setOpen: setStatusOpen,
+    side: statusSide,
+    collisionAvoidance: statusCollisionAvoidance,
+  } = usePopoverSide("right", NARROW_SIDE_SPACE_SELECT_PX);
 
   useEffect(() => {
     if (!open) return;
@@ -269,7 +284,12 @@ export function ChoiceDialog({
           {showStatus && (
             <div className="space-y-1.5">
               <Label htmlFor="choice-status">Status</Label>
-              <Select value={status} onValueChange={(v) => setStatus(v ?? "")}>
+              <Select
+                value={status}
+                onValueChange={(v) => setStatus(v ?? "")}
+                open={statusOpen}
+                onOpenChange={(o) => setStatusOpen(o)}
+              >
                 {/* Clearer field look (matches the other Add/Edit fields): zinc-300
                     resting border + shadow-sm. Keeps the shared SelectTrigger's
                     built-in focus ring AND shows it while the menu is open
@@ -277,6 +297,7 @@ export function ChoiceDialog({
                     dropdowns. Per-instance override so selects elsewhere are
                     unaffected. */}
                 <SelectTrigger
+                  ref={statusTriggerRef}
                   id="choice-status"
                   className="w-44 border-zinc-300 shadow-sm data-[popup-open]:border-ring data-[popup-open]:ring-3 data-[popup-open]:ring-ring/50"
                 >
@@ -287,14 +308,16 @@ export function ChoiceDialog({
                     }
                   />
                 </SelectTrigger>
-                {/* Opens to the RIGHT of the trigger (not overlaying it), matching
-                    the other Add/Edit dropdowns. alignItemWithTrigger={false} is
-                    required for `side` to take effect on a Base UI Select. */}
+                {/* Standard dropdown behaviour (via usePopoverSide): opens to the
+                    RIGHT pinned, or vertically when that side is too narrow.
+                    alignItemWithTrigger={false} is required for `side` to take
+                    effect on a Base UI Select. */}
                 <SelectContent
-                  side="right"
+                  side={statusSide}
                   align="start"
                   sideOffset={8}
                   alignItemWithTrigger={false}
+                  collisionAvoidance={statusCollisionAvoidance}
                 >
                   {(statusOptions ?? []).map((o) => (
                     <SelectItem key={o.value} value={o.value} className={o.text}>

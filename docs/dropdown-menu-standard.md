@@ -143,11 +143,27 @@ orientations.
 5. You get height-grow, width-grow-to-edge, and the vertical-when-narrow fallback for
    free — don't re-implement them.
 
+## Base UI `Select` dropdowns (e.g. the Status selector)
+
+Small enum dropdowns (Add/Edit **Status**) use a Base UI **`Select`**, not the
+combobox. They reuse the **orientation** half of the standard so they behave the
+same: they route `open`/`side`/`collisionAvoidance` through `usePopoverSide` (with
+the smaller `NARROW_SIDE_SPACE_SELECT_PX` threshold, since the menu is a fixed
+~176px, not content-sized), and attach the returned `triggerRef` to the
+`SelectTrigger`. To do this the `Select` must be **open-controlled**
+(`open`/`onOpenChange` wired to the hook) and `alignItemWithTrigger={false}` (so
+`side` takes effect on a Select). They keep the Select's own **height**
+(`max-h-(--available-height)`, already in `ui/select.tsx`) and **width**
+(`w-(--anchor-width)`) — the combobox width recipe does NOT apply (a Select can't
+sprawl). See `choice-dialog.tsx` (Status, opens right) and `workflow-dialog.tsx`
+(Status, opens left).
+
 ## Tunable knobs
 
 | Knob | Where | Effect |
 | --- | --- | --- |
-| `NARROW_SIDE_SPACE_PX` (~288) | `use-popover-side.ts` | how early it switches to vertical |
+| `NARROW_SIDE_SPACE_PX` (~288) | `use-popover-side.ts` | vertical-switch threshold for the wide comboboxes |
+| `NARROW_SIDE_SPACE_SELECT_PX` (~200) | `use-popover-side.ts` | vertical-switch threshold for the small fixed-width Status Selects |
 | `0.5rem` edge gap | width `calc()` in both comboboxes | gap between the menu and the window edge |
 | `3rem` search-box reserve | `CommandList` height `calc()` | headroom kept for the pinned search box |
 
