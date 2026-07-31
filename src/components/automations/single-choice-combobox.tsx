@@ -98,10 +98,15 @@ export function SingleChoiceCombobox({
           to right; left-column fields pass "left" so the menu opens outward. Base
           UI's positioner auto-flips if that side lacks room.
           WIDTH: grows in the chosen direction only as wide as the longest option
-          needs, floored at the old w-72 (min-w-72) and capped at the space between
-          the trigger and the window edge (Base UI's --available-width on the
-          Positioner, less ~0.5rem so it doesn't touch the edge). Long options
-          (e.g. webhook URLs) then truncate at that cap.
+          needs, capped at the space between the trigger and the window edge (Base
+          UI's --available-width on the Positioner, less ~0.5rem so it doesn't touch
+          the edge). Long options (e.g. webhook URLs) then truncate at that cap.
+          The floor is min(18rem, that cap): normally 18rem (the old w-72 width),
+          but on a width-constrained screen where less than 18rem is available the
+          floor SHRINKS to the cap too — otherwise a fixed min-width would beat the
+          max-width (CSS resolves min over max) and push the box off the screen edge
+          instead of shrinking. The 100vw fallback keeps the calc valid on the first
+          paint before --available-width is set.
           collisionAvoidance side="none" PINS the chosen side (no flip). Base UI
           runs flip/shift BEFORE it computes --available-width, so with flip on, a
           wide w-max box makes the positioner bail off the chosen side and the cap
@@ -109,7 +114,7 @@ export function SingleChoiceCombobox({
           trigger, which makes --available-width deterministic so the max-w cap
           actually shrinks the box to fit that side. */}
       <PopoverContent
-        className="min-w-72 w-max max-w-[calc(var(--available-width)_-_0.5rem)] p-0"
+        className="min-w-[min(18rem,calc(var(--available-width,100vw)_-_0.5rem))] w-max max-w-[calc(var(--available-width,100vw)_-_0.5rem)] p-0"
         side={side}
         align="start"
         sideOffset={8}
