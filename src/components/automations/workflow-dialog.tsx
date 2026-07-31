@@ -35,6 +35,10 @@ import { toast } from "sonner";
 import type { AutomationRow } from "./automations-table-client";
 import { SingleChoiceCombobox } from "./single-choice-combobox";
 import { MultiChoiceCombobox } from "./multi-choice-combobox";
+import {
+  usePopoverSide,
+  NARROW_SIDE_SPACE_SELECT_PX,
+} from "./use-popover-side";
 import type { ChoiceOption } from "@/lib/automations/dropdown-config";
 
 /** Status options rendered as COLOURED TEXT in the Status dropdown, mirroring
@@ -96,6 +100,16 @@ export function WorkflowDialog({
   const [webhookChoiceIds, setWebhookChoiceIds] = useState<string[]>([]);
   // Inline error shown as red text inside the dialog (e.g. duplicate link).
   const [error, setError] = useState<string | null>(null);
+  // Status dropdown orientation (standard dropdown behaviour): Status is a
+  // LEFT-column field, so it opens LEFT pinned, or vertically when that side is
+  // too narrow. Small fixed-width menu → the smaller Select threshold.
+  const {
+    triggerRef: statusTriggerRef,
+    open: statusOpen,
+    setOpen: setStatusOpen,
+    side: statusSide,
+    collisionAvoidance: statusCollisionAvoidance,
+  } = usePopoverSide("left", NARROW_SIDE_SPACE_SELECT_PX);
 
   // Populate (edit) or clear (add) the fields whenever the dialog opens.
   useEffect(() => {
@@ -316,7 +330,12 @@ export function WorkflowDialog({
           <div className="grid grid-cols-2 items-start gap-3">
           <div className="space-y-1.5">
             <Label htmlFor="wf-status">Status</Label>
-            <Select value={status} onValueChange={(v) => setStatus(v ?? "paused")}>
+            <Select
+              value={status}
+              onValueChange={(v) => setStatus(v ?? "paused")}
+              open={statusOpen}
+              onOpenChange={(o) => setStatusOpen(o)}
+            >
               {/* Trigger + list items render the value as COLOURED TEXT (green
                   Active / neutral Paused), mirroring the GHL Forms Status
                   dropdown. SelectValue's function child formats the closed
@@ -329,6 +348,7 @@ export function WorkflowDialog({
                   dropdowns. Per-instance override so selects elsewhere are
                   unaffected. */}
               <SelectTrigger
+                ref={statusTriggerRef}
                 id="wf-status"
                 className="w-full border-zinc-300 shadow-sm data-[popup-open]:border-ring data-[popup-open]:ring-3 data-[popup-open]:ring-ring/50"
               >
@@ -339,17 +359,19 @@ export function WorkflowDialog({
                   }}
                 </SelectValue>
               </SelectTrigger>
-              {/* Status is a LEFT-column field, so its menu opens to the LEFT
-                  (outward from the dialog). alignItemWithTrigger={false} is
-                  required for `side` to take effect on a Base UI Select (its
-                  default native-like item-over-trigger alignment ignores side).
-                  w-44 pins the popup to the GHL Forms Status dropdown's width
-                  (the reference), instead of matching the full-width trigger. */}
+              {/* Standard dropdown behaviour (via usePopoverSide): Status opens
+                  LEFT pinned (outward from the dialog), or vertically when that
+                  side is too narrow. alignItemWithTrigger={false} is required for
+                  `side` to take effect on a Base UI Select (its default native-like
+                  item-over-trigger alignment ignores side). w-44 pins the popup to
+                  the GHL Forms Status dropdown's width (the reference), instead of
+                  matching the full-width trigger. */}
               <SelectContent
-                side="left"
+                side={statusSide}
                 align="start"
                 sideOffset={8}
                 alignItemWithTrigger={false}
+                collisionAvoidance={statusCollisionAvoidance}
                 className="w-44"
               >
                 {WF_STATUS_OPTIONS.map((o) => (
@@ -484,6 +506,9 @@ export function WorkflowDialog({
               noResultsLabel="No webhooks found."
               side="right"
             />
+            <p className="text-[10px] text-zinc-500">
+              These are links used by Webhook nodes in the automation.
+            </p>
           </div>
           {error && (
             <p className="text-sm font-medium text-red-600" role="alert">
