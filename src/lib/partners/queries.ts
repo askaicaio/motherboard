@@ -14,7 +14,7 @@ import {
   partnerConversions,
   customersIndex,
 } from "@/lib/db/schema";
-import { and, desc, eq, inArray, lte, or } from "drizzle-orm";
+import { and, desc, eq, inArray, lte, or, sql } from "drizzle-orm";
 
 export type ActiveSettings = typeof partnerSettings.$inferSelect;
 
@@ -41,12 +41,20 @@ export async function getActiveSettings(asOf: Date): Promise<ActiveSettings | nu
   return fallback ?? null;
 }
 
-/** Resolve a ref_code to a partner row (any status). Null if unknown. */
+/**
+ * Resolve a ref_code to a partner row (any status). Null if unknown.
+ * Matching is case-insensitive and trims surrounding whitespace, so a
+ * hand-typed code like " ABC123 " or "abc123" still resolves to refCode
+ * "ABC123". Link-based codes (from /r) are already exact; this only rescues
+ * manually-entered ones.
+ */
 export async function getPartnerByRefCode(refCode: string) {
+  const normalized = refCode.trim().toLowerCase();
+  if (!normalized) return null;
   const [row] = await db
     .select()
     .from(partners)
-    .where(eq(partners.refCode, refCode))
+    .where(sql`lower(${partners.refCode}) = ${normalized}`)
     .limit(1);
   return row ?? null;
 }
