@@ -7,6 +7,11 @@
 // trigger. Built generically off ChoiceOption so the other multi-select columns
 // (GHL Tags, GHL Forms) can reuse it.
 //
+// Selected options are PINNED (sticky) at the top of the open list, just below the
+// frozen search bar, so the current selection stays visible while the rest of the
+// list scrolls; the unselected options are the normal searchable list below.
+// Unselecting an item drops it back into that list.
+//
 // `values` is the selected choice ids; `onChange` hands back the next id array.
 
 import {
@@ -57,8 +62,10 @@ export function MultiChoiceCombobox({
   const { triggerRef, open, setOpen, side: resolvedSide, collisionAvoidance } =
     usePopoverSide(side);
   const selectedSet = new Set(values);
-  // Preserve the configured (alphabetical) option order in the chip row.
+  // Split into selected (pinned at the top of the list) and unselected (the
+  // normal, searchable list below). Both keep the configured (alphabetical) order.
   const selected = options.filter((o) => selectedSet.has(o.id));
+  const unselected = options.filter((o) => !selectedSet.has(o.id));
 
   function toggle(choiceId: string) {
     if (selectedSet.has(choiceId)) {
@@ -66,6 +73,35 @@ export function MultiChoiceCombobox({
     } else {
       onChange([...values, choiceId]);
     }
+  }
+
+  // The inner content of an option row (checkbox + coloured pill / plain text),
+  // shared by the pinned selected rows and the unselected list items so both look
+  // identical.
+  function optionInner(o: ChoiceOption, checked: boolean) {
+    return (
+      <>
+        <span
+          className={cn(
+            "mr-2 flex h-4 w-4 shrink-0 items-center justify-center rounded border",
+            checked ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-300",
+          )}
+        >
+          {checked && <Check className="h-3 w-3" />}
+        </span>
+        {choiceColorHex(o.badgeColor) ? (
+          <ColorBadge
+            value={o.value}
+            badgeColor={o.badgeColor}
+            textColor={o.textColor}
+          />
+        ) : (
+          // min-w-0 lets this flex child shrink so `truncate` can ellipsis a long
+          // value (webhook URL) once the popover hits its width cap.
+          <span className="min-w-0 truncate">{o.value}</span>
+        )}
+      </>
+    );
   }
 
   return (
@@ -143,44 +179,51 @@ export function MultiChoiceCombobox({
               max-h-72 (~7 rows). Subtract ~3rem for the pinned search box above
               so the popup as a whole stays inside the viewport. */}
           <CommandList className="max-h-[calc(var(--available-height)_-_3rem)]">
-            <CommandEmpty>{noResultsLabel}</CommandEmpty>
-            <CommandGroup>
-              {options.map((o) => {
-                const checked = selectedSet.has(o.id);
-                return (
-                  <CommandItem
+            {/* SELECTED items pinned/frozen just below the search bar: `sticky
+                top-0` keeps them at the top of the scroll area so they stay visible
+                while the unselected list scrolls under them (like the search bar
+                stays frozen above). Plain buttons, NOT cmdk items, so they are not
+                filtered by the search: every selection stays visible. Click one to
+                unselect it and it drops back into the normal list below. Own
+                max-height + scroll so a big selection can't eat the whole popup. */}
+            {selected.length > 0 && (
+              <div className="sticky top-0 z-10 max-h-40 overflow-y-auto border-b bg-popover p-1">
+                {selected.map((o) => (
+                  <button
                     key={o.id}
-                    value={o.value}
-                    // Toggle without closing, so several tags can be picked in
-                    // one open (this is the multi-select behaviour).
-                    onSelect={() => toggle(o.id)}
+                    type="button"
+                    onClick={() => toggle(o.id)}
+                    className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm hover:bg-muted"
                   >
-                    <span
-                      className={cn(
-                        "mr-2 flex h-4 w-4 shrink-0 items-center justify-center rounded border",
-                        checked
-                          ? "border-zinc-900 bg-zinc-900 text-white"
-                          : "border-zinc-300",
-                      )}
+                    {optionInner(o, true)}
+                  </button>
+                ))}
+              </div>
+            )}
+            {unselected.length > 0 ? (
+              <>
+                <CommandEmpty>{noResultsLabel}</CommandEmpty>
+                <CommandGroup>
+                  {unselected.map((o) => (
+                    <CommandItem
+                      key={o.id}
+                      value={o.value}
+                      // Toggle without closing, so several can be picked in one
+                      // open (this is the multi-select behaviour).
+                      onSelect={() => toggle(o.id)}
                     >
-                      {checked && <Check className="h-3 w-3" />}
-                    </span>
-                    {choiceColorHex(o.badgeColor) ? (
-                      <ColorBadge
-                        value={o.value}
-                        badgeColor={o.badgeColor}
-                        textColor={o.textColor}
-                      />
-                    ) : (
-                      // min-w-0 lets this flex child shrink so `truncate` can
-                      // ellipsis a long value (webhook URL) once the popover hits
-                      // its width cap.
-                      <span className="min-w-0 truncate">{o.value}</span>
-                    )}
-                  </CommandItem>
-                );
-              })}
-            </CommandGroup>
+                      {optionInner(o, false)}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </>
+            ) : (
+              selected.length > 0 && (
+                <div className="px-2 py-4 text-center text-xs text-muted-foreground">
+                  All options selected.
+                </div>
+              )
+            )}
           </CommandList>
         </Command>
       </PopoverContent>
