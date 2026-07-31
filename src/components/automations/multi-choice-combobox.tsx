@@ -9,12 +9,12 @@
 //
 // `values` is the selected choice ids; `onChange` hands back the next id array.
 
-import { useState } from "react";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { usePopoverSide } from "./use-popover-side";
 import {
   Command,
   CommandEmpty,
@@ -51,7 +51,11 @@ export function MultiChoiceCombobox({
    *  left-column field so the menu opens away from the dialog. */
   side?: "left" | "right" | "top" | "bottom";
 }) {
-  const [open, setOpen] = useState(false);
+  // Open state + resolved orientation. `side` (the prop) is the PREFERRED side;
+  // the hook opens vertically instead when that side is too narrow, and hands
+  // back the collisionAvoidance to match (pinned when horizontal).
+  const { triggerRef, open, setOpen, side: resolvedSide, collisionAvoidance } =
+    usePopoverSide(side);
   const selectedSet = new Set(values);
   // Preserve the configured (alphabetical) option order in the chip row.
   const selected = options.filter((o) => selectedSet.has(o.id));
@@ -67,6 +71,7 @@ export function MultiChoiceCombobox({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
+        ref={triggerRef}
         id={id}
         type="button"
         className={cn(
@@ -103,8 +108,8 @@ export function MultiChoiceCombobox({
       {/* Opens to the side of the trigger (aligned to its top), NOT below, so the
           long multi-select list doesn't cover the dialog fields underneath while
           it stays open for picking. `side` defaults to right; left-column fields
-          pass "left" so the menu opens outward. Base UI auto-flips if that side
-          lacks room.
+          pass "left" so the menu opens outward. When that side is too narrow,
+          usePopoverSide switches `resolvedSide` to "bottom" — see that hook.
           WIDTH: grows in the chosen direction only as wide as the longest option
           needs, capped at the space between the trigger and the window edge (Base
           UI's --available-width on the Positioner, less ~0.5rem so it doesn't touch
@@ -115,18 +120,16 @@ export function MultiChoiceCombobox({
           max-width (CSS resolves min over max) and push the box off the screen edge
           instead of shrinking. The 100vw fallback keeps the calc valid on the first
           paint before --available-width is set.
-          collisionAvoidance side="none" PINS the chosen side (no flip). Base UI
-          runs flip/shift BEFORE it computes --available-width, so with flip on, a
-          wide w-max box makes the positioner bail off the chosen side and the cap
-          never binds. Pinning the side anchors the popover's near edge to the
-          trigger, which makes --available-width deterministic so the max-w cap
-          actually shrinks the box to fit that side. */}
+          collisionAvoidance comes from the hook: side "none" (PIN) while
+          horizontal so Base UI can't flip off the chosen side before it computes
+          --available-width (which would let a wide w-max box sprawl and stop the
+          cap binding); flip+shift while vertical (bottom<->top + on-screen nudge). */}
       <PopoverContent
         className="min-w-[min(18rem,calc(var(--available-width,100vw)_-_0.5rem))] w-max max-w-[calc(var(--available-width,100vw)_-_0.5rem)] p-0"
-        side={side}
+        side={resolvedSide}
         align="start"
         sideOffset={8}
-        collisionAvoidance={{ side: "none" }}
+        collisionAvoidance={collisionAvoidance}
       >
         <Command
           filter={(itemValue, search) =>
