@@ -271,7 +271,7 @@ export function AllAutomationsTableClient({
             {/* Same shell as the per-website table: bounded scroll, sticky
                 header (Option B), frozen Name column, horizontal scroll once the
                 columns exceed the card width. */}
-            <table className="w-full min-w-[2760px] text-sm">
+            <table className="w-full min-w-[2780px] text-sm">
               <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
                 <tr>
                   {/* Corner cell: frozen Name column, sticky on both axes. */}
@@ -322,7 +322,7 @@ export function AllAutomationsTableClient({
                   {/* Automation Tags: mirrors the Per Website column, between
                       Author and Trigger Event. Multi-select, display-only, not
                       sortable; wrapping coloured chips. 200px. */}
-                  <th className="sticky top-0 z-10 w-[200px] min-w-[200px] max-w-[200px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
+                  <th className="sticky top-0 z-10 w-[220px] min-w-[220px] max-w-[220px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
                     Automation Tags
                   </th>
                   {/* Trigger Event: mirrors the Per Website column, after Author.
@@ -478,7 +478,7 @@ export function AllAutomationsTableClient({
                       {/* Automation Tags: the selected tags as wrapping coloured
                           chips (plain text for a tag with no badge colour), or
                           red "None" when empty (mirrors the Per Website column). */}
-                      <td className="w-[200px] min-w-[200px] max-w-[200px] px-3 py-2 text-center align-top">
+                      <td className="w-[220px] min-w-[220px] max-w-[220px] px-3 py-2 text-center align-top">
                         {r.automationTags && r.automationTags.length > 0 ? (
                           <span className="flex flex-wrap justify-center gap-1">
                             {r.automationTags.map((t) => {
