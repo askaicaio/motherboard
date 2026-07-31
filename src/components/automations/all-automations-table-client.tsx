@@ -585,7 +585,16 @@ export function AllAutomationsTableClient({
                         {!columnVisibleOnPlatform("ghl_tags", r.platform) ? (
                           <span className="text-xs text-zinc-400">-</span>
                         ) : r.ghlTags && r.ghlTags.length > 0 ? (
-                          <div className="space-y-0.5">
+                          <div
+                            className="overflow-hidden"
+                            // Cap the item list to the SAME height as the
+                            // Purpose/Notes clamp (purposeClamp lines x 16px), so a
+                            // row with many items shows only the lines that fit and
+                            // never stretches the row taller than the Name-cell-
+                            // driven height. Items beyond that are clipped (each
+                            // item is a 16px text-xs line).
+                            style={{ maxHeight: (purposeClamp[r.id] ?? 2) * 16 }}
+                          >
                             {r.ghlTags.map((t) => (
                               <div
                                 key={t.id}
@@ -606,7 +615,16 @@ export function AllAutomationsTableClient({
                         {!columnVisibleOnPlatform("ghl_forms", r.platform) ? (
                           <span className="text-xs text-zinc-400">-</span>
                         ) : r.ghlForms && r.ghlForms.length > 0 ? (
-                          <div className="space-y-0.5">
+                          <div
+                            className="overflow-hidden"
+                            // Cap the item list to the SAME height as the
+                            // Purpose/Notes clamp (purposeClamp lines x 16px), so a
+                            // row with many items shows only the lines that fit and
+                            // never stretches the row taller than the Name-cell-
+                            // driven height. Items beyond that are clipped (each
+                            // item is a 16px text-xs line).
+                            style={{ maxHeight: (purposeClamp[r.id] ?? 2) * 16 }}
+                          >
                             {r.ghlForms.map((f) => (
                               <div
                                 key={f.id}
@@ -628,7 +646,16 @@ export function AllAutomationsTableClient({
                           Mirrors the Per Website column. 240px. */}
                       <td className="w-[240px] min-w-[240px] max-w-[240px] px-3 py-2 text-left align-top">
                         {r.webhooks && r.webhooks.length > 0 ? (
-                          <div className="space-y-0.5">
+                          <div
+                            className="overflow-hidden"
+                            // Cap the item list to the SAME height as the
+                            // Purpose/Notes clamp (purposeClamp lines x 16px), so a
+                            // row with many items shows only the lines that fit and
+                            // never stretches the row taller than the Name-cell-
+                            // driven height. Items beyond that are clipped (each
+                            // item is a 16px text-xs line).
+                            style={{ maxHeight: (purposeClamp[r.id] ?? 2) * 16 }}
+                          >
                             {r.webhooks.map((w) => (
                               <div
                                 key={w.id}
