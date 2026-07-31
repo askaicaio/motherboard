@@ -24,6 +24,8 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { AffiliateFlowDiagram } from "@/components/partner-program/affiliate-flow-diagram";
+import { LaunchChecklist } from "@/components/partner-program/launch-checklist";
 import { cn } from "@/lib/utils";
 import NextLink from "next/link";
 
@@ -310,6 +312,12 @@ export default async function AffiliateTestingGuidePage() {
           </div>
         )}
       </div>
+
+      {/* Quick visual map of the whole affiliate journey */}
+      <AffiliateFlowDiagram />
+
+      {/* Per-tester verification checklist (saved in the browser) */}
+      <LaunchChecklist />
 
       {/* Before you start */}
       <Section
