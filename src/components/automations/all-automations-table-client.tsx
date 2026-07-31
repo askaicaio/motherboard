@@ -595,12 +595,19 @@ export function AllAutomationsTableClient({
                             // item is a 16px text-xs line).
                             style={{ maxHeight: (purposeClamp[r.id] ?? 2) * 16 }}
                           >
-                            {r.ghlTags.map((t) => (
+                            {r.ghlTags.map((t, i, arr) => (
                               <div
                                 key={t.id}
                                 title={t.value}
                                 className="truncate text-xs text-zinc-700"
                               >
+                                {/* Gold "(N)" total-selected count on the first
+                                    line (the cell clips the rest). */}
+                                {i === 0 && (
+                                  <span className="font-medium text-amber-600">
+                                    ({arr.length}){" "}
+                                  </span>
+                                )}
                                 {t.value}
                               </div>
                             ))}
@@ -625,12 +632,17 @@ export function AllAutomationsTableClient({
                             // item is a 16px text-xs line).
                             style={{ maxHeight: (purposeClamp[r.id] ?? 2) * 16 }}
                           >
-                            {r.ghlForms.map((f) => (
+                            {r.ghlForms.map((f, i, arr) => (
                               <div
                                 key={f.id}
                                 title={f.value}
                                 className="truncate text-xs text-zinc-700"
                               >
+                                {i === 0 && (
+                                  <span className="font-medium text-amber-600">
+                                    ({arr.length}){" "}
+                                  </span>
+                                )}
                                 {f.value}
                               </div>
                             ))}
@@ -656,12 +668,17 @@ export function AllAutomationsTableClient({
                             // item is a 16px text-xs line).
                             style={{ maxHeight: (purposeClamp[r.id] ?? 2) * 16 }}
                           >
-                            {r.webhooks.map((w) => (
+                            {r.webhooks.map((w, i, arr) => (
                               <div
                                 key={w.id}
                                 title={w.url}
                                 className="truncate text-xs text-zinc-700"
                               >
+                                {i === 0 && (
+                                  <span className="font-medium text-amber-600">
+                                    ({arr.length}){" "}
+                                  </span>
+                                )}
                                 {w.url}
                               </div>
                             ))}
