@@ -101,12 +101,19 @@ export function SingleChoiceCombobox({
           needs, floored at the old w-72 (min-w-72) and capped at the space between
           the trigger and the window edge (Base UI's --available-width on the
           Positioner, less ~0.5rem so it doesn't touch the edge). Long options
-          (e.g. webhook URLs) then truncate at that cap. */}
+          (e.g. webhook URLs) then truncate at that cap.
+          collisionAvoidance side="none" PINS the chosen side (no flip). Base UI
+          runs flip/shift BEFORE it computes --available-width, so with flip on, a
+          wide w-max box makes the positioner bail off the chosen side and the cap
+          never binds. Pinning the side anchors the popover's near edge to the
+          trigger, which makes --available-width deterministic so the max-w cap
+          actually shrinks the box to fit that side. */}
       <PopoverContent
         className="min-w-72 w-max max-w-[calc(var(--available-width)_-_0.5rem)] p-0"
         side={side}
         align="start"
         sideOffset={8}
+        collisionAvoidance={{ side: "none" }}
       >
         <Command
           filter={(itemValue, search) =>
