@@ -415,6 +415,14 @@ export function AutomationsTableClient({
   // loop. See the measuring effect below.
   const [purposeClamp, setPurposeClamp] = useState<Record<string, number>>({});
   const nameCellRefs = useRef<Map<string, HTMLTableCellElement>>(new Map());
+  // Automation Tags: per-row flag for whether to shorten the chips to 4 letters.
+  // FALSE by default (chips show full). A hidden full-length copy of each row's
+  // chips (rendered in the cell) is measured against a ~2-row bound; only when the
+  // full-length chips would overflow that height do we truncate to 4 letters, so
+  // rows with room keep the full tag names. The hidden copy is ALWAYS full-length,
+  // so the measurement never flip-flops with the visible (possibly-truncated) set.
+  const [tagsTruncate, setTagsTruncate] = useState<Record<string, boolean>>({});
+  const tagMeasureRefs = useRef<Map<string, HTMLSpanElement>>(new Map());
   // Fit-to-viewport height for the table's scroll container (shared hook).
   const { ref: scrollRef, style: scrollStyle } = useFitViewportHeight();
   // Column sorting (client-side, ONE column at a time, two-state toggle).
@@ -622,6 +630,32 @@ export function AutomationsTableClient({
     measure();
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
+  }, [filtered]);
+
+  // Decide per row whether the Automation Tags chips need shortening: measure the
+  // hidden FULL-LENGTH copy of each row's chips and truncate to 4 letters only
+  // when it overflows ~2 chip rows. The measured copy is always full-length, so
+  // this is stable (no measure→truncate→re-measure flip-flop). The column is a
+  // FIXED width, so a window resize doesn't change wrapping, but we re-run on
+  // resize anyway (cheap, and covers late font loads).
+  useEffect(() => {
+    const TAG_MAX_H = 48; // ~2 rows of chips (a ColorBadge row is ~22px + gap)
+    const measureTags = () => {
+      const next: Record<string, boolean> = {};
+      for (const [id, el] of tagMeasureRefs.current) {
+        next[id] = el.getBoundingClientRect().height > TAG_MAX_H;
+      }
+      setTagsTruncate((prev) => {
+        const keys = Object.keys(next);
+        const same =
+          keys.length === Object.keys(prev).length &&
+          keys.every((k) => prev[k] === next[k]);
+        return same ? prev : next;
+      });
+    };
+    measureTags();
+    window.addEventListener("resize", measureTags);
+    return () => window.removeEventListener("resize", measureTags);
   }, [filtered]);
 
   const handleCreated = (row: AutomationRow) =>
@@ -1267,27 +1301,48 @@ export function AutomationsTableClient({
                           Trigger Event. */}
                       <td className="w-[240px] min-w-[240px] max-w-[240px] px-3 py-2 text-center align-top">
                         {r.automationTags && r.automationTags.length > 0 ? (
-                          <span className="flex flex-wrap justify-center gap-1">
-                            {r.automationTags.map((t) => {
-                              // Shorten the chip label to the first 4 letters + "…"
-                              // (full name on hover) so a set of tags stays narrow
-                              // and doesn't wrap the cell taller. Tags <= 4 chars
-                              // show in full.
-                              const label =
-                                t.value.length > 4
-                                  ? `${t.value.slice(0, 4)}…`
-                                  : t.value;
-                              return (
+                          <div className="relative">
+                            {/* Hidden FULL-LENGTH copy: measured against the ~2-row
+                                bound to decide whether to shorten (never shown,
+                                absolute so it doesn't affect layout). */}
+                            <span
+                              ref={(el) => {
+                                if (el) tagMeasureRefs.current.set(r.id, el);
+                                else tagMeasureRefs.current.delete(r.id);
+                              }}
+                              aria-hidden
+                              className="pointer-events-none invisible absolute inset-x-0 top-0 flex flex-wrap justify-center gap-1"
+                            >
+                              {r.automationTags.map((t) => (
                                 <ColorBadge
                                   key={t.id}
-                                  value={label}
-                                  title={t.value}
+                                  value={t.value}
                                   badgeColor={t.badgeColor}
                                   textColor={t.textColor}
                                 />
-                              );
-                            })}
-                          </span>
+                              ))}
+                            </span>
+                            {/* Visible chips: full names, OR shortened to 4 letters
+                                + "…" (full name on hover) only when this row's
+                                full-length chips overflow the bound. */}
+                            <span className="flex flex-wrap justify-center gap-1">
+                              {r.automationTags.map((t) => {
+                                const label =
+                                  tagsTruncate[r.id] && t.value.length > 4
+                                    ? `${t.value.slice(0, 4)}…`
+                                    : t.value;
+                                return (
+                                  <ColorBadge
+                                    key={t.id}
+                                    value={label}
+                                    title={t.value}
+                                    badgeColor={t.badgeColor}
+                                    textColor={t.textColor}
+                                  />
+                                );
+                              })}
+                            </span>
+                          </div>
                         ) : (
                           <span className="text-xs font-medium text-red-600">
                             None

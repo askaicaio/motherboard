@@ -138,6 +138,11 @@ export function AllAutomationsTableClient({
   // taller rows fill their height instead of leaving a 2-line gap.
   const [purposeClamp, setPurposeClamp] = useState<Record<string, number>>({});
   const nameCellRefs = useRef<Map<string, HTMLTableCellElement>>(new Map());
+  // Automation Tags: per-row "shorten chips to 4 letters" flag, decided by
+  // measuring a hidden full-length copy against a ~2-row bound (same as the Per
+  // Website table). Chips stay full when they fit; only overflow triggers 4-char.
+  const [tagsTruncate, setTagsTruncate] = useState<Record<string, boolean>>({});
+  const tagMeasureRefs = useRef<Map<string, HTMLSpanElement>>(new Map());
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
@@ -236,6 +241,29 @@ export function AllAutomationsTableClient({
     measure();
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
+  }, [filtered]);
+
+  // Automation Tags: truncate a row's chips to 4 letters only when the hidden
+  // full-length copy overflows ~2 chip rows (same approach as the Per Website
+  // table). The measured copy is always full-length → no flip-flop.
+  useEffect(() => {
+    const TAG_MAX_H = 48; // ~2 rows of chips
+    const measureTags = () => {
+      const next: Record<string, boolean> = {};
+      for (const [id, el] of tagMeasureRefs.current) {
+        next[id] = el.getBoundingClientRect().height > TAG_MAX_H;
+      }
+      setTagsTruncate((prev) => {
+        const keys = Object.keys(next);
+        const same =
+          keys.length === Object.keys(prev).length &&
+          keys.every((k) => prev[k] === next[k]);
+        return same ? prev : next;
+      });
+    };
+    measureTags();
+    window.addEventListener("resize", measureTags);
+    return () => window.removeEventListener("resize", measureTags);
   }, [filtered]);
 
   const ariaSort = (key: SortKey) =>
@@ -480,25 +508,45 @@ export function AllAutomationsTableClient({
                           red "None" when empty (mirrors the Per Website column). */}
                       <td className="w-[240px] min-w-[240px] max-w-[240px] px-3 py-2 text-center align-top">
                         {r.automationTags && r.automationTags.length > 0 ? (
-                          <span className="flex flex-wrap justify-center gap-1">
-                            {r.automationTags.map((t) => {
-                              // Shorten the chip label to the first 4 letters + "…"
-                              // (full name on hover), same as the Per Website table.
-                              const label =
-                                t.value.length > 4
-                                  ? `${t.value.slice(0, 4)}…`
-                                  : t.value;
-                              return (
+                          <div className="relative">
+                            {/* Hidden full-length copy for the fit measurement. */}
+                            <span
+                              ref={(el) => {
+                                if (el) tagMeasureRefs.current.set(r.id, el);
+                                else tagMeasureRefs.current.delete(r.id);
+                              }}
+                              aria-hidden
+                              className="pointer-events-none invisible absolute inset-x-0 top-0 flex flex-wrap justify-center gap-1"
+                            >
+                              {r.automationTags.map((t) => (
                                 <ColorBadge
                                   key={t.id}
-                                  value={label}
-                                  title={t.value}
+                                  value={t.value}
                                   badgeColor={t.badgeColor}
                                   textColor={t.textColor}
                                 />
-                              );
-                            })}
-                          </span>
+                              ))}
+                            </span>
+                            {/* Visible chips: full, or 4-letter shortened only when
+                                the full-length set overflows the bound. */}
+                            <span className="flex flex-wrap justify-center gap-1">
+                              {r.automationTags.map((t) => {
+                                const label =
+                                  tagsTruncate[r.id] && t.value.length > 4
+                                    ? `${t.value.slice(0, 4)}…`
+                                    : t.value;
+                                return (
+                                  <ColorBadge
+                                    key={t.id}
+                                    value={label}
+                                    title={t.value}
+                                    badgeColor={t.badgeColor}
+                                    textColor={t.textColor}
+                                  />
+                                );
+                              })}
+                            </span>
+                          </div>
                         ) : (
                           <span className="text-xs font-medium text-red-600">
                             None
