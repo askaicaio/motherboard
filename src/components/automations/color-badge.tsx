@@ -12,6 +12,7 @@ export function ColorBadge({
   badgeColor,
   textColor,
   truncate = false,
+  title,
 }: {
   value: string;
   badgeColor?: string | null;
@@ -20,6 +21,9 @@ export function ColorBadge({
    *  fixed-height row (e.g. a closed dropdown trigger). Tables leave this off so
    *  long values wrap and stay fully readable. */
   truncate?: boolean;
+  /** Native hover tooltip. Pass the FULL value when `value` is a shortened label
+   *  (e.g. the 4-char Automation Tags chips) so the full name is still readable. */
+  title?: string;
 }) {
   const bg = choiceColorHex(badgeColor);
   if (!bg) {
@@ -27,7 +31,10 @@ export function ColorBadge({
     // token wraps inside the fixed-width column instead of stretching it — see
     // [[long-word-overflow-wrap-anywhere]].
     return (
-      <span className={cn("text-xs text-zinc-700", truncate ? "truncate" : "[overflow-wrap:anywhere]")}>
+      <span
+        title={title}
+        className={cn("text-xs text-zinc-700", truncate ? "truncate" : "[overflow-wrap:anywhere]")}
+      >
         {value}
       </span>
     );
@@ -35,6 +42,7 @@ export function ColorBadge({
   const fg = choiceColorHex(textColor) ?? "#111827";
   return (
     <span
+      title={title}
       className={cn(
         // max-w-full caps the inline-block at the column width and
         // [overflow-wrap:anywhere] lets a long unbroken word wrap rather than

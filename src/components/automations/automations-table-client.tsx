@@ -1268,14 +1268,25 @@ export function AutomationsTableClient({
                       <td className="w-[200px] min-w-[200px] max-w-[200px] px-3 py-2 text-center align-top">
                         {r.automationTags && r.automationTags.length > 0 ? (
                           <span className="flex flex-wrap justify-center gap-1">
-                            {r.automationTags.map((t) => (
-                              <ColorBadge
-                                key={t.id}
-                                value={t.value}
-                                badgeColor={t.badgeColor}
-                                textColor={t.textColor}
-                              />
-                            ))}
+                            {r.automationTags.map((t) => {
+                              // Shorten the chip label to the first 4 letters + "…"
+                              // (full name on hover) so a set of tags stays narrow
+                              // and doesn't wrap the cell taller. Tags <= 4 chars
+                              // show in full.
+                              const label =
+                                t.value.length > 4
+                                  ? `${t.value.slice(0, 4)}…`
+                                  : t.value;
+                              return (
+                                <ColorBadge
+                                  key={t.id}
+                                  value={label}
+                                  title={t.value}
+                                  badgeColor={t.badgeColor}
+                                  textColor={t.textColor}
+                                />
+                              );
+                            })}
                           </span>
                         ) : (
                           <span className="text-xs font-medium text-red-600">
