@@ -17,9 +17,18 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "CAIO Internal Dashboard",
   description: "Employee onboarding and provisioning management",
-  // Icons come from the app/ file conventions (icon.png, apple-icon.png) plus
-  // public/favicon.ico — all the CAIO mark now. No metadata.icons block so the
-  // old "M" (icon-light/dark, apple-touch-icon) assets are no longer referenced.
+  // Default (Motherboard) favicon = the "M" monogram, theme-aware. This applies
+  // to the dashboard + staff login. The affiliate section (portal/partners/
+  // enroll) overrides this to the CAIO mark via its own layout metadata. The
+  // shared /favicon.ico (public/) is the CAIO mark — that's what 1Password and
+  // legacy browsers fetch, and it can only exist once for the whole app.
+  icons: {
+    icon: [
+      { url: "/icon-light.png", media: "(prefers-color-scheme: light)" },
+      { url: "/icon-dark.png", media: "(prefers-color-scheme: dark)" },
+    ],
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 export default function RootLayout({

@@ -17,6 +17,12 @@ export const metadata: Metadata = {
     template: "%s · Affiliate Portal",
   },
   robots: { index: false, follow: false },
+  // Affiliate section → CAIO mark (overrides the root "M").
+  icons: {
+    icon: "/icon-caio.png",
+    shortcut: "/favicon.ico",
+    apple: "/apple-icon-caio.png",
+  },
 };
 
 export default async function PortalLayout({
