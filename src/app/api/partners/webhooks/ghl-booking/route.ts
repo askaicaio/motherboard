@@ -88,8 +88,15 @@ export async function POST(req: NextRequest) {
   const email =
     pick(payload, "email", "contact_email") ?? pick(contact, "email");
   const refCode =
-    pick(payload, "utm_content", "utmContent", "affCode", "aff_id") ??
-    pick(contact, "utm_content", "utmContent") ??
+    pick(
+      payload,
+      "prospect_referral_code",
+      "utm_content",
+      "utmContent",
+      "affCode",
+      "aff_id",
+    ) ??
+    pick(contact, "prospect_referral_code", "utm_content", "utmContent") ??
     pick(attribution, "utm_content", "utmContent");
   const joinedName = [
     pick(contact, "first_name", "firstName"),
