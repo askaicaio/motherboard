@@ -973,7 +973,7 @@ export function AutomationsTableClient({
           >
             <table
               className="w-full text-sm"
-              style={{ minWidth: 2270 + extraGhlCols * 180 }}
+              style={{ minWidth: 2290 + extraGhlCols * 180 }}
             >
               <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
                 <tr>
@@ -1043,7 +1043,7 @@ export function AutomationsTableClient({
                       display-only (not sortable — a row has many tags), never
                       synced. Renders wrapping coloured chips; 200px gives them
                       room. Sits between Author and Trigger Event. */}
-                  <th className="sticky top-0 z-10 w-[220px] min-w-[220px] max-w-[220px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
+                  <th className="sticky top-0 z-10 w-[240px] min-w-[240px] max-w-[240px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
                     Automation Tags
                   </th>
                   {/* Trigger Event: single-select dropdown column, center-aligned,
@@ -1265,7 +1265,7 @@ export function AutomationsTableClient({
                           badge colour), or red "None" when empty. Multi-select,
                           set in the Add/Edit dialog. 200px, between Author and
                           Trigger Event. */}
-                      <td className="w-[220px] min-w-[220px] max-w-[220px] px-3 py-2 text-center align-top">
+                      <td className="w-[240px] min-w-[240px] max-w-[240px] px-3 py-2 text-center align-top">
                         {r.automationTags && r.automationTags.length > 0 ? (
                           <span className="flex flex-wrap justify-center gap-1">
                             {r.automationTags.map((t) => {
