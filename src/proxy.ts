@@ -96,6 +96,6 @@ export const config = {
      * a `.` followed by characters (i.e. a file with extension) is
      * skipped — this handles all public/ static assets in one shot.
      */
-    "/((?!login|welcome|partners|portal|enroll|roadmap|r$|api/auth|api/callbacks|api/welcome|api/inngest|api/cron|api/stripe/webhook|api/partners/checkout|api/partners/apply|api/lead|api/portal|_next/static|_next/image|.*\\..*).*)",
+    "/((?!login|welcome|partners|portal|enroll|roadmap|r$|api/auth|api/callbacks|api/welcome|api/inngest|api/cron|api/stripe/webhook|api/partners/checkout|api/partners/apply|api/partners/webhooks|api/lead|api/portal|_next/static|_next/image|.*\\..*).*)",
   ],
 };
