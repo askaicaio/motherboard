@@ -96,9 +96,14 @@ export function SingleChoiceCombobox({
       {/* Opens to the side of the trigger (aligned to its top), NOT below, so it
           doesn't cover the dialog fields underneath while open. `side` defaults
           to right; left-column fields pass "left" so the menu opens outward. Base
-          UI's positioner auto-flips if that side lacks room. Fixed compact width. */}
+          UI's positioner auto-flips if that side lacks room.
+          WIDTH: grows in the chosen direction only as wide as the longest option
+          needs, floored at the old w-72 (min-w-72) and capped at the space between
+          the trigger and the window edge (Base UI's --available-width on the
+          Positioner, less ~0.5rem so it doesn't touch the edge). Long options
+          (e.g. webhook URLs) then truncate at that cap. */}
       <PopoverContent
-        className="w-72 p-0"
+        className="min-w-72 w-max max-w-[calc(var(--available-width)_-_0.5rem)] p-0"
         side={side}
         align="start"
         sideOffset={8}
@@ -146,7 +151,9 @@ export function SingleChoiceCombobox({
                       textColor={o.textColor}
                     />
                   ) : (
-                    <span className="truncate">{o.value}</span>
+                    // min-w-0 lets this flex child shrink so `truncate` can
+                    // ellipsis a long value once the popover hits its width cap.
+                    <span className="min-w-0 truncate">{o.value}</span>
                   )}
                   {value === o.id && <Check className="ml-auto h-4 w-4" />}
                 </CommandItem>

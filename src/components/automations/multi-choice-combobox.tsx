@@ -104,9 +104,14 @@ export function MultiChoiceCombobox({
           long multi-select list doesn't cover the dialog fields underneath while
           it stays open for picking. `side` defaults to right; left-column fields
           pass "left" so the menu opens outward. Base UI auto-flips if that side
-          lacks room. Fixed width (not the full trigger width). */}
+          lacks room.
+          WIDTH: grows in the chosen direction only as wide as the longest option
+          needs, floored at the old w-72 (min-w-72) and capped at the space between
+          the trigger and the window edge (Base UI's --available-width on the
+          Positioner, less ~0.5rem so it doesn't touch the edge). Long options
+          (e.g. webhook URLs) then truncate at that cap. */}
       <PopoverContent
-        className="w-72 p-0"
+        className="min-w-72 w-max max-w-[calc(var(--available-width)_-_0.5rem)] p-0"
         side={side}
         align="start"
         sideOffset={8}
@@ -152,7 +157,10 @@ export function MultiChoiceCombobox({
                         textColor={o.textColor}
                       />
                     ) : (
-                      <span className="truncate">{o.value}</span>
+                      // min-w-0 lets this flex child shrink so `truncate` can
+                      // ellipsis a long value (webhook URL) once the popover hits
+                      // its width cap.
+                      <span className="min-w-0 truncate">{o.value}</span>
                     )}
                   </CommandItem>
                 );
