@@ -1457,7 +1457,15 @@ export function AutomationsTableClient({
                           Multi-select, set in the Add/Edit dialog. 240px. */}
                       <td className="w-[240px] min-w-[240px] max-w-[240px] px-3 py-2 text-left align-top">
                         {r.webhooks && r.webhooks.length > 0 ? (
-                          <div className="space-y-0.5">
+                          <div
+                            className="overflow-hidden"
+                            // Same row-height clamp as GHL Tags/Forms + Purpose/
+                            // Notes: cap at purposeClamp lines x 16px so a big
+                            // webhook list doesn't stretch the row (this cell being
+                            // un-clamped was inflating purposeClamp and un-clamping
+                            // the others).
+                            style={{ maxHeight: (purposeClamp[r.id] ?? 2) * 16 }}
+                          >
                             {r.webhooks.map((w) => (
                               <div
                                 key={w.id}
