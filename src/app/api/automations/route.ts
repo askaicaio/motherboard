@@ -37,6 +37,10 @@ const createSchema = z.object({
   // Automation Tags (MULTI-select): the chosen automation_dropdown_choices ids
   // (column_key = 'automation_tags'). Each validated below; empty = no tags.
   automationTagChoiceIds: z.array(z.string().uuid()).optional().default([]),
+  // GHL Tags + GHL Forms (MULTI-select, GHL pages): chosen ids for column_key
+  // 'ghl_tags' / 'ghl_forms'. Each validated below; empty = none.
+  ghlTagChoiceIds: z.array(z.string().uuid()).optional().default([]),
+  ghlFormChoiceIds: z.array(z.string().uuid()).optional().default([]),
   // Webhook Links (MULTI-select): the chosen automation_webhook_choices ids.
   // Each validated below; empty = no webhooks.
   webhookChoiceIds: z.array(z.string().uuid()).optional().default([]),
@@ -148,6 +152,21 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // GHL Tags + GHL Forms (multi-select): dedupe + validate each against its own
+  // column, same as Automation Tags. They share the generic selections junction.
+  const ghlTagChoiceIds = [...new Set(body.ghlTagChoiceIds)];
+  for (const id of ghlTagChoiceIds) {
+    if (!(await isChoiceOfColumn(id, "ghl_tags"))) {
+      return NextResponse.json({ error: "Unknown GHL tag option." }, { status: 400 });
+    }
+  }
+  const ghlFormChoiceIds = [...new Set(body.ghlFormChoiceIds)];
+  for (const id of ghlFormChoiceIds) {
+    if (!(await isChoiceOfColumn(id, "ghl_forms"))) {
+      return NextResponse.json({ error: "Unknown GHL form option." }, { status: 400 });
+    }
+  }
+
   // Webhook Links (multi-select): dedupe, then reject any id that isn't a real
   // webhook choice.
   const webhookChoiceIds = [...new Set(body.webhookChoiceIds)];
@@ -187,6 +206,17 @@ export async function POST(request: NextRequest) {
       if (tagChoiceIds.length > 0) {
         await tx.insert(automationDropdownSelections).values(
           tagChoiceIds.map((choiceId) => ({ automationId: row.id, choiceId })),
+        );
+      }
+      // GHL Tags + GHL Forms use the same generic selections junction.
+      if (ghlTagChoiceIds.length > 0) {
+        await tx.insert(automationDropdownSelections).values(
+          ghlTagChoiceIds.map((choiceId) => ({ automationId: row.id, choiceId })),
+        );
+      }
+      if (ghlFormChoiceIds.length > 0) {
+        await tx.insert(automationDropdownSelections).values(
+          ghlFormChoiceIds.map((choiceId) => ({ automationId: row.id, choiceId })),
         );
       }
       if (webhookChoiceIds.length > 0) {

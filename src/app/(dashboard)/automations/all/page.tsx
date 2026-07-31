@@ -75,6 +75,16 @@ export default async function AllAutomationsPage() {
     "automation_tags",
     baseRows.map((r) => r.id),
   );
+  // GHL Tags + GHL Forms (multi-select, GHL rows only): each row's selected
+  // choices. Non-GHL rows simply have none (the cell shows a muted "-").
+  const ghlTagsByAutomation = await getSelectionsByColumn(
+    "ghl_tags",
+    baseRows.map((r) => r.id),
+  );
+  const ghlFormsByAutomation = await getSelectionsByColumn(
+    "ghl_forms",
+    baseRows.map((r) => r.id),
+  );
   // Webhook Links (multi-select): each row's selected webhooks (junction).
   const webhooksByAutomation = await getWebhooksByAutomation(
     baseRows.map((r) => r.id),
@@ -83,6 +93,8 @@ export default async function AllAutomationsPage() {
     ...r,
     lastErrorAt: lastErrorByAutomation.get(r.id) ?? null,
     automationTags: tagsByAutomation.get(r.id) ?? [],
+    ghlTags: ghlTagsByAutomation.get(r.id) ?? [],
+    ghlForms: ghlFormsByAutomation.get(r.id) ?? [],
     webhooks: webhooksByAutomation.get(r.id) ?? [],
   }));
 

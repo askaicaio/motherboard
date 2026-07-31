@@ -82,8 +82,14 @@ export default async function AutomationWebsitePage({
 
   // Options for the single-select dropdowns (managed on the Dropdown
   // Configuration page). Passed to the table's Add/Edit Workflow dialog.
-  const [authorChoices, triggerEventChoices, automationTagChoices, webhookChoices] =
-    await Promise.all([
+  const [
+    authorChoices,
+    triggerEventChoices,
+    automationTagChoices,
+    ghlTagChoices,
+    ghlFormChoices,
+    webhookChoices,
+  ] = await Promise.all([
       db
         .select({
           id: automationDropdownChoices.id,
@@ -116,6 +122,29 @@ export default async function AutomationWebsitePage({
         .from(automationDropdownChoices)
         .where(eq(automationDropdownChoices.columnKey, "automation_tags"))
         .orderBy(asc(automationDropdownChoices.value)),
+      // GHL Tags (multi-select): options for the dialog's picker (GHL pages only,
+      // but loaded regardless; the dialog only shows the field on GHL platforms).
+      db
+        .select({
+          id: automationDropdownChoices.id,
+          value: automationDropdownChoices.value,
+          badgeColor: automationDropdownChoices.badgeColor,
+          textColor: automationDropdownChoices.textColor,
+        })
+        .from(automationDropdownChoices)
+        .where(eq(automationDropdownChoices.columnKey, "ghl_tags"))
+        .orderBy(asc(automationDropdownChoices.value)),
+      // GHL Forms (multi-select): options for the dialog's picker.
+      db
+        .select({
+          id: automationDropdownChoices.id,
+          value: automationDropdownChoices.value,
+          badgeColor: automationDropdownChoices.badgeColor,
+          textColor: automationDropdownChoices.textColor,
+        })
+        .from(automationDropdownChoices)
+        .where(eq(automationDropdownChoices.columnKey, "ghl_forms"))
+        .orderBy(asc(automationDropdownChoices.value)),
       // Webhook Links (multi-select): options for the dialog's chip picker. Maps
       // the webhook URL to the picker's `value` (its own choices table).
       db
@@ -137,6 +166,16 @@ export default async function AutomationWebsitePage({
     "automation_tags",
     baseRows.map((r) => r.id),
   );
+  // GHL Tags + GHL Forms (multi-select, GHL pages): each row's selected choices.
+  // Scoped to this platform's automations; empty maps on non-GHL platforms.
+  const ghlTagsByAutomation = await getSelectionsByColumn(
+    "ghl_tags",
+    baseRows.map((r) => r.id),
+  );
+  const ghlFormsByAutomation = await getSelectionsByColumn(
+    "ghl_forms",
+    baseRows.map((r) => r.id),
+  );
   // Webhook Links (multi-select): each row's selected webhooks, via the
   // automation_webhooks junction. Scoped to this platform's automations.
   const webhooksByAutomation = await getWebhooksByAutomation(
@@ -146,6 +185,8 @@ export default async function AutomationWebsitePage({
     ...r,
     lastErrorAt: lastErrorByAutomation.get(r.id) ?? null,
     automationTags: tagsByAutomation.get(r.id) ?? [],
+    ghlTags: ghlTagsByAutomation.get(r.id) ?? [],
+    ghlForms: ghlFormsByAutomation.get(r.id) ?? [],
     webhooks: webhooksByAutomation.get(r.id) ?? [],
   }));
 
@@ -171,6 +212,8 @@ export default async function AutomationWebsitePage({
         authorChoices={authorChoices}
         triggerEventChoices={triggerEventChoices}
         automationTagChoices={automationTagChoices}
+        ghlTagChoices={ghlTagChoices}
+        ghlFormChoices={ghlFormChoices}
         webhookChoices={webhookChoices}
         canSync={isSyncablePlatform(site.slug)}
         hasApiKey={platformHasApiKey(site.slug)}
