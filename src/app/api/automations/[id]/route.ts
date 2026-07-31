@@ -32,6 +32,11 @@ const patchSchema = z.object({
   // Only synced when the key is present (absent = leave tags untouched). Each
   // validated below.
   automationTagChoiceIds: z.array(z.string().uuid()).optional(),
+  // GHL Tags + GHL Forms (MULTI-select, GHL pages): the FULL desired set for each.
+  // Only synced when present (absent = leave untouched; the dialog omits them on
+  // non-GHL platforms, so those rows are never wiped). Each validated below.
+  ghlTagChoiceIds: z.array(z.string().uuid()).optional(),
+  ghlFormChoiceIds: z.array(z.string().uuid()).optional(),
   // Webhook Links (MULTI-select): the FULL desired set of webhook choice ids.
   // Only synced when the key is present (absent = leave webhooks untouched).
   webhookChoiceIds: z.array(z.string().uuid()).optional(),
@@ -133,6 +138,21 @@ export async function PATCH(
       }
     }
   }
+  // GHL Tags + GHL Forms (multi-select): validate each provided id when present.
+  if (body.ghlTagChoiceIds !== undefined) {
+    for (const id of body.ghlTagChoiceIds) {
+      if (!(await isChoiceOfColumn(id, "ghl_tags"))) {
+        return NextResponse.json({ error: "Unknown GHL tag option." }, { status: 400 });
+      }
+    }
+  }
+  if (body.ghlFormChoiceIds !== undefined) {
+    for (const id of body.ghlFormChoiceIds) {
+      if (!(await isChoiceOfColumn(id, "ghl_forms"))) {
+        return NextResponse.json({ error: "Unknown GHL form option." }, { status: 400 });
+      }
+    }
+  }
   // Webhook Links (multi-select): validate each provided id when present.
   if (body.webhookChoiceIds !== undefined) {
     for (const wid of body.webhookChoiceIds) {
@@ -203,6 +223,56 @@ export async function PATCH(
             .values(
               tagChoiceIds.map((choiceId) => ({ automationId: id, choiceId })),
             );
+        }
+      }
+
+      // GHL Tags + GHL Forms: same column-scoped wipe + re-insert as Automation
+      // Tags (they share the generic selections junction, so the wipe MUST be
+      // scoped to each column's own choice ids or they'd clobber each other).
+      if (body.ghlTagChoiceIds !== undefined) {
+        const ids = [...new Set(body.ghlTagChoiceIds)];
+        const columnChoices = await tx
+          .select({ id: automationDropdownChoices.id })
+          .from(automationDropdownChoices)
+          .where(eq(automationDropdownChoices.columnKey, "ghl_tags"));
+        const columnIds = columnChoices.map((c) => c.id);
+        if (columnIds.length > 0) {
+          await tx
+            .delete(automationDropdownSelections)
+            .where(
+              and(
+                eq(automationDropdownSelections.automationId, id),
+                inArray(automationDropdownSelections.choiceId, columnIds),
+              ),
+            );
+        }
+        if (ids.length > 0) {
+          await tx
+            .insert(automationDropdownSelections)
+            .values(ids.map((choiceId) => ({ automationId: id, choiceId })));
+        }
+      }
+      if (body.ghlFormChoiceIds !== undefined) {
+        const ids = [...new Set(body.ghlFormChoiceIds)];
+        const columnChoices = await tx
+          .select({ id: automationDropdownChoices.id })
+          .from(automationDropdownChoices)
+          .where(eq(automationDropdownChoices.columnKey, "ghl_forms"));
+        const columnIds = columnChoices.map((c) => c.id);
+        if (columnIds.length > 0) {
+          await tx
+            .delete(automationDropdownSelections)
+            .where(
+              and(
+                eq(automationDropdownSelections.automationId, id),
+                inArray(automationDropdownSelections.choiceId, columnIds),
+              ),
+            );
+        }
+        if (ids.length > 0) {
+          await tx
+            .insert(automationDropdownSelections)
+            .values(ids.map((choiceId) => ({ automationId: id, choiceId })));
         }
       }
 

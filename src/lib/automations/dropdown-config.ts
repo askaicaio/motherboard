@@ -137,6 +137,12 @@ export interface DropdownColumnConfig {
   /** True → the column only applies to the GHL pages. Metadata for the future
    *  GHL-gated column (no visible tag on the Config page). */
   ghlOnly?: boolean;
+  /** Restrict the PER WEBSITE column to these platform slugs (e.g.
+   *  `["ghl", "ghl-b2b"]`). Omit → the column is shown on every platform. Drives
+   *  both the Per Website table (render the th/td only on these platforms) and
+   *  the combined View All Lists table (populate the cell only for these rows).
+   *  Generic, so any future platform-specific column is one line of config. */
+  visibleOnPlatforms?: string[];
   /** True → rows carry a Status. When set, `statusOptions` lists the choices and
    *  `defaultStatus` is used for a new entry. GHL Tags, GHL Forms. */
   hasStatus?: boolean;
@@ -201,6 +207,8 @@ export const DROPDOWN_COLUMNS: DropdownColumnConfig[] = [
     fieldLabel: "GHL tag",
     placeholder: "e.g. Nurture sequence",
     ghlOnly: true,
+    // Per Website column shows only on the two GoHighLevel pages.
+    visibleOnPlatforms: ["ghl", "ghl-b2b"],
     hasStatus: true,
     statusOptions: GHL_TAG_STATUS_OPTIONS,
     defaultStatus: DEFAULT_STATUS,
@@ -211,14 +219,17 @@ export const DROPDOWN_COLUMNS: DropdownColumnConfig[] = [
   {
     // Form / Status / Notes table mirroring GHL Tags (hasStatus + hasNotes); the
     // first column header reads "Form". Tab sits between GHL Tags and Trigger
-    // Event (order here drives the Config page toolbar tab order). No `ghlOnly`
-    // flag: platform-gating of the FUTURE Per Website column is still TBD.
+    // Event (order here drives the Config page toolbar tab order). GHL-gated Per
+    // Website column, like GHL Tags (user-set 2026-07-31).
     key: "ghl_forms",
     title: "GHL Forms",
     singular: "GHL form",
     fieldLabel: "GHL form",
     placeholder: "e.g. Contact form",
     rowLabel: "Form",
+    ghlOnly: true,
+    // Per Website column shows only on the two GoHighLevel pages.
+    visibleOnPlatforms: ["ghl", "ghl-b2b"],
     hasStatus: true,
     statusOptions: GHL_TAG_STATUS_OPTIONS,
     defaultStatus: DEFAULT_STATUS,
@@ -242,6 +253,17 @@ export const DROPDOWN_COLUMNS: DropdownColumnConfig[] = [
     hasNotes: true,
   },
 ];
+
+/** Whether a dropdown column's PER WEBSITE column should render on `platform`.
+ *  A column with no `visibleOnPlatforms` shows everywhere; otherwise only on the
+ *  listed platform slugs. Drives the GHL-gated columns (GHL Tags, GHL Forms). */
+export function columnVisibleOnPlatform(
+  key: DropdownColumnKey,
+  platform: string,
+): boolean {
+  const list = DROPDOWN_COLUMNS.find((c) => c.key === key)?.visibleOnPlatforms;
+  return !list || list.includes(platform);
+}
 
 /** A single option row for one of the four generic dropdown columns. */
 export interface DropdownChoiceRow {

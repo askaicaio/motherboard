@@ -48,6 +48,7 @@ import {
 import { WorkflowDialog } from "./workflow-dialog";
 import { ColorBadge } from "./color-badge";
 import { confirmDialog } from "@/components/ui/confirm";
+import { columnVisibleOnPlatform } from "@/lib/automations/dropdown-config";
 import type {
   ChoiceOption,
   SelectedChoice,
@@ -244,6 +245,12 @@ export interface AutomationRow {
   // wrapping coloured chips. Empty array when none. Set only via the Add/Edit
   // Workflow dialog, never by a sync.
   automationTags?: SelectedChoice[];
+  // GHL Tags + GHL Forms (MULTI-select dropdown columns, GHL-gated). The selected
+  // choices resolved from the generic junction; rendered as plain-text lines (one
+  // per value, like Webhook Links), NOT chips. Only populated on GHL / GHL b2b
+  // rows. Set only via the Add/Edit Workflow dialog, never by a sync.
+  ghlTags?: SelectedChoice[];
+  ghlForms?: SelectedChoice[];
   // Webhook Links (MULTI-select dropdown column). The selected webhook choices
   // (id + url), resolved from the automation_webhooks junction; rendered one
   // truncated line per webhook. Empty array when none. Set only via the Add/Edit
@@ -260,7 +267,13 @@ export interface AutomationRow {
 // MM-DD-YYYY (formatDateCell) and export EMPTY when blank, so a re-import never
 // mistakes the display "-" for a value. Status exports the app's own values.
 // ---------------------------------------------------------------------------
-const EXPORT_COLUMNS: { header: string; value: (r: AutomationRow) => string }[] =
+// `platforms` (optional): restrict a column to those platform slugs, mirroring the
+// on-screen platform-gated columns (GHL Tags / GHL Forms). Omitted = every export.
+const EXPORT_COLUMNS: {
+  header: string;
+  value: (r: AutomationRow) => string;
+  platforms?: string[];
+}[] =
   [
     { header: "Name", value: (r) => r.name ?? "" },
     { header: "Link", value: (r) => r.externalUrl ?? "" },
@@ -273,6 +286,18 @@ const EXPORT_COLUMNS: { header: string; value: (r: AutomationRow) => string }[] 
     {
       header: "Automation Tags",
       value: (r) => (r.automationTags ?? []).map((t) => t.value).join(", "),
+    },
+    // GHL Tags + GHL Forms (multi-select, GHL-only): comma-joined values, right
+    // after Automation Tags to mirror the table. Only emitted on GHL exports.
+    {
+      header: "GHL Tags",
+      value: (r) => (r.ghlTags ?? []).map((t) => t.value).join(", "),
+      platforms: ["ghl", "ghl-b2b"],
+    },
+    {
+      header: "GHL Forms",
+      value: (r) => (r.ghlForms ?? []).map((t) => t.value).join(", "),
+      platforms: ["ghl", "ghl-b2b"],
     },
     { header: "Trigger Event", value: (r) => r.triggerEvent ?? "" },
     { header: "Purpose", value: (r) => r.purpose ?? "" },
@@ -304,11 +329,16 @@ function csvEscape(value: string): string {
   return /[",\n\r]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
 }
 
-/** Serialize rows to a CSV string (CRLF line endings, RFC-4180 style). */
-function rowsToCsv(rows: AutomationRow[]): string {
-  const header = EXPORT_COLUMNS.map((c) => csvEscape(c.header)).join(",");
+/** Serialize rows to a CSV string (CRLF line endings, RFC-4180 style). Drops any
+ *  column whose `platforms` list excludes the current platform (GHL Tags / GHL
+ *  Forms only export on the GHL pages), matching what the table shows. */
+function rowsToCsv(rows: AutomationRow[], platform: string): string {
+  const cols = EXPORT_COLUMNS.filter(
+    (c) => !c.platforms || c.platforms.includes(platform),
+  );
+  const header = cols.map((c) => csvEscape(c.header)).join(",");
   const body = rows.map((r) =>
-    EXPORT_COLUMNS.map((c) => csvEscape(c.value(r))).join(","),
+    cols.map((c) => csvEscape(c.value(r))).join(","),
   );
   return [header, ...body].join("\r\n");
 }
@@ -323,6 +353,8 @@ export function AutomationsTableClient({
   authorChoices = [],
   triggerEventChoices = [],
   automationTagChoices = [],
+  ghlTagChoices = [],
+  ghlFormChoices = [],
   webhookChoices = [],
   canSync = false,
   hasApiKey = false,
@@ -343,6 +375,10 @@ export function AutomationsTableClient({
   triggerEventChoices?: ChoiceOption[];
   /** Automation Tags options for the multi-select chip picker (Add/Edit dialog). */
   automationTagChoices?: ChoiceOption[];
+  /** GHL Tags options for its multi-select picker (Add/Edit dialog, GHL pages). */
+  ghlTagChoices?: ChoiceOption[];
+  /** GHL Forms options for its multi-select picker (Add/Edit dialog, GHL pages). */
+  ghlFormChoices?: ChoiceOption[];
   /** Webhook Links options (URL as value) for the multi-select picker. */
   webhookChoices?: ChoiceOption[];
   /** When true, "Refresh List" performs a real sync; otherwise it shows the
@@ -357,6 +393,12 @@ export function AutomationsTableClient({
   const [rows, setRows] = useState(initialRows);
   const [query, setQuery] = useState("");
   const [editMode, setEditMode] = useState(false);
+  // GHL Tags + GHL Forms are platform-gated columns: shown only on the GHL pages
+  // (per `visibleOnPlatforms` in the column config). `extraGhlCols` widens the
+  // table + the empty-state colSpan by however many of the two are visible.
+  const showGhlTags = columnVisibleOnPlatform("ghl_tags", platform);
+  const showGhlForms = columnVisibleOnPlatform("ghl_forms", platform);
+  const extraGhlCols = (showGhlTags ? 1 : 0) + (showGhlForms ? 1 : 0);
   const [addOpen, setAddOpen] = useState(false);
   const [editing, setEditing] = useState<AutomationRow | null>(null);
   // The purpose text shown in the read-only "Show purpose" popup (null = closed).
@@ -732,7 +774,7 @@ export function AutomationsTableClient({
   // triggers a client-side download. A leading BOM keeps Excel reading it as
   // UTF-8. Filename: <platform>-automations-MM-DD-YYYY.csv.
   const handleExportCsv = () => {
-    const csv = rowsToCsv(rows);
+    const csv = rowsToCsv(rows, platform);
     const blob = new Blob(["﻿" + csv], {
       type: "text/csv;charset=utf-8;",
     });
@@ -929,7 +971,10 @@ export function AutomationsTableClient({
             style={scrollStyle}
             className="max-h-[70vh] overflow-auto p-0"
           >
-            <table className="w-full min-w-[2250px] text-sm">
+            <table
+              className="w-full text-sm"
+              style={{ minWidth: 2250 + extraGhlCols * 180 }}
+            >
               <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
                 <tr>
                   {/* Corner cell: pinned to BOTH the top (header) and the left
@@ -1001,6 +1046,20 @@ export function AutomationsTableClient({
                   <th className="sticky top-0 z-10 w-[200px] min-w-[200px] max-w-[200px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
                     Automation Tags
                   </th>
+                  {/* GHL Tags + GHL Forms: MULTI-select dropdown columns, GHL-only
+                      (gated on visibleOnPlatforms), display-only, never synced.
+                      Plain-text lines in the cell (like Webhook Links), not chips.
+                      Sit between Automation Tags and Trigger Event. */}
+                  {showGhlTags && (
+                    <th className="sticky top-0 z-10 w-[180px] min-w-[180px] max-w-[180px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
+                      GHL Tags
+                    </th>
+                  )}
+                  {showGhlForms && (
+                    <th className="sticky top-0 z-10 w-[180px] min-w-[180px] max-w-[180px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
+                      GHL Forms
+                    </th>
+                  )}
                   {/* Trigger Event: single-select dropdown column, center-aligned,
                       display-only (not sortable), never synced. Sits after Author. */}
                   <th className="sticky top-0 z-10 w-[160px] min-w-[160px] max-w-[160px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
@@ -1100,7 +1159,7 @@ export function AutomationsTableClient({
                 {filtered.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={12}
+                      colSpan={12 + extraGhlCols}
                       className="px-3 py-16 text-center text-sm text-zinc-500"
                     >
                       {rows.length === 0
@@ -1224,6 +1283,52 @@ export function AutomationsTableClient({
                           </span>
                         )}
                       </td>
+                      {/* GHL Tags + GHL Forms: selected values as plain-text lines
+                          (one per value, hover title = full value), like the
+                          Webhook Links cell, NOT chips (their config has no
+                          colours). Red "None" when empty. GHL-only, 180px. */}
+                      {showGhlTags && (
+                        <td className="w-[180px] min-w-[180px] max-w-[180px] px-3 py-2 text-left align-top">
+                          {r.ghlTags && r.ghlTags.length > 0 ? (
+                            <div className="space-y-0.5">
+                              {r.ghlTags.map((t) => (
+                                <div
+                                  key={t.id}
+                                  title={t.value}
+                                  className="truncate text-xs text-zinc-700"
+                                >
+                                  {t.value}
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-xs font-medium text-red-600">
+                              None
+                            </span>
+                          )}
+                        </td>
+                      )}
+                      {showGhlForms && (
+                        <td className="w-[180px] min-w-[180px] max-w-[180px] px-3 py-2 text-left align-top">
+                          {r.ghlForms && r.ghlForms.length > 0 ? (
+                            <div className="space-y-0.5">
+                              {r.ghlForms.map((f) => (
+                                <div
+                                  key={f.id}
+                                  title={f.value}
+                                  className="truncate text-xs text-zinc-700"
+                                >
+                                  {f.value}
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-xs font-medium text-red-600">
+                              None
+                            </span>
+                          )}
+                        </td>
+                      )}
                       {/* Trigger Event: the selected option rendered as a
                           coloured pill (its configured badge + text colours;
                           plain text if no badge colour), or red "None" when
@@ -1423,6 +1528,8 @@ export function AutomationsTableClient({
         authorChoices={authorChoices}
         triggerEventChoices={triggerEventChoices}
         automationTagChoices={automationTagChoices}
+        ghlTagChoices={ghlTagChoices}
+        ghlFormChoices={ghlFormChoices}
         webhookChoices={webhookChoices}
         onCreated={handleCreated}
       />
@@ -1435,6 +1542,8 @@ export function AutomationsTableClient({
         authorChoices={authorChoices}
         triggerEventChoices={triggerEventChoices}
         automationTagChoices={automationTagChoices}
+        ghlTagChoices={ghlTagChoices}
+        ghlFormChoices={ghlFormChoices}
         webhookChoices={webhookChoices}
         onSaved={handleSaved}
       />

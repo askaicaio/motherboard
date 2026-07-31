@@ -37,6 +37,7 @@ import { Search, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AUTOMATION_SITES } from "@/lib/automations/sites";
 import { ColorBadge } from "./color-badge";
+import { columnVisibleOnPlatform } from "@/lib/automations/dropdown-config";
 import type { AutomationRow } from "./automations-table-client";
 
 /** A combined-table row: the per-website row shape + which platform it's from. */
@@ -270,7 +271,7 @@ export function AllAutomationsTableClient({
             {/* Same shell as the per-website table: bounded scroll, sticky
                 header (Option B), frozen Name column, horizontal scroll once the
                 columns exceed the card width. */}
-            <table className="w-full min-w-[2400px] text-sm">
+            <table className="w-full min-w-[2760px] text-sm">
               <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
                 <tr>
                   {/* Corner cell: frozen Name column, sticky on both axes. */}
@@ -323,6 +324,16 @@ export function AllAutomationsTableClient({
                       sortable; wrapping coloured chips. 200px. */}
                   <th className="sticky top-0 z-10 w-[200px] min-w-[200px] max-w-[200px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
                     Automation Tags
+                  </th>
+                  {/* GHL Tags + GHL Forms: GHL-only columns; here on the combined
+                      table they always render, but each cell is populated only for
+                      GHL / GHL b2b rows (a muted "-" on the other platforms).
+                      Plain-text lines (like Webhook Links), not chips. 180px. */}
+                  <th className="sticky top-0 z-10 w-[180px] min-w-[180px] max-w-[180px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
+                    GHL Tags
+                  </th>
+                  <th className="sticky top-0 z-10 w-[180px] min-w-[180px] max-w-[180px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
+                    GHL Forms
                   </th>
                   {/* Trigger Event: mirrors the Per Website column, after Author.
                       Display-only, not sortable, 160px. */}
@@ -378,7 +389,7 @@ export function AllAutomationsTableClient({
                 {filtered.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={12}
+                      colSpan={14}
                       className="px-3 py-16 text-center text-sm text-zinc-500"
                     >
                       {rows.length === 0
@@ -478,6 +489,51 @@ export function AllAutomationsTableClient({
                               />
                             ))}
                           </span>
+                        ) : (
+                          <span className="text-xs font-medium text-red-600">
+                            None
+                          </span>
+                        )}
+                      </td>
+                      {/* GHL Tags + GHL Forms: plain-text lines (like Webhook
+                          Links), populated only for GHL / GHL b2b rows. Non-GHL
+                          rows show a muted "-" (the column doesn't apply). */}
+                      <td className="w-[180px] min-w-[180px] max-w-[180px] px-3 py-2 text-left align-top">
+                        {!columnVisibleOnPlatform("ghl_tags", r.platform) ? (
+                          <span className="text-xs text-zinc-400">-</span>
+                        ) : r.ghlTags && r.ghlTags.length > 0 ? (
+                          <div className="space-y-0.5">
+                            {r.ghlTags.map((t) => (
+                              <div
+                                key={t.id}
+                                title={t.value}
+                                className="truncate text-xs text-zinc-700"
+                              >
+                                {t.value}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-xs font-medium text-red-600">
+                            None
+                          </span>
+                        )}
+                      </td>
+                      <td className="w-[180px] min-w-[180px] max-w-[180px] px-3 py-2 text-left align-top">
+                        {!columnVisibleOnPlatform("ghl_forms", r.platform) ? (
+                          <span className="text-xs text-zinc-400">-</span>
+                        ) : r.ghlForms && r.ghlForms.length > 0 ? (
+                          <div className="space-y-0.5">
+                            {r.ghlForms.map((f) => (
+                              <div
+                                key={f.id}
+                                title={f.value}
+                                className="truncate text-xs text-zinc-700"
+                              >
+                                {f.value}
+                              </div>
+                            ))}
+                          </div>
                         ) : (
                           <span className="text-xs font-medium text-red-600">
                             None

@@ -39,6 +39,7 @@ import {
   usePopoverSide,
   NARROW_SIDE_SPACE_SELECT_PX,
 } from "./use-popover-side";
+import { columnVisibleOnPlatform } from "@/lib/automations/dropdown-config";
 import type { ChoiceOption } from "@/lib/automations/dropdown-config";
 
 /** Status options rendered as COLOURED TEXT in the Status dropdown, mirroring
@@ -62,6 +63,10 @@ interface Props {
   triggerEventChoices?: ChoiceOption[];
   /** Configured Automation Tags options for the multi-select chip picker. */
   automationTagChoices?: ChoiceOption[];
+  /** Configured GHL Tags options (multi-select; only used on the GHL pages). */
+  ghlTagChoices?: ChoiceOption[];
+  /** Configured GHL Forms options (multi-select; only used on the GHL pages). */
+  ghlFormChoices?: ChoiceOption[];
   /** Configured Webhook Links options (URL as value) for the multi-select picker. */
   webhookChoices?: ChoiceOption[];
   onCreated?: (row: AutomationRow) => void;
@@ -76,6 +81,8 @@ export function WorkflowDialog({
   authorChoices = [],
   triggerEventChoices = [],
   automationTagChoices = [],
+  ghlTagChoices = [],
+  ghlFormChoices = [],
   webhookChoices = [],
   onCreated,
   onSaved,
@@ -96,10 +103,17 @@ export function WorkflowDialog({
   const [triggerEventChoiceId, setTriggerEventChoiceId] = useState("");
   // Automation Tags: the selected tag choice ids (multi-select). Empty = none.
   const [automationTagChoiceIds, setAutomationTagChoiceIds] = useState<string[]>([]);
+  // GHL Tags + GHL Forms: selected choice ids (multi-select, GHL pages only).
+  const [ghlTagChoiceIds, setGhlTagChoiceIds] = useState<string[]>([]);
+  const [ghlFormChoiceIds, setGhlFormChoiceIds] = useState<string[]>([]);
   // Webhook Links: the selected webhook choice ids (multi-select). Empty = none.
   const [webhookChoiceIds, setWebhookChoiceIds] = useState<string[]>([]);
   // Inline error shown as red text inside the dialog (e.g. duplicate link).
   const [error, setError] = useState<string | null>(null);
+  // GHL Tags + GHL Forms are GHL-only fields, shown only when this automation's
+  // platform is a GoHighLevel page (same gate as the table columns).
+  const showGhlTags = columnVisibleOnPlatform("ghl_tags", platform);
+  const showGhlForms = columnVisibleOnPlatform("ghl_forms", platform);
   // Status dropdown orientation (standard dropdown behaviour): Status is a
   // LEFT-column field, so it opens LEFT pinned, or vertically when that side is
   // too narrow. Small fixed-width menu → the smaller Select threshold.
@@ -122,6 +136,8 @@ export function WorkflowDialog({
     setAuthorChoiceId(existing?.authorChoiceId ?? "");
     setTriggerEventChoiceId(existing?.triggerEventChoiceId ?? "");
     setAutomationTagChoiceIds((existing?.automationTags ?? []).map((t) => t.id));
+    setGhlTagChoiceIds((existing?.ghlTags ?? []).map((t) => t.id));
+    setGhlFormChoiceIds((existing?.ghlForms ?? []).map((f) => f.id));
     setWebhookChoiceIds((existing?.webhooks ?? []).map((w) => w.id));
     setError(null);
   }, [open, existing]);
@@ -143,9 +159,16 @@ export function WorkflowDialog({
       // single-select ids: send the selected id, or null to clear it.
       const authorPayload = authorChoiceId || null;
       const triggerEventPayload = triggerEventChoiceId || null;
+      // GHL Tags / GHL Forms are only sent on GHL pages (where the pickers show).
+      // Omitting them on non-GHL platforms means the API leaves those columns
+      // untouched rather than wiping them.
+      const ghlFields = {
+        ...(showGhlTags ? { ghlTagChoiceIds } : {}),
+        ...(showGhlForms ? { ghlFormChoiceIds } : {}),
+      };
       const body = isEdit
-        ? { name: name.trim(), externalUrl: externalUrl.trim(), status, purpose: purpose.trim(), notes: notes.trim(), authorChoiceId: authorPayload, triggerEventChoiceId: triggerEventPayload, automationTagChoiceIds, webhookChoiceIds }
-        : { platform, name: name.trim(), externalUrl: externalUrl.trim(), status, purpose: purpose.trim(), notes: notes.trim(), authorChoiceId: authorPayload, triggerEventChoiceId: triggerEventPayload, automationTagChoiceIds, webhookChoiceIds };
+        ? { name: name.trim(), externalUrl: externalUrl.trim(), status, purpose: purpose.trim(), notes: notes.trim(), authorChoiceId: authorPayload, triggerEventChoiceId: triggerEventPayload, automationTagChoiceIds, webhookChoiceIds, ...ghlFields }
+        : { platform, name: name.trim(), externalUrl: externalUrl.trim(), status, purpose: purpose.trim(), notes: notes.trim(), authorChoiceId: authorPayload, triggerEventChoiceId: triggerEventPayload, automationTagChoiceIds, webhookChoiceIds, ...ghlFields };
 
       const res = await fetch(endpoint, {
         method,
@@ -199,6 +222,29 @@ export function WorkflowDialog({
         // Alphabetical by value to match the loader's ordering.
         automationTags: automationTagChoiceIds
           .map((tid) => automationTagChoices.find((c) => c.id === tid))
+          .filter((c): c is ChoiceOption => !!c)
+          .map((c) => ({
+            id: c.id,
+            value: c.value,
+            badgeColor: c.badgeColor,
+            textColor: c.textColor,
+          }))
+          .sort((a, b) => a.value.localeCompare(b.value)),
+        // GHL Tags + GHL Forms: resolve the selected ids to their choices so the
+        // row's plain-text cells render immediately (no colours here). Alphabetical
+        // by value to match the loader. Empty on non-GHL platforms.
+        ghlTags: ghlTagChoiceIds
+          .map((tid) => ghlTagChoices.find((c) => c.id === tid))
+          .filter((c): c is ChoiceOption => !!c)
+          .map((c) => ({
+            id: c.id,
+            value: c.value,
+            badgeColor: c.badgeColor,
+            textColor: c.textColor,
+          }))
+          .sort((a, b) => a.value.localeCompare(b.value)),
+        ghlForms: ghlFormChoiceIds
+          .map((fid) => ghlFormChoices.find((c) => c.id === fid))
           .filter((c): c is ChoiceOption => !!c)
           .map((c) => ({
             id: c.id,
@@ -447,6 +493,45 @@ export function WorkflowDialog({
               This is how the automation is activated.
             </p>
           </div>
+          {/* GHL Tags | GHL Forms: a third grid row, shown only on the GHL pages
+              (same gate as the table columns). Multi-select; plain options (no
+              colours). Left column opens left, right column opens right. */}
+          {showGhlTags && (
+            <div className="space-y-1.5">
+              <Label htmlFor="wf-ghl-tags">GHL Tags</Label>
+              <MultiChoiceCombobox
+                id="wf-ghl-tags"
+                options={ghlTagChoices}
+                values={ghlTagChoiceIds}
+                onChange={(v) => {
+                  setGhlTagChoiceIds(v);
+                  setError(null);
+                }}
+                searchPlaceholder="Search GHL tags…"
+                emptyLabel="None"
+                noResultsLabel="No GHL tags found."
+                side="left"
+              />
+            </div>
+          )}
+          {showGhlForms && (
+            <div className="space-y-1.5">
+              <Label htmlFor="wf-ghl-forms">GHL Forms</Label>
+              <MultiChoiceCombobox
+                id="wf-ghl-forms"
+                options={ghlFormChoices}
+                values={ghlFormChoiceIds}
+                onChange={(v) => {
+                  setGhlFormChoiceIds(v);
+                  setError(null);
+                }}
+                searchPlaceholder="Search GHL forms…"
+                emptyLabel="None"
+                noResultsLabel="No GHL forms found."
+                side="right"
+              />
+            </div>
+          )}
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="wf-purpose">Purpose</Label>
