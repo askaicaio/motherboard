@@ -1395,7 +1395,16 @@ export function AutomationsTableClient({
                       {showGhlTags && (
                         <td className="w-[180px] min-w-[180px] max-w-[180px] px-3 py-2 text-left align-top">
                           {r.ghlTags && r.ghlTags.length > 0 ? (
-                            <div className="space-y-0.5">
+                            <div
+                              className="overflow-hidden"
+                              // Cap the item list to the SAME height as the
+                              // Purpose/Notes clamp (purposeClamp lines x 16px),
+                              // so a row with many items shows only the lines that
+                              // fit and never stretches the row taller than the
+                              // Name-cell-driven height. Items beyond that are
+                              // clipped (each item is a 16px text-xs line).
+                              style={{ maxHeight: (purposeClamp[r.id] ?? 2) * 16 }}
+                            >
                               {r.ghlTags.map((t) => (
                                 <div
                                   key={t.id}
@@ -1416,7 +1425,16 @@ export function AutomationsTableClient({
                       {showGhlForms && (
                         <td className="w-[180px] min-w-[180px] max-w-[180px] px-3 py-2 text-left align-top">
                           {r.ghlForms && r.ghlForms.length > 0 ? (
-                            <div className="space-y-0.5">
+                            <div
+                              className="overflow-hidden"
+                              // Cap the item list to the SAME height as the
+                              // Purpose/Notes clamp (purposeClamp lines x 16px),
+                              // so a row with many items shows only the lines that
+                              // fit and never stretches the row taller than the
+                              // Name-cell-driven height. Items beyond that are
+                              // clipped (each item is a 16px text-xs line).
+                              style={{ maxHeight: (purposeClamp[r.id] ?? 2) * 16 }}
+                            >
                               {r.ghlForms.map((f) => (
                                 <div
                                   key={f.id}
