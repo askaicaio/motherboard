@@ -37,15 +37,8 @@ A **Base UI `Popover`** (Trigger → Portal → Positioner → Popup) wrapping a
 - The list **type-filters** case-insensitively (the `Command filter` prop).
 - Single-select closes on pick + has a leading **"None"** clear row; multi-select
   toggles with a checkbox and **stays open**.
-- **Multi-select pins its selected options** at the top of the open list, `sticky
-  top-0` just below the frozen search box, so the current selection stays visible
-  while the unselected options scroll under it. The pinned rows are **plain buttons,
-  not cmdk items**, so they're NOT search-filtered (all selections stay visible;
-  click one to unselect → it drops back into the searchable list). The scrollable
-  `CommandGroup` holds only the **unselected** options. The pinned zone caps its own
-  height (`max-h-40`) + scrolls, so a big selection can't consume the popup.
-  (cmdk's `[cmdk-list-sizer]` wrapper is a plain div, so sticky sticks to the
-  scrolling `[cmdk-list]` correctly.)
+- **Multi-select pins its selected options** frozen at the top of the open list, see
+  the dedicated section [Multi-select: pinned (frozen) selected options](#multi-select-pinned-frozen-selected-options).
 
 ---
 
@@ -105,6 +98,72 @@ Driven by **`usePopoverSide(preferredSide)`**, which returns
 
 `align="start"` and `sideOffset={8}` on the `PopoverContent` are shared by both
 orientations.
+
+---
+
+## Multi-select: pinned (frozen) selected options
+
+**Multi-select only** (`multi-choice-combobox.tsx`), the single-select picker doesn't
+do this. The options are split into **selected** and **unselected**:
+
+- **Selected** options are **pinned/frozen** in a `sticky top-0` zone at the top of
+  the scroll area, right below the frozen search box, so the current selection stays
+  visible while the unselected list scrolls under it (mirrors how the search box stays
+  frozen above).
+- **Unselected** options are the normal, searchable list below.
+- Toggling a selection moves the row between the two zones: unselect a pinned row and
+  it drops back into the searchable list; select a list row and it rises into the
+  pinned zone.
+
+Recipe, inside the `CommandList` (which is the scroll container):
+
+```tsx
+const selected   = options.filter((o) =>  selectedSet.has(o.id));
+const unselected = options.filter((o) => !selectedSet.has(o.id));
+
+<CommandList className="max-h-[calc(var(--available-height)_-_3rem)]">
+  {/* PINNED selected zone: sticky, plain buttons (NOT cmdk items), own scroll */}
+  {selected.length > 0 && (
+    <div className="sticky top-0 z-10 max-h-40 overflow-y-auto border-b bg-popover p-1">
+      {selected.map((o) => (
+        <button key={o.id} type="button" onClick={() => toggle(o.id)}
+          className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm hover:bg-muted">
+          {optionInner(o, /*checked*/ true)}
+        </button>
+      ))}
+    </div>
+  )}
+  {/* UNSELECTED list: normal searchable cmdk items */}
+  {unselected.length > 0 ? (
+    <>
+      <CommandEmpty>{noResultsLabel}</CommandEmpty>
+      <CommandGroup>
+        {unselected.map((o) => (
+          <CommandItem key={o.id} value={o.value} onSelect={() => toggle(o.id)}>
+            {optionInner(o, /*checked*/ false)}
+          </CommandItem>
+        ))}
+      </CommandGroup>
+    </>
+  ) : selected.length > 0 ? (
+    <div className="px-2 py-4 text-center text-xs text-muted-foreground">All options selected.</div>
+  ) : null}
+</CommandList>
+```
+
+Load-bearing choices:
+
+1. **Pinned rows are plain `<button>`s, NOT `CommandItem`s.** cmdk's `filter` only
+   applies to `CommandItem`s, so plain buttons are **never search-filtered**, every
+   selection stays visible while you type to add more. (If you ever want the search to
+   also narrow the pinned zone, that's the knob: make them `CommandItem`s instead.)
+2. **`sticky top-0` inside the scroll container** keeps the zone frozen at the top.
+   This works because cmdk's internal `[cmdk-list-sizer]` wrapper is a plain div (no
+   transform/overflow/contain), so sticky resolves against the scrolling `[cmdk-list]`.
+3. **The pinned zone caps its own height (`max-h-40`) + scrolls**, so a big selection
+   can't consume the whole popup (sticky can't pin a zone taller than the container).
+4. **`optionInner(o, checked)`** renders the shared row body (checkbox + coloured pill
+   / `min-w-0 truncate` text) so pinned rows and list rows look identical.
 
 ---
 
