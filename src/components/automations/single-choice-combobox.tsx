@@ -109,7 +109,12 @@ export function SingleChoiceCombobox({
           }
         >
           <CommandInput placeholder={searchPlaceholder} />
-          <CommandList>
+          {/* Grow the option list to the space between the trigger and the
+              window edge (Base UI's --available-height, set on the Positioner),
+              scrolling only past that — instead of the shared list's fixed
+              max-h-72 (~7 rows). Subtract ~3rem for the pinned search box above
+              so the popup as a whole stays inside the viewport. */}
+          <CommandList className="max-h-[calc(var(--available-height)_-_3rem)]">
             <CommandEmpty>{noResultsLabel}</CommandEmpty>
             <CommandGroup>
               {/* Clear row: always present so an optional column can be unset. */}
