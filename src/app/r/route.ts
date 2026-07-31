@@ -70,6 +70,14 @@ export async function GET(request: NextRequest) {
     destUrl.searchParams.set("utm_source", "affiliate");
     destUrl.searchParams.set("utm_medium", "referral");
     destUrl.searchParams.set("utm_content", refCode);
+    // MOST RELIABLE capture for GHL bookings: a HIDDEN calendar-form field whose
+    // Query Key matches this param gets prefilled from the URL and saved onto the
+    // contact — unlike UTM attribution, which the raw booking widget doesn't
+    // track. The GHL workflow then reads {{contact.<field>}}. Query key defaults
+    // to the field the team created; override with AFFILIATE_BOOKING_CODE_PARAM.
+    const bookingCodeParam =
+      process.env.AFFILIATE_BOOKING_CODE_PARAM || "prospect_referral_code";
+    destUrl.searchParams.set(bookingCodeParam, refCode);
   }
 
   const redirect = NextResponse.redirect(destUrl.toString(), {
