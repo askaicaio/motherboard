@@ -6,9 +6,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { affiliateChecklistApprovals, adminUsers } from "@/lib/db/schema";
+import {
+  affiliateChecklistApprovals,
+  affiliateChecklistComments,
+  adminUsers,
+} from "@/lib/db/schema";
 import { requireAuth } from "@/lib/auth/guard";
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +54,36 @@ export async function GET() {
     });
   }
 
+  // Comments per item (oldest first), with author identity.
+  const commentRows = await db
+    .select({
+      id: affiliateChecklistComments.id,
+      itemId: affiliateChecklistComments.itemId,
+      userId: affiliateChecklistComments.userId,
+      body: affiliateChecklistComments.body,
+      createdAt: affiliateChecklistComments.createdAt,
+      name: adminUsers.name,
+      avatarUrl: adminUsers.avatarUrl,
+    })
+    .from(affiliateChecklistComments)
+    .innerJoin(
+      adminUsers,
+      eq(adminUsers.id, affiliateChecklistComments.userId),
+    )
+    .orderBy(asc(affiliateChecklistComments.createdAt));
+
+  const comments: Record<string, unknown[]> = {};
+  for (const c of commentRows) {
+    (comments[c.itemId] ??= []).push({
+      id: c.id,
+      userId: c.userId,
+      name: c.name,
+      avatarUrl: c.avatarUrl,
+      body: c.body,
+      createdAt: c.createdAt,
+    });
+  }
+
   return NextResponse.json({
     currentUser: {
       userId: user.id,
@@ -57,6 +91,7 @@ export async function GET() {
       avatarUrl: me?.avatarUrl ?? null,
     },
     approvals,
+    comments,
   });
 }
 

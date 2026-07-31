@@ -2228,3 +2228,22 @@ export const affiliateChecklistApprovals = pgTable(
     index("idx_affiliate_checklist_item").on(table.itemId),
   ],
 );
+
+// ── Affiliate testing-guide checklist comments (threaded per item) ─────────
+export const affiliateChecklistComments = pgTable(
+  "affiliate_checklist_comments",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    itemId: text("item_id").notNull(),
+    userId: uuid("user_id")
+      .references(() => adminUsers.id, { onDelete: "cascade" })
+      .notNull(),
+    body: text("body").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("idx_affiliate_checklist_comments_item").on(table.itemId),
+  ],
+);
