@@ -37,6 +37,15 @@ A **Base UI `Popover`** (Trigger → Portal → Positioner → Popup) wrapping a
 - The list **type-filters** case-insensitively (the `Command filter` prop).
 - Single-select closes on pick + has a leading **"None"** clear row; multi-select
   toggles with a checkbox and **stays open**.
+- **Multi-select pins its selected options** at the top of the open list, `sticky
+  top-0` just below the frozen search box, so the current selection stays visible
+  while the unselected options scroll under it. The pinned rows are **plain buttons,
+  not cmdk items**, so they're NOT search-filtered (all selections stay visible;
+  click one to unselect → it drops back into the searchable list). The scrollable
+  `CommandGroup` holds only the **unselected** options. The pinned zone caps its own
+  height (`max-h-40`) + scrolls, so a big selection can't consume the popup.
+  (cmdk's `[cmdk-list-sizer]` wrapper is a plain div, so sticky sticks to the
+  scrolling `[cmdk-list]` correctly.)
 
 ---
 
