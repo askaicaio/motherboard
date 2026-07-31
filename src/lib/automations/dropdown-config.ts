@@ -201,6 +201,26 @@ export const DROPDOWN_COLUMNS: DropdownColumnConfig[] = [
     hasNotes: true,
   },
   {
+    // Trigger Event / Badge Color / Text Color / Notes table. `hasColor` makes
+    // it a rich table: the value renders as a coloured pill (badge + text colours
+    // chosen independently in the Add/Edit dialog), plus two colour columns.
+    // `hasNotes` adds a Purpose-style Notes column (mimics the Author table),
+    // rendered last (4th column); reuses the shared `notes` field (migration
+    // 0031), so no new migration.
+    key: "trigger_event",
+    title: "Trigger Event",
+    singular: "trigger event",
+    fieldLabel: "Trigger event",
+    placeholder: "e.g. Form submitted",
+    rowLabel: "Trigger Event",
+    hasColor: true,
+    hasNotes: true,
+  },
+  {
+    // GHL Tags table. Placed just before Webhook Links in this array so the
+    // Config page tabs read Author, Automation Tags, Trigger Event, GHL Tags, GHL
+    // Forms, Webhook Links (user-set 2026-07-31), matching the Per Website table
+    // column order (GHL Tags + GHL Forms sit left of Webhook Links).
     key: "ghl_tags",
     title: "GHL Tags",
     singular: "GHL tag",
@@ -218,9 +238,8 @@ export const DROPDOWN_COLUMNS: DropdownColumnConfig[] = [
   },
   {
     // Form / Status / Notes table mirroring GHL Tags (hasStatus + hasNotes); the
-    // first column header reads "Form". Tab sits between GHL Tags and Trigger
-    // Event (order here drives the Config page toolbar tab order). GHL-gated Per
-    // Website column, like GHL Tags (user-set 2026-07-31).
+    // first column header reads "Form". GHL-gated Per Website column, like GHL
+    // Tags. Sits right after GHL Tags, just before Webhook Links.
     key: "ghl_forms",
     title: "GHL Forms",
     singular: "GHL form",
@@ -234,22 +253,6 @@ export const DROPDOWN_COLUMNS: DropdownColumnConfig[] = [
     statusOptions: GHL_TAG_STATUS_OPTIONS,
     defaultStatus: DEFAULT_STATUS,
     statusGrouped: true,
-    hasNotes: true,
-  },
-  {
-    // Trigger Event / Badge Color / Text Color / Notes table. `hasColor` makes
-    // it a rich table: the value renders as a coloured pill (badge + text colours
-    // chosen independently in the Add/Edit dialog), plus two colour columns.
-    // `hasNotes` adds a Purpose-style Notes column (mimics the Author table),
-    // rendered last (4th column); reuses the shared `notes` field (migration
-    // 0031), so no new migration.
-    key: "trigger_event",
-    title: "Trigger Event",
-    singular: "trigger event",
-    fieldLabel: "Trigger event",
-    placeholder: "e.g. Form submitted",
-    rowLabel: "Trigger Event",
-    hasColor: true,
     hasNotes: true,
   },
 ];
