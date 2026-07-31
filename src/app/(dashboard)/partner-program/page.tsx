@@ -300,8 +300,9 @@ export default async function PartnerProgramPage() {
         </div>
       </div>
 
-      {/* Metric cards */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      {/* Metric cards — compact square tiles, left-aligned so more can be added
+          later without stretching to fill the row. */}
+      <div className="flex flex-wrap gap-3">
         <MetricCard
           icon={<Users className="h-4 w-4 text-zinc-400" />}
           label="Active Affiliates"
@@ -538,7 +539,7 @@ function MetricCard({
   highlight?: boolean;
 }) {
   return (
-    <Card className="aspect-square">
+    <Card className="aspect-square w-[calc(50%-0.375rem)] sm:w-40 lg:w-44">
       <CardContent className="flex h-full flex-col justify-between p-4">
         <div className="flex items-center gap-1.5 text-xs uppercase tracking-wide text-zinc-500">
           {icon}
