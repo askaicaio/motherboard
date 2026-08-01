@@ -733,41 +733,38 @@ export function AllAutomationsTableClient({
                             // item is a 16px text-xs line).
                             style={{ maxHeight: (purposeClamp[r.id] ?? 2) * 16 }}
                           >
+                            {/* Every webhook line opens the "related automations"
+                                lookup (not just the gold count), so the whole
+                                cell is an obvious click target. Mirrors the Per
+                                Website table. */}
                             {r.webhooks.map((w, i, arr) => (
-                              <div
+                              <button
                                 key={w.id}
+                                type="button"
                                 title={w.url}
-                                className="truncate text-xs text-zinc-700"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setWebhookLookup({
+                                    anchor: {
+                                      id: r.id,
+                                      name: r.name,
+                                      platform: r.platform,
+                                    },
+                                    webhooks: arr.map((wh) => ({
+                                      id: wh.id,
+                                      url: wh.url,
+                                    })),
+                                  });
+                                }}
+                                className="block w-full cursor-pointer truncate text-left text-xs text-zinc-700 hover:underline"
                               >
-                                {/* Gold count doubles as the "related automations"
-                                    trigger (opens the lookup anchored to this row).
-                                    Mirrors the Per Website table. */}
                                 {i === 0 && (
-                                  <button
-                                    type="button"
-                                    title="Show related automations"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setWebhookLookup({
-                                        anchor: {
-                                          id: r.id,
-                                          name: r.name,
-                                          platform: r.platform,
-                                        },
-                                        webhooks: arr.map((wh) => ({
-                                          id: wh.id,
-                                          url: wh.url,
-                                        })),
-                                      });
-                                    }}
-                                    className="cursor-pointer align-baseline font-medium text-amber-600 hover:underline"
-                                  >
-                                    ({arr.length})
-                                  </button>
+                                  <span className="font-medium text-amber-600">
+                                    ({arr.length}){" "}
+                                  </span>
                                 )}
-                                {i === 0 && " "}
                                 {w.url}
-                              </div>
+                              </button>
                             ))}
                           </div>
                         ) : (
