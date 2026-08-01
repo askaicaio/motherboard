@@ -14,7 +14,7 @@ import {
   automationWebhooks,
   automationWebhookChoices,
 } from "@/lib/db/schema";
-import { and, asc, count, eq, inArray } from "drizzle-orm";
+import { and, asc, count, eq, inArray, ne } from "drizzle-orm";
 import type {
   RelatedAutomation,
   SelectedChoice,
@@ -115,20 +115,37 @@ export async function getWebhooksByAutomation(
 }
 
 /**
- * How many automations use each webhook, keyed by webhook choice id (a plain
- * object so it serializes to the client). Powers the Webhook Links "related
- * automations" lookup: the stage-1 "shared with N others" badges (N = this
- * count minus the anchor automation itself) and the Config page Relationships
- * column. One grouped query over the whole junction; webhooks nobody uses are
- * simply absent (read as 0 at the call site).
+ * For each of `webhookChoiceIds`, how many OTHER automations use that webhook
+ * (i.e. excluding `excludeAutomationId`, the anchor). Keyed by webhook choice id
+ * (a plain object so it serializes to the client); a webhook used by no other
+ * automation is simply absent (read as 0 at the call site).
+ *
+ * Powers the "related automations" lookup's stage-1 "shared with N others"
+ * badges. It's fetched LIVE when the dialog opens (not snapshotted at page
+ * load) so the badge always matches the stage-2 list, which is also live: a
+ * page-load count goes stale the moment webhooks are added/removed in-session.
+ * Omit `excludeAutomationId` to count ALL users (the Config page browse-all).
  */
-export async function getWebhookUsageCounts(): Promise<Record<string, number>> {
+export async function getWebhookOthersCounts(
+  webhookChoiceIds: string[],
+  excludeAutomationId?: string,
+): Promise<Record<string, number>> {
+  if (webhookChoiceIds.length === 0) return {};
+
   const rows = await db
     .select({
       webhookChoiceId: automationWebhooks.webhookChoiceId,
       n: count(),
     })
     .from(automationWebhooks)
+    .where(
+      and(
+        inArray(automationWebhooks.webhookChoiceId, webhookChoiceIds),
+        excludeAutomationId
+          ? ne(automationWebhooks.automationId, excludeAutomationId)
+          : undefined,
+      ),
+    )
     .groupBy(automationWebhooks.webhookChoiceId);
 
   const out: Record<string, number> = {};

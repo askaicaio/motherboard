@@ -129,12 +129,8 @@ function WebsiteBadge({ slug }: { slug: string }) {
 
 export function AllAutomationsTableClient({
   rows,
-  webhookUsageCounts = {},
 }: {
   rows: AllAutomationRow[];
-  /** How many automations use each webhook, keyed by webhook choice id. Powers
-   *  the "related automations" lookup's stage-1 "shared with N others" badges. */
-  webhookUsageCounts?: Record<string, number>;
 }) {
   const [query, setQuery] = useState("");
   // The purpose text shown in the read-only popup (null = closed).
@@ -761,10 +757,6 @@ export function AllAutomationsTableClient({
                                         webhooks: arr.map((wh) => ({
                                           id: wh.id,
                                           url: wh.url,
-                                          otherCount: Math.max(
-                                            0,
-                                            (webhookUsageCounts[wh.id] ?? 1) - 1,
-                                          ),
                                         })),
                                       });
                                     }}
