@@ -8,13 +8,18 @@
 
 import { db } from "@/lib/db";
 import {
+  automations,
   automationDropdownSelections,
   automationDropdownChoices,
   automationWebhooks,
   automationWebhookChoices,
 } from "@/lib/db/schema";
-import { and, asc, eq, inArray } from "drizzle-orm";
-import type { SelectedChoice, SelectedWebhook } from "./dropdown-config";
+import { and, asc, count, eq, inArray } from "drizzle-orm";
+import type {
+  RelatedAutomation,
+  SelectedChoice,
+  SelectedWebhook,
+} from "./dropdown-config";
 
 /**
  * Selected choices for `columnKey`, grouped by automation id. Pass a platform's
@@ -107,4 +112,52 @@ export async function getWebhooksByAutomation(
     else map.set(r.automationId, [entry]);
   }
   return map;
+}
+
+/**
+ * How many automations use each webhook, keyed by webhook choice id (a plain
+ * object so it serializes to the client). Powers the Webhook Links "related
+ * automations" lookup: the stage-1 "shared with N others" badges (N = this
+ * count minus the anchor automation itself) and the Config page Relationships
+ * column. One grouped query over the whole junction; webhooks nobody uses are
+ * simply absent (read as 0 at the call site).
+ */
+export async function getWebhookUsageCounts(): Promise<Record<string, number>> {
+  const rows = await db
+    .select({
+      webhookChoiceId: automationWebhooks.webhookChoiceId,
+      n: count(),
+    })
+    .from(automationWebhooks)
+    .groupBy(automationWebhooks.webhookChoiceId);
+
+  const out: Record<string, number> = {};
+  for (const r of rows) out[r.webhookChoiceId] = r.n;
+  return out;
+}
+
+/**
+ * Every automation that uses `webhookChoiceId`, across ALL platforms, resolved
+ * for the "related automations" list (name / platform / status / link),
+ * name-ascending. The caller decides whether to exclude the anchor automation
+ * (Model A "others only" in the anchored flow; no exclusion for the Config page
+ * browse-all). Reverse lookup on the indexed junction column.
+ */
+export async function getAutomationsByWebhook(
+  webhookChoiceId: string,
+): Promise<RelatedAutomation[]> {
+  const rows = await db
+    .select({
+      id: automations.id,
+      name: automations.name,
+      platform: automations.platform,
+      status: automations.status,
+      externalUrl: automations.externalUrl,
+    })
+    .from(automationWebhooks)
+    .innerJoin(automations, eq(automationWebhooks.automationId, automations.id))
+    .where(eq(automationWebhooks.webhookChoiceId, webhookChoiceId))
+    .orderBy(asc(automations.name));
+
+  return rows;
 }

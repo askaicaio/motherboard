@@ -37,6 +37,10 @@ import { Search, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AUTOMATION_SITES } from "@/lib/automations/sites";
 import { ColorBadge } from "./color-badge";
+import {
+  WebhookRelatedDialog,
+  type WebhookLookupTarget,
+} from "./webhook-related-dialog";
 import { columnVisibleOnPlatform } from "@/lib/automations/dropdown-config";
 import type { AutomationRow } from "./automations-table-client";
 
@@ -125,14 +129,22 @@ function WebsiteBadge({ slug }: { slug: string }) {
 
 export function AllAutomationsTableClient({
   rows,
+  webhookUsageCounts = {},
 }: {
   rows: AllAutomationRow[];
+  /** How many automations use each webhook, keyed by webhook choice id. Powers
+   *  the "related automations" lookup's stage-1 "shared with N others" badges. */
+  webhookUsageCounts?: Record<string, number>;
 }) {
   const [query, setQuery] = useState("");
   // The purpose text shown in the read-only popup (null = closed).
   const [showingPurpose, setShowingPurpose] = useState<string | null>(null);
   // The notes text shown in the read-only "Show notes" popup (mirrors Purpose).
   const [showingNotes, setShowingNotes] = useState<string | null>(null);
+  // The Webhook Links "related automations" lookup target (null = closed).
+  const [webhookLookup, setWebhookLookup] = useState<WebhookLookupTarget | null>(
+    null,
+  );
   // Adaptive Purpose clamp (see the per-website AutomationsTableClient for the
   // full rationale): line count per row, sized to the fixed-width Name cell so
   // taller rows fill their height instead of leaving a 2-line gap.
@@ -731,11 +743,37 @@ export function AllAutomationsTableClient({
                                 title={w.url}
                                 className="truncate text-xs text-zinc-700"
                               >
+                                {/* Gold count doubles as the "related automations"
+                                    trigger (opens the lookup anchored to this row).
+                                    Mirrors the Per Website table. */}
                                 {i === 0 && (
-                                  <span className="font-medium text-amber-600">
-                                    ({arr.length}){" "}
-                                  </span>
+                                  <button
+                                    type="button"
+                                    title="Show related automations"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setWebhookLookup({
+                                        anchor: {
+                                          id: r.id,
+                                          name: r.name,
+                                          platform: r.platform,
+                                        },
+                                        webhooks: arr.map((wh) => ({
+                                          id: wh.id,
+                                          url: wh.url,
+                                          otherCount: Math.max(
+                                            0,
+                                            (webhookUsageCounts[wh.id] ?? 1) - 1,
+                                          ),
+                                        })),
+                                      });
+                                    }}
+                                    className="cursor-pointer align-baseline font-medium text-amber-600 hover:underline"
+                                  >
+                                    ({arr.length})
+                                  </button>
                                 )}
+                                {i === 0 && " "}
                                 {w.url}
                               </div>
                             ))}
@@ -813,6 +851,13 @@ export function AllAutomationsTableClient({
           </p>
         </DialogContent>
       </Dialog>
+
+      {/* Webhook Links "related automations" lookup (opened from a cell's gold
+          count). Read-only; fetches the cross-platform list on demand. */}
+      <WebhookRelatedDialog
+        target={webhookLookup}
+        onOpenChange={(o) => !o && setWebhookLookup(null)}
+      />
     </div>
   );
 }
