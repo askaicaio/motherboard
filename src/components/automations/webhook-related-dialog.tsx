@@ -140,7 +140,10 @@ export function WebhookRelatedDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[85vh] flex-col sm:max-w-lg">
+      {/* Wider than the default dialog so long webhook URLs are readable: caps
+          at 85vw, mirroring the 85vh height so the left/right margin matches the
+          top/bottom gap. */}
+      <DialogContent className="flex max-h-[85vh] flex-col sm:max-w-[85vw]">
         <DialogHeader>
           <DialogTitle>Related automations</DialogTitle>
         </DialogHeader>
