@@ -20,7 +20,6 @@ import { getLastErrorAtAllAutomations } from "@/lib/automations/errors";
 import {
   getSelectionsByColumn,
   getWebhooksByAutomation,
-  getWebhookUsageCounts,
 } from "@/lib/automations/dropdown-selections";
 import { AllAutomationsTableClient } from "@/components/automations/all-automations-table-client";
 
@@ -90,9 +89,6 @@ export default async function AllAutomationsPage() {
   const webhooksByAutomation = await getWebhooksByAutomation(
     baseRows.map((r) => r.id),
   );
-  // Webhook usage counts (across all platforms), for the "related automations"
-  // lookup's stage-1 "shared with N others" badges.
-  const webhookUsageCounts = await getWebhookUsageCounts();
   const rows = baseRows.map((r) => ({
     ...r,
     lastErrorAt: lastErrorByAutomation.get(r.id) ?? null,
@@ -119,10 +115,7 @@ export default async function AllAutomationsPage() {
         </p>
       </div>
 
-      <AllAutomationsTableClient
-        rows={rows}
-        webhookUsageCounts={webhookUsageCounts}
-      />
+      <AllAutomationsTableClient rows={rows} />
     </div>
   );
 }

@@ -361,7 +361,6 @@ export function AutomationsTableClient({
   ghlTagChoices = [],
   ghlFormChoices = [],
   webhookChoices = [],
-  webhookUsageCounts = {},
   canSync = false,
   hasApiKey = false,
   autoRefresh = { enabled: false, nextRefreshAt: null },
@@ -387,10 +386,6 @@ export function AutomationsTableClient({
   ghlFormChoices?: ChoiceOption[];
   /** Webhook Links options (URL as value) for the multi-select picker. */
   webhookChoices?: ChoiceOption[];
-  /** How many automations use each webhook, keyed by webhook choice id. Powers
-   *  the "related automations" lookup's stage-1 "shared with N others" badges
-   *  (N = this count minus the row's own automation). */
-  webhookUsageCounts?: Record<string, number>;
   /** When true, "Refresh List" performs a real sync; otherwise it shows the
    *  temporary placeholder error (platforms whose sync isn't built yet). */
   canSync?: boolean;
@@ -1588,10 +1583,6 @@ export function AutomationsTableClient({
                                         webhooks: arr.map((wh) => ({
                                           id: wh.id,
                                           url: wh.url,
-                                          otherCount: Math.max(
-                                            0,
-                                            (webhookUsageCounts[wh.id] ?? 1) - 1,
-                                          ),
                                         })),
                                       });
                                     }}

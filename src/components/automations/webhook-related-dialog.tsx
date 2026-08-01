@@ -28,11 +28,12 @@ import type { RelatedAutomation } from "@/lib/automations/dropdown-config";
 
 /** What the dialog was opened for. `anchor` present → anchored flow (exclude
  *  that automation, show "on <name>" context); null → Config browse-all (all
- *  users, no exclusion). `webhooks` is the choose-from set (one → skip stage 1);
- *  `otherCount` drives the stage-1 badge. */
+ *  users, no exclusion). `webhooks` is the choose-from set (one → skip stage 1).
+ *  The stage-1 "shared with N others" counts are fetched live on open (see
+ *  below), NOT carried here, so they can't go stale after an in-session edit. */
 export interface WebhookLookupTarget {
   anchor: { id: string; name: string; platform: string } | null;
-  webhooks: { id: string; url: string; otherCount: number }[];
+  webhooks: { id: string; url: string }[];
 }
 
 function platformLabel(slug: string): string {
@@ -56,6 +57,9 @@ export function WebhookRelatedDialog({
   const [list, setList] = useState<RelatedAutomation[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
+  // Per-webhook "others" counts for the stage-1 badges, fetched live on open
+  // (null = still loading). Keyed by webhook choice id.
+  const [counts, setCounts] = useState<Record<string, number> | null>(null);
 
   // Reset when opened for a different target (row / webhook).
   useEffect(() => {
@@ -63,6 +67,34 @@ export function WebhookRelatedDialog({
     setPickedId(target.webhooks.length === 1 ? target.webhooks[0].id : null);
     setList(null);
     setError(false);
+  }, [target]);
+
+  // Fetch the stage-1 "shared with N others" counts live when the dialog opens.
+  // Only the multi-webhook picker shows them; a single webhook skips stage 1.
+  // Excludes the anchor automation so the badge matches the stage-2 list.
+  useEffect(() => {
+    if (!target || target.webhooks.length <= 1) {
+      setCounts({});
+      return;
+    }
+    let cancelled = false;
+    setCounts(null);
+    const params = new URLSearchParams({
+      choiceIds: target.webhooks.map((w) => w.id).join(","),
+    });
+    if (target.anchor) params.set("excludeId", target.anchor.id);
+    fetch(`/api/automations/webhook-related?${params.toString()}`)
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("failed"))))
+      .then((data) => {
+        if (!cancelled) setCounts((data.counts ?? {}) as Record<string, number>);
+      })
+      .catch(() => {
+        // Fall back to an empty map (badges read 0); stage 2 is still accurate.
+        if (!cancelled) setCounts({});
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [target]);
 
   // Fetch the related automations for the chosen webhook.
@@ -124,8 +156,11 @@ export function WebhookRelatedDialog({
                       {w.url}
                     </span>
                     <span className="shrink-0 whitespace-nowrap text-xs text-zinc-500">
-                      Shared with {w.otherCount} other
-                      {w.otherCount === 1 ? "" : "s"}
+                      {counts === null
+                        ? "Checking…"
+                        : `Shared with ${counts[w.id] ?? 0} other${
+                            (counts[w.id] ?? 0) === 1 ? "" : "s"
+                          }`}
                     </span>
                   </button>
                 </li>
