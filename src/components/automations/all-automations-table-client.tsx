@@ -756,7 +756,7 @@ export function AllAutomationsTableClient({
                                     })),
                                   });
                                 }}
-                                className="block w-full cursor-pointer truncate text-left text-xs text-zinc-700 hover:underline"
+                                className="block w-full cursor-pointer truncate text-left text-xs text-blue-600 hover:underline"
                               >
                                 {i === 0 && (
                                   <span className="font-medium text-amber-600">
