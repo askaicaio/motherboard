@@ -164,7 +164,7 @@ export function WebhookRelatedDialog({
                     {/* Full URL, wrapping across lines rather than truncating
                         (overflow-wrap:anywhere breaks the long unbroken token so
                         the whole URL is visible even on the narrow dialog). */}
-                    <span className="min-w-0 flex-1 [overflow-wrap:anywhere] font-mono text-xs text-zinc-700">
+                    <span className="min-w-0 flex-1 [overflow-wrap:anywhere] font-mono text-xs text-blue-600">
                       {w.url}
                     </span>
                     <span className="shrink-0 whitespace-nowrap text-xs text-zinc-500">
