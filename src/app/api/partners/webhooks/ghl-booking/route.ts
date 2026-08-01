@@ -75,6 +75,14 @@ export async function POST(req: NextRequest) {
     payload;
   const attribution = payload.attribution as Record<string, unknown> | undefined;
   const appt = payload.appointment as Record<string, unknown> | undefined;
+  // GHL sometimes nests the workflow "Custom Data" key/values under customData
+  // / customFields rather than at the top level. Look there too.
+  const custom =
+    (payload.customData as Record<string, unknown> | undefined) ??
+    (payload.customFields as Record<string, unknown> | undefined) ??
+    ((contact?.customData ?? contact?.customFields) as
+      | Record<string, unknown>
+      | undefined);
 
   // First-rollout forensics: log the SHAPE (top-level keys only, no PII/values)
   // so the extractor can be aligned to the real GHL body if a field is missed.
@@ -83,10 +91,14 @@ export async function POST(req: NextRequest) {
     Object.keys(payload).join(","),
     "| contact keys:",
     contact && contact !== payload ? Object.keys(contact).join(",") : "(inline)",
+    "| customData keys:",
+    custom ? Object.keys(custom).join(",") : "(none)",
   );
 
   const email =
-    pick(payload, "email", "contact_email") ?? pick(contact, "email");
+    pick(payload, "email", "contact_email") ??
+    pick(custom, "email") ??
+    pick(contact, "email");
   const refCode =
     pick(
       payload,
@@ -96,6 +108,7 @@ export async function POST(req: NextRequest) {
       "affCode",
       "aff_id",
     ) ??
+    pick(custom, "prospect_referral_code", "utm_content", "utmContent") ??
     pick(contact, "prospect_referral_code", "utm_content", "utmContent") ??
     pick(attribution, "utm_content", "utmContent");
   const joinedName = [
@@ -144,5 +157,16 @@ export async function POST(req: NextRequest) {
     scheduledAt: startRaw ? new Date(startRaw) : null,
   });
 
-  return NextResponse.json({ ok: true, ...result });
+  // Diagnostic echo — surfaces in GHL's execution-log "webhook response" so you
+  // can see exactly what GHL sent (which keys) and what we parsed out of it.
+  const received = {
+    topLevelKeys: Object.keys(payload),
+    contactKeys:
+      contact && contact !== payload ? Object.keys(contact) : "(inline)",
+    customDataKeys: custom ? Object.keys(custom) : null,
+    emailParsed: Boolean(email),
+    refCodeParsed: refCode ?? null,
+  };
+
+  return NextResponse.json({ ok: true, ...result, received });
 }
