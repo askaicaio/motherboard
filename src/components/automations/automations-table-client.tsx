@@ -218,10 +218,11 @@ export interface AutomationRow {
   // a sync/poll. Populated for all synced platforms (n8n/GHL `updatedAt`, Make
   // `lastEdit`); "-" only until a row has been synced or has no value yet.
   lastEditedAt?: string | Date | null;
-  // Latest error date found by an integration for this automation. PLACEHOLDER:
-  // error tracking doesn't exist yet, so nothing feeds this and every row shows
-  // "-". Wire it to a real per-automation "last error at" once error tracking
-  // lands. Rendered in RED (unlike the other date columns).
+  // Latest captured error date for this automation, from the automation_errors
+  // table (Make + n8n write it; fed by getLastErrorAtByPlatform in the page
+  // loader). Null when the row has no captured error, so the cell shows "-"
+  // (also the case for GHL, which has no error API, and Zapier, out of scope).
+  // Rendered in RED (unlike the other date columns).
   lastErrorAt?: string | Date | null;
   // Author (single-select dropdown column). `authorChoiceId` is the stored
   // automation_dropdown_choices id; `author` is its resolved display value
@@ -1634,9 +1635,10 @@ export function AutomationsTableClient({
                         )}
                       </td>
                       <td className="px-3 py-2 align-top text-center">
-                        {/* Last Error: latest error date (MM-DD-YYYY), rendered
-                            in RED. PLACEHOLDER: nothing feeds this yet (no error
-                            tracking), so it's always "-" for now. */}
+                        {/* Last Error: latest captured error date (MM-DD-YYYY),
+                            rendered in RED. From the automation_errors table
+                            (Make + n8n); "-" when the row has no captured
+                            error. */}
                         {r.lastErrorAt ? (
                           <span className="text-xs tabular-nums text-red-600">
                             {formatDateCell(r.lastErrorAt)}
