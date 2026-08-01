@@ -1556,44 +1556,41 @@ export function AutomationsTableClient({
                             // the others).
                             style={{ maxHeight: (purposeClamp[r.id] ?? 2) * 16 }}
                           >
+                            {/* Every webhook line is a button that opens the
+                                "related automations" lookup (not just the gold
+                                count, so the whole cell is an obvious click
+                                target). Disabled in edit mode so the row's
+                                edit-click falls through, mirroring the Notes
+                                button. */}
                             {r.webhooks.map((w, i, arr) => (
-                              <div
+                              <button
                                 key={w.id}
+                                type="button"
+                                disabled={editMode}
                                 title={w.url}
-                                className="truncate text-xs text-zinc-700"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setWebhookLookup({
+                                    anchor: {
+                                      id: r.id,
+                                      name: r.name,
+                                      platform,
+                                    },
+                                    webhooks: arr.map((wh) => ({
+                                      id: wh.id,
+                                      url: wh.url,
+                                    })),
+                                  });
+                                }}
+                                className="block w-full cursor-pointer truncate text-left text-xs text-zinc-700 hover:underline disabled:pointer-events-none disabled:cursor-default disabled:no-underline"
                               >
-                                {/* The gold count doubles as the "related
-                                    automations" trigger (opens the lookup for
-                                    this row's webhooks). Disabled in edit mode so
-                                    the row's edit-click falls through, mirroring
-                                    the Notes button. */}
                                 {i === 0 && (
-                                  <button
-                                    type="button"
-                                    disabled={editMode}
-                                    title="Show related automations"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setWebhookLookup({
-                                        anchor: {
-                                          id: r.id,
-                                          name: r.name,
-                                          platform,
-                                        },
-                                        webhooks: arr.map((wh) => ({
-                                          id: wh.id,
-                                          url: wh.url,
-                                        })),
-                                      });
-                                    }}
-                                    className="cursor-pointer align-baseline font-medium text-amber-600 hover:underline disabled:pointer-events-none disabled:cursor-default disabled:no-underline"
-                                  >
-                                    ({arr.length})
-                                  </button>
+                                  <span className="font-medium text-amber-600">
+                                    ({arr.length}){" "}
+                                  </span>
                                 )}
-                                {i === 0 && " "}
                                 {w.url}
-                              </div>
+                              </button>
                             ))}
                           </div>
                         ) : (
