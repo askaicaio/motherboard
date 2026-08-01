@@ -22,9 +22,21 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ArrowLeft, ExternalLink } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getAutomationSite } from "@/lib/automations/sites";
 import type { RelatedAutomation } from "@/lib/automations/dropdown-config";
+
+/** Copy a webhook URL to the clipboard with a toast (the header URL is
+ *  click-to-copy rather than a navigable link). */
+async function copyWebhookUrl(url: string) {
+  try {
+    await navigator.clipboard.writeText(url);
+    toast.success("Webhook link copied");
+  } catch {
+    toast.error("Could not copy link");
+  }
+}
 
 /** What the dialog was opened for. `anchor` present → anchored flow (exclude
  *  that automation, show "on <name>" context); null → Config browse-all (all
@@ -181,23 +193,28 @@ export function WebhookRelatedDialog({
                   All webhooks
                 </button>
               )}
-              <p className="text-sm text-zinc-700">
-                Webhook{" "}
-                <span
-                  className="break-all font-mono text-xs text-zinc-900"
-                  title={picked?.url}
-                >
-                  {picked?.url}
-                </span>
-                {anchor && (
-                  <>
-                    {" "}
-                    on <span className="font-medium">{anchor.name}</span>
-                    <span className="text-zinc-400">
-                      {" · "}
-                      {platformLabel(anchor.platform)}
-                    </span>
-                  </>
+              {/* Anchor context on its own line (anchored flow only). */}
+              {anchor && (
+                <p className="text-sm text-zinc-700">
+                  <span className="font-medium">{anchor.name}</span>
+                  <span className="text-zinc-400">
+                    {" · "}
+                    {platformLabel(anchor.platform)}
+                  </span>
+                </p>
+              )}
+              {/* The webhook URL, blue + click-to-copy (not a navigable link). */}
+              <p className="mt-0.5 text-sm text-zinc-700">
+                Webhook:{" "}
+                {picked && (
+                  <button
+                    type="button"
+                    onClick={() => copyWebhookUrl(picked.url)}
+                    title="Click to copy"
+                    className="cursor-pointer break-all text-left font-mono text-xs text-blue-600 hover:underline"
+                  >
+                    {picked.url}
+                  </button>
                 )}
               </p>
             </div>
