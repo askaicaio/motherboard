@@ -1582,7 +1582,7 @@ export function AutomationsTableClient({
                                     })),
                                   });
                                 }}
-                                className="block w-full cursor-pointer truncate text-left text-xs text-zinc-700 hover:underline disabled:pointer-events-none disabled:cursor-default disabled:no-underline"
+                                className="block w-full cursor-pointer truncate text-left text-xs text-blue-600 hover:underline disabled:pointer-events-none disabled:cursor-default disabled:no-underline"
                               >
                                 {i === 0 && (
                                   <span className="font-medium text-amber-600">
