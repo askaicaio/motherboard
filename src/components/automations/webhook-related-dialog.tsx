@@ -159,12 +159,12 @@ export function WebhookRelatedDialog({
                   <button
                     type="button"
                     onClick={() => setPickedId(w.id)}
-                    className="flex w-full items-center justify-between gap-3 rounded-md border border-zinc-200 px-3 py-2 text-left transition-colors hover:bg-zinc-50"
+                    className="flex w-full items-start justify-between gap-3 rounded-md border border-zinc-200 px-3 py-2 text-left transition-colors hover:bg-zinc-50"
                   >
-                    <span
-                      className="min-w-0 flex-1 truncate font-mono text-xs text-zinc-700"
-                      title={w.url}
-                    >
+                    {/* Full URL, wrapping across lines rather than truncating
+                        (overflow-wrap:anywhere breaks the long unbroken token so
+                        the whole URL is visible even on the narrow dialog). */}
+                    <span className="min-w-0 flex-1 [overflow-wrap:anywhere] font-mono text-xs text-zinc-700">
                       {w.url}
                     </span>
                     <span className="shrink-0 whitespace-nowrap text-xs text-zinc-500">
