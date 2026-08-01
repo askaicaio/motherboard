@@ -329,3 +329,16 @@ export interface SelectedWebhook {
   id: string;
   url: string;
 }
+
+/** One automation surfaced by the Webhook Links "related automations" lookup:
+ *  an automation that uses a given webhook, resolved for cross-platform display
+ *  (name / platform / status / link). The lookup spans ALL platforms, so the
+ *  list can mix websites; `platform` is the slug (mapped to a label at render). */
+export interface RelatedAutomation {
+  id: string;
+  name: string;
+  platform: string;
+  /** "active" | "paused" (same shape as automations.status). */
+  status: string;
+  externalUrl: string;
+}

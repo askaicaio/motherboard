@@ -24,6 +24,7 @@ import { getLastErrorAtByPlatform } from "@/lib/automations/errors";
 import {
   getSelectionsByColumn,
   getWebhooksByAutomation,
+  getWebhookUsageCounts,
 } from "@/lib/automations/dropdown-selections";
 import { AutomationsTableClient } from "@/components/automations/automations-table-client";
 
@@ -181,6 +182,9 @@ export default async function AutomationWebsitePage({
   const webhooksByAutomation = await getWebhooksByAutomation(
     baseRows.map((r) => r.id),
   );
+  // How many automations use each webhook (across ALL platforms), for the
+  // "related automations" lookup's stage-1 "shared with N others" badges.
+  const webhookUsageCounts = await getWebhookUsageCounts();
   const rows = baseRows.map((r) => ({
     ...r,
     lastErrorAt: lastErrorByAutomation.get(r.id) ?? null,
@@ -215,6 +219,7 @@ export default async function AutomationWebsitePage({
         ghlTagChoices={ghlTagChoices}
         ghlFormChoices={ghlFormChoices}
         webhookChoices={webhookChoices}
+        webhookUsageCounts={webhookUsageCounts}
         canSync={isSyncablePlatform(site.slug)}
         hasApiKey={platformHasApiKey(site.slug)}
         autoRefresh={autoRefresh}

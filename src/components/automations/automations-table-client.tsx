@@ -47,6 +47,10 @@ import {
 } from "@/components/ui/tooltip";
 import { WorkflowDialog } from "./workflow-dialog";
 import { ColorBadge } from "./color-badge";
+import {
+  WebhookRelatedDialog,
+  type WebhookLookupTarget,
+} from "./webhook-related-dialog";
 import { confirmDialog } from "@/components/ui/confirm";
 import { columnVisibleOnPlatform } from "@/lib/automations/dropdown-config";
 import type {
@@ -356,6 +360,7 @@ export function AutomationsTableClient({
   ghlTagChoices = [],
   ghlFormChoices = [],
   webhookChoices = [],
+  webhookUsageCounts = {},
   canSync = false,
   hasApiKey = false,
   autoRefresh = { enabled: false, nextRefreshAt: null },
@@ -381,6 +386,10 @@ export function AutomationsTableClient({
   ghlFormChoices?: ChoiceOption[];
   /** Webhook Links options (URL as value) for the multi-select picker. */
   webhookChoices?: ChoiceOption[];
+  /** How many automations use each webhook, keyed by webhook choice id. Powers
+   *  the "related automations" lookup's stage-1 "shared with N others" badges
+   *  (N = this count minus the row's own automation). */
+  webhookUsageCounts?: Record<string, number>;
   /** When true, "Refresh List" performs a real sync; otherwise it shows the
    *  temporary placeholder error (platforms whose sync isn't built yet). */
   canSync?: boolean;
@@ -407,6 +416,11 @@ export function AutomationsTableClient({
   // Mirrors showingPurpose. (The per-row clamp is shared: Notes reuses
   // purposeClamp since both cells share the Name-cell-driven row height.)
   const [showingNotes, setShowingNotes] = useState<string | null>(null);
+  // The Webhook Links "related automations" lookup target (null = closed). Set
+  // when the gold count in a webhook cell is clicked; drives WebhookRelatedDialog.
+  const [webhookLookup, setWebhookLookup] = useState<WebhookLookupTarget | null>(
+    null,
+  );
   // Adaptive Purpose clamp: how many lines of the Purpose blurb to show per row
   // (keyed by row id, default 2). Taller rows (a long Name that wraps) get more
   // lines so the blurb fills the extra height instead of leaving a gap under a
@@ -1552,11 +1566,40 @@ export function AutomationsTableClient({
                                 title={w.url}
                                 className="truncate text-xs text-zinc-700"
                               >
+                                {/* The gold count doubles as the "related
+                                    automations" trigger (opens the lookup for
+                                    this row's webhooks). Disabled in edit mode so
+                                    the row's edit-click falls through, mirroring
+                                    the Notes button. */}
                                 {i === 0 && (
-                                  <span className="font-medium text-amber-600">
-                                    ({arr.length}){" "}
-                                  </span>
+                                  <button
+                                    type="button"
+                                    disabled={editMode}
+                                    title="Show related automations"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setWebhookLookup({
+                                        anchor: {
+                                          id: r.id,
+                                          name: r.name,
+                                          platform,
+                                        },
+                                        webhooks: arr.map((wh) => ({
+                                          id: wh.id,
+                                          url: wh.url,
+                                          otherCount: Math.max(
+                                            0,
+                                            (webhookUsageCounts[wh.id] ?? 1) - 1,
+                                          ),
+                                        })),
+                                      });
+                                    }}
+                                    className="cursor-pointer align-baseline font-medium text-amber-600 hover:underline disabled:pointer-events-none disabled:cursor-default disabled:no-underline"
+                                  >
+                                    ({arr.length})
+                                  </button>
                                 )}
+                                {i === 0 && " "}
                                 {w.url}
                               </div>
                             ))}
@@ -1691,6 +1734,13 @@ export function AutomationsTableClient({
           </p>
         </DialogContent>
       </Dialog>
+
+      {/* Webhook Links "related automations" lookup (opened from a cell's gold
+          count). Read-only; fetches the cross-platform list on demand. */}
+      <WebhookRelatedDialog
+        target={webhookLookup}
+        onOpenChange={(o) => !o && setWebhookLookup(null)}
+      />
     </div>
   );
 }
