@@ -98,6 +98,25 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     stripeChargeId,
     currency: (session.currency || "usd").toUpperCase(),
   });
+
+  // ── Auto-refund the $1 test product ──────────────────────────────────────
+  // So live-mode testers are never actually out of pocket. Scoped to the ONE
+  // designated test-product slug (default "test-product-1"; override with
+  // AUTO_REFUND_PROGRAM_SLUG). Best-effort: Stripe rejects a double full-refund,
+  // so redeliveries are safe, and a failure here never breaks the conversion.
+  // (The resulting charge.refunded event will then reverse the test conversion
+  // — expected, since the money was returned.)
+  const autoRefundSlug = process.env.AUTO_REFUND_PROGRAM_SLUG || "test-product-1";
+  if (programRef === autoRefundSlug && typeof session.payment_intent === "string") {
+    try {
+      await stripe.refunds.create({ payment_intent: session.payment_intent });
+      console.info(
+        `[stripe] auto-refunded test product "${autoRefundSlug}" for session ${session.id}`,
+      );
+    } catch (err) {
+      console.error("[stripe] test-product auto-refund failed:", err);
+    }
+  }
 }
 
 /**
