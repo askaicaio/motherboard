@@ -79,6 +79,7 @@ import {
   Sparkles,
   Send,
   ArrowRight,
+  FlaskConical,
 } from "lucide-react";
 import { format, parseISO, isValid as dateIsValid } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -2152,6 +2153,7 @@ function PayoutsSection({ initialBatches }: { initialBatches: BatchRow[] }) {
   const [preview, setPreview] = useState<PreviewResponse | null>(null);
   const [previewing, setPreviewing] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [testGenerating, setTestGenerating] = useState(false);
   const [markTarget, setMarkTarget] = useState<BatchRow | null>(null);
   const [marking, setMarking] = useState(false);
   const [sendTarget, setSendTarget] = useState<BatchRow | null>(null);
@@ -2204,6 +2206,42 @@ function PayoutsSection({ initialBatches }: { initialBatches: BatchRow[] }) {
       toast.error("Failed to generate batch");
     } finally {
       setGenerating(false);
+    }
+  };
+
+  // TEST-ONLY: build a draft batch that ignores the Net-45 hold + the minimum
+  // floor (a Connect-ready affiliate with any earned balance is included), so
+  // the real Stripe transfer can be exercised. Only creates a DRAFT — no money
+  // moves until the batch is sent.
+  const generateTestBatch = async () => {
+    setTestGenerating(true);
+    try {
+      const res = await fetch("/api/partners/payouts/generate-test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error || "Failed to generate test batch");
+        return;
+      }
+      const data = (await res.json()) as {
+        totalCents: number;
+        lines: { partnerId: string }[];
+      };
+      const count = data.lines.length;
+      toast.success(
+        `Test batch generated (gates bypassed) — ${count} partner${
+          count === 1 ? "" : "s"
+        }, ${fmtUsd(data.totalCents)}`,
+      );
+      setPreview(null);
+      router.refresh();
+    } catch {
+      toast.error("Failed to generate test batch");
+    } finally {
+      setTestGenerating(false);
     }
   };
 
@@ -2337,6 +2375,21 @@ function PayoutsSection({ initialBatches }: { initialBatches: BatchRow[] }) {
               <PlayCircle className="mr-2 h-3.5 w-3.5" />
             )}
             Generate payout batch
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={generateTestBatch}
+            disabled={testGenerating}
+            title="Testing only: bypasses the Net-45 hold + the $100 minimum so you can run a real Connect transfer. Creates a draft only — no money moves until you send it."
+            className="border-amber-300 text-amber-700 hover:bg-amber-50"
+          >
+            {testGenerating ? (
+              <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <FlaskConical className="mr-2 h-3.5 w-3.5" />
+            )}
+            Test payout
           </Button>
         </div>
       </div>

@@ -148,18 +148,7 @@ export function periodCloseUTC(d: Date): Date {
  * engine's maturity gate and the affiliate's "expected payout" estimate both
  * call it, so the term flips in exactly one place.
  */
-export function computePayableAt(
-  earnedAt: Date,
-  payoutTermsDays: number,
-  fastModeDays?: number | null,
-): Date {
-  // TEST-ONLY shortcut: when fast mode is on (a non-null number), a commission
-  // is payable that many days after it's EARNED — not after the period closes —
-  // so the whole payout cycle can be exercised in ~1 day. The real Net-terms
-  // rule (anchored on the month close) is the default and is left untouched.
-  if (fastModeDays != null && Number.isFinite(fastModeDays)) {
-    return addDays(earnedAt, fastModeDays);
-  }
+export function computePayableAt(earnedAt: Date, payoutTermsDays: number): Date {
   return addDays(periodCloseUTC(earnedAt), payoutTermsDays);
 }
 
@@ -177,7 +166,6 @@ export function computeExpectedPayoutDate(
     refundWindowEndsAt: Date;
   },
   payoutTermsDays: number,
-  fastModeDays?: number | null,
 ): Date | null {
   if (input.status === "reversed" || input.status === "rejected") return null;
   if (input.status === "paid") return null; // caller shows real paidAt
@@ -189,7 +177,7 @@ export function computeExpectedPayoutDate(
   // margin to the projection so the shown estimate is never EARLIER than the
   // engine can pay (better to slightly over-estimate than to promise too soon).
   const clearsOn = input.earnedAt ?? addDays(input.refundWindowEndsAt, 1);
-  return computePayableAt(clearsOn, payoutTermsDays, fastModeDays);
+  return computePayableAt(clearsOn, payoutTermsDays);
 }
 
 /** Is a click still within the cookie window, measured from the click time? */

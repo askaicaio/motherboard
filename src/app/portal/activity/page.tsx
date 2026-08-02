@@ -9,7 +9,6 @@ import {
 import { and, eq, desc, ne, sql } from "drizzle-orm";
 import { getActiveSettings } from "@/lib/partners/queries";
 import { computeExpectedPayoutDate } from "@/lib/partners/rules";
-import { payoutFastModeDays } from "@/lib/partners/payouts";
 import { ActivityClient, type ActivityRow } from "./activity-client";
 
 export const dynamic = "force-dynamic";
@@ -58,7 +57,6 @@ export default async function ActivityPage() {
   const payoutTermsDays = settings?.payoutTermsDays ?? 45;
   const minPayoutCents = settings?.minPayoutCents ?? 10000;
   const refundWindowDays = settings?.refundWindowDays ?? 7;
-  const fastModeDays = payoutFastModeDays();
 
   const activityRows: ActivityRow[] = rows.map((r) => {
     const status = (r.status as ActivityRow["status"]) ?? "pending";
@@ -69,7 +67,6 @@ export default async function ActivityPage() {
         refundWindowEndsAt: r.refundWindowEndsAt,
       },
       payoutTermsDays,
-      fastModeDays,
     );
     return {
       id: r.id,

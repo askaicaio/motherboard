@@ -48,36 +48,29 @@ export interface PayoutPreview {
 }
 
 /**
- * TEST-ONLY. When PAYOUT_FAST_MODE_DAYS is set, earned commissions become
- * payable that many days after they're EARNED instead of Net-45-after-close —
- * so the payout cycle can be run in ~1 day. Returns null (real policy) when the
- * env var is unset. LEAVE IT UNSET in production: it bypasses the Net-45 hold.
- */
-export function payoutFastModeDays(): number | null {
-  const raw = process.env.PAYOUT_FAST_MODE_DAYS;
-  if (raw == null || raw.trim() === "") return null;
-  const n = Number(raw);
-  return Number.isFinite(n) && n >= 0 ? n : null;
-}
-
-/**
  * Compute who would be paid right now. Pure read — no writes. Groups all
  * earned + unbatched conversions by partner and applies the threshold +
  * tax gate against the CURRENT active settings.
+ *
+ * `opts.bypassGates` is a TEST-ONLY shortcut (the "Test payout" admin action):
+ * it treats every earned commission as mature — skipping the Net-45 hold — and
+ * drops the minimum-payout floor to $0, so a real Stripe Connect transfer can be
+ * exercised end-to-end without waiting or editing settings. The daily cron and
+ * the normal "Generate payout batch" NEVER pass it, so production always keeps
+ * the true Net-45 + $100-minimum rules. (Stripe Connect "ready" is still
+ * required — you can't pay an unconnected account.)
  */
-export async function previewPayout(): Promise<PayoutPreview> {
+export async function previewPayout(
+  opts: { bypassGates?: boolean } = {},
+): Promise<PayoutPreview> {
   const now = new Date();
   const settings = await getActiveSettings(now);
-  const minPayoutCents = settings?.minPayoutCents ?? 10000;
+  const minPayoutCents = opts.bypassGates
+    ? 0
+    : settings?.minPayoutCents ?? 10000;
   // Net-N terms: an earned commission is only payable N days after the close of
   // the calendar-month period in which it was earned.
   const payoutTermsDays = settings?.payoutTermsDays ?? 45;
-  const fastModeDays = payoutFastModeDays();
-  if (fastModeDays != null) {
-    console.warn(
-      `[payouts] PAYOUT_FAST_MODE_DAYS=${fastModeDays} active — commissions payable ${fastModeDays}d after earned (TEST ONLY, bypasses Net-45).`,
-    );
-  }
 
   // All earned, not-yet-batched conversions joined to their partner.
   const rows = await db
@@ -119,8 +112,9 @@ export async function previewPayout(): Promise<PayoutPreview> {
     const isClawback = r.source === "clawback";
     const mature =
       isClawback ||
+      opts.bypassGates ||
       (r.earnedAt != null &&
-        computePayableAt(r.earnedAt, payoutTermsDays, fastModeDays).getTime() <=
+        computePayableAt(r.earnedAt, payoutTermsDays).getTime() <=
           now.getTime());
     if (!mature) continue;
     let line = byPartner.get(r.partnerId);
@@ -183,8 +177,9 @@ export async function previewPayout(): Promise<PayoutPreview> {
 export async function generatePayoutBatch(
   periodYyyymm: number,
   actorId: string | null,
+  opts: { bypassGates?: boolean } = {},
 ): Promise<{ batchId: string; totalCents: number; lines: PayoutLine[] }> {
-  const preview = await previewPayout();
+  const preview = await previewPayout(opts);
   if (preview.included.length === 0) {
     throw new Error("No partners are eligible for payout right now.");
   }
