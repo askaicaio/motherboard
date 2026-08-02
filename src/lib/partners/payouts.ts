@@ -48,6 +48,19 @@ export interface PayoutPreview {
 }
 
 /**
+ * TEST-ONLY. When PAYOUT_FAST_MODE_DAYS is set, earned commissions become
+ * payable that many days after they're EARNED instead of Net-45-after-close —
+ * so the payout cycle can be run in ~1 day. Returns null (real policy) when the
+ * env var is unset. LEAVE IT UNSET in production: it bypasses the Net-45 hold.
+ */
+export function payoutFastModeDays(): number | null {
+  const raw = process.env.PAYOUT_FAST_MODE_DAYS;
+  if (raw == null || raw.trim() === "") return null;
+  const n = Number(raw);
+  return Number.isFinite(n) && n >= 0 ? n : null;
+}
+
+/**
  * Compute who would be paid right now. Pure read — no writes. Groups all
  * earned + unbatched conversions by partner and applies the threshold +
  * tax gate against the CURRENT active settings.
@@ -59,6 +72,12 @@ export async function previewPayout(): Promise<PayoutPreview> {
   // Net-N terms: an earned commission is only payable N days after the close of
   // the calendar-month period in which it was earned.
   const payoutTermsDays = settings?.payoutTermsDays ?? 45;
+  const fastModeDays = payoutFastModeDays();
+  if (fastModeDays != null) {
+    console.warn(
+      `[payouts] PAYOUT_FAST_MODE_DAYS=${fastModeDays} active — commissions payable ${fastModeDays}d after earned (TEST ONLY, bypasses Net-45).`,
+    );
+  }
 
   // All earned, not-yet-batched conversions joined to their partner.
   const rows = await db
@@ -101,7 +120,8 @@ export async function previewPayout(): Promise<PayoutPreview> {
     const mature =
       isClawback ||
       (r.earnedAt != null &&
-        computePayableAt(r.earnedAt, payoutTermsDays).getTime() <= now.getTime());
+        computePayableAt(r.earnedAt, payoutTermsDays, fastModeDays).getTime() <=
+          now.getTime());
     if (!mature) continue;
     let line = byPartner.get(r.partnerId);
     if (!line) {
