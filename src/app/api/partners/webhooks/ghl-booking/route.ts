@@ -122,8 +122,9 @@ export async function POST(req: NextRequest) {
     pick(contact, "full_name", "name") ??
     (joinedName || null);
   const company =
-    pick(payload, "company", "companyName") ??
-    pick(contact, "company", "companyName");
+    pick(payload, "company", "companyName", "company_name", "businessName", "business_name") ??
+    pick(custom, "company", "companyName", "company_name") ??
+    pick(contact, "company", "companyName", "company_name", "businessName");
 
   // Anchor recordedAt on when the booking was CREATED, never the (future)
   // scheduled slot time (startTime): recordedAt is both the first-attribution

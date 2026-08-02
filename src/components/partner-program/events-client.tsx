@@ -78,6 +78,7 @@ import {
   MoreHorizontal,
   Sparkles,
   Send,
+  ArrowRight,
 } from "lucide-react";
 import { format, parseISO, isValid as dateIsValid } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -122,14 +123,18 @@ export interface AttributionEventItem {
   partnerId: string;
   partnerName: string | null;
   partnerIsSample: boolean;
+  partnerRefCode: string | null;
+  partnerStatus: string | null;
   type: string;
   prospectEmail: string | null;
   prospectName: string | null;
   company: string | null;
   sourceDetail: string | null;
   recordedAt: string;
+  scheduledAt: string | null;
   proposalSentAt: string | null;
   isValid: boolean;
+  externalRef: string | null;
   notes: string | null;
 }
 
@@ -1526,6 +1531,13 @@ function AttributionSection({
   const [events, setEvents] = useState(initialEvents);
   const [search, setSearch] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
+  // Row → full prospect detail; Partner cell → affiliate detail.
+  const [detailEvent, setDetailEvent] = useState<AttributionEventItem | null>(
+    null,
+  );
+  const [partnerEvent, setPartnerEvent] = useState<AttributionEventItem | null>(
+    null,
+  );
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -1573,11 +1585,11 @@ function AttributionSection({
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Prospect name</TableHead>
+                <TableHead>Prospect email</TableHead>
+                <TableHead>Company</TableHead>
                 <TableHead>Partner</TableHead>
                 <TableHead>Type</TableHead>
-                <TableHead>Prospect email</TableHead>
-                <TableHead>Prospect name</TableHead>
-                <TableHead>Company</TableHead>
                 <TableHead>Recorded</TableHead>
                 <TableHead>Proposal sent</TableHead>
                 <TableHead className="text-center">Valid</TableHead>
@@ -1597,13 +1609,38 @@ function AttributionSection({
                 </TableRow>
               ) : (
                 filtered.map((e) => (
-                  <TableRow key={e.id}>
-                    <TableCell className="font-medium">
+                  <TableRow
+                    key={e.id}
+                    onClick={() => setDetailEvent(e)}
+                    className="cursor-pointer"
+                  >
+                    <TableCell className="text-sm font-medium text-zinc-900">
+                      {e.prospectName ?? (
+                        <span className="text-zinc-400">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {e.prospectEmail ?? (
+                        <span className="text-zinc-400">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {e.company ?? <span className="text-zinc-400">—</span>}
+                    </TableCell>
+                    <TableCell
+                      onClick={(ev) => {
+                        ev.stopPropagation();
+                        if (e.partnerName) setPartnerEvent(e);
+                      }}
+                    >
                       {e.partnerName ? (
-                        <span className="inline-flex items-center">
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1 font-medium text-indigo-600 hover:underline"
+                        >
                           {e.partnerName}
                           {e.partnerIsSample && <SampleBadge />}
-                        </span>
+                        </button>
                       ) : (
                         <span className="text-zinc-400">—</span>
                       )}
@@ -1620,19 +1657,6 @@ function AttributionSection({
                           Direct intro
                         </Badge>
                       )}
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {e.prospectEmail ?? (
-                        <span className="text-zinc-400">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {e.prospectName ?? (
-                        <span className="text-zinc-400">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {e.company ?? <span className="text-zinc-400">—</span>}
                     </TableCell>
                     <TableCell className="whitespace-nowrap text-sm text-zinc-600">
                       {format(new Date(e.recordedAt), "MMM d, yyyy h:mm a")}
@@ -1665,9 +1689,228 @@ function AttributionSection({
         partners={partners}
         onCreated={handleCreated}
       />
+
+      <ProspectDetailDialog
+        event={detailEvent}
+        allEvents={events}
+        onOpenChange={(o) => !o && setDetailEvent(null)}
+        onViewPartner={(e) => {
+          setDetailEvent(null);
+          setPartnerEvent(e);
+        }}
+      />
+      <PartnerDetailDialog
+        event={partnerEvent}
+        onOpenChange={(o) => !o && setPartnerEvent(null)}
+        router={router}
+      />
     </div>
   );
 }
+
+// ── Affiliate (partner) detail popup — from the Partner column ──────────────
+function PartnerDetailDialog({
+  event,
+  onOpenChange,
+  router,
+}: {
+  event: AttributionEventItem | null;
+  onOpenChange: (open: boolean) => void;
+  router: ReturnType<typeof useRouter>;
+}) {
+  return (
+    <Dialog open={!!event} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        {event && (
+          <>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                {event.partnerName ?? "Affiliate"}
+                {event.partnerIsSample && <SampleBadge />}
+              </DialogTitle>
+              <DialogDescription>
+                Affiliate who referred this prospect.
+              </DialogDescription>
+            </DialogHeader>
+            <dl className="space-y-3 text-sm">
+              <div className="flex items-center justify-between gap-4">
+                <dt className="text-zinc-500">Referral code</dt>
+                <dd className="font-mono text-zinc-900">
+                  {event.partnerRefCode ?? "—"}
+                </dd>
+              </div>
+              <div className="flex items-center justify-between gap-4">
+                <dt className="text-zinc-500">Status</dt>
+                <dd>
+                  {event.partnerStatus ? (
+                    <span className="inline-flex rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium capitalize text-zinc-700">
+                      {event.partnerStatus}
+                    </span>
+                  ) : (
+                    "—"
+                  )}
+                </dd>
+              </div>
+            </dl>
+            <DialogFooter>
+              <Button
+                onClick={() => {
+                  onOpenChange(false);
+                  router.push("/partner-program/partners");
+                }}
+                className="gap-1.5"
+              >
+                Go to Affiliates page
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </DialogFooter>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ── Prospect detail popup — from clicking an attribution row ────────────────
+function ProspectDetailDialog({
+  event,
+  allEvents,
+  onOpenChange,
+  onViewPartner,
+}: {
+  event: AttributionEventItem | null;
+  allEvents: AttributionEventItem[];
+  onOpenChange: (open: boolean) => void;
+  onViewPartner: (e: AttributionEventItem) => void;
+}) {
+  // Other attribution events for the same prospect (their history with us).
+  const history = useMemo(() => {
+    if (!event?.prospectEmail) return [];
+    const key = event.prospectEmail.toLowerCase();
+    return allEvents.filter(
+      (e) => e.id !== event.id && e.prospectEmail?.toLowerCase() === key,
+    );
+  }, [event, allEvents]);
+
+  function sourceLabel(s: string | null): string {
+    if (!s) return "—";
+    if (s === "ghl_appointment") return "Booked a call (GHL)";
+    if (s.includes("quiz") || s.includes("assessment"))
+      return "Completed the AI-readiness assessment";
+    return s;
+  }
+
+  return (
+    <Dialog open={!!event} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg">
+        {event && (
+          <>
+            <DialogHeader>
+              <DialogTitle>{event.prospectName ?? "Prospect"}</DialogTitle>
+              <DialogDescription>
+                {event.prospectEmail ?? "No email on file"}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+              <Field label="Company" value={event.company ?? "—"} />
+              <Field
+                label="Referred by"
+                value={
+                  event.partnerName ? (
+                    <button
+                      type="button"
+                      onClick={() => onViewPartner(event)}
+                      className="font-medium text-indigo-600 hover:underline"
+                    >
+                      {event.partnerName}
+                    </button>
+                  ) : (
+                    "—"
+                  )
+                }
+              />
+              <Field
+                label="Type"
+                value={
+                  event.type === "tracked_link" ? "Tracked link" : "Direct intro"
+                }
+              />
+              <Field label="Source" value={sourceLabel(event.sourceDetail)} />
+              <Field
+                label="Recorded"
+                value={format(new Date(event.recordedAt), "MMM d, yyyy h:mm a")}
+              />
+              <Field
+                label="Appointment"
+                value={
+                  event.scheduledAt
+                    ? format(new Date(event.scheduledAt), "MMM d, yyyy h:mm a")
+                    : "—"
+                }
+              />
+              <Field
+                label="Proposal sent"
+                value={
+                  event.proposalSentAt
+                    ? format(
+                        new Date(event.proposalSentAt),
+                        "MMM d, yyyy h:mm a",
+                      )
+                    : "—"
+                }
+              />
+              <Field
+                label="Valid"
+                value={
+                  event.isValid ? (
+                    <span className="inline-flex items-center gap-1 text-emerald-600">
+                      <Check className="h-3.5 w-3.5" /> Yes
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-red-600">
+                      <X className="h-3.5 w-3.5" /> No
+                    </span>
+                  )
+                }
+              />
+            </div>
+
+            {event.notes && (
+              <div className="rounded-md bg-zinc-50 px-3 py-2 text-sm text-zinc-600">
+                {event.notes}
+              </div>
+            )}
+
+            {history.length > 0 && (
+              <div>
+                <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                  Other activity for this prospect ({history.length})
+                </p>
+                <ul className="space-y-1">
+                  {history.map((h) => (
+                    <li
+                      key={h.id}
+                      className="flex items-center justify-between gap-3 rounded-md bg-zinc-50 px-2.5 py-1.5 text-xs"
+                    >
+                      <span className="text-zinc-700">
+                        {sourceLabel(h.sourceDetail)}
+                      </span>
+                      <span className="whitespace-nowrap text-zinc-400">
+                        {format(new Date(h.recordedAt), "MMM d, yyyy")}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 
 function RecordIntroDialog({
   open,
@@ -1753,11 +1996,15 @@ function RecordIntroDialog({
         partnerId: ev.partnerId,
         partnerName: partner?.name ?? null,
         partnerIsSample: partner?.isSample ?? false,
+        partnerRefCode: partner?.refCode ?? null,
+        partnerStatus: null,
         type: ev.type,
         prospectEmail: ev.prospectEmail,
         prospectName: ev.prospectName,
         company: ev.company,
         sourceDetail: ev.sourceDetail,
+        scheduledAt: ev.scheduledAt ?? null,
+        externalRef: ev.externalRef ?? null,
         recordedAt:
           typeof ev.recordedAt === "string"
             ? ev.recordedAt
