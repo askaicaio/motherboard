@@ -19,9 +19,9 @@ import { db } from "@/lib/db";
 import {
   automationDropdownChoices,
   automationWebhookChoices,
-  automationWebhooks,
 } from "@/lib/db/schema";
-import { asc, count } from "drizzle-orm";
+import { asc } from "drizzle-orm";
+import { getAutomationsByWebhookChoiceGrouped } from "@/lib/automations/dropdown-selections";
 import { DropdownConfigClient } from "@/components/automations/dropdown-config-client";
 import type {
   DropdownChoiceRow,
@@ -57,19 +57,11 @@ export default async function AutomationsDropdownConfigPage() {
       .orderBy(asc(automationWebhookChoices.url)),
   ]);
 
-  // Relationships: how many automations use each webhook (junction row counts).
-  // Empty until the Per Website Webhook Links column populates the junction, so
-  // every webhook reads 0 for now.
-  const webhookCountRows = await db
-    .select({
-      webhookChoiceId: automationWebhooks.webhookChoiceId,
-      n: count(),
-    })
-    .from(automationWebhooks)
-    .groupBy(automationWebhooks.webhookChoiceId);
-  const webhookCounts = new Map(
-    webhookCountRows.map((r) => [r.webhookChoiceId, r.n]),
-  );
+  // Relationships: the automations that use each webhook (reverse lookup),
+  // grouped by webhook choice id. Powers the Relationships column, which shows a
+  // gold count + the automation links inline (mirrors the Per Website Webhook
+  // Links cell); the count is just the list length.
+  const automationsByWebhook = await getAutomationsByWebhookChoiceGrouped();
 
   const choices: DropdownChoiceRow[] = choiceRows.map((r) => ({
     id: r.id,
@@ -80,12 +72,16 @@ export default async function AutomationsDropdownConfigPage() {
     badgeColor: r.badgeColor,
     textColor: r.textColor,
   }));
-  const webhooks: WebhookChoiceRow[] = webhookRows.map((r) => ({
-    id: r.id,
-    url: r.url,
-    notes: r.notes,
-    relationships: webhookCounts.get(r.id) ?? 0,
-  }));
+  const webhooks: WebhookChoiceRow[] = webhookRows.map((r) => {
+    const related = automationsByWebhook.get(r.id) ?? [];
+    return {
+      id: r.id,
+      url: r.url,
+      notes: r.notes,
+      relationships: related.length,
+      relatedAutomations: related,
+    };
+  });
 
   return (
     <div className="space-y-6 p-6">
