@@ -178,3 +178,42 @@ export async function getAutomationsByWebhook(
 
   return rows;
 }
+
+/**
+ * Every webhook choice's related automations, grouped by webhook choice id
+ * (name-ascending within each). Powers the Config page Relationships column,
+ * which mirrors the Per Website Webhook Links cell (a gold count + the automation
+ * links inline). One join over the whole junction; choices nobody uses are
+ * simply absent (an empty list at the call site).
+ */
+export async function getAutomationsByWebhookChoiceGrouped(): Promise<
+  Map<string, RelatedAutomation[]>
+> {
+  const rows = await db
+    .select({
+      webhookChoiceId: automationWebhooks.webhookChoiceId,
+      id: automations.id,
+      name: automations.name,
+      platform: automations.platform,
+      status: automations.status,
+      externalUrl: automations.externalUrl,
+    })
+    .from(automationWebhooks)
+    .innerJoin(automations, eq(automationWebhooks.automationId, automations.id))
+    .orderBy(asc(automations.name));
+
+  const map = new Map<string, RelatedAutomation[]>();
+  for (const r of rows) {
+    const entry: RelatedAutomation = {
+      id: r.id,
+      name: r.name,
+      platform: r.platform,
+      status: r.status,
+      externalUrl: r.externalUrl,
+    };
+    const list = map.get(r.webhookChoiceId);
+    if (list) list.push(entry);
+    else map.set(r.webhookChoiceId, [entry]);
+  }
+  return map;
+}

@@ -36,7 +36,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Eye, ListChecks, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { ListChecks, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
@@ -45,6 +45,7 @@ import {
   choiceColorLabel,
   type DropdownChoiceRow,
   type DropdownColumnKey,
+  type RelatedAutomation,
   type StatusOption,
   type WebhookChoiceRow,
 } from "@/lib/automations/dropdown-config";
@@ -66,6 +67,9 @@ interface Item {
   textColor?: string | null;
   /** Webhook Links only: count of automations using this webhook. */
   relationships?: number;
+  /** Webhook Links only: the automations using this webhook (reverse lookup),
+   *  rendered inline in the Relationships cell. */
+  relatedAutomations?: RelatedAutomation[];
 }
 
 /** Describes one table on the page. */
@@ -181,6 +185,7 @@ export function DropdownConfigClient({
       value: w.url,
       notes: w.notes,
       relationships: w.relationships ?? 0,
+      relatedAutomations: w.relatedAutomations,
     }));
     return m;
   }, [choices, webhooks]);
@@ -714,10 +719,11 @@ function ChoiceTableSection({
                       <th className="w-[120px] px-3 py-2 text-left">Text Color</th>
                     </>
                   )}
-                  {/* Relationships (Webhook Links): a numeric count, centered,
-                      120px. Sits between the value and Notes. */}
+                  {/* Relationships (Webhook Links): gold count + the automation
+                      links inline (mirrors the Per Website Webhook Links column).
+                      240px, header centered like that column. */}
                   {table.hasRelationships && (
-                    <th className="w-[120px] px-3 py-2 text-center">Relationships</th>
+                    <th className="w-[240px] px-3 py-2 text-center">Relationships</th>
                   )}
                   {table.hasNotes && (
                     <th className="px-3 py-2 text-left">Notes</th>
@@ -783,32 +789,46 @@ function ChoiceTableSection({
                         </td>
                       </>
                     )}
-                    {/* Relationships (Webhook Links): a white "View · N" button per
-                        row so the column reads uniformly. When > 0 it opens the
-                        browse-all lookup (all automations using this webhook); a 0
-                        (no relationships) renders the SAME button but disabled, so
-                        it looks like a button that just does nothing. Also disabled
-                        in edit mode so the row's edit-click falls through. 120px. */}
+                    {/* Relationships (Webhook Links): mirrors the Per Website
+                        Webhook Links cell. A gold (N) count prefix + the related
+                        automation links, one truncated blue line each, height-
+                        clamped to the row (only what fits shows). Every line opens
+                        the browse-all lookup; red "None" when nothing uses it.
+                        Disabled in edit mode so the row's edit-click falls through. */}
                     {table.hasRelationships && (
-                      <td className="w-[120px] px-3 py-2 text-center align-top">
-                        <Button
-                          variant="outline"
-                          size="xs"
-                          disabled={editMode || (item.relationships ?? 0) === 0}
-                          title={
-                            (item.relationships ?? 0) > 0
-                              ? "Show related automations"
-                              : undefined
-                          }
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onShowRelationships(item);
-                          }}
-                          className="tabular-nums font-medium"
-                        >
-                          <Eye />
-                          View · {item.relationships ?? 0}
-                        </Button>
+                      <td className="w-[240px] min-w-[240px] max-w-[240px] px-3 py-2 text-left align-top">
+                        {item.relatedAutomations &&
+                        item.relatedAutomations.length > 0 ? (
+                          <div
+                            className="overflow-hidden"
+                            style={{ maxHeight: (notesClamp[item.id] ?? 2) * 16 }}
+                          >
+                            {item.relatedAutomations.map((a, i, arr) => (
+                              <button
+                                key={a.id}
+                                type="button"
+                                disabled={editMode}
+                                title={a.externalUrl}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onShowRelationships(item);
+                                }}
+                                className="block w-full cursor-pointer truncate text-left text-xs text-blue-600 hover:underline disabled:pointer-events-none disabled:cursor-default disabled:no-underline"
+                              >
+                                {i === 0 && (
+                                  <span className="font-medium text-amber-600">
+                                    ({arr.length}){" "}
+                                  </span>
+                                )}
+                                {a.externalUrl}
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-xs font-medium text-red-600">
+                            None
+                          </span>
+                        )}
                       </td>
                     )}
                     {table.hasNotes && (

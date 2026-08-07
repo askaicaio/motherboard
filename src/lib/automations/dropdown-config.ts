@@ -297,6 +297,10 @@ export interface WebhookChoiceRow {
   /** Count of automations that use this webhook, via the automation_webhooks
    *  junction. 0 until the Per Website Webhook Links column populates it. */
   relationships?: number;
+  /** The automations that use this webhook (reverse lookup, ordered by name),
+   *  for the inline Relationships cell that mirrors the Per Website Webhook Links
+   *  column (a gold count + the automation links). */
+  relatedAutomations?: RelatedAutomation[];
 }
 
 /** One selectable option handed to a Per Website dropdown column's picker
