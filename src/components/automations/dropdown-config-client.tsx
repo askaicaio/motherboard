@@ -50,6 +50,10 @@ import {
 } from "@/lib/automations/dropdown-config";
 import { useFitViewportHeight } from "@/lib/automations/use-fit-viewport-height";
 import { ChoiceDialog } from "./choice-dialog";
+import {
+  WebhookRelatedDialog,
+  type WebhookLookupTarget,
+} from "./webhook-related-dialog";
 import { confirmDialog } from "@/components/ui/confirm";
 
 /** A unified row shown in any of the tables. */
@@ -152,6 +156,12 @@ export function DropdownConfigClient({
   } | null>(null);
   // The notes text shown in the read-only Notes popup (null = closed).
   const [showingNotes, setShowingNotes] = useState<string | null>(null);
+  // The webhook browse-all lookup target (null = closed). Opened from a Webhook
+  // Links row's Relationships count; reuses the shared WebhookRelatedDialog in
+  // "all" mode (anchor null → lists every automation using the webhook).
+  const [webhookLookup, setWebhookLookup] = useState<WebhookLookupTarget | null>(
+    null,
+  );
 
   const itemsByTable = useMemo(() => {
     const m: Record<string, Item[]> = {};
@@ -411,6 +421,12 @@ export function DropdownConfigClient({
           }
           onDelete={(item) => handleDelete(activeDescriptor, item)}
           onShowNotes={(n) => setShowingNotes(n)}
+          onShowRelationships={(item) =>
+            setWebhookLookup({
+              anchor: null,
+              webhooks: [{ id: item.id, url: item.value }],
+            })
+          }
         />
 
         {activeTable && dialog && (
@@ -461,6 +477,14 @@ export function DropdownConfigClient({
             </p>
           </DialogContent>
         </Dialog>
+
+        {/* Webhook browse-all "related automations" lookup (opened from a Webhook
+            Links row's Relationships count). Same dialog as the table lookup, in
+            "all" mode: lists every automation using the webhook. */}
+        <WebhookRelatedDialog
+          target={webhookLookup}
+          onOpenChange={(o) => !o && setWebhookLookup(null)}
+        />
       </div>
     </TooltipProvider>
   );
@@ -543,6 +567,7 @@ function ChoiceTableSection({
   onEdit,
   onDelete,
   onShowNotes,
+  onShowRelationships,
 }: {
   table: TableDescriptor;
   items: Item[];
@@ -553,6 +578,7 @@ function ChoiceTableSection({
   onEdit: (item: Item) => void;
   onDelete: (item: Item) => void;
   onShowNotes: (notes: string) => void;
+  onShowRelationships: (item: Item) => void;
 }) {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -758,20 +784,28 @@ function ChoiceTableSection({
                       </>
                     )}
                     {/* Relationships (Webhook Links): count of automations using
-                        this webhook, muted when 0 (nothing links yet until the
-                        Per Website Webhook Links column ships). Centered, 120px. */}
+                        this webhook. When > 0 it's a button opening the browse-all
+                        lookup (all automations using it); muted, non-clickable 0
+                        otherwise. Disabled in edit mode so the row's edit-click
+                        falls through (mirrors the Notes button). Centered, 120px. */}
                     {table.hasRelationships && (
                       <td className="w-[120px] px-3 py-2 text-center align-top">
-                        <span
-                          className={cn(
-                            "text-xs",
-                            (item.relationships ?? 0) > 0
-                              ? "font-medium text-zinc-900"
-                              : "text-zinc-400",
-                          )}
-                        >
-                          {item.relationships ?? 0}
-                        </span>
+                        {(item.relationships ?? 0) > 0 ? (
+                          <button
+                            type="button"
+                            disabled={editMode}
+                            title="Show related automations"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onShowRelationships(item);
+                            }}
+                            className="cursor-pointer text-xs font-medium text-zinc-900 hover:underline disabled:pointer-events-none disabled:cursor-default disabled:no-underline"
+                          >
+                            {item.relationships}
+                          </button>
+                        ) : (
+                          <span className="text-xs text-zinc-400">0</span>
+                        )}
                       </td>
                     )}
                     {table.hasNotes && (
