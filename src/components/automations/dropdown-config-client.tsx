@@ -791,18 +791,19 @@ function ChoiceTableSection({
                     {table.hasRelationships && (
                       <td className="w-[120px] px-3 py-2 text-center align-top">
                         {(item.relationships ?? 0) > 0 ? (
-                          <button
-                            type="button"
+                          <Button
+                            variant="outline"
+                            size="xs"
                             disabled={editMode}
                             title="Show related automations"
                             onClick={(e) => {
                               e.stopPropagation();
                               onShowRelationships(item);
                             }}
-                            className="cursor-pointer text-xs font-medium text-zinc-900 hover:underline disabled:pointer-events-none disabled:cursor-default disabled:no-underline"
+                            className="tabular-nums font-medium"
                           >
                             {item.relationships}
-                          </button>
+                          </Button>
                         ) : (
                           <span className="text-xs text-zinc-400">0</span>
                         )}
