@@ -1,5 +1,6 @@
 import { CheckCircle, Home } from "lucide-react";
 import { SiteLogo } from "@/components/partners/site-logo";
+import { ContactSupportDialog } from "@/components/support/contact-support-dialog";
 import Link from "next/link";
 
 // This page serves two flows:
@@ -8,7 +9,6 @@ import Link from "next/link";
 // The copy adapts so a purchaser never sees "application" wording and an
 // applicant never sees "thank you for your purchase".
 const CONTACT_NAME = "Dani Apgar";
-const CONTACT_EMAIL = "dani@chiefaiofficer.com";
 
 export default async function ThankYouPage({
   searchParams,
@@ -80,12 +80,12 @@ export default async function ThankYouPage({
           <p className="mt-1 text-sm font-semibold text-[#1e1b4b]">
             {CONTACT_NAME}
           </p>
-          <a
-            href={`mailto:${CONTACT_EMAIL}`}
-            className="text-sm text-[#4f46e5] hover:underline"
+          <ContactSupportDialog
+            source="Thank-you page"
+            triggerClassName="cursor-pointer text-sm text-[#4f46e5] hover:underline"
           >
-            {CONTACT_EMAIL}
-          </a>
+            Send {CONTACT_NAME.split(" ")[0]} a message
+          </ContactSupportDialog>
         </div>
 
         <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
@@ -103,12 +103,12 @@ export default async function ThankYouPage({
           >
             Go to CAIO Homepage
           </Link>
-          <a
-            href={`mailto:${CONTACT_EMAIL}`}
-            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-6 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+          <ContactSupportDialog
+            source="Thank-you page"
+            triggerClassName="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 px-6 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
           >
             Contact {CONTACT_NAME.split(" ")[0]}
-          </a>
+          </ContactSupportDialog>
         </div>
 
         {isPurchase && session_id && (

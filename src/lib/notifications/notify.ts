@@ -65,6 +65,32 @@ const APP_URL = (
   process.env.NEXT_PUBLIC_APP_URL || "https://motherboard.chiefaiofficer.com"
 ).replace(/\/$/, "");
 
+// Recipients who ALWAYS get every enabled program alert by email, regardless of
+// the subscriber list — so a key person (Dani, who owns the program) can never
+// miss a signup / message / conversion / dispute because they forgot to
+// subscribe or left their email toggle off. Comma-separated env override
+// (PROGRAM_ALERT_EMAILS); defaults to Dani. Deduped against subscriber emails
+// below so someone who is BOTH guaranteed and a subscriber isn't emailed twice.
+const ALWAYS_NOTIFY_EMAILS: string[] = (
+  process.env.PROGRAM_ALERT_EMAILS || "dani@chiefaiofficer.com"
+)
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+/** Case-insensitive de-dupe of email addresses, preserving first-seen order. */
+function dedupeEmails(list: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const e of list) {
+    const key = e.trim().toLowerCase();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(e);
+  }
+  return out;
+}
+
 /** Escape user-supplied text before embedding it in the notification email. */
 function escapeHtml(s: string): string {
   return s
@@ -128,44 +154,49 @@ export async function notifyProgramEvent(params: {
         emailEnabled: partnerNotificationSubscribers.emailEnabled,
       })
       .from(partnerNotificationSubscribers);
-    if (subs.length === 0) return;
 
-    // (a) In-app row for every subscriber.
-    await db.insert(staffNotifications).values(
-      subs.map((s) => ({
-        userId: s.userId,
-        type: params.type,
-        title: params.title,
-        body: params.body ?? null,
-        linkHref: params.linkHref ?? null,
-      })),
-    );
+    // (a) In-app row for every subscriber (the sidebar bell). With no
+    // subscribers there's simply no bell row — the guaranteed email below
+    // still fires, so a key alert is never silently dropped.
+    if (subs.length > 0) {
+      await db.insert(staffNotifications).values(
+        subs.map((s) => ({
+          userId: s.userId,
+          type: params.type,
+          title: params.title,
+          body: params.body ?? null,
+          linkHref: params.linkHref ?? null,
+        })),
+      );
+    }
 
-    // (b) One CC'd email to everyone who opted into email.
+    // (b) One CC'd email to everyone who opted into email PLUS the always-on
+    // recipients (Dani) — deduped so a guaranteed recipient who is also an
+    // email-subscriber isn't emailed twice.
     const emailUserIds = subs.filter((s) => s.emailEnabled).map((s) => s.userId);
+    let subscriberEmails: string[] = [];
     if (emailUserIds.length > 0) {
       const recipients = await db
         .select({ email: adminUsers.email })
         .from(adminUsers)
         .where(inArray(adminUsers.id, emailUserIds));
-      const emails = recipients.map((r) => r.email).filter(Boolean);
-      if (emails.length > 0) {
-        const link = params.linkHref
-          ? `${APP_URL}${params.linkHref}`
-          : APP_URL;
-        const { html, plain } = renderInternalNotification({
-          title: params.title,
-          body: params.body,
-          link,
-        });
-        await sendEmail({
-          to: emails[0],
-          cc: emails.slice(1),
-          subject: `[Affiliate Program] ${params.title}`,
-          html,
-          plain,
-        });
-      }
+      subscriberEmails = recipients.map((r) => r.email).filter(Boolean);
+    }
+    const emails = dedupeEmails([...subscriberEmails, ...ALWAYS_NOTIFY_EMAILS]);
+    if (emails.length > 0) {
+      const link = params.linkHref ? `${APP_URL}${params.linkHref}` : APP_URL;
+      const { html, plain } = renderInternalNotification({
+        title: params.title,
+        body: params.body,
+        link,
+      });
+      await sendEmail({
+        to: emails[0],
+        cc: emails.slice(1),
+        subject: `[Affiliate Program] ${params.title}`,
+        html,
+        plain,
+      });
     }
   } catch (err) {
     console.error("[notifications] notifyProgramEvent failed:", err);

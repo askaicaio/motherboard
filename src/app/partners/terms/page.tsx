@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { LegalFooter } from "@/components/partners/legal-footer";
+import { ContactSupportDialog } from "@/components/support/contact-support-dialog";
 
 export const metadata = {
   title: "Terms & Conditions — CAIO Affiliate Program",
@@ -174,13 +175,13 @@ export default function AffiliateTermsPage() {
 
           <Section title="Contact">
             <p>
-              Questions about the program? Email{" "}
-              <a
-                href="mailto:partners@chiefaiofficer.com"
-                className="font-semibold text-[#4f46e5] underline"
+              Questions about the program?{" "}
+              <ContactSupportDialog
+                source="Affiliate terms page"
+                triggerClassName="cursor-pointer font-semibold text-[#4f46e5] underline"
               >
-                partners@chiefaiofficer.com
-              </a>
+                Send us a message
+              </ContactSupportDialog>
               .
             </p>
           </Section>

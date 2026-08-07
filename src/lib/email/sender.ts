@@ -7,6 +7,8 @@ interface SendEmailParams {
   to: string;
   /** Optional additional recipients, all visible to each other (CC). */
   cc?: string[];
+  /** Optional Reply-To — e.g. so a support message replies to the sender. */
+  replyTo?: string;
   subject: string;
   html: string;
   plain: string;
@@ -44,6 +46,7 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
         from: `${fromName} <${fromAddress}>`,
         to: [params.to],
         ...(params.cc?.length ? { cc: params.cc } : {}),
+        ...(params.replyTo ? { reply_to: params.replyTo } : {}),
         subject: params.subject,
         html: params.html,
         text: params.plain,

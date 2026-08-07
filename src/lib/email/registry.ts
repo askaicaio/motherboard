@@ -53,7 +53,7 @@ export const EMAIL_TEMPLATES: EmailTemplateDescriptor[] = [
 <ul>
   <li><strong>10% flat commission</strong> on every closed deal you refer</li>
   <li><strong>60-day cookie window</strong> from first click</li>
-  <li><strong>Net-45 payouts</strong> via ACH or Zelle (W-9 / W-8BEN required)</li>
+  <li><strong>Net-45 payouts</strong> via Stripe Connect (W-9 / W-8BEN required)</li>
 </ul>
 <p>If you have any questions in the meantime, feel free to reply to this email.</p>
 <p>— The Chief AI Officer Team</p>`,

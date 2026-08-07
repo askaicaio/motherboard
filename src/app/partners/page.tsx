@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { SiteLogo } from "@/components/partners/site-logo";
+import { ContactSupportDialog } from "@/components/support/contact-support-dialog";
 import {
   Link2,
   DollarSign,
@@ -587,12 +588,12 @@ export default function PartnersLandingPage() {
                 </Link>
               </li>
               <li>
-                <a
-                  href="mailto:partners@chiefaiofficer.com"
-                  className="transition hover:text-[#4f46e5]"
+                <ContactSupportDialog
+                  source="Affiliate site footer"
+                  triggerClassName="cursor-pointer transition hover:text-[#4f46e5]"
                 >
-                  partners@chiefaiofficer.com
-                </a>
+                  Contact us
+                </ContactSupportDialog>
               </li>
             </ul>
           </div>

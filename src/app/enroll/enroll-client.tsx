@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ArrowRight, CalendarClock, Sparkles, Loader2, AlertCircle } from "lucide-react";
 import { SiteLogo } from "@/components/partners/site-logo";
+import { ContactSupportDialog } from "@/components/support/contact-support-dialog";
 
 interface Program {
   id: string;
@@ -273,12 +274,12 @@ export default function EnrollClient({
           </a>
           <p className="text-sm text-slate-500">
             Questions?{" "}
-            <a
-              href="mailto:dani@chiefaiofficer.com"
-              className="font-medium text-[#4f46e5] transition hover:text-[#4338ca]"
+            <ContactSupportDialog
+              source="Enroll page"
+              triggerClassName="cursor-pointer font-medium text-[#4f46e5] underline-offset-2 transition hover:text-[#4338ca] hover:underline"
             >
-              dani@chiefaiofficer.com
-            </a>
+              Send us a message
+            </ContactSupportDialog>
           </p>
           <p className="text-xs text-slate-400">
             &copy; {new Date().getFullYear()} Chief AI Officer. All rights reserved.
