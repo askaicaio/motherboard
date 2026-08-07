@@ -36,7 +36,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ListChecks, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { Eye, ListChecks, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
@@ -783,30 +783,32 @@ function ChoiceTableSection({
                         </td>
                       </>
                     )}
-                    {/* Relationships (Webhook Links): count of automations using
-                        this webhook. When > 0 it's a button opening the browse-all
-                        lookup (all automations using it); muted, non-clickable 0
-                        otherwise. Disabled in edit mode so the row's edit-click
-                        falls through (mirrors the Notes button). Centered, 120px. */}
+                    {/* Relationships (Webhook Links): a white "View · N" button per
+                        row so the column reads uniformly. When > 0 it opens the
+                        browse-all lookup (all automations using this webhook); a 0
+                        (no relationships) renders the SAME button but disabled, so
+                        it looks like a button that just does nothing. Also disabled
+                        in edit mode so the row's edit-click falls through. 120px. */}
                     {table.hasRelationships && (
                       <td className="w-[120px] px-3 py-2 text-center align-top">
-                        {(item.relationships ?? 0) > 0 ? (
-                          <Button
-                            variant="outline"
-                            size="xs"
-                            disabled={editMode}
-                            title="Show related automations"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onShowRelationships(item);
-                            }}
-                            className="tabular-nums font-medium"
-                          >
-                            {item.relationships}
-                          </Button>
-                        ) : (
-                          <span className="text-xs text-zinc-400">0</span>
-                        )}
+                        <Button
+                          variant="outline"
+                          size="xs"
+                          disabled={editMode || (item.relationships ?? 0) === 0}
+                          title={
+                            (item.relationships ?? 0) > 0
+                              ? "Show related automations"
+                              : undefined
+                          }
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onShowRelationships(item);
+                          }}
+                          className="tabular-nums font-medium"
+                        >
+                          <Eye />
+                          View · {item.relationships ?? 0}
+                        </Button>
                       </td>
                     )}
                     {table.hasNotes && (
