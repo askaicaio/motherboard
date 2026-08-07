@@ -768,7 +768,13 @@ function ChoiceTableSection({
                           textColor={item.textColor}
                         />
                       ) : (
-                        item.value
+                        // Plain-text tables (GHL Tags, GHL Forms, Webhook Links):
+                        // font-medium + zinc-900 so the first-column value matches
+                        // the Per Website "Name" cell weight (was inheriting the
+                        // table's normal weight, which read as a lighter font).
+                        <span className="font-medium text-zinc-900">
+                          {item.value}
+                        </span>
                       )}
                     </td>
                     {table.hasStatus && (
