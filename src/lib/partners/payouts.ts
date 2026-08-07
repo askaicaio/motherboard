@@ -27,6 +27,20 @@ import { and, eq, isNull, sql } from "drizzle-orm";
 import { getActiveSettings } from "./queries";
 import { computePayableAt } from "./rules";
 import { getStripe } from "@/lib/integrations/stripe-client";
+import { sendTemplatedEmail } from "@/lib/email/render";
+import { notifyProgramEvent } from "@/lib/notifications/notify";
+
+/** Format integer minor-units as a localized currency string, e.g. "$142.50". */
+function formatMoney(cents: number, currency = "USD"): string {
+  try {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: currency.toUpperCase(),
+    }).format(cents / 100);
+  } catch {
+    return `$${(cents / 100).toFixed(2)}`;
+  }
+}
 
 export interface PayoutLine {
   partnerId: string;
@@ -359,7 +373,9 @@ export async function releaseBatchViaConnect(
       currency: partnerConversions.currency,
       status: partnerConversions.status,
       partnerId: partners.id,
+      name: partners.name,
       email: partners.email,
+      isSample: partners.isSample,
       connectAccountId: partners.stripeConnectAccountId,
       connectStatus: partners.stripeConnectStatus,
     })
@@ -374,7 +390,9 @@ export async function releaseBatchViaConnect(
   // conversion ever lands.
   interface ReleaseGroup {
     partnerId: string;
+    name: string;
     email: string;
+    isSample: boolean;
     currency: string;
     connectAccountId: string | null;
     connectStatus: string;
@@ -390,7 +408,9 @@ export async function releaseBatchViaConnect(
     if (!g) {
       g = {
         partnerId: r.partnerId,
+        name: r.name,
         email: r.email,
+        isSample: r.isSample,
         currency,
         connectAccountId: r.connectAccountId,
         connectStatus: r.connectStatus,
@@ -476,6 +496,17 @@ export async function releaseBatchViaConnect(
 
       summary.released += 1;
       summary.transferredCents += g.amountCents;
+
+      // Tell the affiliate they've been paid — best-effort, never throws.
+      // Sample/test affiliates are skipped to avoid noise.
+      if (!g.isSample && g.email) {
+        const count = g.conversionIds.length;
+        await sendTemplatedEmail("affiliate_paid", g.email, {
+          name: g.name?.split(" ")[0] || "there",
+          amount: formatMoney(g.amountCents, g.currency),
+          referrals: `${count} referral${count === 1 ? "" : "s"}`,
+        });
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : "transfer failed";
       summary.errors.push({
@@ -510,6 +541,25 @@ export async function releaseBatchViaConnect(
         })
         .where(eq(partnerPayoutBatches.id, batchId));
     }
+  }
+
+  // Staff summary — one alert per release, only when money actually moved.
+  // Best-effort and gated by the 'payout' notification event being enabled.
+  if (summary.released > 0) {
+    const failedNote =
+      summary.errors.length > 0
+        ? ` · ${summary.errors.length} transfer${
+            summary.errors.length === 1 ? "" : "s"
+          } failed and stayed earned for manual handling`
+        : "";
+    await notifyProgramEvent({
+      type: "payout",
+      title: `Payout sent: ${formatMoney(summary.transferredCents)} to ${
+        summary.released
+      } affiliate${summary.released === 1 ? "" : "s"}`,
+      body: `Auto-paid via Stripe Connect${failedNote}.`,
+      linkHref: "/partner-program/events",
+    });
   }
 
   return summary;

@@ -292,6 +292,74 @@ export const EMAIL_TEMPLATES: EmailTemplateDescriptor[] = [
       },
     ],
   },
+
+  // ── affiliate_paid — to the affiliate ────────────────────────────────────
+  {
+    key: "affiliate_paid",
+    name: "Payout sent",
+    trigger:
+      "Fires when an affiliate's earned commissions are paid out to their connected account via Stripe Connect (the auto payout cron or the manual 'Send payout now' action).",
+    recipient: "Affiliate",
+    defaultSubject: "You've been paid {{amount}} — CAIO Affiliate Program",
+    defaultHeading: "You've been paid {{amount}}",
+    defaultBodyHtml: `<p>Hi {{name}},</p>
+<p>Great news — we just sent <strong>{{amount}}</strong> to your connected Stripe account for {{referrals}}. Funds typically arrive within a couple of business days, depending on your bank.</p>
+<p>You can see the full breakdown any time in your portal.</p>
+<table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 4px;"><tr><td style="border-radius:8px;background:#4f46e5;">
+  <a href="https://affiliates.chiefaiofficer.com/portal" style="display:inline-block;padding:13px 26px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:8px;">View your portal →</a>
+</td></tr></table>
+<p>Thanks for partnering with us,<br/>The CAIO Team</p>`,
+    variables: [
+      { name: "name", sample: "Jordan", description: "Affiliate's first name." },
+      {
+        name: "amount",
+        sample: "$142.50",
+        description: "Total amount paid in this payout.",
+      },
+      {
+        name: "referrals",
+        sample: "3 referrals",
+        description: "Human count of referrals included, e.g. '3 referrals'.",
+      },
+    ],
+  },
+
+  // ── commission_reversed — to the affiliate ───────────────────────────────
+  {
+    key: "commission_reversed",
+    name: "Commission reversed",
+    trigger:
+      "Fires when a previously earned or paid commission is reversed because the underlying purchase was refunded or disputed (chargeback).",
+    recipient: "Affiliate",
+    defaultSubject: "Update on one of your CAIO referrals",
+    defaultHeading: "A commission was reversed",
+    defaultBodyHtml: `<p>Hi {{name}},</p>
+<p>We wanted to let you know that a commission of <strong>{{amount}}</strong> on one of your referrals has been reversed.</p>
+{{reasonBlock}}
+<p>If that commission was already included in a payout, it's simply netted against a future payout — there's nothing you need to do. You can review the details any time in your portal.</p>
+<table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 4px;"><tr><td style="border-radius:8px;background:#4f46e5;">
+  <a href="https://affiliates.chiefaiofficer.com/portal" style="display:inline-block;padding:13px 26px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:8px;">View your portal →</a>
+</td></tr></table>
+<p>Questions? Just reply to this email.<br/>The CAIO Team</p>`,
+    variables: [
+      {
+        name: "name",
+        sample: "Jordan",
+        description: "Affiliate's first name (used in the greeting).",
+      },
+      {
+        name: "amount",
+        sample: "$47.50",
+        description: "The reversed commission amount.",
+      },
+      {
+        name: "reasonBlock",
+        sample: `<p style="margin:16px 0;padding:12px 16px;background:#f8fafc;border-left:3px solid #4f46e5;border-radius:4px;color:#334155;">The customer was refunded, so this referral no longer qualifies for a commission.</p>`,
+        description:
+          "Optional HTML block explaining why (refund vs dispute); empty if none.",
+      },
+    ],
+  },
 ];
 
 export function getTemplateDescriptor(

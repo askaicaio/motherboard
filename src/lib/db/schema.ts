@@ -2179,12 +2179,12 @@ export const partnerNotificationSettings = pgTable(
   "partner_notification_settings",
   {
     id: text("id").primaryKey().default("default"),
-    /** Enabled event keys, e.g. ["application","message","conversion","dispute"]. */
+    /** Enabled event keys, e.g. ["application","message","conversion","dispute","payout"]. */
     events: jsonb("events")
       .$type<string[]>()
       .notNull()
       .default(
-        sql`'["application","message","conversion","dispute"]'::jsonb`,
+        sql`'["application","message","conversion","dispute","payout"]'::jsonb`,
       ),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .defaultNow()

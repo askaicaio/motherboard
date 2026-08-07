@@ -22,7 +22,8 @@ export type NotificationEventType =
   | "application"
   | "message"
   | "conversion"
-  | "dispute";
+  | "dispute"
+  | "payout";
 
 export interface NotificationEventDef {
   key: NotificationEventType;
@@ -52,6 +53,11 @@ export const NOTIFICATION_EVENTS: NotificationEventDef[] = [
     label: "New dispute filed",
     description: "An affiliate disputes a conversion decision.",
   },
+  {
+    key: "payout",
+    label: "Payout sent",
+    description: "A payout batch is released to affiliates via Stripe Connect.",
+  },
 ];
 
 const DEFAULT_EVENTS: NotificationEventType[] = [
@@ -59,6 +65,7 @@ const DEFAULT_EVENTS: NotificationEventType[] = [
   "message",
   "conversion",
   "dispute",
+  "payout",
 ];
 
 const APP_URL = (

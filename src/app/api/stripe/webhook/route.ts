@@ -21,11 +21,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { db } from "@/lib/db";
-import { partnerConversions, partnerConversionEvents } from "@/lib/db/schema";
+import { partnerConversions, partnerConversionEvents, partners } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { getStripe, webhookSecret } from "@/lib/integrations/stripe-client";
 import { ingestConversion } from "@/lib/partners/ingest";
 import { reverseConversion, createClawback } from "@/lib/partners/lifecycle";
+import { sendTemplatedEmail } from "@/lib/email/render";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -112,6 +113,11 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
  */
 async function handleChargeReversal(chargeId: string, reason: string) {
   if (!chargeId) return;
+  // Captured inside the tx, emailed AFTER it commits — never mid-transaction,
+  // which would hold the FOR UPDATE lock across a network call.
+  let reversed:
+    | { partnerId: string; commissionCents: number; currency: string }
+    | null = null;
   await db.transaction(async (tx) => {
     const [conv] = await tx
       .select()
@@ -125,13 +131,65 @@ async function handleChargeReversal(chargeId: string, reason: string) {
       );
       return;
     }
-    if (conv.status === "reversed") return; // already terminal
+    if (conv.status === "reversed") return; // already terminal — don't re-notify
     if (conv.status === "paid") {
       await createClawback(conv.id, reason, { actorEmail: "system:stripe" }, tx);
     } else {
       await reverseConversion(conv.id, reason, { actorEmail: "system:stripe" }, tx);
     }
+    // Only notify for a real, commissioned, partner-matched conversion.
+    if (conv.partnerId && conv.commissionCents > 0) {
+      reversed = {
+        partnerId: conv.partnerId,
+        commissionCents: conv.commissionCents,
+        currency: conv.currency || "USD",
+      };
+    }
   });
+
+  if (reversed) await notifyAffiliateOfReversal(reversed, reason);
+}
+
+/**
+ * Email the affiliate that a commission was reversed. Best-effort: skips
+ * sample/test affiliates and never throws — a mail hiccup must not fail the
+ * webhook and make Stripe retry an already-applied reversal.
+ */
+async function notifyAffiliateOfReversal(
+  info: { partnerId: string; commissionCents: number; currency: string },
+  reason: string,
+) {
+  try {
+    const [p] = await db
+      .select({
+        name: partners.name,
+        email: partners.email,
+        isSample: partners.isSample,
+      })
+      .from(partners)
+      .where(eq(partners.id, info.partnerId))
+      .limit(1);
+    if (!p?.email || p.isSample) return;
+
+    const amount = new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: (info.currency || "USD").toUpperCase(),
+    }).format(info.commissionCents / 100);
+
+    const isDispute = /dispute/i.test(reason);
+    const reasonText = isDispute
+      ? "The purchase was disputed (a chargeback was filed), so this referral no longer qualifies for a commission."
+      : "The customer was refunded, so this referral no longer qualifies for a commission.";
+    const reasonBlock = `<p style="margin:16px 0;padding:12px 16px;background:#f8fafc;border-left:3px solid #4f46e5;border-radius:4px;color:#334155;">${reasonText}</p>`;
+
+    await sendTemplatedEmail("commission_reversed", p.email, {
+      name: p.name?.split(" ")[0] || "there",
+      amount,
+      reasonBlock,
+    });
+  } catch (err) {
+    console.error("[stripe] commission-reversed email failed:", err);
+  }
 }
 
 /**
