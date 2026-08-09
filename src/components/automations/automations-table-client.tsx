@@ -43,6 +43,7 @@ import {
   Download,
   Trash2,
   Filter,
+  ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -1015,6 +1016,7 @@ export function AutomationsTableClient({
             >
               <Filter className="mr-2 h-3.5 w-3.5" />
               Filter
+              <ChevronDown className="h-3 w-3" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-auto min-w-44">
               {/* TODO(filter): behavior of selecting a dimension is TBD (user
