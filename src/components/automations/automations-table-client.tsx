@@ -19,8 +19,14 @@ import { useFitViewportHeight } from "@/lib/automations/use-fit-viewport-height"
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -994,14 +1000,30 @@ export function AutomationsTableClient({
             />
           </div>
 
-          {/* Filter button — PLACEHOLDER (no filtering wired yet; the filter spec
-              is still being defined with the user). Rendered so the final layout /
-              placement is locked in; clicking does nothing for now. Mirrors the
-              Export CSV button's white outline style. */}
-          <Button variant="outline" size="sm" className="ml-auto shrink-0">
-            <Filter className="mr-2 h-3.5 w-3.5" />
-            Filter
-          </Button>
+          {/* Filter menu. The trigger keeps the placeholder's Export CSV look
+              (outline button via buttonVariants, so aria-expanded also shades it
+              while open) and stays pinned far-right (ml-auto). Opening it lists
+              the DIMENSIONS you can filter by. The dimensions are wired up here;
+              what SELECTING one does is still being specified, so the items are
+              inert placeholders for now (they just close the menu). */}
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              className={cn(
+                buttonVariants({ variant: "outline", size: "sm" }),
+                "ml-auto shrink-0",
+              )}
+            >
+              <Filter className="mr-2 h-3.5 w-3.5" />
+              Filter
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-auto min-w-44">
+              {/* TODO(filter): behavior of selecting a dimension is TBD (user
+                  still defining it). For now these are placeholders. */}
+              <DropdownMenuItem>Author</DropdownMenuItem>
+              <DropdownMenuItem>Automation Tags</DropdownMenuItem>
+              <DropdownMenuItem>Trigger Event</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {/* Table. Headers always render; empty / no-match message sits inside
