@@ -36,6 +36,7 @@ import {
   Clock,
   Download,
   Trash2,
+  Filter,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -977,15 +978,30 @@ export function AutomationsTableClient({
       </div>
 
       <div className="space-y-3">
-        {/* Search bar, searches the automation NAME or LINK. */}
-        <div className="relative max-w-sm">
-          <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
-          <Input
-            placeholder="Search automations by name or link…"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="pl-8"
-          />
+        {/* Search row: search bar on the LEFT, Filter button on the RIGHT (same
+            height). The search bar is width-capped (max-w-sm) and grows into that
+            cap; `ml-auto` on the button absorbs the remaining slack so it pins to
+            the far right of the row. */}
+        <div className="flex items-center gap-2">
+          {/* Search bar, searches the automation NAME or LINK. */}
+          <div className="relative min-w-0 max-w-sm flex-1">
+            <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+            <Input
+              placeholder="Search automations by name or link…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="pl-8"
+            />
+          </div>
+
+          {/* Filter button — PLACEHOLDER (no filtering wired yet; the filter spec
+              is still being defined with the user). Rendered so the final layout /
+              placement is locked in; clicking does nothing for now. Mirrors the
+              Export CSV button's white outline style. */}
+          <Button variant="outline" size="sm" className="ml-auto shrink-0">
+            <Filter className="mr-2 h-3.5 w-3.5" />
+            Filter
+          </Button>
         </div>
 
         {/* Table. Headers always render; empty / no-match message sits inside
