@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { and, asc, eq, isNotNull, isNull } from "drizzle-orm";
+import { and, asc, eq, isNotNull, isNull, or } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { partnerPrograms } from "@/lib/db/schema";
 import { AFF_COOKIE_NAME, decodeAffCookie } from "@/lib/partners/cookie";
@@ -39,14 +39,22 @@ export default async function EnrollPage({
       description: partnerPrograms.description,
       listValueCents: partnerPrograms.listValueCents,
       isSample: partnerPrograms.isSample,
+      salesLed: partnerPrograms.salesLed,
     })
     .from(partnerPrograms)
     .where(
       and(
-        eq(partnerPrograms.salesLed, false),
         eq(partnerPrograms.active, true),
         isNull(partnerPrograms.archivedAt),
-        isNotNull(partnerPrograms.stripePriceId),
+        or(
+          // Self-serve: buyable directly via Stripe checkout.
+          and(
+            eq(partnerPrograms.salesLed, false),
+            isNotNull(partnerPrograms.stripePriceId),
+          ),
+          // Sales-led: no Stripe price — enrolled via a booking / sales call.
+          eq(partnerPrograms.salesLed, true),
+        ),
       ),
     )
     .orderBy(asc(partnerPrograms.listValueCents));

@@ -12,6 +12,8 @@ interface Program {
   description: string | null;
   listValueCents: number;
   isSample: boolean;
+  /** Sales-led programs have no Stripe price — they enroll via a booking call. */
+  salesLed: boolean;
 }
 
 interface EnrollClientProps {
@@ -67,7 +69,7 @@ export default function EnrollClient({
         data = null;
       }
       if (res.ok && data?.url) {
-        window.location.href = data.url;
+        window.location.assign(data.url);
         return;
       }
       setError(
@@ -189,7 +191,8 @@ export default function EnrollClient({
               Enroll directly
             </h2>
             <p className="mt-4 text-lg text-slate-500">
-              Ready to get started? Choose a program and check out securely.
+              Ready to get started? Enroll instantly, or book a call for our
+              consultation-based engagements.
             </p>
           </div>
 
@@ -218,10 +221,16 @@ export default function EnrollClient({
                       <h3 className="text-lg font-bold text-[#1e1b4b]">
                         {program.name}
                       </h3>
-                      {program.isSample && (
+                      {program.isSample ? (
                         <span className="shrink-0 rounded-full bg-amber-50 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700 ring-1 ring-inset ring-amber-200">
                           Sample only
                         </span>
+                      ) : (
+                        program.salesLed && (
+                          <span className="shrink-0 rounded-full bg-indigo-50 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-700 ring-1 ring-inset ring-indigo-200">
+                            By consultation
+                          </span>
+                        )
                       )}
                     </div>
                     {program.description && (
@@ -235,24 +244,38 @@ export default function EnrollClient({
                       </span>
                     </div>
                     <div className="mt-auto pt-6">
-                      <button
-                        type="button"
-                        onClick={() => handleBuy(program)}
-                        disabled={loading || loadingSlug !== null}
-                        className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#4f46e5] px-5 py-3 text-sm font-semibold text-white shadow-sm shadow-indigo-600/20 transition hover:bg-[#4338ca] disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        {loading ? (
-                          <>
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            Redirecting…
-                          </>
-                        ) : (
-                          <>
-                            Buy now
-                            <ArrowRight className="h-4 w-4" />
-                          </>
-                        )}
-                      </button>
+                      {program.salesLed ? (
+                        // Sales-led programs have no Stripe price — the CTA books
+                        // a call (attributed to the referring affiliate via the
+                        // aff_id already baked into bookingHref).
+                        <a
+                          href={bookingHref || "#"}
+                          className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#1e1b4b] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#2a2560]"
+                        >
+                          <CalendarClock className="h-4 w-4" />
+                          Book a call
+                          <ArrowRight className="h-4 w-4" />
+                        </a>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleBuy(program)}
+                          disabled={loading || loadingSlug !== null}
+                          className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#4f46e5] px-5 py-3 text-sm font-semibold text-white shadow-sm shadow-indigo-600/20 transition hover:bg-[#4338ca] disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {loading ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Redirecting…
+                            </>
+                          ) : (
+                            <>
+                              Buy now
+                              <ArrowRight className="h-4 w-4" />
+                            </>
+                          )}
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
