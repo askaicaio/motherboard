@@ -25,6 +25,9 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -1019,11 +1022,33 @@ export function AutomationsTableClient({
               <ChevronDown className="h-3 w-3" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-auto min-w-44">
-              {/* TODO(filter): behavior of selecting a dimension is TBD (user
-                  still defining it). For now these are placeholders. */}
-              <DropdownMenuItem>Author</DropdownMenuItem>
-              <DropdownMenuItem>Automation Tags</DropdownMenuItem>
-              <DropdownMenuItem>Trigger Event</DropdownMenuItem>
+              {/* Each filter DIMENSION is a submenu (fly-out). Its contents are
+                  that dimension's configured CHOICES, i.e. the entries from the
+                  matching Dropdown Config Page table (Author / Automation Tags /
+                  Trigger Event), handed to this component as *Choices props. The
+                  three dimensions map to the three config tables the user named.
+                  TODO(filter): selecting a choice-value doesn't filter yet
+                  (behavior still TBD); the values just list here for now. */}
+              {[
+                { label: "Author", choices: authorChoices },
+                { label: "Automation Tags", choices: automationTagChoices },
+                { label: "Trigger Event", choices: triggerEventChoices },
+              ].map((dim) => (
+                <DropdownMenuSub key={dim.label}>
+                  <DropdownMenuSubTrigger>{dim.label}</DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent className="max-h-72 overflow-y-auto">
+                    {dim.choices.length === 0 ? (
+                      <div className="px-2 py-1 text-xs text-zinc-400">
+                        (none)
+                      </div>
+                    ) : (
+                      dim.choices.map((c) => (
+                        <DropdownMenuItem key={c.id}>{c.value}</DropdownMenuItem>
+                      ))
+                    )}
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+              ))}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
