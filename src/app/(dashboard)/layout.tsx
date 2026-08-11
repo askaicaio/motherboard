@@ -29,7 +29,10 @@ export default async function DashboardLayout({
       <div className="flex min-h-screen">
         <Sidebar hiddenTabs={hiddenTabs} />
         <div className="flex flex-1 flex-col pl-60 min-w-0">
-          <main className="flex-1 bg-zinc-50 p-6 min-w-0 overflow-x-hidden">
+          {/* overflow-x-clip (not -hidden) clips horizontal overflow WITHOUT
+              creating a scroll container, so the window stays the scroller and
+              `position: sticky` works for page content (e.g. sticky outlines). */}
+          <main className="flex-1 bg-zinc-50 p-6 min-w-0 overflow-x-clip">
             <Suspense fallback={<div className="animate-pulse h-64 bg-zinc-100 rounded" />}>
               {children}
             </Suspense>
