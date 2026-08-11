@@ -47,6 +47,7 @@ import {
   Trash2,
   Filter,
   ChevronDown,
+  ChevronLeft,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -1035,7 +1036,16 @@ export function AutomationsTableClient({
                 { label: "Trigger Event", choices: triggerEventChoices },
               ].map((dim) => (
                 <DropdownMenuSub key={dim.label}>
-                  <DropdownMenuSubTrigger>{dim.label}</DropdownMenuSubTrigger>
+                  {/* This Filter menu is right-aligned, so its submenus fly out
+                      to the LEFT. So the sub-trigger's caret points LEFT and sits
+                      on the LEFT of the label (user request). We hide the
+                      primitive's built-in right caret (`svg:last-child`) and add a
+                      left one before the label; scoped here only, the shared
+                      DropdownMenuSubTrigger default is untouched. */}
+                  <DropdownMenuSubTrigger className="[&>svg:last-child]:hidden">
+                    <ChevronLeft className="size-4" />
+                    {dim.label}
+                  </DropdownMenuSubTrigger>
                   <DropdownMenuSubContent className="max-h-72 overflow-y-auto">
                     {dim.choices.length === 0 ? (
                       <div className="px-2 py-1 text-xs text-zinc-400">
