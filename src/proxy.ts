@@ -49,6 +49,7 @@ export function proxy(request: NextRequest) {
     pathname === "/enroll" || // public customer checkout (self-serve programs)
     pathname.startsWith("/roadmap") || // public event/roadmap landing page
     pathname.startsWith("/api/lead") || // public roadmap lead capture (Resend + GHL)
+    pathname.startsWith("/api/contact") || // public support-message form (emails support inbox)
     pathname.startsWith("/api/stripe/webhook") || // Stripe → us; verifies its own signature
     pathname.startsWith("/api/partners/checkout") || // public checkout-session creation
     pathname.startsWith("/api/partners/apply") || // public application intake
@@ -96,6 +97,6 @@ export const config = {
      * a `.` followed by characters (i.e. a file with extension) is
      * skipped — this handles all public/ static assets in one shot.
      */
-    "/((?!login|welcome|partners|portal|enroll|roadmap|r$|api/auth|api/callbacks|api/welcome|api/inngest|api/cron|api/stripe/webhook|api/partners/checkout|api/partners/apply|api/partners/webhooks|api/lead|api/portal|_next/static|_next/image|.*\\..*).*)",
+    "/((?!login|welcome|partners|portal|enroll|roadmap|r$|api/auth|api/callbacks|api/welcome|api/inngest|api/cron|api/stripe/webhook|api/partners/checkout|api/partners/apply|api/partners/webhooks|api/lead|api/contact|api/portal|_next/static|_next/image|.*\\..*).*)",
   ],
 };
