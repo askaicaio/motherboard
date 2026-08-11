@@ -25,6 +25,7 @@ import {
   partnerPayoutBatches,
 } from "@/lib/db/schema";
 import { and, eq, isNotNull, lte, ne, sql } from "drizzle-orm";
+import { notifyPartner } from "./notify-partner";
 
 interface Actor {
   actorId?: string | null;
@@ -54,14 +55,38 @@ async function recordEvent(
   });
 }
 
+export interface PromotedConversion {
+  conversionId: string;
+  partnerId: string;
+  commissionCents: number;
+  currency: string;
+  earnedAt: Date;
+}
+
+/** Format integer minor-units as a currency string, e.g. "$47.50". */
+function fmtMoney(cents: number, currency: string): string {
+  try {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: (currency || "USD").toUpperCase(),
+    }).format(cents / 100);
+  } catch {
+    return `$${(cents / 100).toFixed(2)}`;
+  }
+}
+
 /**
  * Promote every pending conversion whose refund window has elapsed
  * cleanly to earned. Only positively-commissioned, partner-matched rows
  * are eligible — rejected/unmatched rows never promote. Rows with an
  * UNRESOLVED partial-refund review are held back (their basis is
- * overstated until an admin reconciles). Returns the number promoted.
+ * overstated until an admin reconciles). Notifies each affiliate in-app that
+ * their commission was confirmed, and RETURNS the promoted rows so the caller
+ * can email them (thank-you + expected payout date).
  */
-export async function promotePendingToEarned(now: Date): Promise<number> {
+export async function promotePendingToEarned(
+  now: Date,
+): Promise<PromotedConversion[]> {
   const due = await db
     .select()
     .from(partnerConversions)
@@ -87,9 +112,9 @@ export async function promotePendingToEarned(now: Date): Promise<number> {
       ),
     );
 
-  let promoted = 0;
+  const promoted: PromotedConversion[] = [];
   for (const row of due) {
-    await db
+    const flipped = await db
       .update(partnerConversions)
       .set({ status: "earned", earnedAt: now, updatedAt: now })
       .where(
@@ -97,11 +122,35 @@ export async function promotePendingToEarned(now: Date): Promise<number> {
           eq(partnerConversions.id, row.id),
           eq(partnerConversions.status, "pending"),
         ),
-      );
+      )
+      .returning({ id: partnerConversions.id });
+    // A concurrent run may have already promoted this row — only act on the
+    // ones we actually flipped, so we never double-notify/double-email.
+    if (flipped.length === 0) continue;
+
     await recordEvent(db, row.id, "status_changed", "pending", "earned", {
       actorEmail: "system:cron",
     });
-    promoted += 1;
+
+    if (!row.partnerId) continue; // guaranteed non-null by the query filter
+    // In-app notice to the affiliate that their commission cleared (best-effort).
+    await notifyPartner({
+      partnerId: row.partnerId,
+      type: "conversion",
+      title: "A commission was confirmed",
+      body: `Your commission of ${fmtMoney(
+        row.commissionCents,
+        row.currency,
+      )} cleared the refund window and is now confirmed.`,
+      linkHref: "/portal/activity",
+    });
+    promoted.push({
+      conversionId: row.id,
+      partnerId: row.partnerId,
+      commissionCents: row.commissionCents,
+      currency: row.currency,
+      earnedAt: now,
+    });
   }
   return promoted;
 }

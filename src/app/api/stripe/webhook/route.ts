@@ -25,11 +25,17 @@ import { partnerConversions, partnerConversionEvents, partners } from "@/lib/db/
 import { eq } from "drizzle-orm";
 import { getStripe, webhookSecret } from "@/lib/integrations/stripe-client";
 import { ingestConversion } from "@/lib/partners/ingest";
+import { resolveProgram } from "@/lib/partners/queries";
 import { reverseConversion, createClawback } from "@/lib/partners/lifecycle";
 import { sendTemplatedEmail } from "@/lib/email/render";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+// Where product-purchase handovers go — the team that onboards the new client,
+// separate from the affiliate-program owner inbox. Overridable via env.
+const HANDOVER_TEAM_EMAIL =
+  process.env.HANDOVER_TEAM_EMAIL || "onboarding@chiefaiofficer.com";
 
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   // Only count actually-paid sessions.
@@ -82,7 +88,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     }
   }
 
-  await ingestConversion({
+  const result = await ingestConversion({
     buyerEmail,
     programRef,
     grossCents: session.amount_total ?? 0,
@@ -99,9 +105,64 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     stripeChargeId,
     currency: (session.currency || "usd").toUpperCase(),
   });
+
+  // Fire onboarding emails exactly once per NEW paid purchase. idempotentReplay
+  // means this was a Stripe redelivery (the row already existed) — skip so we
+  // don't double-email. A "rejected" conversion (unmatched affiliate) is still a
+  // real purchase that needs onboarding, so we do NOT gate on status.
+  if (result.ok && !result.idempotentReplay) {
+    await sendPurchaseEmails(session, programRef, affId);
+  }
   // (The $1 test product is auto-refunded 95% ~1 day later by the
   // test-product-refunds cron — not here — so testers see the charge settle
   // first, then the partial refund.)
+}
+
+/**
+ * On a new paid purchase, email (a) the buyer a generic branded confirmation and
+ * (b) the handover team so they can onboard the client. Best-effort: wrapped so a
+ * mail/DB hiccup can never throw and make Stripe retry an already-ingested event.
+ */
+async function sendPurchaseEmails(
+  session: Stripe.Checkout.Session,
+  programRef: string,
+  affId: string | null,
+) {
+  try {
+    const buyerEmail = session.customer_details?.email || "";
+    if (!buyerEmail) return;
+
+    const buyerName = session.customer_details?.name || "";
+    const firstName = buyerName.split(" ")[0] || "there";
+    const currency = (session.currency || "usd").toUpperCase();
+    const amount = new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency,
+    }).format((session.amount_total ?? 0) / 100);
+
+    const program = await resolveProgram(programRef);
+    const programName = program?.name ?? "your CAIO program";
+
+    // (a) Buyer confirmation.
+    await sendTemplatedEmail("purchase_confirmation", buyerEmail, {
+      firstName,
+      programName,
+      amount,
+    });
+
+    // (b) Handover team alert.
+    if (HANDOVER_TEAM_EMAIL) {
+      await sendTemplatedEmail("purchase_handover", HANDOVER_TEAM_EMAIL, {
+        buyerName: buyerName || "(name not provided)",
+        buyerEmail,
+        programName,
+        amount,
+        referredBy: affId || "direct",
+      });
+    }
+  } catch (err) {
+    console.error("[stripe] purchase emails failed:", err);
+  }
 }
 
 /**

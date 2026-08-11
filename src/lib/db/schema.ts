@@ -2173,6 +2173,44 @@ export const staffNotifications = pgTable(
   ],
 );
 
+// ── Affiliate (partner) notifications (in-app portal inbox) ────────────────
+// One row per notification for an AFFILIATE (recipient = partners.id), powering
+// the affiliate portal bell. DISTINCT from staffNotifications (admin) and from
+// partnerNotificationSettings / partnerNotificationSubscribers below — those are
+// admin-side program config despite the "partner" prefix. Written by
+// notifyPartner(); the affiliate is always the single recipient (no config).
+export const partnerNotifications = pgTable(
+  "partner_notifications",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    /** Recipient affiliate. */
+    partnerId: uuid("partner_id")
+      .references(() => partners.id, { onDelete: "cascade" })
+      .notNull(),
+    /** Event key, e.g. 'conversion' | 'payout' | 'dispute' | 'message'. */
+    type: text("type").notNull(),
+    title: text("title").notNull(),
+    body: text("body"),
+    /** Relative PORTAL path the notification opens (e.g. /portal/activity). */
+    linkHref: text("link_href"),
+    isRead: boolean("is_read").notNull().default(false),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    isArchived: boolean("is_archived").notNull().default(false),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("idx_partner_notifications_partner").on(table.partnerId),
+    index("idx_partner_notifications_partner_unread").on(
+      table.partnerId,
+      table.isRead,
+    ),
+    index("idx_partner_notifications_created_at").on(table.createdAt),
+  ],
+);
+
 // ── Affiliate-program notification config ──────────────────────────────────
 // Single global row: which event types are allowed to generate notifications.
 export const partnerNotificationSettings = pgTable(

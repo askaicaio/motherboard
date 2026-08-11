@@ -116,7 +116,12 @@ export async function renderTemplate(
   const heading = interpolate(resolved.heading, vars);
   const bodyHtml = interpolate(resolved.bodyHtml, vars);
 
-  const html = renderBrandedEmail({ heading, contentHtml: bodyHtml });
+  const descriptor = getTemplateDescriptor(key);
+  const html = renderBrandedEmail({
+    heading,
+    contentHtml: bodyHtml,
+    footerReason: descriptor?.footerReason,
+  });
   const plain = stripTags(bodyHtml);
 
   return { subject, html, plain };

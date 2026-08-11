@@ -34,6 +34,12 @@ export interface EmailTemplateDescriptor {
   defaultBodyHtml: string;
   /** Every {{var}} used in this template, with a representative sample value. */
   variables: EmailVariable[];
+  /**
+   * Optional override for the branded footer's "why am I getting this" line.
+   * Defaults to the affiliate-program wording; buyers / internal recipients set
+   * their own so the footer isn't misleading.
+   */
+  footerReason?: string;
 }
 
 export const EMAIL_TEMPLATES: EmailTemplateDescriptor[] = [
@@ -359,6 +365,120 @@ export const EMAIL_TEMPLATES: EmailTemplateDescriptor[] = [
           "Optional HTML block explaining why (refund vs dispute); empty if none.",
       },
     ],
+  },
+
+  // ── referral_verified — to the affiliate ─────────────────────────────────
+  {
+    key: "referral_verified",
+    name: "Referral verified",
+    trigger:
+      "Fires when a referred purchase clears the refund window and its commission is confirmed (pending → earned). Thanks the affiliate and states the expected payout date.",
+    recipient: "Affiliate",
+    defaultSubject: "Your referral is confirmed — {{amount}} commission",
+    defaultHeading: "Your referral is confirmed",
+    defaultBodyHtml: `<p>Hi {{name}},</p>
+<p>Good news — {{referrals}} cleared our verification window, and <strong>{{amount}}</strong> in commission is now confirmed (earned).</p>
+<p>It's scheduled to be paid <strong>on or after {{expectedPayoutDate}}</strong>, once your balance reaches the {{minPayout}} minimum and your payout account is connected via Stripe.</p>
+<table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 4px;"><tr><td style="border-radius:8px;background:#4f46e5;">
+  <a href="https://affiliates.chiefaiofficer.com/portal/activity" style="display:inline-block;padding:13px 26px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:8px;">View your activity →</a>
+</td></tr></table>
+<p>Thank you for spreading the word,<br/>The CAIO Team</p>`,
+    variables: [
+      { name: "name", sample: "Jordan", description: "Affiliate's first name." },
+      {
+        name: "referrals",
+        sample: "1 referral",
+        description: "Human count of referrals confirmed, e.g. '1 referral'.",
+      },
+      {
+        name: "amount",
+        sample: "$47.50",
+        description: "Total commission confirmed.",
+      },
+      {
+        name: "expectedPayoutDate",
+        sample: "March 17, 2026",
+        description: "Earliest expected payout date (Net-45 maturity).",
+      },
+      {
+        name: "minPayout",
+        sample: "$100",
+        description: "Minimum balance required before a payout is sent.",
+      },
+    ],
+  },
+
+  // ── purchase_confirmation — to the buyer (referred customer) ──────────────
+  {
+    key: "purchase_confirmation",
+    name: "Purchase confirmation",
+    trigger:
+      "Fires when someone completes a purchase via Stripe checkout. A generic thank-you / welcome so buyers aren't left with only the raw Stripe receipt.",
+    recipient: "Affiliate",
+    defaultSubject: "Thanks for your purchase, {{firstName}} — welcome to Chief AI Officer",
+    defaultHeading: "Thank you for your purchase",
+    defaultBodyHtml: `<p>Hi {{firstName}},</p>
+<p>Thank you for enrolling in <strong>{{programName}}</strong>. We've received your payment of <strong>{{amount}}</strong>.</p>
+<p>Our team will be in touch shortly with your onboarding details and next steps. In the meantime, if you have any questions, just reply to this email — a real person will get back to you.</p>
+<p>Welcome aboard,<br/>The Chief AI Officer Team</p>`,
+    variables: [
+      {
+        name: "firstName",
+        sample: "Jordan",
+        description: "Buyer's first name (falls back to 'there').",
+      },
+      {
+        name: "programName",
+        sample: "AI Leadership Certification",
+        description: "The program that was purchased.",
+      },
+      {
+        name: "amount",
+        sample: "$12,000",
+        description: "Amount actually paid.",
+      },
+    ],
+    footerReason:
+      "You're receiving this because you purchased a Chief AI Officer program.",
+  },
+
+  // ── purchase_handover — to the internal handover / onboarding team ────────
+  {
+    key: "purchase_handover",
+    name: "New purchase — handover",
+    trigger:
+      "Fires alongside the buyer confirmation on every purchase. Sent to the handover/onboarding team (HANDOVER_TEAM_EMAIL) so they can onboard the new client.",
+    recipient: "Admin",
+    defaultSubject: "New client to onboard: {{programName}} — {{buyerName}}",
+    defaultHeading: "New client to onboard",
+    defaultBodyHtml: `<p>A new client just purchased a program and needs onboarding.</p>
+<table style="border-collapse:collapse;font-size:14px;">
+  <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Client</td><td>{{buyerName}}</td></tr>
+  <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Email</td><td>{{buyerEmail}}</td></tr>
+  <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Program</td><td>{{programName}}</td></tr>
+  <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Amount paid</td><td>{{amount}}</td></tr>
+  <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Referred by</td><td>{{referredBy}}</td></tr>
+</table>`,
+    variables: [
+      { name: "buyerName", sample: "Jordan Avery", description: "Client's full name." },
+      {
+        name: "buyerEmail",
+        sample: "jordan.avery@example.com",
+        description: "Client's email address (reach out to onboard).",
+      },
+      {
+        name: "programName",
+        sample: "AI Leadership Certification",
+        description: "The program purchased.",
+      },
+      { name: "amount", sample: "$12,000", description: "Amount actually paid." },
+      {
+        name: "referredBy",
+        sample: "JORDANA1",
+        description: "Referring affiliate's code, or 'direct' if none.",
+      },
+    ],
+    footerReason: "You're receiving this as a member of the Chief AI Officer team.",
   },
 ];
 

@@ -50,12 +50,15 @@ const AUDIENCE_BY_KEY: Record<string, Audience> = {
   application_received: "Applicant",
   application_declined: "Applicant",
   new_application: "Internal team",
+  purchase_handover: "Internal team",
   approved: "Affiliate",
   password_reset: "Affiliate",
   dispute_upheld: "Affiliate",
   dispute_denied: "Affiliate",
   affiliate_paid: "Affiliate",
   commission_reversed: "Affiliate",
+  referral_verified: "Affiliate",
+  purchase_confirmation: "Referral",
 };
 
 function audienceOf(row: TemplateRow): Audience {
@@ -196,8 +199,7 @@ export function EmailTemplatesClient({
 
               {section.items.length === 0 ? (
                 <div className="rounded-lg border border-dashed border-zinc-200 bg-zinc-50/60 px-4 py-3 text-sm text-zinc-500">
-                  No emails yet — referred customers currently receive
-                  Stripe&apos;s own purchase receipt.
+                  No emails for this audience yet.
                 </div>
               ) : (
                 <div className="space-y-5">

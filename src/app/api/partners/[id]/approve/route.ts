@@ -11,6 +11,7 @@ import { partners } from "@/lib/db/schema";
 import { requireRole } from "@/lib/auth/guard";
 import { generateRefCode } from "@/lib/partners/rules";
 import { sendTemplatedEmail } from "@/lib/email/render";
+import { notifyProgramEvent } from "@/lib/notifications/notify";
 import { eq } from "drizzle-orm";
 
 /** Readable, URL-safe temporary password, e.g. "Caio-a1B2c3D4". */
@@ -129,6 +130,18 @@ export async function POST(
       referralLink: link,
       tempPassword,
       loginUrl,
+    });
+
+    // Internal record — notify the affiliate-program team WHO approved this
+    // affiliate. The affiliate never sees this; the permanent audit record is
+    // approvedBy/approvedAt on the row above, this is the heads-up. Best-effort.
+    void notifyProgramEvent({
+      type: "application",
+      title: `Affiliate approved: ${updated.name}`,
+      body: `${updated.name} (${updated.email}) was approved by ${
+        user.name || user.email
+      } (${user.email}).`,
+      linkHref: "/partner-program",
     });
 
     return NextResponse.json({ partner: updated });

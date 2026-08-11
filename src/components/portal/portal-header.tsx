@@ -5,6 +5,7 @@ import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PortalNotificationBell } from "@/components/portal/notification-bell";
 
 const NAV = [
   { href: "/portal", label: "Dashboard" },
@@ -70,6 +71,7 @@ export function PortalHeader({
                 );
               })}
             </nav>
+            <PortalNotificationBell />
             <button
               type="button"
               onClick={logout}

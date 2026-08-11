@@ -27,6 +27,12 @@ export interface BrandedEmailOptions {
   contentHtml: string;
   /** Hidden preview text shown in the inbox list. */
   preheader?: string;
+  /**
+   * Overrides the "why am I getting this" footer line. Defaults to the
+   * affiliate-program wording; buyers / non-affiliate recipients pass their own
+   * so the footer isn't misleading.
+   */
+  footerReason?: string;
 }
 
 /** A reusable CTA button (email-safe, table-based). */
@@ -40,6 +46,7 @@ export function renderBrandedEmail({
   heading,
   contentHtml,
   preheader,
+  footerReason,
 }: BrandedEmailOptions): string {
   const year = "2026";
   const links = FOOTER_LINKS.map(
@@ -71,7 +78,7 @@ export function renderBrandedEmail({
       </td></tr>
       <tr><td style="background:#0b0b0f;border-radius:0 0 14px 14px;padding:22px 32px;">
         <p style="margin:0 0 6px;font-size:12px;line-height:1.6;color:#a1a1aa;">
-          You're receiving this because you're part of the Chief AI Officer Affiliate Program.
+          ${footerReason || "You're receiving this because you're part of the Chief AI Officer Affiliate Program."}
         </p>
         <p style="margin:0 0 10px;font-size:12px;line-height:1.6;">
           <a href="${AFFILIATES}/partners/terms" style="color:#d4d4d8;text-decoration:underline;">Terms</a> &nbsp;·&nbsp;
