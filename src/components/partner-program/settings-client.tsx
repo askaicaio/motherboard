@@ -380,12 +380,13 @@ export function SettingsClient({
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Boxes className="h-4 w-4 text-zinc-500" />
-                Eligible programs
+                Affiliate Products &amp; Services
               </CardTitle>
               <p className="mt-1 text-xs text-zinc-500">
-                Toggle availability, set a per-program commission override
-                (blank = use default), and wire up Stripe. Each row saves on
-                its own.
+                Edit the name and list value, set a per-program commission
+                override (blank = use default), toggle availability, and wire up
+                Stripe. The slug and Stripe IDs stay fixed. Each row saves on its
+                own.
               </p>
             </div>
             <div className="flex shrink-0 items-center gap-2">
@@ -689,6 +690,10 @@ function ProgramRow({
   archived?: boolean;
 }) {
   const router = useRouter();
+  const [name, setName] = useState(program.name);
+  const [listValueDollars, setListValueDollars] = useState(
+    (program.listValueCents / 100).toString(),
+  );
   const [active, setActive] = useState(program.active);
   const [overridePct, setOverridePct] = useState(
     program.commissionRateOverride
@@ -821,6 +826,16 @@ function ProgramRow({
   };
 
   const handleSave = async () => {
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      toast.error("Product name can't be blank.");
+      return;
+    }
+    const listVal = Number(listValueDollars);
+    if (!Number.isFinite(listVal) || listVal < 0) {
+      toast.error("Enter a valid list value.");
+      return;
+    }
     const trimmedPct = overridePct.trim();
     if (trimmedPct !== "" && !Number.isFinite(Number(trimmedPct))) {
       toast.error("Override must be a number or blank.");
@@ -828,6 +843,8 @@ function ProgramRow({
     }
 
     const payload = {
+      name: trimmedName,
+      listValueCents: Math.round(listVal * 100),
       active,
       commissionRateOverride: trimmedPct === "" ? null : pctToRate(trimmedPct),
       stripePriceId: stripePriceId.trim() || null,
@@ -863,14 +880,16 @@ function ProgramRow({
     >
       <td className={cn("px-3 py-3", archived && "opacity-60")}>
         <div className="flex items-center gap-2">
-          <span
-            className={cn(
-              "font-medium",
-              archived ? "text-zinc-500" : "text-zinc-900",
-            )}
-          >
-            {program.name}
-          </span>
+          {archived ? (
+            <span className="font-medium text-zinc-500">{program.name}</span>
+          ) : (
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Product name"
+              className="h-8 min-w-[180px] font-medium"
+            />
+          )}
           {program.isSample && (
             <Badge
               variant="outline"
@@ -880,15 +899,33 @@ function ProgramRow({
             </Badge>
           )}
         </div>
+        {/* Slug is a stable identifier (URLs / attribution) — not editable. */}
         <div className="font-mono text-[11px] text-zinc-400">{program.slug}</div>
       </td>
       <td
         className={cn(
-          "px-3 py-3 text-right tabular-nums",
-          archived ? "text-zinc-400 opacity-60" : "text-zinc-700",
+          "px-3 py-3 tabular-nums",
+          archived ? "text-right text-zinc-400 opacity-60" : "text-zinc-700",
         )}
       >
-        {fmtUsdCents(program.listValueCents)}
+        {archived ? (
+          fmtUsdCents(program.listValueCents)
+        ) : (
+          <div className="relative ml-auto w-28">
+            <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-zinc-500">
+              $
+            </span>
+            <Input
+              type="number"
+              inputMode="decimal"
+              min="0"
+              step="1"
+              value={listValueDollars}
+              onChange={(e) => setListValueDollars(e.target.value)}
+              className="h-8 pl-5 text-right"
+            />
+          </div>
+        )}
       </td>
       <td className={cn("px-3 py-3 text-center", archived && "opacity-60")}>
         {program.salesLed ? (

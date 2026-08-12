@@ -1,7 +1,8 @@
 // PATCH /api/partners/programs/[id] — update an eligible program (admin only).
-// Editable: active, commissionRateOverride (string|null), setupFeeCents,
-// stripeFeePassthroughCents.
-// Stripe IDs (stripeProductId/stripePriceId) are NEVER hand-edited here — they
+// Editable: name, listValueCents (display only), active, commissionRateOverride
+// (string|null), setupFeeCents, stripeFeePassthroughCents, description.
+// The slug and Stripe IDs (stripeProductId/stripePriceId) are NEVER hand-edited
+// here — the slug is a stable identifier (URLs/attribution) and the Stripe IDs
 // are managed solely by /api/partners/programs/[id]/stripe-sync. Any such keys
 // in the incoming body are stripped and ignored.
 // DELETE /api/partners/programs/[id] — soft-delete (archive): set archivedAt =
@@ -31,6 +32,9 @@ const patchSchema = z
       .optional(),
     setupFeeCents: z.number().int().min(0).optional(),
     stripeFeePassthroughCents: z.number().int().min(0).optional(),
+    // Editable display fields. The slug + Stripe IDs stay fixed (see header).
+    name: z.string().trim().min(1).max(200).optional(),
+    listValueCents: z.number().int().min(0).optional(),
   })
   // Silently drop any stripe IDs a client might send — they are read-only here.
   .strip();
@@ -64,6 +68,9 @@ export async function PATCH(
   if (body.setupFeeCents !== undefined) patch.setupFeeCents = body.setupFeeCents;
   if (body.stripeFeePassthroughCents !== undefined)
     patch.stripeFeePassthroughCents = body.stripeFeePassthroughCents;
+  if (body.name !== undefined) patch.name = body.name;
+  if (body.listValueCents !== undefined)
+    patch.listValueCents = body.listValueCents;
 
   const [updated] = await db
     .update(partnerPrograms)
