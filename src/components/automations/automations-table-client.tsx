@@ -1053,7 +1053,17 @@ export function AutomationsTableClient({
                       </div>
                     ) : (
                       dim.choices.map((c) => (
-                        <DropdownMenuItem key={c.id}>{c.value}</DropdownMenuItem>
+                        <DropdownMenuItem key={c.id}>
+                          {/* Render each choice as its configured pill (badge +
+                              text colour from its Config Page table), same look
+                              as the column cells / pickers. ColorBadge falls back
+                              to plain text when a choice has no colour set. */}
+                          <ColorBadge
+                            value={c.value}
+                            badgeColor={c.badgeColor}
+                            textColor={c.textColor}
+                          />
+                        </DropdownMenuItem>
                       ))
                     )}
                   </DropdownMenuSubContent>

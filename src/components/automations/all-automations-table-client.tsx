@@ -354,7 +354,16 @@ export function AllAutomationsTableClient({
                     <div className="px-2 py-1 text-xs text-zinc-400">(none)</div>
                   ) : (
                     dim.choices.map((c) => (
-                      <DropdownMenuItem key={c.id}>{c.value}</DropdownMenuItem>
+                      <DropdownMenuItem key={c.id}>
+                        {/* Choice as its configured pill (badge + text colour
+                            from its Config Page table); plain text when no colour
+                            is set. Mirrors the Per Website filter. */}
+                        <ColorBadge
+                          value={c.value}
+                          badgeColor={c.badgeColor}
+                          textColor={c.textColor}
+                        />
+                      </DropdownMenuItem>
                     ))
                   )}
                 </DropdownMenuSubContent>
