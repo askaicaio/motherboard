@@ -19,6 +19,7 @@ import { useFitViewportHeight } from "@/lib/automations/use-fit-viewport-height"
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -409,6 +410,18 @@ export function AutomationsTableClient({
 }) {
   const [rows, setRows] = useState(initialRows);
   const [query, setQuery] = useState("");
+  // Filter menu selection (multi-select). A Set of selected choice ids across
+  // the filter dimensions (choice ids are globally unique, so one flat Set is
+  // enough). Drives each choice's checkbox. ACTUALLY filtering the table off
+  // this set is a later step — for now it just toggles the checkboxes.
+  const [filterSelected, setFilterSelected] = useState<Set<string>>(new Set());
+  const toggleFilterChoice = (id: string) =>
+    setFilterSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   const [editMode, setEditMode] = useState(false);
   // GHL Tags + GHL Forms are platform-gated columns: shown only on the GHL pages
   // (per `visibleOnPlatforms` in the column config). `extraGhlCols` widens the
@@ -1053,11 +1066,24 @@ export function AutomationsTableClient({
                       </div>
                     ) : (
                       dim.choices.map((c) => (
-                        <DropdownMenuItem key={c.id}>
-                          {/* Render each choice as its configured pill (badge +
-                              text colour from its Config Page table), same look
-                              as the column cells / pickers. ColorBadge falls back
-                              to plain text when a choice has no colour set. */}
+                        <DropdownMenuItem
+                          key={c.id}
+                          closeOnClick={false}
+                          onClick={() => toggleFilterChoice(c.id)}
+                        >
+                          {/* Checkbox (multi-select prep) + the choice as its
+                              configured pill (badge + text colour from its Config
+                              Page table); ColorBadge falls back to plain text when
+                              a choice has no colour. The checkbox is presentational
+                              (pointer-events-none); the item's onClick toggles it,
+                              and closeOnClick={false} keeps the menu open so many
+                              choices can be ticked. Reading this set to actually
+                              filter the table is a later step. */}
+                          <Checkbox
+                            checked={filterSelected.has(c.id)}
+                            tabIndex={-1}
+                            className="pointer-events-none"
+                          />
                           <ColorBadge
                             value={c.value}
                             badgeColor={c.badgeColor}

@@ -21,6 +21,7 @@ import Link from "next/link";
 import { useFitViewportHeight } from "@/lib/automations/use-fit-viewport-height";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -154,6 +155,18 @@ export function AllAutomationsTableClient({
   automationTagChoices?: ChoiceOption[];
 }) {
   const [query, setQuery] = useState("");
+  // Filter menu selection (multi-select), mirrors the Per Website table. A Set
+  // of selected choice ids across the filter dimensions (ids are globally
+  // unique). Drives each choice's checkbox; filtering the table off this set is
+  // a later step.
+  const [filterSelected, setFilterSelected] = useState<Set<string>>(new Set());
+  const toggleFilterChoice = (id: string) =>
+    setFilterSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   // The purpose text shown in the read-only popup (null = closed).
   const [showingPurpose, setShowingPurpose] = useState<string | null>(null);
   // The notes text shown in the read-only "Show notes" popup (mirrors Purpose).
@@ -354,10 +367,20 @@ export function AllAutomationsTableClient({
                     <div className="px-2 py-1 text-xs text-zinc-400">(none)</div>
                   ) : (
                     dim.choices.map((c) => (
-                      <DropdownMenuItem key={c.id}>
-                        {/* Choice as its configured pill (badge + text colour
-                            from its Config Page table); plain text when no colour
-                            is set. Mirrors the Per Website filter. */}
+                      <DropdownMenuItem
+                        key={c.id}
+                        closeOnClick={false}
+                        onClick={() => toggleFilterChoice(c.id)}
+                      >
+                        {/* Checkbox (multi-select prep) + the choice as its
+                            configured pill; plain text when no colour is set.
+                            Mirrors the Per Website filter: presentational
+                            checkbox, item onClick toggles it, menu stays open. */}
+                        <Checkbox
+                          checked={filterSelected.has(c.id)}
+                          tabIndex={-1}
+                          className="pointer-events-none"
+                        />
                         <ColorBadge
                           value={c.value}
                           badgeColor={c.badgeColor}
