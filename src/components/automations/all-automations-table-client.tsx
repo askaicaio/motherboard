@@ -33,7 +33,17 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Search, ExternalLink } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Search, ExternalLink, Filter, ChevronDown, ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AUTOMATION_SITES } from "@/lib/automations/sites";
 import { ColorBadge } from "./color-badge";
@@ -41,7 +51,10 @@ import {
   WebhookRelatedDialog,
   type WebhookLookupTarget,
 } from "./webhook-related-dialog";
-import { columnVisibleOnPlatform } from "@/lib/automations/dropdown-config";
+import {
+  columnVisibleOnPlatform,
+  type ChoiceOption,
+} from "@/lib/automations/dropdown-config";
 import type { AutomationRow } from "./automations-table-client";
 
 /** A combined-table row: the per-website row shape + which platform it's from. */
@@ -129,8 +142,16 @@ function WebsiteBadge({ slug }: { slug: string }) {
 
 export function AllAutomationsTableClient({
   rows,
+  authorChoices = [],
+  triggerEventChoices = [],
+  automationTagChoices = [],
 }: {
   rows: AllAutomationRow[];
+  /** Filter-menu options (the Dropdown Config Page choices). Same three
+   *  dimensions as the Per Website filter; this table mirrors that feature. */
+  authorChoices?: ChoiceOption[];
+  triggerEventChoices?: ChoiceOption[];
+  automationTagChoices?: ChoiceOption[];
 }) {
   const [query, setQuery] = useState("");
   // The purpose text shown in the read-only popup (null = closed).
@@ -286,15 +307,61 @@ export function AllAutomationsTableClient({
 
   return (
     <div className="space-y-3">
-      {/* Search bar, matches NAME or LINK (same as the per-website table). */}
-      <div className="relative max-w-sm">
-        <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
-        <Input
-          placeholder="Search automations by name or link…"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          className="pl-8"
-        />
+      {/* Search row (mirrors the Per Website table): search bar LEFT, Filter
+          button pinned far-right (ml-auto). */}
+      <div className="flex items-center gap-2">
+        {/* Search bar, matches NAME or LINK (same as the per-website table). */}
+        <div className="relative min-w-0 max-w-sm flex-1">
+          <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+          <Input
+            placeholder="Search automations by name or link…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="pl-8"
+          />
+        </div>
+
+        {/* Filter menu — mirror of the Per Website filter. Trigger keeps the
+            Export CSV outline look via buttonVariants; each dimension is a
+            submenu (fly-out) listing that dimension's configured choices from
+            the matching Dropdown Config Page table. Caret points LEFT (menu is
+            right-aligned so submenus open leftward). Selecting a value does not
+            filter yet (behavior still TBD), same as the Per Website filter. */}
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            className={cn(
+              buttonVariants({ variant: "outline", size: "sm" }),
+              "ml-auto shrink-0",
+            )}
+          >
+            <Filter className="mr-2 h-3.5 w-3.5" />
+            Filter
+            <ChevronDown className="h-3 w-3" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-auto min-w-44">
+            {[
+              { label: "Author", choices: authorChoices },
+              { label: "Automation Tags", choices: automationTagChoices },
+              { label: "Trigger Event", choices: triggerEventChoices },
+            ].map((dim) => (
+              <DropdownMenuSub key={dim.label}>
+                <DropdownMenuSubTrigger className="[&>svg:last-child]:hidden">
+                  <ChevronLeft className="size-4" />
+                  {dim.label}
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="max-h-72 overflow-y-auto">
+                  {dim.choices.length === 0 ? (
+                    <div className="px-2 py-1 text-xs text-zinc-400">(none)</div>
+                  ) : (
+                    dim.choices.map((c) => (
+                      <DropdownMenuItem key={c.id}>{c.value}</DropdownMenuItem>
+                    ))
+                  )}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <TooltipProvider delay={300}>
