@@ -222,13 +222,43 @@ export function AllAutomationsTableClient({
   // then sorted by the active column. All client-side over the loaded rows.
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const base = q
-      ? rows.filter(
-          (r) =>
-            r.name.toLowerCase().includes(q) ||
-            (r.externalUrl ?? "").toLowerCase().includes(q),
+    // Filter-menu selection → per-dimension id sets (mirrors the Per Website
+    // table). A dimension with no selection imposes no constraint. AND across
+    // dimensions + search; OR within a dimension; Automation Tags matches on ANY
+    // selected tag. Ids deleted in Config drop out (absent from the choice lists).
+    const authorSel = new Set(
+      authorChoices.filter((c) => filterSelected.has(c.id)).map((c) => c.id),
+    );
+    const triggerSel = new Set(
+      triggerEventChoices
+        .filter((c) => filterSelected.has(c.id))
+        .map((c) => c.id),
+    );
+    const tagSel = new Set(
+      automationTagChoices
+        .filter((c) => filterSelected.has(c.id))
+        .map((c) => c.id),
+    );
+    const base = rows.filter((r) => {
+      if (
+        q &&
+        !(
+          r.name.toLowerCase().includes(q) ||
+          (r.externalUrl ?? "").toLowerCase().includes(q)
         )
-      : rows;
+      )
+        return false;
+      if (authorSel.size && !(r.authorChoiceId && authorSel.has(r.authorChoiceId)))
+        return false;
+      if (
+        triggerSel.size &&
+        !(r.triggerEventChoiceId && triggerSel.has(r.triggerEventChoiceId))
+      )
+        return false;
+      if (tagSel.size && !(r.automationTags ?? []).some((t) => tagSel.has(t.id)))
+        return false;
+      return true;
+    });
     const dir = sortDir === "asc" ? 1 : -1;
     const time = (v: string | Date | null | undefined): number | null => {
       if (!v) return null;
@@ -280,7 +310,16 @@ export function AllAutomationsTableClient({
           return 0;
       }
     });
-  }, [rows, query, sortKey, sortDir]);
+  }, [
+    rows,
+    query,
+    sortKey,
+    sortDir,
+    filterSelected,
+    authorChoices,
+    triggerEventChoices,
+    automationTagChoices,
+  ]);
 
   // Size each row's Purpose clamp to its Name cell height (text-xs line = 16px;
   // Name cell clientHeight includes py-2 = 16px). Min 2 lines. Re-runs on
