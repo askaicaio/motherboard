@@ -480,10 +480,11 @@ export function AutomationsTableClient({
   const nameCellRefs = useRef<Map<string, HTMLTableCellElement>>(new Map());
   // Automation Tags: per-row flag for whether to shorten the chips to 4 letters.
   // FALSE by default (chips show full). A hidden full-length copy of each row's
-  // chips (rendered in the cell) is measured against a ~2-row bound; only when the
-  // full-length chips would overflow that height do we truncate to 4 letters, so
-  // rows with room keep the full tag names. The hidden copy is ALWAYS full-length,
-  // so the measurement never flip-flops with the visible (possibly-truncated) set.
+  // chips (rendered in the cell) is measured against the ROW's own height (the
+  // Name cell); only when the full-length chips would overflow the row's height do
+  // we truncate to 4 letters, so rows with room (a tall link/purpose) keep the full
+  // tag names. The hidden copy is ALWAYS full-length, so the measurement never
+  // flip-flops with the visible (possibly-truncated) set.
   const [tagsTruncate, setTagsTruncate] = useState<Record<string, boolean>>({});
   const tagMeasureRefs = useRef<Map<string, HTMLSpanElement>>(new Map());
   // Fit-to-viewport height for the table's scroll container (shared hook).
@@ -755,16 +756,23 @@ export function AutomationsTableClient({
 
   // Decide per row whether the Automation Tags chips need shortening: measure the
   // hidden FULL-LENGTH copy of each row's chips and truncate to 4 letters only
-  // when it overflows ~2 chip rows. The measured copy is always full-length, so
-  // this is stable (no measure→truncate→re-measure flip-flop). The column is a
-  // FIXED width, so a window resize doesn't change wrapping, but we re-run on
-  // resize anyway (cheap, and covers late font loads).
+  // when it exceeds the ROW's usable height — taken from the fixed-width Name cell,
+  // the SAME reference the Purpose clamp uses — so the tags get to fill the row's
+  // own height (set by the name/link/purpose) before shortening. The measured copy
+  // is always full-length, so this is stable. The column is a FIXED width, so a
+  // window resize doesn't change wrapping, but we re-run on resize anyway (cheap,
+  // and covers late font loads).
   useEffect(() => {
-    const TAG_MAX_H = 48; // ~2 rows of chips (a ColorBadge row is ~22px + gap)
+    const CELL_PADDING_Y = 16; // py-2 top + bottom (matches the Purpose clamp)
     const measureTags = () => {
       const next: Record<string, boolean> = {};
       for (const [id, el] of tagMeasureRefs.current) {
-        next[id] = el.getBoundingClientRect().height > TAG_MAX_H;
+        // Adaptive bound (user 2026-08-13): the row's usable content height from
+        // the Name cell, instead of a fixed ~2-row 48px. Falls back to 48 if the
+        // Name cell isn't measured yet.
+        const nameCell = nameCellRefs.current.get(id);
+        const bound = nameCell ? nameCell.clientHeight - CELL_PADDING_Y : 48;
+        next[id] = el.getBoundingClientRect().height > bound;
       }
       setTagsTruncate((prev) => {
         const keys = Object.keys(next);
