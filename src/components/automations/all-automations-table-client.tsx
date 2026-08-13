@@ -491,6 +491,22 @@ export function AllAutomationsTableClient({
                   {dim.label}
                 </DropdownMenuSubTrigger>
                 <DropdownMenuSubContent className="max-h-72 overflow-y-auto">
+                  {/* "None" filter option kept at the TOP (user request): matches
+                      rows with NO value in this dimension. White pill, red text.
+                      `none:<column>` sentinel. */}
+                  <DropdownMenuItem
+                    closeOnClick={false}
+                    onClick={() => toggleFilterChoice(`none:${dim.key}`)}
+                  >
+                    <Checkbox
+                      checked={filterSelected.has(`none:${dim.key}`)}
+                      tabIndex={-1}
+                      className="pointer-events-none"
+                    />
+                    <span className="inline-block rounded-md border border-black/10 bg-white px-3 py-0.5 text-xs font-medium text-red-600">
+                      None
+                    </span>
+                  </DropdownMenuItem>
                   {dim.choices.map((c) => (
                     <DropdownMenuItem
                       key={c.id}
@@ -511,21 +527,6 @@ export function AllAutomationsTableClient({
                       />
                     </DropdownMenuItem>
                   ))}
-                  {/* "None" filter option: matches rows with NO value in this
-                      dimension. White pill, red text. `none:<column>` sentinel. */}
-                  <DropdownMenuItem
-                    closeOnClick={false}
-                    onClick={() => toggleFilterChoice(`none:${dim.key}`)}
-                  >
-                    <Checkbox
-                      checked={filterSelected.has(`none:${dim.key}`)}
-                      tabIndex={-1}
-                      className="pointer-events-none"
-                    />
-                    <span className="inline-block rounded-md border border-black/10 bg-white px-3 py-0.5 text-xs font-medium text-red-600">
-                      None
-                    </span>
-                  </DropdownMenuItem>
                 </DropdownMenuSubContent>
               </DropdownMenuSub>
             ))}

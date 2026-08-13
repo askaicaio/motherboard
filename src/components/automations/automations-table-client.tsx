@@ -1188,6 +1188,25 @@ export function AutomationsTableClient({
                     {dim.label}
                   </DropdownMenuSubTrigger>
                   <DropdownMenuSubContent className="max-h-72 overflow-y-auto">
+                    {/* "None" filter option, kept at the TOP of the list (user
+                        request): matches rows that have NO value in this dimension.
+                        Rendered as a WHITE pill with RED text, echoing the cells'
+                        red "None". Keyed on a `none:<column>` sentinel (not a real
+                        choice id), handled specially in the predicate + summary
+                        checkbox. */}
+                    <DropdownMenuItem
+                      closeOnClick={false}
+                      onClick={() => toggleFilterChoice(`none:${dim.key}`)}
+                    >
+                      <Checkbox
+                        checked={filterSelected.has(`none:${dim.key}`)}
+                        tabIndex={-1}
+                        className="pointer-events-none"
+                      />
+                      <span className="inline-block rounded-md border border-black/10 bg-white px-3 py-0.5 text-xs font-medium text-red-600">
+                        None
+                      </span>
+                    </DropdownMenuItem>
                     {dim.choices.map((c) => (
                       <DropdownMenuItem
                         key={c.id}
@@ -1211,24 +1230,6 @@ export function AutomationsTableClient({
                         />
                       </DropdownMenuItem>
                     ))}
-                    {/* "None" filter option (always present): matches rows that
-                        have NO value in this dimension. Rendered as a WHITE pill
-                        with RED text, echoing the cells' red "None". Keyed on a
-                        `none:<column>` sentinel (not a real choice id), handled
-                        specially in the filter predicate + summary checkbox. */}
-                    <DropdownMenuItem
-                      closeOnClick={false}
-                      onClick={() => toggleFilterChoice(`none:${dim.key}`)}
-                    >
-                      <Checkbox
-                        checked={filterSelected.has(`none:${dim.key}`)}
-                        tabIndex={-1}
-                        className="pointer-events-none"
-                      />
-                      <span className="inline-block rounded-md border border-black/10 bg-white px-3 py-0.5 text-xs font-medium text-red-600">
-                        None
-                      </span>
-                    </DropdownMenuItem>
                   </DropdownMenuSubContent>
                 </DropdownMenuSub>
               ))}
