@@ -646,8 +646,8 @@ function ChoiceTableSection({
   return (
     <section className="space-y-3">
       {/* Per-table search + the single "Add Option" for the active table. The
-          button is always rendered so its space is reserved; Edit mode reveals
-          it in place rather than reflowing the row. */}
+          Add Option button is ALWAYS shown now, independent of the page Edit
+          toggle, so an option can be added without turning edit mode on. */}
       <div className="flex items-center gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
@@ -658,13 +658,7 @@ function ChoiceTableSection({
             className="pl-8"
           />
         </div>
-        <Button
-          size="sm"
-          onClick={onAdd}
-          className={cn(!editMode && "invisible")}
-          tabIndex={editMode ? undefined : -1}
-          aria-hidden={!editMode}
-        >
+        <Button size="sm" onClick={onAdd}>
           <Plus className="mr-2 h-3.5 w-3.5" />
           Add Option
         </Button>
