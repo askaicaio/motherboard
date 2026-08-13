@@ -250,6 +250,11 @@ export function AllAutomationsTableClient({
         .filter((c) => filterSelected.has(c.id))
         .map((c) => c.id),
     );
+    // Per-dimension "None" filter (a `none:<column>` sentinel): match rows with
+    // NO value in that dimension, OR'd with the dimension's selected values.
+    const authorNone = filterSelected.has("none:author");
+    const triggerNone = filterSelected.has("none:trigger_event");
+    const tagNone = filterSelected.has("none:automation_tags");
     const base = rows.filter((r) => {
       if (
         q &&
@@ -259,15 +264,24 @@ export function AllAutomationsTableClient({
         )
       )
         return false;
-      if (authorSel.size && !(r.authorChoiceId && authorSel.has(r.authorChoiceId)))
-        return false;
-      if (
-        triggerSel.size &&
-        !(r.triggerEventChoiceId && triggerSel.has(r.triggerEventChoiceId))
-      )
-        return false;
-      if (tagSel.size && !(r.automationTags ?? []).some((t) => tagSel.has(t.id)))
-        return false;
+      if (authorSel.size || authorNone) {
+        const id = r.authorChoiceId;
+        const ok =
+          (id != null && authorSel.has(id)) || (authorNone && id == null);
+        if (!ok) return false;
+      }
+      if (triggerSel.size || triggerNone) {
+        const id = r.triggerEventChoiceId;
+        const ok =
+          (id != null && triggerSel.has(id)) || (triggerNone && id == null);
+        if (!ok) return false;
+      }
+      if (tagSel.size || tagNone) {
+        const tags = r.automationTags ?? [];
+        const ok =
+          tags.some((t) => tagSel.has(t.id)) || (tagNone && tags.length === 0);
+        if (!ok) return false;
+      }
       return true;
     });
     const dir = sortDir === "asc" ? 1 : -1;
@@ -449,50 +463,69 @@ export function AllAutomationsTableClient({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-auto min-w-44">
             {[
-              { label: "Author", choices: authorChoices },
-              { label: "Automation Tags", choices: automationTagChoices },
-              { label: "Trigger Event", choices: triggerEventChoices },
+              { label: "Author", key: "author", choices: authorChoices },
+              {
+                label: "Automation Tags",
+                key: "automation_tags",
+                choices: automationTagChoices,
+              },
+              {
+                label: "Trigger Event",
+                key: "trigger_event",
+                choices: triggerEventChoices,
+              },
             ].map((dim) => (
               <DropdownMenuSub key={dim.label}>
                 <DropdownMenuSubTrigger className="[&>svg:last-child]:hidden">
                   <ChevronLeft className="size-4" />
-                  {/* Checkbox reflects whether ANY choice in this dimension is
-                      selected (summary indicator; the row still opens the submenu
-                      on click). Presentational. Mirrors the Per Website filter. */}
+                  {/* Checkbox reflects whether ANY choice in this dimension — or
+                      its "None" option — is selected. Presentational. */}
                   <Checkbox
-                    checked={dim.choices.some((c) => filterSelected.has(c.id))}
+                    checked={
+                      filterSelected.has(`none:${dim.key}`) ||
+                      dim.choices.some((c) => filterSelected.has(c.id))
+                    }
                     tabIndex={-1}
                     className="pointer-events-none"
                   />
                   {dim.label}
                 </DropdownMenuSubTrigger>
                 <DropdownMenuSubContent className="max-h-72 overflow-y-auto">
-                  {dim.choices.length === 0 ? (
-                    <div className="px-2 py-1 text-xs text-zinc-400">(none)</div>
-                  ) : (
-                    dim.choices.map((c) => (
-                      <DropdownMenuItem
-                        key={c.id}
-                        closeOnClick={false}
-                        onClick={() => toggleFilterChoice(c.id)}
-                      >
-                        {/* Checkbox (multi-select prep) + the choice as its
-                            configured pill; plain text when no colour is set.
-                            Mirrors the Per Website filter: presentational
-                            checkbox, item onClick toggles it, menu stays open. */}
-                        <Checkbox
-                          checked={filterSelected.has(c.id)}
-                          tabIndex={-1}
-                          className="pointer-events-none"
-                        />
-                        <ColorBadge
-                          value={c.value}
-                          badgeColor={c.badgeColor}
-                          textColor={c.textColor}
-                        />
-                      </DropdownMenuItem>
-                    ))
-                  )}
+                  {dim.choices.map((c) => (
+                    <DropdownMenuItem
+                      key={c.id}
+                      closeOnClick={false}
+                      onClick={() => toggleFilterChoice(c.id)}
+                    >
+                      {/* Checkbox (multi-select) + the choice as its configured
+                          pill; plain text when no colour is set. */}
+                      <Checkbox
+                        checked={filterSelected.has(c.id)}
+                        tabIndex={-1}
+                        className="pointer-events-none"
+                      />
+                      <ColorBadge
+                        value={c.value}
+                        badgeColor={c.badgeColor}
+                        textColor={c.textColor}
+                      />
+                    </DropdownMenuItem>
+                  ))}
+                  {/* "None" filter option: matches rows with NO value in this
+                      dimension. White pill, red text. `none:<column>` sentinel. */}
+                  <DropdownMenuItem
+                    closeOnClick={false}
+                    onClick={() => toggleFilterChoice(`none:${dim.key}`)}
+                  >
+                    <Checkbox
+                      checked={filterSelected.has(`none:${dim.key}`)}
+                      tabIndex={-1}
+                      className="pointer-events-none"
+                    />
+                    <span className="inline-block rounded-md border border-black/10 bg-white px-3 py-0.5 text-xs font-medium text-red-600">
+                      None
+                    </span>
+                  </DropdownMenuItem>
                 </DropdownMenuSubContent>
               </DropdownMenuSub>
             ))}

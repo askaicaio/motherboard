@@ -635,6 +635,13 @@ export function AutomationsTableClient({
         .filter((c) => filterSelected.has(c.id))
         .map((c) => c.id),
     );
+    // Per-dimension "None" filter (a `none:<column>` sentinel in filterSelected):
+    // match rows that have NO value in that dimension. OR'd with the dimension's
+    // selected values (within-dimension OR). A dimension is only skipped when it
+    // has neither selected ids nor its None option.
+    const authorNone = filterSelected.has("none:author");
+    const triggerNone = filterSelected.has("none:trigger_event");
+    const tagNone = filterSelected.has("none:automation_tags");
     const base = rows.filter((r) => {
       if (
         q &&
@@ -644,15 +651,24 @@ export function AutomationsTableClient({
         )
       )
         return false;
-      if (authorSel.size && !(r.authorChoiceId && authorSel.has(r.authorChoiceId)))
-        return false;
-      if (
-        triggerSel.size &&
-        !(r.triggerEventChoiceId && triggerSel.has(r.triggerEventChoiceId))
-      )
-        return false;
-      if (tagSel.size && !(r.automationTags ?? []).some((t) => tagSel.has(t.id)))
-        return false;
+      if (authorSel.size || authorNone) {
+        const id = r.authorChoiceId;
+        const ok =
+          (id != null && authorSel.has(id)) || (authorNone && id == null);
+        if (!ok) return false;
+      }
+      if (triggerSel.size || triggerNone) {
+        const id = r.triggerEventChoiceId;
+        const ok =
+          (id != null && triggerSel.has(id)) || (triggerNone && id == null);
+        if (!ok) return false;
+      }
+      if (tagSel.size || tagNone) {
+        const tags = r.automationTags ?? [];
+        const ok =
+          tags.some((t) => tagSel.has(t.id)) || (tagNone && tags.length === 0);
+        if (!ok) return false;
+      }
       return true;
     });
     const dir = sortDir === "asc" ? 1 : -1;
@@ -1140,9 +1156,17 @@ export function AutomationsTableClient({
                   TODO(filter): selecting a choice-value doesn't filter yet
                   (behavior still TBD); the values just list here for now. */}
               {[
-                { label: "Author", choices: authorChoices },
-                { label: "Automation Tags", choices: automationTagChoices },
-                { label: "Trigger Event", choices: triggerEventChoices },
+                { label: "Author", key: "author", choices: authorChoices },
+                {
+                  label: "Automation Tags",
+                  key: "automation_tags",
+                  choices: automationTagChoices,
+                },
+                {
+                  label: "Trigger Event",
+                  key: "trigger_event",
+                  choices: triggerEventChoices,
+                },
               ].map((dim) => (
                 <DropdownMenuSub key={dim.label}>
                   {/* This Filter menu is right-aligned, so its submenus fly out
@@ -1153,52 +1177,61 @@ export function AutomationsTableClient({
                       DropdownMenuSubTrigger default is untouched. */}
                   <DropdownMenuSubTrigger className="[&>svg:last-child]:hidden">
                     <ChevronLeft className="size-4" />
-                    {/* Checkbox reflects whether ANY choice in this dimension is
-                        selected (a summary indicator; the row still opens the
-                        submenu on click). Presentational, so it never intercepts
-                        the click. */}
+                    {/* Checkbox reflects whether ANY choice in this dimension —
+                        or its "None" option — is selected (summary indicator; the
+                        row still opens the submenu on click). Presentational. */}
                     <Checkbox
-                      checked={dim.choices.some((c) =>
-                        filterSelected.has(c.id),
-                      )}
+                      checked={
+                        filterSelected.has(`none:${dim.key}`) ||
+                        dim.choices.some((c) => filterSelected.has(c.id))
+                      }
                       tabIndex={-1}
                       className="pointer-events-none"
                     />
                     {dim.label}
                   </DropdownMenuSubTrigger>
                   <DropdownMenuSubContent className="max-h-72 overflow-y-auto">
-                    {dim.choices.length === 0 ? (
-                      <div className="px-2 py-1 text-xs text-zinc-400">
-                        (none)
-                      </div>
-                    ) : (
-                      dim.choices.map((c) => (
-                        <DropdownMenuItem
-                          key={c.id}
-                          closeOnClick={false}
-                          onClick={() => toggleFilterChoice(c.id)}
-                        >
-                          {/* Checkbox (multi-select prep) + the choice as its
-                              configured pill (badge + text colour from its Config
-                              Page table); ColorBadge falls back to plain text when
-                              a choice has no colour. The checkbox is presentational
-                              (pointer-events-none); the item's onClick toggles it,
-                              and closeOnClick={false} keeps the menu open so many
-                              choices can be ticked. Reading this set to actually
-                              filter the table is a later step. */}
-                          <Checkbox
-                            checked={filterSelected.has(c.id)}
-                            tabIndex={-1}
-                            className="pointer-events-none"
-                          />
-                          <ColorBadge
-                            value={c.value}
-                            badgeColor={c.badgeColor}
-                            textColor={c.textColor}
-                          />
-                        </DropdownMenuItem>
-                      ))
-                    )}
+                    {dim.choices.map((c) => (
+                      <DropdownMenuItem
+                        key={c.id}
+                        closeOnClick={false}
+                        onClick={() => toggleFilterChoice(c.id)}
+                      >
+                        {/* Checkbox (multi-select) + the choice as its configured
+                            pill (badge + text colour from its Config Page table);
+                            ColorBadge falls back to plain text when a choice has no
+                            colour. Presentational checkbox; the item's onClick
+                            toggles it, closeOnClick={false} keeps the menu open. */}
+                        <Checkbox
+                          checked={filterSelected.has(c.id)}
+                          tabIndex={-1}
+                          className="pointer-events-none"
+                        />
+                        <ColorBadge
+                          value={c.value}
+                          badgeColor={c.badgeColor}
+                          textColor={c.textColor}
+                        />
+                      </DropdownMenuItem>
+                    ))}
+                    {/* "None" filter option (always present): matches rows that
+                        have NO value in this dimension. Rendered as a WHITE pill
+                        with RED text, echoing the cells' red "None". Keyed on a
+                        `none:<column>` sentinel (not a real choice id), handled
+                        specially in the filter predicate + summary checkbox. */}
+                    <DropdownMenuItem
+                      closeOnClick={false}
+                      onClick={() => toggleFilterChoice(`none:${dim.key}`)}
+                    >
+                      <Checkbox
+                        checked={filterSelected.has(`none:${dim.key}`)}
+                        tabIndex={-1}
+                        className="pointer-events-none"
+                      />
+                      <span className="inline-block rounded-md border border-black/10 bg-white px-3 py-0.5 text-xs font-medium text-red-600">
+                        None
+                      </span>
+                    </DropdownMenuItem>
                   </DropdownMenuSubContent>
                 </DropdownMenuSub>
               ))}
