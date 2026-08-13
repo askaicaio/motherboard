@@ -49,6 +49,7 @@ import {
   Filter,
   ChevronDown,
   ChevronLeft,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -1082,17 +1083,29 @@ export function AutomationsTableClient({
             />
           </div>
 
-          {/* Filter menu. The trigger keeps the placeholder's Export CSV look
-              (outline button via buttonVariants, so aria-expanded also shades it
-              while open) and stays pinned far-right (ml-auto). Opening it lists
-              the DIMENSIONS you can filter by. The dimensions are wired up here;
-              what SELECTING one does is still being specified, so the items are
-              inert placeholders for now (they just close the menu). */}
+          {/* Right-side actions, pinned right as ONE group via a single ml-auto
+              on the wrapper (two separate ml-autos would split the slack and pull
+              the buttons apart). "Clear All Filters" (red) shows only when this
+              page has an active filter selection; clicking it empties the
+              selection, which also unchecks everything, drops the filter, and
+              clears this page's saved localStorage entry. */}
+          <div className="ml-auto flex shrink-0 items-center gap-2">
+            {filterSelected.size > 0 && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => setFilterSelected(new Set())}
+              >
+                <X className="mr-2 h-3.5 w-3.5" />
+                Clear All Filters
+              </Button>
+            )}
+            {/* Filter menu (trigger keeps the Export CSV outline look). */}
           <DropdownMenu>
             <DropdownMenuTrigger
               className={cn(
                 buttonVariants({ variant: "outline", size: "sm" }),
-                "ml-auto shrink-0",
+                "shrink-0",
               )}
             >
               <Filter className="mr-2 h-3.5 w-3.5" />
@@ -1172,6 +1185,7 @@ export function AutomationsTableClient({
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
+          </div>
         </div>
 
         {/* Table. Headers always render; empty / no-match message sits inside
