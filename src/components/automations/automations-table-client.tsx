@@ -609,13 +609,46 @@ export function AutomationsTableClient({
   // so in practice the link match discriminates on the scenario/workflow ID.)
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const base = q
-      ? rows.filter(
-          (r) =>
-            r.name.toLowerCase().includes(q) ||
-            (r.externalUrl ?? "").toLowerCase().includes(q),
+    // Filter-menu selection resolved to per-dimension id sets (the flat
+    // filterSelected set split by which choice list each id belongs to). A
+    // dimension with NO selection imposes no constraint. Combining rules
+    // (user-set 2026-08-10): AND across dimensions + the search box; WITHIN a
+    // dimension it's OR; Automation Tags (multi-valued per row) matches if the
+    // row has ANY selected tag. Choice ids deleted in Config are absent from the
+    // choice lists, so they simply drop out here.
+    const authorSel = new Set(
+      authorChoices.filter((c) => filterSelected.has(c.id)).map((c) => c.id),
+    );
+    const triggerSel = new Set(
+      triggerEventChoices
+        .filter((c) => filterSelected.has(c.id))
+        .map((c) => c.id),
+    );
+    const tagSel = new Set(
+      automationTagChoices
+        .filter((c) => filterSelected.has(c.id))
+        .map((c) => c.id),
+    );
+    const base = rows.filter((r) => {
+      if (
+        q &&
+        !(
+          r.name.toLowerCase().includes(q) ||
+          (r.externalUrl ?? "").toLowerCase().includes(q)
         )
-      : rows;
+      )
+        return false;
+      if (authorSel.size && !(r.authorChoiceId && authorSel.has(r.authorChoiceId)))
+        return false;
+      if (
+        triggerSel.size &&
+        !(r.triggerEventChoiceId && triggerSel.has(r.triggerEventChoiceId))
+      )
+        return false;
+      if (tagSel.size && !(r.automationTags ?? []).some((t) => tagSel.has(t.id)))
+        return false;
+      return true;
+    });
     const dir = sortDir === "asc" ? 1 : -1;
     const time = (v: string | Date | null | undefined): number | null => {
       if (!v) return null;
@@ -660,7 +693,16 @@ export function AutomationsTableClient({
           return 0;
       }
     });
-  }, [rows, query, sortKey, sortDir]);
+  }, [
+    rows,
+    query,
+    sortKey,
+    sortDir,
+    filterSelected,
+    authorChoices,
+    triggerEventChoices,
+    automationTagChoices,
+  ]);
 
   // Recompute the per-row Purpose line count after layout, and whenever the
   // visible rows change (sort/filter/data) or the window resizes. text-xs
