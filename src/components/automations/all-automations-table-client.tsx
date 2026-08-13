@@ -372,14 +372,20 @@ export function AllAutomationsTableClient({
   }, [filtered]);
 
   // Automation Tags: truncate a row's chips to 4 letters only when the hidden
-  // full-length copy overflows ~2 chip rows (same approach as the Per Website
-  // table). The measured copy is always full-length → no flip-flop.
+  // full-length copy exceeds the ROW's own height — taken from the Name cell, the
+  // same reference the Purpose clamp uses — same adaptive approach as the Per
+  // Website table, so tags fill the row's height before shortening. Measured copy
+  // is always full-length → no flip-flop.
   useEffect(() => {
-    const TAG_MAX_H = 48; // ~2 rows of chips
+    const CELL_PADDING_Y = 16; // py-2 top + bottom (matches the Purpose clamp)
     const measureTags = () => {
       const next: Record<string, boolean> = {};
       for (const [id, el] of tagMeasureRefs.current) {
-        next[id] = el.getBoundingClientRect().height > TAG_MAX_H;
+        // Adaptive bound (user 2026-08-13): row's usable content height from the
+        // Name cell, not a fixed 48px. Falls back to 48 if not yet measured.
+        const nameCell = nameCellRefs.current.get(id);
+        const bound = nameCell ? nameCell.clientHeight - CELL_PADDING_Y : 48;
+        next[id] = el.getBoundingClientRect().height > bound;
       }
       setTagsTruncate((prev) => {
         const keys = Object.keys(next);
