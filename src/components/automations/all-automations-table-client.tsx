@@ -51,6 +51,7 @@ import {
   ChevronDown,
   ChevronLeft,
   X,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AUTOMATION_SITES } from "@/lib/automations/sites";
@@ -184,6 +185,9 @@ export function AllAutomationsTableClient({
       else next.add(id);
       return next;
     });
+  // "Clear All Filters" shows a brief spinner before clearing (the clear is
+  // instant, so hold this ~500ms for visible feedback). Mirrors Per Website.
+  const [clearing, setClearing] = useState(false);
   // Save this page's filter selection whenever it changes.
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -412,9 +416,22 @@ export function AllAutomationsTableClient({
             <Button
               variant="destructive"
               size="sm"
-              onClick={() => setFilterSelected(new Set())}
+              disabled={clearing}
+              onClick={() => {
+                setClearing(true);
+                // Hold the spinner briefly (clear is instant) for visible
+                // feedback, then clear (unmounts this button).
+                setTimeout(() => {
+                  setFilterSelected(new Set());
+                  setClearing(false);
+                }, 500);
+              }}
             >
-              <X className="mr-2 h-3.5 w-3.5" />
+              {clearing ? (
+                <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <X className="mr-2 h-3.5 w-3.5" />
+              )}
               Clear All Filters
             </Button>
           )}
