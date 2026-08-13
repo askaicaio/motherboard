@@ -213,11 +213,9 @@ export function AllAutomationsTableClient({
   // taller rows fill their height instead of leaving a 2-line gap.
   const [purposeClamp, setPurposeClamp] = useState<Record<string, number>>({});
   const nameCellRefs = useRef<Map<string, HTMLTableCellElement>>(new Map());
-  // Automation Tags: per-row "shorten chips to 4 letters" flag, decided by
-  // measuring a hidden full-length copy against a ~2-row bound (same as the Per
-  // Website table). Chips stay full when they fit; only overflow triggers 4-char.
-  const [tagsTruncate, setTagsTruncate] = useState<Record<string, boolean>>({});
-  const tagMeasureRefs = useRef<Map<string, HTMLSpanElement>>(new Map());
+  // Automation Tags truncation is COUNT-based (user rule 2026-08-13, same as the
+  // Per Website table): 1-4 tags show full; 5+ tags shorten each chip to 4 letters
+  // + "…". Decided inline in the cell from automationTags.length — no measurement.
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
@@ -371,34 +369,6 @@ export function AllAutomationsTableClient({
     return () => window.removeEventListener("resize", measure);
   }, [filtered]);
 
-  // Automation Tags: truncate a row's chips to 4 letters only when the hidden
-  // full-length copy exceeds the ROW's own height — taken from the Name cell, the
-  // same reference the Purpose clamp uses — same adaptive approach as the Per
-  // Website table, so tags fill the row's height before shortening. Measured copy
-  // is always full-length → no flip-flop.
-  useEffect(() => {
-    const CELL_PADDING_Y = 16; // py-2 top + bottom (matches the Purpose clamp)
-    const measureTags = () => {
-      const next: Record<string, boolean> = {};
-      for (const [id, el] of tagMeasureRefs.current) {
-        // Adaptive bound (user 2026-08-13): row's usable content height from the
-        // Name cell, not a fixed 48px. Falls back to 48 if not yet measured.
-        const nameCell = nameCellRefs.current.get(id);
-        const bound = nameCell ? nameCell.clientHeight - CELL_PADDING_Y : 48;
-        next[id] = el.getBoundingClientRect().height > bound;
-      }
-      setTagsTruncate((prev) => {
-        const keys = Object.keys(next);
-        const same =
-          keys.length === Object.keys(prev).length &&
-          keys.every((k) => prev[k] === next[k]);
-        return same ? prev : next;
-      });
-    };
-    measureTags();
-    window.addEventListener("resize", measureTags);
-    return () => window.removeEventListener("resize", measureTags);
-  }, [filtered]);
 
   const ariaSort = (key: SortKey) =>
     sortKey === key
@@ -760,45 +730,26 @@ export function AllAutomationsTableClient({
                           red "None" when empty (mirrors the Per Website column). */}
                       <td className="w-[240px] min-w-[240px] max-w-[240px] px-3 py-2 text-center align-top">
                         {r.automationTags && r.automationTags.length > 0 ? (
-                          <div className="relative">
-                            {/* Hidden full-length copy for the fit measurement. */}
-                            <span
-                              ref={(el) => {
-                                if (el) tagMeasureRefs.current.set(r.id, el);
-                                else tagMeasureRefs.current.delete(r.id);
-                              }}
-                              aria-hidden
-                              className="pointer-events-none invisible absolute inset-x-0 top-0 flex flex-wrap justify-center gap-1"
-                            >
-                              {r.automationTags.map((t) => (
+                          // 1-4 tags show in full; 5+ tags shorten each chip to 4
+                          // letters + "…" (full name on hover) — count-based rule.
+                          <span className="flex flex-wrap justify-center gap-1">
+                            {r.automationTags.map((t) => {
+                              const truncate =
+                                r.automationTags!.length > 4 && t.value.length > 4;
+                              const label = truncate
+                                ? `${t.value.slice(0, 4)}…`
+                                : t.value;
+                              return (
                                 <ColorBadge
                                   key={t.id}
-                                  value={t.value}
+                                  value={label}
+                                  title={truncate ? t.value : undefined}
                                   badgeColor={t.badgeColor}
                                   textColor={t.textColor}
                                 />
-                              ))}
-                            </span>
-                            {/* Visible chips: full, or 4-letter shortened only when
-                                the full-length set overflows the bound. */}
-                            <span className="flex flex-wrap justify-center gap-1">
-                              {r.automationTags.map((t) => {
-                                const label =
-                                  tagsTruncate[r.id] && t.value.length > 4
-                                    ? `${t.value.slice(0, 4)}…`
-                                    : t.value;
-                                return (
-                                  <ColorBadge
-                                    key={t.id}
-                                    value={label}
-                                    title={t.value}
-                                    badgeColor={t.badgeColor}
-                                    textColor={t.textColor}
-                                  />
-                                );
-                              })}
-                            </span>
-                          </div>
+                              );
+                            })}
+                          </span>
                         ) : (
                           <span className="text-xs font-medium text-red-600">
                             None
