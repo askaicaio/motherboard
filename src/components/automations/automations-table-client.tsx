@@ -1079,6 +1079,17 @@ export function AutomationsTableClient({
                       DropdownMenuSubTrigger default is untouched. */}
                   <DropdownMenuSubTrigger className="[&>svg:last-child]:hidden">
                     <ChevronLeft className="size-4" />
+                    {/* Checkbox reflects whether ANY choice in this dimension is
+                        selected (a summary indicator; the row still opens the
+                        submenu on click). Presentational, so it never intercepts
+                        the click. */}
+                    <Checkbox
+                      checked={dim.choices.some((c) =>
+                        filterSelected.has(c.id),
+                      )}
+                      tabIndex={-1}
+                      className="pointer-events-none"
+                    />
                     {dim.label}
                   </DropdownMenuSubTrigger>
                   <DropdownMenuSubContent className="max-h-72 overflow-y-auto">

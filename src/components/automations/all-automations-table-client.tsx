@@ -382,6 +382,14 @@ export function AllAutomationsTableClient({
               <DropdownMenuSub key={dim.label}>
                 <DropdownMenuSubTrigger className="[&>svg:last-child]:hidden">
                   <ChevronLeft className="size-4" />
+                  {/* Checkbox reflects whether ANY choice in this dimension is
+                      selected (summary indicator; the row still opens the submenu
+                      on click). Presentational. Mirrors the Per Website filter. */}
+                  <Checkbox
+                    checked={dim.choices.some((c) => filterSelected.has(c.id))}
+                    tabIndex={-1}
+                    className="pointer-events-none"
+                  />
                   {dim.label}
                 </DropdownMenuSubTrigger>
                 <DropdownMenuSubContent className="max-h-72 overflow-y-auto">
