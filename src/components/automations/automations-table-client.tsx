@@ -410,11 +410,21 @@ export function AutomationsTableClient({
 }) {
   const [rows, setRows] = useState(initialRows);
   const [query, setQuery] = useState("");
-  // Filter menu selection (multi-select). A Set of selected choice ids across
-  // the filter dimensions (choice ids are globally unique, so one flat Set is
-  // enough). Drives each choice's checkbox. ACTUALLY filtering the table off
-  // this set is a later step — for now it just toggles the checkboxes.
-  const [filterSelected, setFilterSelected] = useState<Set<string>>(new Set());
+  // Filter menu selection (multi-select), PERSISTED PER PAGE in localStorage so
+  // it survives reloads / revisits. The key is per-page (the platform slug), so
+  // each of the 5 Per Website pages keeps its OWN saved filter. Value is a flat
+  // Set of selected choice ids (ids are globally unique across dimensions).
+  // Reading this set to ACTUALLY filter the table rows is still a later step.
+  const filterStorageKey = `automations-filter:${platform}`;
+  const [filterSelected, setFilterSelected] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") return new Set();
+    try {
+      const raw = localStorage.getItem(filterStorageKey);
+      return raw ? new Set<string>(JSON.parse(raw)) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
   const toggleFilterChoice = (id: string) =>
     setFilterSelected((prev) => {
       const next = new Set(prev);
@@ -422,6 +432,18 @@ export function AutomationsTableClient({
       else next.add(id);
       return next;
     });
+  // Save this page's filter selection whenever it changes.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      localStorage.setItem(
+        filterStorageKey,
+        JSON.stringify([...filterSelected]),
+      );
+    } catch {
+      // ignore storage failures (private mode / quota)
+    }
+  }, [filterSelected, filterStorageKey]);
   const [editMode, setEditMode] = useState(false);
   // GHL Tags + GHL Forms are platform-gated columns: shown only on the GHL pages
   // (per `visibleOnPlatforms` in the column config). `extraGhlCols` widens the

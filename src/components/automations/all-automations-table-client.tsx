@@ -155,11 +155,21 @@ export function AllAutomationsTableClient({
   automationTagChoices?: ChoiceOption[];
 }) {
   const [query, setQuery] = useState("");
-  // Filter menu selection (multi-select), mirrors the Per Website table. A Set
-  // of selected choice ids across the filter dimensions (ids are globally
-  // unique). Drives each choice's checkbox; filtering the table off this set is
-  // a later step.
-  const [filterSelected, setFilterSelected] = useState<Set<string>>(new Set());
+  // Filter menu selection (multi-select), mirrors the Per Website table and is
+  // PERSISTED in localStorage under a FIXED key ("all") so this page keeps its
+  // own saved filter across reloads, separate from the 5 Per Website pages.
+  // A flat Set of selected choice ids (ids are globally unique). Reading it to
+  // actually filter the table is a later step.
+  const filterStorageKey = "automations-filter:all";
+  const [filterSelected, setFilterSelected] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") return new Set();
+    try {
+      const raw = localStorage.getItem(filterStorageKey);
+      return raw ? new Set<string>(JSON.parse(raw)) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
   const toggleFilterChoice = (id: string) =>
     setFilterSelected((prev) => {
       const next = new Set(prev);
@@ -167,6 +177,18 @@ export function AllAutomationsTableClient({
       else next.add(id);
       return next;
     });
+  // Save this page's filter selection whenever it changes.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      localStorage.setItem(
+        filterStorageKey,
+        JSON.stringify([...filterSelected]),
+      );
+    } catch {
+      // ignore storage failures
+    }
+  }, [filterSelected, filterStorageKey]);
   // The purpose text shown in the read-only popup (null = closed).
   const [showingPurpose, setShowingPurpose] = useState<string | null>(null);
   // The notes text shown in the read-only "Show notes" popup (mirrors Purpose).
