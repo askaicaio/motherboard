@@ -34,7 +34,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -44,7 +44,14 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Search, ExternalLink, Filter, ChevronDown, ChevronLeft } from "lucide-react";
+import {
+  Search,
+  ExternalLink,
+  Filter,
+  ChevronDown,
+  ChevronLeft,
+  X,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AUTOMATION_SITES } from "@/lib/automations/sites";
 import { ColorBadge } from "./color-badge";
@@ -395,17 +402,28 @@ export function AllAutomationsTableClient({
           />
         </div>
 
-        {/* Filter menu — mirror of the Per Website filter. Trigger keeps the
-            Export CSV outline look via buttonVariants; each dimension is a
-            submenu (fly-out) listing that dimension's configured choices from
-            the matching Dropdown Config Page table. Caret points LEFT (menu is
-            right-aligned so submenus open leftward). Selecting a value does not
-            filter yet (behavior still TBD), same as the Per Website filter. */}
+        {/* Right-side actions, pinned right as ONE group (single ml-auto on the
+            wrapper). "Clear All Filters" (red) shows only when this page has an
+            active filter selection; clicking it empties the selection (also
+            unchecks all, drops the filter, clears the saved localStorage entry).
+            Mirror of the Per Website filter. */}
+        <div className="ml-auto flex shrink-0 items-center gap-2">
+          {filterSelected.size > 0 && (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setFilterSelected(new Set())}
+            >
+              <X className="mr-2 h-3.5 w-3.5" />
+              Clear All Filters
+            </Button>
+          )}
+          {/* Filter menu (trigger keeps the Export CSV outline look). */}
         <DropdownMenu>
           <DropdownMenuTrigger
             className={cn(
               buttonVariants({ variant: "outline", size: "sm" }),
-              "ml-auto shrink-0",
+              "shrink-0",
             )}
           >
             <Filter className="mr-2 h-3.5 w-3.5" />
@@ -463,6 +481,7 @@ export function AllAutomationsTableClient({
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
+        </div>
       </div>
 
       <TooltipProvider delay={300}>
