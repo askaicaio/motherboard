@@ -98,6 +98,43 @@ export default async function AllAutomationsPage() {
     webhooks: webhooksByAutomation.get(r.id) ?? [],
   }));
 
+  // Filter-menu options for the View All Lists Filter (mirrors the Per Website
+  // filter's three dimensions). Global choice lists from the Dropdown Config
+  // Page, value-ascending, same shape/order the per-website loader uses.
+  const [authorChoices, triggerEventChoices, automationTagChoices] =
+    await Promise.all([
+      db
+        .select({
+          id: automationDropdownChoices.id,
+          value: automationDropdownChoices.value,
+          badgeColor: automationDropdownChoices.badgeColor,
+          textColor: automationDropdownChoices.textColor,
+        })
+        .from(automationDropdownChoices)
+        .where(eq(automationDropdownChoices.columnKey, "author"))
+        .orderBy(asc(automationDropdownChoices.value)),
+      db
+        .select({
+          id: automationDropdownChoices.id,
+          value: automationDropdownChoices.value,
+          badgeColor: automationDropdownChoices.badgeColor,
+          textColor: automationDropdownChoices.textColor,
+        })
+        .from(automationDropdownChoices)
+        .where(eq(automationDropdownChoices.columnKey, "trigger_event"))
+        .orderBy(asc(automationDropdownChoices.value)),
+      db
+        .select({
+          id: automationDropdownChoices.id,
+          value: automationDropdownChoices.value,
+          badgeColor: automationDropdownChoices.badgeColor,
+          textColor: automationDropdownChoices.textColor,
+        })
+        .from(automationDropdownChoices)
+        .where(eq(automationDropdownChoices.columnKey, "automation_tags"))
+        .orderBy(asc(automationDropdownChoices.value)),
+    ]);
+
   return (
     <div className="space-y-6 p-6">
       <Link
@@ -115,7 +152,12 @@ export default async function AllAutomationsPage() {
         </p>
       </div>
 
-      <AllAutomationsTableClient rows={rows} />
+      <AllAutomationsTableClient
+        rows={rows}
+        authorChoices={authorChoices}
+        triggerEventChoices={triggerEventChoices}
+        automationTagChoices={automationTagChoices}
+      />
     </div>
   );
 }
