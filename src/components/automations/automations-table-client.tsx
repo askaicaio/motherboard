@@ -1531,12 +1531,13 @@ export function AutomationsTableClient({
                           Trigger Event. */}
                       <td className="w-[240px] min-w-[240px] max-w-[240px] px-3 py-2 text-center align-top">
                         {r.automationTags && r.automationTags.length > 0 ? (
-                          // 1-4 tags show in full; 5+ tags shorten each chip to 4
-                          // letters + "…" (full name on hover) — count-based rule.
+                          // 1-4 tags show in full. In a 5+ tag row, only chips
+                          // whose name is 7+ chars shorten to 4 letters + "…" (full
+                          // name on hover); shorter tags stay full — count-based.
                           <span className="flex flex-wrap justify-center gap-1">
                             {r.automationTags.map((t) => {
                               const truncate =
-                                r.automationTags!.length > 4 && t.value.length > 4;
+                                r.automationTags!.length > 4 && t.value.length >= 7;
                               const label = truncate
                                 ? `${t.value.slice(0, 4)}…`
                                 : t.value;
