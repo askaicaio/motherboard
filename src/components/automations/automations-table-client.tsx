@@ -1056,12 +1056,13 @@ export function AutomationsTableClient({
 
       <div className="space-y-3">
         {/* Search row: search bar on the LEFT, Filter button on the RIGHT (same
-            height). The search bar is width-capped (max-w-sm) and grows into that
-            cap; `ml-auto` on the button absorbs the remaining slack so it pins to
-            the far right of the row. */}
+            height). The search bar is full-width (flex-1, no max-width cap) so it
+            stretches across the row like the Dropdown Config page's search bar;
+            `ml-auto` on the button group keeps the actions pinned to the far right
+            (redundant while the search bar fills the row, but harmless). */}
         <div className="flex items-center gap-2">
           {/* Search bar, searches the automation NAME or LINK. */}
-          <div className="relative min-w-0 max-w-sm flex-1">
+          <div className="relative min-w-0 flex-1">
             <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
             <Input
               placeholder="Search automations by name or link…"

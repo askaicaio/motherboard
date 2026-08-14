@@ -383,10 +383,11 @@ export function AllAutomationsTableClient({
   return (
     <div className="space-y-3">
       {/* Search row (mirrors the Per Website table): search bar LEFT, Filter
-          button pinned far-right (ml-auto). */}
+          button pinned far-right (ml-auto). Search bar is full-width (flex-1, no
+          max-width cap) to match the Per Website + Dropdown Config search bars. */}
       <div className="flex items-center gap-2">
         {/* Search bar, matches NAME or LINK (same as the per-website table). */}
-        <div className="relative min-w-0 max-w-sm flex-1">
+        <div className="relative min-w-0 flex-1">
           <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
           <Input
             placeholder="Search automations by name or link…"
