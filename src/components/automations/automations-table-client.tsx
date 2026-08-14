@@ -14,7 +14,7 @@
 // once it elapses, then resets the countdown. Re-toggling restarts the 24h.
 // Blocked (with a red error) on platforms with no API integration.
 
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect, type ReactNode } from "react";
 import { useFitViewportHeight } from "@/lib/automations/use-fit-viewport-height";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -51,6 +51,9 @@ import {
   ChevronLeft,
   X,
   Loader2,
+  ArrowDownUp,
+  ArrowLeft,
+  ArrowRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -136,6 +139,95 @@ function SortArrow({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {
       <path d="M6 1 L9 5 H3 Z" />
       <path d="M6 11 L3 7 H9 Z" />
     </svg>
+  );
+}
+
+// Interactive affordance shared by clickable headers (sortable ones off edit
+// mode, and EVERY header while edit mode is on).
+const HEADER_INTERACTIVE =
+  "cursor-pointer select-none transition-colors hover:bg-zinc-200 hover:text-zinc-700";
+
+/** A column header cell.
+ *
+ *  OFF edit mode: behaves exactly as before. Sortable headers (a non-null
+ *  `sortKey`) click to CYCLE the sort and carry the hover affordance (already in
+ *  their `className`); the rest are inert plain headers.
+ *
+ *  ON edit mode: EVERY header instead becomes a dropdown trigger (the whole cell,
+ *  via Base UI's `render`), so clicking it opens an options menu in place of the
+ *  plain sort-cycle click. "Cycle Sort" runs the same sort cycle and is disabled
+ *  on non-sortable columns; "Move Column Left/Right" are placeholders (labels
+ *  only for now, behavior TBD). */
+function ColumnHeader({
+  className,
+  editMode,
+  sortKey,
+  activeSortKey,
+  sortDir,
+  onCycleSort,
+  children,
+}: {
+  className: string;
+  editMode: boolean;
+  sortKey: SortKey | null;
+  activeSortKey: SortKey;
+  sortDir: "asc" | "desc";
+  onCycleSort: (key: SortKey) => void;
+  children: ReactNode;
+}) {
+  const ariaSort = sortKey
+    ? activeSortKey === sortKey
+      ? sortDir === "asc"
+        ? "ascending"
+        : "descending"
+      : "none"
+    : undefined;
+
+  if (!editMode) {
+    // The passed className already carries the interactive classes for sortable
+    // headers (and omits them for the rest), so behavior is byte-for-byte as before.
+    return (
+      <th
+        onClick={sortKey ? () => onCycleSort(sortKey) : undefined}
+        aria-sort={ariaSort}
+        className={className}
+      >
+        {children}
+      </th>
+    );
+  }
+
+  // Edit mode: the whole header cell is the dropdown trigger. Append the
+  // interactive classes so the non-sortable headers also get the click
+  // affordance (twMerge dedupes them for the sortable ones that already have it).
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={
+          <th aria-sort={ariaSort} className={cn(className, HEADER_INTERACTIVE)} />
+        }
+      >
+        {children}
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="center" className="w-auto min-w-48">
+        <DropdownMenuItem
+          disabled={!sortKey}
+          onClick={sortKey ? () => onCycleSort(sortKey) : undefined}
+        >
+          <ArrowDownUp />
+          Cycle Sort
+        </DropdownMenuItem>
+        {/* Placeholders: labels only for now, behavior TBD (column reordering). */}
+        <DropdownMenuItem>
+          <ArrowLeft />
+          Move Column Left
+        </DropdownMenuItem>
+        <DropdownMenuItem>
+          <ArrowRight />
+          Move Column Right
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -917,6 +1009,15 @@ export function AutomationsTableClient({
   const syncedColumns = SYNCED_COLUMNS[platform] ?? NO_SYNCED_COLUMNS;
   const isSynced = (key: SortKey) => syncedColumns.has(key);
 
+  // Shared props every ColumnHeader needs (the edit-mode header dropdown). Bundled
+  // so each header cell only has to declare its own className + sortKey.
+  const headerProps = {
+    editMode,
+    activeSortKey: sortKey,
+    sortDir,
+    onCycleSort: toggleSort,
+  };
+
   return (
     <div className="space-y-6">
       {/* Header, title/description on the left; edit-mode toggle and (when
@@ -1246,15 +1347,9 @@ export function AutomationsTableClient({
                       (frozen Name column), so it needs the highest z-index plus
                       both the bottom-edge shadow (header) and the right-edge
                       shadow (frozen column). */}
-                  <th
-                    onClick={() => toggleSort("name")}
-                    aria-sort={
-                      sortKey === "name"
-                        ? sortDir === "asc"
-                          ? "ascending"
-                          : "descending"
-                        : "none"
-                    }
+                  <ColumnHeader
+                    {...headerProps}
+                    sortKey="name"
                     className="sticky left-0 top-0 z-20 w-[400px] min-w-[400px] max-w-[400px] cursor-pointer select-none bg-zinc-50 px-3 py-2 text-left shadow-[inset_0_-1px_0_0_#e4e4e7,inset_-1px_0_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700"
                   >
                     <span className="inline-flex items-center gap-1">
@@ -1264,16 +1359,10 @@ export function AutomationsTableClient({
                       Name
                       <SortArrow active={sortKey === "name"} dir={sortDir} />
                     </span>
-                  </th>
-                  <th
-                    onClick={() => toggleSort("status")}
-                    aria-sort={
-                      sortKey === "status"
-                        ? sortDir === "asc"
-                          ? "ascending"
-                          : "descending"
-                        : "none"
-                    }
+                  </ColumnHeader>
+                  <ColumnHeader
+                    {...headerProps}
+                    sortKey="status"
                     className="sticky top-0 z-10 cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700"
                   >
                     <span className="inline-flex items-center justify-center gap-1">
@@ -1283,76 +1372,92 @@ export function AutomationsTableClient({
                       Status
                       <SortArrow active={sortKey === "status"} dir={sortDir} />
                     </span>
-                  </th>
+                  </ColumnHeader>
                   {/* Author: single-select dropdown column, center-aligned.
                       Sortable alphabetically (A-Z); "None" rows sink to the
                       bottom. Never synced (set in the Add/Edit dialog). Sits
                       between Status and Trigger Event (the two dropdown cols). */}
-                  <th
-                    onClick={() => toggleSort("author")}
-                    aria-sort={
-                      sortKey === "author"
-                        ? sortDir === "asc"
-                          ? "ascending"
-                          : "descending"
-                        : "none"
-                    }
+                  <ColumnHeader
+                    {...headerProps}
+                    sortKey="author"
                     className="sticky top-0 z-10 w-[160px] min-w-[160px] max-w-[160px] cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700"
                   >
                     <span className="inline-flex items-center justify-center gap-1">
                       Author
                       <SortArrow active={sortKey === "author"} dir={sortDir} />
                     </span>
-                  </th>
+                  </ColumnHeader>
                   {/* Automation Tags: MULTI-select dropdown column, center-aligned,
                       display-only (not sortable — a row has many tags), never
                       synced. Renders wrapping coloured chips; 200px gives them
                       room. Sits between Author and Trigger Event. */}
-                  <th className="sticky top-0 z-10 w-[240px] min-w-[240px] max-w-[240px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
+                  <ColumnHeader
+                    {...headerProps}
+                    sortKey={null}
+                    className="sticky top-0 z-10 w-[240px] min-w-[240px] max-w-[240px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]"
+                  >
                     Automation Tags
-                  </th>
+                  </ColumnHeader>
                   {/* Trigger Event: single-select dropdown column, center-aligned,
                       display-only (not sortable), never synced. Sits after Author. */}
-                  <th className="sticky top-0 z-10 w-[160px] min-w-[160px] max-w-[160px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
+                  <ColumnHeader
+                    {...headerProps}
+                    sortKey={null}
+                    className="sticky top-0 z-10 w-[160px] min-w-[160px] max-w-[160px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]"
+                  >
                     Trigger Event
-                  </th>
-                  <th className="sticky top-0 z-10 w-[240px] min-w-[240px] max-w-[240px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
+                  </ColumnHeader>
+                  <ColumnHeader
+                    {...headerProps}
+                    sortKey={null}
+                    className="sticky top-0 z-10 w-[240px] min-w-[240px] max-w-[240px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]"
+                  >
                     Purpose
-                  </th>
+                  </ColumnHeader>
                   {/* Notes: mirrors the Purpose column exactly, one column to its
                       right. Not sortable (like Purpose). */}
-                  <th className="sticky top-0 z-10 w-[240px] min-w-[240px] max-w-[240px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
+                  <ColumnHeader
+                    {...headerProps}
+                    sortKey={null}
+                    className="sticky top-0 z-10 w-[240px] min-w-[240px] max-w-[240px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]"
+                  >
                     Notes
-                  </th>
+                  </ColumnHeader>
                   {/* GHL Tags + GHL Forms: MULTI-select dropdown columns, GHL-only
                       (gated on visibleOnPlatforms), display-only, never synced.
                       Plain-text lines in the cell (like Webhook Links), not chips.
                       Sit just LEFT of Webhook Links (after Notes). */}
                   {showGhlTags && (
-                    <th className="sticky top-0 z-10 w-[180px] min-w-[180px] max-w-[180px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
+                    <ColumnHeader
+                      {...headerProps}
+                      sortKey={null}
+                      className="sticky top-0 z-10 w-[180px] min-w-[180px] max-w-[180px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]"
+                    >
                       GHL Tags
-                    </th>
+                    </ColumnHeader>
                   )}
                   {showGhlForms && (
-                    <th className="sticky top-0 z-10 w-[180px] min-w-[180px] max-w-[180px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
+                    <ColumnHeader
+                      {...headerProps}
+                      sortKey={null}
+                      className="sticky top-0 z-10 w-[180px] min-w-[180px] max-w-[180px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]"
+                    >
                       GHL Forms
-                    </th>
+                    </ColumnHeader>
                   )}
                   {/* Webhook Links: MULTI-select dropdown column, display-only
                       (not sortable). Selected webhooks render one truncated line
                       each. Sits after GHL Forms, before the date columns. 240px. */}
-                  <th className="sticky top-0 z-10 w-[240px] min-w-[240px] max-w-[240px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
+                  <ColumnHeader
+                    {...headerProps}
+                    sortKey={null}
+                    className="sticky top-0 z-10 w-[240px] min-w-[240px] max-w-[240px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]"
+                  >
                     Webhook Links
-                  </th>
-                  <th
-                    onClick={() => toggleSort("lastEditedAt")}
-                    aria-sort={
-                      sortKey === "lastEditedAt"
-                        ? sortDir === "asc"
-                          ? "ascending"
-                          : "descending"
-                        : "none"
-                    }
+                  </ColumnHeader>
+                  <ColumnHeader
+                    {...headerProps}
+                    sortKey="lastEditedAt"
                     className="sticky top-0 z-10 cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700"
                   >
                     <span className="inline-flex items-center justify-center gap-1">
@@ -1365,16 +1470,10 @@ export function AutomationsTableClient({
                         dir={sortDir}
                       />
                     </span>
-                  </th>
-                  <th
-                    onClick={() => toggleSort("lastRunAt")}
-                    aria-sort={
-                      sortKey === "lastRunAt"
-                        ? sortDir === "asc"
-                          ? "ascending"
-                          : "descending"
-                        : "none"
-                    }
+                  </ColumnHeader>
+                  <ColumnHeader
+                    {...headerProps}
+                    sortKey="lastRunAt"
                     className="sticky top-0 z-10 cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700"
                   >
                     <span className="inline-flex items-center justify-center gap-1">
@@ -1384,16 +1483,10 @@ export function AutomationsTableClient({
                       Last Runtime
                       <SortArrow active={sortKey === "lastRunAt"} dir={sortDir} />
                     </span>
-                  </th>
-                  <th
-                    onClick={() => toggleSort("lastErrorAt")}
-                    aria-sort={
-                      sortKey === "lastErrorAt"
-                        ? sortDir === "asc"
-                          ? "ascending"
-                          : "descending"
-                        : "none"
-                    }
+                  </ColumnHeader>
+                  <ColumnHeader
+                    {...headerProps}
+                    sortKey="lastErrorAt"
                     className="sticky top-0 z-10 cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700"
                   >
                     <span className="inline-flex items-center justify-center gap-1">
@@ -1411,7 +1504,7 @@ export function AutomationsTableClient({
                       Last Error
                       <SortArrow active={sortKey === "lastErrorAt"} dir={sortDir} />
                     </span>
-                  </th>
+                  </ColumnHeader>
                   {/* Actions (delete) column. ALWAYS rendered, even when edit
                       mode is off, so toggling only shows/hides the trash icon
                       INSIDE the cell instead of adding/removing a whole column
