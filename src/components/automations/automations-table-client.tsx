@@ -259,13 +259,13 @@ function ColumnHeader({
             </DropdownMenuItem>
           )}
           {/* Reset ALL columns to the default arrangement (table-wide action),
-              at the bottom, below the per-column sort/move items. Red-filled
-              (white text + icon) to flag it as destructive; the `!` overrides the
-              base item's focus/descendant colour rules. */}
+              at the bottom, below the per-column sort/move items. Black-filled
+              (white text + icon) to match the app's dark buttons; the `!`
+              overrides the base item's focus/descendant colour rules. */}
           {onResetOrder && (
             <DropdownMenuItem
               onClick={onResetOrder}
-              className="!bg-red-600 !text-white [&_svg]:!text-white focus:!bg-red-700"
+              className="!bg-primary !text-primary-foreground [&_svg]:!text-primary-foreground focus:!bg-primary/80"
             >
               <RotateCcw />
               Reset Column Order
@@ -1677,10 +1677,9 @@ export function AutomationsTableClient({
           </div>
 
           {/* Export CSV. A list action (mirror of the import), so it sits with
-              Refresh List. White (outline) button. Exports ALL rows (not the
-              filtered/sorted view); disabled when the table is empty. */}
+              Refresh List. Black (default) button, matching Refresh List. Exports
+              ALL rows (not the filtered/sorted view); disabled when empty. */}
           <Button
-            variant="outline"
             size="sm"
             onClick={handleExportCsv}
             disabled={rows.length === 0}
