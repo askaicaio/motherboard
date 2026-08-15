@@ -27,6 +27,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
@@ -57,6 +58,7 @@ import {
   ArrowRight,
   RotateCcw,
   EyeOff,
+  Columns3,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -183,7 +185,7 @@ function ColumnHeader({
    *  item (pinned column, or already at the edge). */
   onMoveLeft?: () => void;
   onMoveRight?: () => void;
-  /** Hide this column for the session; omit on non-hideable columns (e.g. Name). */
+  /** Hide this column; omit on non-hideable columns (e.g. Name). */
   onHide?: () => void;
   /** Reset ALL columns to their default arrangement (table-wide action). */
   onResetOrder?: () => void;
@@ -261,7 +263,8 @@ function ColumnHeader({
               Move Column Right
             </DropdownMenuItem>
           )}
-          {/* Hide this column for the session (sits between Move and Reset). */}
+          {/* Hide this column (persists per page; re-show via the Columns
+              control). Sits between Move and Reset. */}
           {onHide && (
             <DropdownMenuItem onClick={onHide}>
               <EyeOff />
@@ -1214,14 +1217,45 @@ export function AutomationsTableClient({
     }
   }, [columnOrder, columnOrderKey]);
 
-  // Columns hidden via the header "Hide Column" item. SESSION-ONLY (not
-  // persisted): a page reload brings every column back (the user's chosen
-  // "temporarily hide" behavior).
-  const [hiddenColumns, setHiddenColumns] = useState<Set<MiddleColumnId>>(
-    () => new Set(),
-  );
+  // Columns hidden via the header "Hide Column" item or the "Columns" control.
+  // Persisted PER PAGE in localStorage (same as the column order), so a hidden
+  // view survives reload; re-show via the Columns control.
+  const hiddenColumnsKey = `automations:hiddenColumns:${platform}`;
+  const [hiddenColumns, setHiddenColumns] = useState<Set<MiddleColumnId>>(() => {
+    if (typeof window === "undefined") return new Set();
+    try {
+      const raw = window.localStorage.getItem(hiddenColumnsKey);
+      const saved: unknown = raw ? JSON.parse(raw) : [];
+      const known = new Set<string>(MIDDLE_DEFAULT_ORDER);
+      return new Set(
+        (Array.isArray(saved) ? saved : []).filter(
+          (id): id is MiddleColumnId => typeof id === "string" && known.has(id),
+        ),
+      );
+    } catch {
+      return new Set();
+    }
+  });
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        hiddenColumnsKey,
+        JSON.stringify([...hiddenColumns]),
+      );
+    } catch {
+      // ignore (private mode / storage full)
+    }
+  }, [hiddenColumns, hiddenColumnsKey]);
   const hideColumn = (id: MiddleColumnId) =>
     setHiddenColumns((prev) => new Set(prev).add(id));
+  const toggleColumn = (id: MiddleColumnId) =>
+    setHiddenColumns((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  const showAllColumns = () => setHiddenColumns(new Set());
 
   // The middle columns in the user's order, filtered to those visible on this
   // platform (drops GHL Tags / GHL Forms off the GHL pages). Drives the CSV
@@ -1242,6 +1276,10 @@ export function AutomationsTableClient({
     () => orderedMiddle.filter((c) => !hiddenColumns.has(c.id)),
     [orderedMiddle, hiddenColumns],
   );
+  // How many of THIS page's columns are currently hidden (for the Columns badge).
+  const hiddenCount = orderedMiddle.filter((c) =>
+    hiddenColumns.has(c.id),
+  ).length;
 
   // Swap a column with its visible neighbor in `dir` and persist. Operates on the
   // VISIBLE order so an off-platform column never causes a dead swap.
@@ -1795,6 +1833,53 @@ export function AutomationsTableClient({
                 Clear All Filters
               </Button>
             )}
+            {/* Columns show/hide control. Lists every column for this page with a
+                checkbox (checked = shown); toggling hides/shows it. Always shown
+                (not edit-mode gated); the hidden set persists per page. Per
+                Website only (the View All Lists page does not get this). */}
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              className={cn(
+                buttonVariants({ variant: "outline", size: "sm" }),
+                "shrink-0",
+              )}
+            >
+              <Columns3 className="mr-2 h-3.5 w-3.5" />
+              Columns
+              {hiddenCount > 0 && (
+                <span className="ml-1 rounded-full bg-zinc-200 px-1.5 text-[10px] font-medium text-zinc-700">
+                  {hiddenCount}
+                </span>
+              )}
+              <ChevronDown className="h-3 w-3" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-auto min-w-48">
+              {/* One checkbox row per column on this page (checked = shown).
+                  Order matches the table (orderedMiddle). closeOnClick=false so
+                  the menu stays open for multiple toggles, like the Filter menu. */}
+              {orderedMiddle.map((col) => (
+                <DropdownMenuItem
+                  key={col.id}
+                  closeOnClick={false}
+                  onClick={() => toggleColumn(col.id)}
+                >
+                  <Checkbox
+                    checked={!hiddenColumns.has(col.id)}
+                    tabIndex={-1}
+                    className="pointer-events-none"
+                  />
+                  {col.title}
+                </DropdownMenuItem>
+              ))}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                disabled={hiddenCount === 0}
+                onClick={showAllColumns}
+              >
+                Show all columns
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
             {/* Filter menu (trigger keeps the Export CSV outline look). */}
           <DropdownMenu>
             <DropdownMenuTrigger
