@@ -1610,7 +1610,9 @@ export function AutomationsTableClient({
                 ))}
               </div>
             ) : (
-              <span className="text-xs font-medium text-red-600">None</span>
+              // Empty = a muted "-" (like the Last Edited / Runtime / Error date
+              // columns), NOT the red "None" the other manual columns use.
+              <span className="text-xs text-zinc-400">-</span>
             )}
           </td>
         );
