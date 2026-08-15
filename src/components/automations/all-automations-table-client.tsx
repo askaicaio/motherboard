@@ -472,7 +472,13 @@ export function AllAutomationsTableClient({
                   />
                   {dim.label}
                 </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent className="max-h-72 overflow-y-auto">
+                {/* side="left": the Filter menu is right-aligned (near the screen
+                    edge), so its submenus must open LEFT (matching the
+                    left-pointing caret) or they get cut off at the right edge. */}
+                <DropdownMenuSubContent
+                  side="left"
+                  className="max-h-72 overflow-y-auto"
+                >
                   {/* "None" filter option kept at the TOP (user request): matches
                       rows with NO value in this dimension. White pill, red text.
                       `none:<column>` sentinel. */}
