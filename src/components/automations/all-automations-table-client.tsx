@@ -34,11 +34,12 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
@@ -50,8 +51,6 @@ import {
   Filter,
   ChevronDown,
   ChevronLeft,
-  X,
-  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AUTOMATION_SITES } from "@/lib/automations/sites";
@@ -185,9 +184,6 @@ export function AllAutomationsTableClient({
       else next.add(id);
       return next;
     });
-  // "Clear All Filters" shows a brief spinner before clearing (the clear is
-  // instant, so hold this ~500ms for visible feedback). Mirrors Per Website.
-  const [clearing, setClearing] = useState(false);
   // Save this page's filter selection whenever it changes.
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -398,34 +394,9 @@ export function AllAutomationsTableClient({
         </div>
 
         {/* Right-side actions, pinned right as ONE group (single ml-auto on the
-            wrapper). "Clear All Filters" (red) shows only when this page has an
-            active filter selection; clicking it empties the selection (also
-            unchecks all, drops the filter, clears the saved localStorage entry).
-            Mirror of the Per Website filter. */}
+            wrapper). "Clear All Filters" now lives at the bottom of the Filter
+            menu (mirror of the Per Website filter). */}
         <div className="ml-auto flex shrink-0 items-center gap-2">
-          {filterSelected.size > 0 && (
-            <Button
-              variant="destructive"
-              size="sm"
-              disabled={clearing}
-              onClick={() => {
-                setClearing(true);
-                // Hold the spinner briefly (clear is instant) for visible
-                // feedback, then clear (unmounts this button).
-                setTimeout(() => {
-                  setFilterSelected(new Set());
-                  setClearing(false);
-                }, 500);
-              }}
-            >
-              {clearing ? (
-                <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <X className="mr-2 h-3.5 w-3.5" />
-              )}
-              Clear All Filters
-            </Button>
-          )}
           {/* Filter menu (trigger keeps the Export CSV outline look). */}
         <DropdownMenu>
           <DropdownMenuTrigger
@@ -518,6 +489,15 @@ export function AllAutomationsTableClient({
                 </DropdownMenuSubContent>
               </DropdownMenuSub>
             ))}
+            {/* Clear All Filters at the bottom, greyed out when nothing is
+                selected (mirrors the Per Website filter + the Columns menu). */}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              disabled={filterSelected.size === 0}
+              onClick={() => setFilterSelected(new Set())}
+            >
+              Clear All Filters
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
         </div>

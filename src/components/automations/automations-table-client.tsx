@@ -51,8 +51,6 @@ import {
   Filter,
   ChevronDown,
   ChevronLeft,
-  X,
-  Loader2,
   ArrowDownUp,
   ArrowLeft,
   ArrowRight,
@@ -709,10 +707,6 @@ export function AutomationsTableClient({
       else next.add(id);
       return next;
     });
-  // "Clear All Filters" shows a brief spinner before clearing. The clear itself
-  // is instant, so we hold this loading state ~500ms purely for visible feedback
-  // (see the button below).
-  const [clearing, setClearing] = useState(false);
   // Save this page's filter selection whenever it changes.
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -1805,36 +1799,9 @@ export function AutomationsTableClient({
           </div>
 
           {/* Right-side actions, pinned right as ONE group via a single ml-auto
-              on the wrapper (two separate ml-autos would split the slack and pull
-              the buttons apart). "Clear All Filters" (red) shows only when this
-              page has an active filter selection; clicking it empties the
-              selection, which also unchecks everything, drops the filter, and
-              clears this page's saved localStorage entry. */}
+              on the wrapper. ("Clear All Filters" now lives at the bottom of the
+              Filter menu, not out here.) */}
           <div className="ml-auto flex shrink-0 items-center gap-2">
-            {filterSelected.size > 0 && (
-              <Button
-                variant="destructive"
-                size="sm"
-                disabled={clearing}
-                onClick={() => {
-                  setClearing(true);
-                  // The clear is instant; hold the spinner briefly so the loading
-                  // animation is actually visible, then clear (which unmounts this
-                  // button since the selection becomes empty).
-                  setTimeout(() => {
-                    setFilterSelected(new Set());
-                    setClearing(false);
-                  }, 500);
-                }}
-              >
-                {clearing ? (
-                  <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <X className="mr-2 h-3.5 w-3.5" />
-                )}
-                Clear All Filters
-              </Button>
-            )}
             {/* Columns show/hide control. Lists every column for this page with a
                 checkbox (checked = shown); toggling hides/shows it. Always shown
                 (not edit-mode gated); the hidden set persists per page. Per
@@ -1994,6 +1961,16 @@ export function AutomationsTableClient({
                   </DropdownMenuSubContent>
                 </DropdownMenuSub>
               ))}
+              {/* Clear All Filters at the bottom (styled like the Columns menu's
+                  "Show all columns"): always shown, greyed out when nothing is
+                  selected. Clears the selection (auto-persisted via the effect). */}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                disabled={filterSelected.size === 0}
+                onClick={() => setFilterSelected(new Set())}
+              >
+                Clear All Filters
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
             {/* New Workflow (add) button, to the RIGHT of the Filter button.
