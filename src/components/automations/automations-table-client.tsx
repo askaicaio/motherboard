@@ -153,11 +153,11 @@ const HEADER_INTERACTIVE =
  *  `sortKey`) click to CYCLE the sort and carry the hover affordance (already in
  *  their `className`); the rest are inert plain headers.
  *
- *  ON edit mode: EVERY header instead becomes a dropdown trigger (the whole cell,
- *  via Base UI's `render`), so clicking it opens an options menu in place of the
- *  plain sort-cycle click. "Cycle Sort" runs the same sort cycle and is disabled
- *  on non-sortable columns; "Move Column Left/Right" are placeholders (labels
- *  only for now, behavior TBD). */
+ *  ON edit mode: EVERY header instead hosts a full-width dropdown-trigger BUTTON
+ *  inside the (still fixed-width) cell, so clicking it opens an options menu in
+ *  place of the plain sort-cycle click. "Cycle Sort" runs the same sort cycle and
+ *  is disabled on non-sortable columns; "Move Column Left/Right" are placeholders
+ *  (labels only for now, behavior TBD). */
 function ColumnHeader({
   className,
   editMode,
@@ -183,6 +183,10 @@ function ColumnHeader({
       : "none"
     : undefined;
 
+  // Mirror the cell's own text-align onto the trigger button so the label sits
+  // exactly where the static header puts it (Name is left, the rest center).
+  const alignClass = className.includes("text-left") ? "text-left" : "text-center";
+
   if (!editMode) {
     // The passed className already carries the interactive classes for sortable
     // headers (and omits them for the rest), so behavior is byte-for-byte as before.
@@ -197,37 +201,41 @@ function ColumnHeader({
     );
   }
 
-  // Edit mode: the whole header cell is the dropdown trigger. Append the
-  // interactive classes so the non-sortable headers also get the click
-  // affordance (twMerge dedupes them for the sortable ones that already have it).
+  // Edit mode: keep the <th> a plain, fixed-width cell (p-0) and put a full-width
+  // BUTTON inside it as the dropdown trigger. Rendering the <th> ITSELF as the
+  // trigger (Base UI `render`) broke both behaviors: a non-button trigger opened
+  // only on press-and-hold (released = closed), and the <th> stopped honoring its
+  // fixed width once it became the menu's anchor. A real <button> (the standard
+  // trigger, matching every other dropdown) fixes both. The button carries the
+  // padding + interactive affordance; the cell keeps its width/sticky/shadow.
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        render={
-          <th aria-sort={ariaSort} className={cn(className, HEADER_INTERACTIVE)} />
-        }
-      >
-        {children}
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="center" className="w-auto min-w-48">
-        <DropdownMenuItem
-          disabled={!sortKey}
-          onClick={sortKey ? () => onCycleSort(sortKey) : undefined}
+    <th aria-sort={ariaSort} className={cn(className, "p-0")}>
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          className={cn("block w-full px-3 py-2", alignClass, HEADER_INTERACTIVE)}
         >
-          <ArrowDownUp />
-          Cycle Sort
-        </DropdownMenuItem>
-        {/* Placeholders: labels only for now, behavior TBD (column reordering). */}
-        <DropdownMenuItem>
-          <ArrowLeft />
-          Move Column Left
-        </DropdownMenuItem>
-        <DropdownMenuItem>
-          <ArrowRight />
-          Move Column Right
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+          {children}
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="center" className="w-auto min-w-48">
+          <DropdownMenuItem
+            disabled={!sortKey}
+            onClick={sortKey ? () => onCycleSort(sortKey) : undefined}
+          >
+            <ArrowDownUp />
+            Cycle Sort
+          </DropdownMenuItem>
+          {/* Placeholders: labels only for now, behavior TBD (column reordering). */}
+          <DropdownMenuItem>
+            <ArrowLeft />
+            Move Column Left
+          </DropdownMenuItem>
+          <DropdownMenuItem>
+            <ArrowRight />
+            Move Column Right
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </th>
   );
 }
 
