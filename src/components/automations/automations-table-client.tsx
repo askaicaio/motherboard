@@ -1892,6 +1892,11 @@ export function AutomationsTableClient({
             >
               <Filter className="mr-2 h-3.5 w-3.5" />
               Filter
+              {filterSelected.size > 0 && (
+                <span className="ml-1 rounded-full bg-zinc-200 px-1.5 text-[10px] font-medium text-zinc-700">
+                  {filterSelected.size}
+                </span>
+              )}
               <ChevronDown className="h-3 w-3" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-auto min-w-44">
