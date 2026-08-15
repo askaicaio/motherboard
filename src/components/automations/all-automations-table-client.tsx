@@ -51,6 +51,7 @@ import {
   Filter,
   ChevronDown,
   ChevronLeft,
+  Columns3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AUTOMATION_SITES } from "@/lib/automations/sites";
@@ -148,6 +149,33 @@ function WebsiteBadge({ slug }: { slug: string }) {
   );
 }
 
+// The View All Lists table renders 14 FIXED columns (hardcoded). This drives the
+// "Columns" show/hide control: each hideable column carries its 1-based POSITION
+// in the row (used by a scoped nth-child <style> to hide it) + an approximate
+// width (subtracted from the table min-width so it shrinks when hidden). Name
+// (position 1, frozen) is always shown and is not listed here.
+const ALL_HIDDEN_KEY = "automations:all:hiddenColumns";
+const ALL_HIDEABLE_COLUMNS: {
+  id: string;
+  label: string;
+  index: number;
+  width: number;
+}[] = [
+  { id: "website", label: "Website", index: 2, width: 120 },
+  { id: "status", label: "Status", index: 3, width: 110 },
+  { id: "author", label: "Author", index: 4, width: 160 },
+  { id: "automationTags", label: "Automation Tags", index: 5, width: 240 },
+  { id: "triggerEvent", label: "Trigger Event", index: 6, width: 160 },
+  { id: "purpose", label: "Purpose", index: 7, width: 240 },
+  { id: "notes", label: "Notes", index: 8, width: 240 },
+  { id: "ghlTags", label: "GHL Tags", index: 9, width: 180 },
+  { id: "ghlForms", label: "GHL Forms", index: 10, width: 180 },
+  { id: "webhooks", label: "Webhook Links", index: 11, width: 240 },
+  { id: "lastEditedAt", label: "Last Edited", index: 12, width: 136 },
+  { id: "lastRunAt", label: "Last Runtime", index: 13, width: 136 },
+  { id: "lastErrorAt", label: "Last Error", index: 14, width: 136 },
+];
+
 export function AllAutomationsTableClient({
   rows,
   authorChoices = [],
@@ -196,6 +224,57 @@ export function AllAutomationsTableClient({
       // ignore storage failures
     }
   }, [filterSelected, filterStorageKey]);
+
+  // Columns hidden via the "Columns" control, persisted for THIS page. Hiding is
+  // by column POSITION (a scoped nth-child <style> below), so the hardcoded table
+  // cells don't each need a per-cell visibility gate.
+  const [hiddenColumns, setHiddenColumns] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") return new Set();
+    try {
+      const raw = localStorage.getItem(ALL_HIDDEN_KEY);
+      const saved: unknown = raw ? JSON.parse(raw) : [];
+      const known = new Set(ALL_HIDEABLE_COLUMNS.map((c) => c.id));
+      return new Set(
+        (Array.isArray(saved) ? saved : []).filter(
+          (id): id is string => typeof id === "string" && known.has(id),
+        ),
+      );
+    } catch {
+      return new Set();
+    }
+  });
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      localStorage.setItem(ALL_HIDDEN_KEY, JSON.stringify([...hiddenColumns]));
+    } catch {
+      // ignore storage failures
+    }
+  }, [hiddenColumns]);
+  const toggleColumn = (id: string) =>
+    setHiddenColumns((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  const showAllColumns = () => setHiddenColumns(new Set());
+  const hiddenCount = hiddenColumns.size;
+  // CSS that hides each chosen column by position, scoped to this table.
+  const hideColsCss = ALL_HIDEABLE_COLUMNS.filter((c) => hiddenColumns.has(c.id))
+    .map(
+      (c) =>
+        `.all-cols-table>thead>tr>th:nth-child(${c.index}),.all-cols-table>tbody>tr>td:nth-child(${c.index}){display:none}`,
+    )
+    .join("");
+  // Shrink the table min-width by the hidden columns' widths (base 2800).
+  const tableMinWidth =
+    2800 -
+    ALL_HIDEABLE_COLUMNS.filter((c) => hiddenColumns.has(c.id)).reduce(
+      (sum, c) => sum + c.width,
+      0,
+    );
+
   // The purpose text shown in the read-only popup (null = closed).
   const [showingPurpose, setShowingPurpose] = useState<string | null>(null);
   // The notes text shown in the read-only "Show notes" popup (mirrors Purpose).
@@ -397,6 +476,49 @@ export function AllAutomationsTableClient({
             wrapper). "Clear All Filters" now lives at the bottom of the Filter
             menu (mirror of the Per Website filter). */}
         <div className="ml-auto flex shrink-0 items-center gap-2">
+          {/* Columns show/hide control (mirrors the Per Website page). Hides
+              columns by position via a scoped <style>; the hidden set persists
+              for this page. Name is always shown. */}
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            className={cn(
+              buttonVariants({ variant: "outline", size: "sm" }),
+              "shrink-0",
+            )}
+          >
+            <Columns3 className="mr-2 h-3.5 w-3.5" />
+            Columns
+            {hiddenCount > 0 && (
+              <span className="ml-1 rounded-full bg-zinc-200 px-1.5 text-[10px] font-medium text-zinc-700">
+                {hiddenCount}
+              </span>
+            )}
+            <ChevronDown className="h-3 w-3" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-auto min-w-48">
+            {ALL_HIDEABLE_COLUMNS.map((col) => (
+              <DropdownMenuItem
+                key={col.id}
+                closeOnClick={false}
+                onClick={() => toggleColumn(col.id)}
+              >
+                <Checkbox
+                  checked={!hiddenColumns.has(col.id)}
+                  tabIndex={-1}
+                  className="pointer-events-none"
+                />
+                {col.label}
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              disabled={hiddenCount === 0}
+              onClick={showAllColumns}
+            >
+              Show all columns
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
           {/* Filter menu (trigger keeps the Export CSV outline look). */}
         <DropdownMenu>
           <DropdownMenuTrigger
@@ -513,7 +635,14 @@ export function AllAutomationsTableClient({
             {/* Same shell as the per-website table: bounded scroll, sticky
                 header (Option B), frozen Name column, horizontal scroll once the
                 columns exceed the card width. */}
-            <table className="w-full min-w-[2800px] text-sm">
+            {/* Scoped CSS that hides the chosen columns by position (hideColsCss).
+                suppressHydrationWarning: the rules come from localStorage, empty
+                on the server and populated on the client. */}
+            <style suppressHydrationWarning>{hideColsCss}</style>
+            <table
+              className="all-cols-table w-full text-sm"
+              style={{ minWidth: tableMinWidth }}
+            >
               <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
                 <tr>
                   {/* Corner cell: frozen Name column, sticky on both axes. */}
