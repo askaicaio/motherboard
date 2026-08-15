@@ -218,7 +218,14 @@ function ColumnHeader({
     <th aria-sort={ariaSort} className={cn(className, "p-0")}>
       <DropdownMenu>
         <DropdownMenuTrigger
-          className={cn("block w-full px-3 py-2", alignClass, HEADER_INTERACTIVE)}
+          // `uppercase` re-applies the header text-transform that the <button>
+          // reset strips (Tailwind preflight sets `text-transform: none` on
+          // buttons), so the trigger label stays uppercase like the static <th>.
+          className={cn(
+            "block w-full px-3 py-2 uppercase",
+            alignClass,
+            HEADER_INTERACTIVE,
+          )}
         >
           {children}
         </DropdownMenuTrigger>
