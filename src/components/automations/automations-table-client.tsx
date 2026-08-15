@@ -56,6 +56,7 @@ import {
   ArrowLeft,
   ArrowRight,
   RotateCcw,
+  EyeOff,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -72,7 +73,6 @@ import {
   type WebhookLookupTarget,
 } from "./webhook-related-dialog";
 import { confirmDialog } from "@/components/ui/confirm";
-import { columnVisibleOnPlatform } from "@/lib/automations/dropdown-config";
 import type {
   ChoiceOption,
   SelectedChoice,
@@ -169,6 +169,7 @@ function ColumnHeader({
   onCycleSort,
   onMoveLeft,
   onMoveRight,
+  onHide,
   onResetOrder,
   children,
 }: {
@@ -182,6 +183,8 @@ function ColumnHeader({
    *  item (pinned column, or already at the edge). */
   onMoveLeft?: () => void;
   onMoveRight?: () => void;
+  /** Hide this column for the session; omit on non-hideable columns (e.g. Name). */
+  onHide?: () => void;
   /** Reset ALL columns to their default arrangement (table-wide action). */
   onResetOrder?: () => void;
   children: ReactNode;
@@ -256,6 +259,13 @@ function ColumnHeader({
             <DropdownMenuItem onClick={onMoveRight}>
               <ArrowRight />
               Move Column Right
+            </DropdownMenuItem>
+          )}
+          {/* Hide this column for the session (sits between Move and Reset). */}
+          {onHide && (
+            <DropdownMenuItem onClick={onHide}>
+              <EyeOff />
+              Hide Column
             </DropdownMenuItem>
           )}
           {/* Reset ALL columns to the default arrangement (table-wide action),
@@ -567,6 +577,26 @@ const MIDDLE_COLUMNS: MiddleColumnDef[] = [
 
 const MIDDLE_DEFAULT_ORDER: MiddleColumnId[] = MIDDLE_COLUMNS.map((c) => c.id);
 
+// Approximate rendered width (px) of each middle column, used to size the table's
+// min-width from the CURRENTLY VISIBLE columns so the table shrinks when a column
+// is hidden (auto-width columns like Status / the dates are estimated). Name (400,
+// frozen) + Actions (64) are added on top via NAME_ACTIONS_WIDTH.
+const COLUMN_WIDTHS: Record<MiddleColumnId, number> = {
+  status: 136,
+  author: 160,
+  automationTags: 240,
+  triggerEvent: 160,
+  purpose: 240,
+  notes: 240,
+  ghlTags: 180,
+  ghlForms: 180,
+  webhooks: 240,
+  lastEditedAt: 136,
+  lastRunAt: 136,
+  lastErrorAt: 136,
+};
+const NAME_ACTIONS_WIDTH = 464; // Name (400, frozen) + Actions (64), always shown.
+
 /** Reconcile a persisted order with the known columns: keep valid ids in their
  *  saved order, drop unknown ones, and append any new columns not yet saved. */
 function normalizeColumnOrder(saved: unknown): MiddleColumnId[] {
@@ -693,12 +723,6 @@ export function AutomationsTableClient({
     }
   }, [filterSelected, filterStorageKey]);
   const [editMode, setEditMode] = useState(false);
-  // GHL Tags + GHL Forms are platform-gated columns: shown only on the GHL pages
-  // (per `visibleOnPlatforms` in the column config). `extraGhlCols` widens the
-  // table + the empty-state colSpan by however many of the two are visible.
-  const showGhlTags = columnVisibleOnPlatform("ghl_tags", platform);
-  const showGhlForms = columnVisibleOnPlatform("ghl_forms", platform);
-  const extraGhlCols = (showGhlTags ? 1 : 0) + (showGhlForms ? 1 : 0);
   const [addOpen, setAddOpen] = useState(false);
   const [editing, setEditing] = useState<AutomationRow | null>(null);
   // The purpose text shown in the read-only "Show purpose" popup (null = closed).
@@ -1190,9 +1214,18 @@ export function AutomationsTableClient({
     }
   }, [columnOrder, columnOrderKey]);
 
+  // Columns hidden via the header "Hide Column" item. SESSION-ONLY (not
+  // persisted): a page reload brings every column back (the user's chosen
+  // "temporarily hide" behavior).
+  const [hiddenColumns, setHiddenColumns] = useState<Set<MiddleColumnId>>(
+    () => new Set(),
+  );
+  const hideColumn = (id: MiddleColumnId) =>
+    setHiddenColumns((prev) => new Set(prev).add(id));
+
   // The middle columns in the user's order, filtered to those visible on this
-  // platform (drops GHL Tags / GHL Forms off the GHL pages). Single source that
-  // drives the header, the body cells, AND the CSV export so they stay in sync.
+  // platform (drops GHL Tags / GHL Forms off the GHL pages). Drives the CSV
+  // export (ALL columns, so a temporary hide never drops export data).
   const orderedMiddle = useMemo(
     () =>
       columnOrder
@@ -1202,13 +1235,25 @@ export function AutomationsTableClient({
     [columnOrder, platform],
   );
 
+  // The middle columns actually shown right now (orderedMiddle minus the ones
+  // hidden this session). Drives the header, the body cells, the colSpan, and the
+  // table min-width.
+  const visibleMiddle = useMemo(
+    () => orderedMiddle.filter((c) => !hiddenColumns.has(c.id)),
+    [orderedMiddle, hiddenColumns],
+  );
+
   // Swap a column with its visible neighbor in `dir` and persist. Operates on the
   // VISIBLE order so an off-platform column never causes a dead swap.
   const moveColumn = (id: MiddleColumnId, dir: -1 | 1) => {
     setColumnOrder((prev) => {
       const visible = prev.filter((cid) => {
         const def = MIDDLE_COLUMNS.find((c) => c.id === cid);
-        return def && (!def.platforms || def.platforms.includes(platform));
+        return (
+          def &&
+          (!def.platforms || def.platforms.includes(platform)) &&
+          !hiddenColumns.has(cid)
+        );
       });
       const vIdx = visible.indexOf(id);
       const targetId = visible[vIdx + dir];
@@ -1266,10 +1311,11 @@ export function AutomationsTableClient({
         className={col.thClassName}
         onMoveLeft={vIdx > 0 ? () => moveColumn(col.id, -1) : undefined}
         onMoveRight={
-          vIdx < orderedMiddle.length - 1
+          vIdx < visibleMiddle.length - 1
             ? () => moveColumn(col.id, 1)
             : undefined
         }
+        onHide={() => hideColumn(col.id)}
         onResetOrder={resetColumnOrder}
       >
         {inner}
@@ -1891,7 +1937,11 @@ export function AutomationsTableClient({
           >
             <table
               className="w-full text-sm"
-              style={{ minWidth: 2290 + extraGhlCols * 180 }}
+              style={{
+                minWidth:
+                  NAME_ACTIONS_WIDTH +
+                  visibleMiddle.reduce((sum, c) => sum + COLUMN_WIDTHS[c.id], 0),
+              }}
             >
               <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
                 <tr>
@@ -1916,7 +1966,7 @@ export function AutomationsTableClient({
                   {/* The reorderable middle columns (Status through Last Error),
                       rendered in the user's saved order. GHL Tags / GHL Forms are
                       filtered out on non-GHL pages by orderedMiddle. */}
-                  {orderedMiddle.map((col, i) => renderMiddleHeader(col, i))}
+                  {visibleMiddle.map((col, i) => renderMiddleHeader(col, i))}
                   {/* Actions (delete) column. ALWAYS rendered, even when edit
                       mode is off, so toggling only shows/hides the trash icon
                       INSIDE the cell instead of adding/removing a whole column
@@ -1929,7 +1979,7 @@ export function AutomationsTableClient({
                 {filtered.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={2 + orderedMiddle.length}
+                      colSpan={2 + visibleMiddle.length}
                       className="px-3 py-16 text-center text-sm text-zinc-500"
                     >
                       {rows.length === 0
@@ -2003,7 +2053,7 @@ export function AutomationsTableClient({
                           are dropped on non-GHL pages by orderedMiddle. Each cell's
                           markup was moved verbatim into renderMiddleCell, so only
                           their ORDER is now data-driven. */}
-                      {orderedMiddle.map((col) => renderMiddleCell(col.id, r))}
+                      {visibleMiddle.map((col) => renderMiddleCell(col.id, r))}
                       {/* Actions cell: always present (reserves the column
                           width); the trash button only renders in edit mode, so
                           toggling never resizes the table. Trash-icon delete,
