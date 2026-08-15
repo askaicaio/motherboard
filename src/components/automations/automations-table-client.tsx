@@ -1541,11 +1541,7 @@ export function AutomationsTableClient({
     <div className="space-y-6">
       {/* Header, title/description on the left; edit-mode toggle and (when
           on) the "+ New Workflow" button on the right. */}
-      {/* items-center vertically centers the toolbar against the taller title
-          block, so it sits lower (fills the gap that top-alignment left) while
-          still leaving room below its buttons for the absolutely-positioned
-          "Next refresh" countdown + Refresh/Auto-refresh error text. */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
             {/* Brand logo, same treatment + size as the Main Page card: a
