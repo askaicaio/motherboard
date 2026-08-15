@@ -259,13 +259,13 @@ function ColumnHeader({
             </DropdownMenuItem>
           )}
           {/* Reset ALL columns to the default arrangement (table-wide action),
-              at the bottom, below the per-column sort/move items. Black-filled
-              (white text + icon) to match the app's dark buttons; the `!`
-              overrides the base item's focus/descendant colour rules. */}
+              at the bottom, below the per-column sort/move items. Styled as a
+              white/outline button (border + black text/icon); the `!` overrides
+              the base item's focus/descendant colour rules. */}
           {onResetOrder && (
             <DropdownMenuItem
               onClick={onResetOrder}
-              className="!bg-primary !text-primary-foreground [&_svg]:!text-primary-foreground focus:!bg-primary/80"
+              className="border border-border !bg-background !text-foreground [&_svg]:!text-foreground focus:!bg-muted"
             >
               <RotateCcw />
               Reset Column Order
@@ -1646,13 +1646,14 @@ export function AutomationsTableClient({
             ) : null}
           </div>
 
-          {/* Refresh List. Sits to the LEFT of the Edit mode toggle, same
-              style as "+ New Workflow". On syncable platforms it runs a real
-              sync (spinner while in flight, success toast); on the rest it
-              shows the temporary placeholder error. Either way, a failure
-              turns the button red with the error message below it for 5s. */}
+          {/* Refresh List. Sits to the LEFT of Export CSV. White (outline)
+              button. On syncable platforms it runs a real sync (spinner while in
+              flight, success toast); on the rest it shows the temporary
+              placeholder error. Either way, a failure turns the button red with
+              the error message below it for 5s. */}
           <div className="relative">
             <Button
+              variant="outline"
               size="sm"
               onClick={() => handleRefresh()}
               disabled={refreshing}
