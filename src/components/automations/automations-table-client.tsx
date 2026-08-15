@@ -259,14 +259,11 @@ function ColumnHeader({
             </DropdownMenuItem>
           )}
           {/* Reset ALL columns to the default arrangement (table-wide action),
-              at the bottom, below the per-column sort/move items. Styled as a
-              white/outline button (border + black text/icon); the `!` overrides
-              the base item's focus/descendant colour rules. */}
+              at the bottom, below the per-column sort/move items. Plain item,
+              same style as the rest of the menu; the confirm dialog is the
+              accidental-click guard. */}
           {onResetOrder && (
-            <DropdownMenuItem
-              onClick={onResetOrder}
-              className="border border-border !bg-background !text-foreground [&_svg]:!text-foreground focus:!bg-muted"
-            >
+            <DropdownMenuItem onClick={onResetOrder}>
               <RotateCcw />
               Reset Column Order
             </DropdownMenuItem>
