@@ -165,6 +165,8 @@ function ColumnHeader({
   activeSortKey,
   sortDir,
   onCycleSort,
+  onMoveLeft,
+  onMoveRight,
   children,
 }: {
   className: string;
@@ -173,6 +175,10 @@ function ColumnHeader({
   activeSortKey: SortKey;
   sortDir: "asc" | "desc";
   onCycleSort: (key: SortKey) => void;
+  /** Provided (enabled) when the column can move that way; omit to disable the
+   *  item (pinned column, or already at the edge). */
+  onMoveLeft?: () => void;
+  onMoveRight?: () => void;
   children: ReactNode;
 }) {
   const ariaSort = sortKey
@@ -224,12 +230,13 @@ function ColumnHeader({
             <ArrowDownUp />
             Cycle Sort
           </DropdownMenuItem>
-          {/* Placeholders: labels only for now, behavior TBD (column reordering). */}
-          <DropdownMenuItem>
+          {/* Move the column left/right. Disabled when it can't go that way (a
+              pinned column, or already at the edge of the movable columns). */}
+          <DropdownMenuItem disabled={!onMoveLeft} onClick={onMoveLeft}>
             <ArrowLeft />
             Move Column Left
           </DropdownMenuItem>
-          <DropdownMenuItem>
+          <DropdownMenuItem disabled={!onMoveRight} onClick={onMoveRight}>
             <ArrowRight />
             Move Column Right
           </DropdownMenuItem>
@@ -389,59 +396,162 @@ export interface AutomationRow {
 // ---------------------------------------------------------------------------
 // `platforms` (optional): restrict a column to those platform slugs, mirroring the
 // on-screen platform-gated columns (GHL Tags / GHL Forms). Omitted = every export.
-const EXPORT_COLUMNS: {
-  header: string;
-  value: (r: AutomationRow) => string;
+// ---------------------------------------------------------------------------
+// The reorderable MIDDLE columns (everything between the frozen Name column and
+// the Actions column). ONE source of truth that drives the header, the body
+// cells, the CSV export, AND the user-facing reorder (Move Column Left/Right).
+// Name (pinned first, frozen) and Actions (pinned last) are NOT in this list.
+
+// Shared header <th> class strings (widths + sticky + text-align; the sortable
+// ones also carry the interactive cursor/hover classes, matching the old
+// inline headers byte-for-byte).
+const TH_SORTABLE_AUTO =
+  "sticky top-0 z-10 cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700";
+const TH_SORTABLE_160 =
+  "sticky top-0 z-10 w-[160px] min-w-[160px] max-w-[160px] cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700";
+const TH_PLAIN_160 =
+  "sticky top-0 z-10 w-[160px] min-w-[160px] max-w-[160px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]";
+const TH_PLAIN_180 =
+  "sticky top-0 z-10 w-[180px] min-w-[180px] max-w-[180px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]";
+const TH_PLAIN_240 =
+  "sticky top-0 z-10 w-[240px] min-w-[240px] max-w-[240px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]";
+
+type MiddleColumnId =
+  | "status"
+  | "author"
+  | "automationTags"
+  | "triggerEvent"
+  | "purpose"
+  | "notes"
+  | "ghlTags"
+  | "ghlForms"
+  | "webhooks"
+  | "lastEditedAt"
+  | "lastRunAt"
+  | "lastErrorAt";
+
+interface MiddleColumnDef {
+  id: MiddleColumnId;
+  /** Header label AND CSV export header. */
+  title: string;
+  /** Sort key when sortable; null for display-only columns. */
+  sortKey: SortKey | null;
+  /** The header <th> classes (see the TH_* consts above). */
+  thClassName: string;
+  /** Custom SyncedColumnMarker tooltip (Last Error); else the marker default. */
+  syncTooltip?: string;
+  /** Restrict to these platform slugs (GHL Tags / GHL Forms only). */
   platforms?: string[];
-}[] =
-  [
-    { header: "Name", value: (r) => r.name ?? "" },
-    { header: "Link", value: (r) => r.externalUrl ?? "" },
-    { header: "Status", value: (r) => r.status },
-    // Author + Trigger Event (the two dropdown columns) sit together right after
-    // Status on the table, Author first; export mirrors that order.
-    { header: "Author", value: (r) => r.author ?? "" },
-    // Automation Tags (multi-select): comma-joined tag values, in the same
-    // between-Author-and-Trigger-Event slot as the on-screen column.
-    {
-      header: "Automation Tags",
-      value: (r) => (r.automationTags ?? []).map((t) => t.value).join(", "),
-    },
-    { header: "Trigger Event", value: (r) => r.triggerEvent ?? "" },
-    { header: "Purpose", value: (r) => r.purpose ?? "" },
-    // Notes sits immediately right of Purpose on the table, so it does here too.
-    { header: "Notes", value: (r) => r.notes ?? "" },
-    // GHL Tags + GHL Forms (multi-select, GHL-only): comma-joined values, right
-    // before Webhook Links to mirror the table. Only emitted on GHL exports.
-    {
-      header: "GHL Tags",
-      value: (r) => (r.ghlTags ?? []).map((t) => t.value).join(", "),
-      platforms: ["ghl", "ghl-b2b"],
-    },
-    {
-      header: "GHL Forms",
-      value: (r) => (r.ghlForms ?? []).map((t) => t.value).join(", "),
-      platforms: ["ghl", "ghl-b2b"],
-    },
-    // Webhook Links (multi-select): the selected webhook URLs joined, in the same
-    // after-Notes slot as the on-screen column.
-    {
-      header: "Webhook Links",
-      value: (r) => (r.webhooks ?? []).map((w) => w.url).join(", "),
-    },
-    {
-      header: "Last Edited",
-      value: (r) => (r.lastEditedAt ? formatDateCell(r.lastEditedAt) : ""),
-    },
-    {
-      header: "Last Runtime",
-      value: (r) => (r.lastRunAt ? formatDateCell(r.lastRunAt) : ""),
-    },
-    {
-      header: "Last Error",
-      value: (r) => (r.lastErrorAt ? formatDateCell(r.lastErrorAt) : ""),
-    },
-  ];
+  /** CSV cell value. */
+  exportValue: (r: AutomationRow) => string;
+}
+
+// Default left-to-right order (matches the pre-refactor table exactly).
+const MIDDLE_COLUMNS: MiddleColumnDef[] = [
+  {
+    id: "status",
+    title: "Status",
+    sortKey: "status",
+    thClassName: TH_SORTABLE_AUTO,
+    exportValue: (r) => r.status,
+  },
+  {
+    id: "author",
+    title: "Author",
+    sortKey: "author",
+    thClassName: TH_SORTABLE_160,
+    exportValue: (r) => r.author ?? "",
+  },
+  {
+    id: "automationTags",
+    title: "Automation Tags",
+    sortKey: null,
+    thClassName: TH_PLAIN_240,
+    exportValue: (r) => (r.automationTags ?? []).map((t) => t.value).join(", "),
+  },
+  {
+    id: "triggerEvent",
+    title: "Trigger Event",
+    sortKey: null,
+    thClassName: TH_PLAIN_160,
+    exportValue: (r) => r.triggerEvent ?? "",
+  },
+  {
+    id: "purpose",
+    title: "Purpose",
+    sortKey: null,
+    thClassName: TH_PLAIN_240,
+    exportValue: (r) => r.purpose ?? "",
+  },
+  {
+    id: "notes",
+    title: "Notes",
+    sortKey: null,
+    thClassName: TH_PLAIN_240,
+    exportValue: (r) => r.notes ?? "",
+  },
+  {
+    id: "ghlTags",
+    title: "GHL Tags",
+    sortKey: null,
+    thClassName: TH_PLAIN_180,
+    platforms: ["ghl", "ghl-b2b"],
+    exportValue: (r) => (r.ghlTags ?? []).map((t) => t.value).join(", "),
+  },
+  {
+    id: "ghlForms",
+    title: "GHL Forms",
+    sortKey: null,
+    thClassName: TH_PLAIN_180,
+    platforms: ["ghl", "ghl-b2b"],
+    exportValue: (r) => (r.ghlForms ?? []).map((t) => t.value).join(", "),
+  },
+  {
+    id: "webhooks",
+    title: "Webhook Links",
+    sortKey: null,
+    thClassName: TH_PLAIN_240,
+    exportValue: (r) => (r.webhooks ?? []).map((w) => w.url).join(", "),
+  },
+  {
+    id: "lastEditedAt",
+    title: "Last Edited",
+    sortKey: "lastEditedAt",
+    thClassName: TH_SORTABLE_AUTO,
+    exportValue: (r) => (r.lastEditedAt ? formatDateCell(r.lastEditedAt) : ""),
+  },
+  {
+    id: "lastRunAt",
+    title: "Last Runtime",
+    sortKey: "lastRunAt",
+    thClassName: TH_SORTABLE_AUTO,
+    exportValue: (r) => (r.lastRunAt ? formatDateCell(r.lastRunAt) : ""),
+  },
+  {
+    id: "lastErrorAt",
+    title: "Last Error",
+    sortKey: "lastErrorAt",
+    thClassName: TH_SORTABLE_AUTO,
+    syncTooltip: "Updated by error tracking.",
+    exportValue: (r) => (r.lastErrorAt ? formatDateCell(r.lastErrorAt) : ""),
+  },
+];
+
+const MIDDLE_DEFAULT_ORDER: MiddleColumnId[] = MIDDLE_COLUMNS.map((c) => c.id);
+
+/** Reconcile a persisted order with the known columns: keep valid ids in their
+ *  saved order, drop unknown ones, and append any new columns not yet saved. */
+function normalizeColumnOrder(saved: unknown): MiddleColumnId[] {
+  if (!Array.isArray(saved)) return MIDDLE_DEFAULT_ORDER;
+  const known = new Set<string>(MIDDLE_DEFAULT_ORDER);
+  const seen = new Set<MiddleColumnId>();
+  const cleaned = saved.filter(
+    (id): id is MiddleColumnId =>
+      typeof id === "string" && known.has(id) && !seen.has(id as MiddleColumnId) && (seen.add(id as MiddleColumnId), true),
+  );
+  const missing = MIDDLE_DEFAULT_ORDER.filter((id) => !seen.has(id));
+  return [...cleaned, ...missing];
+}
 
 /** Escape one CSV field: wrap in double-quotes (doubling internal quotes) when
  *  it contains a comma, quote, or newline. Purpose can contain all three. */
@@ -449,17 +559,21 @@ function csvEscape(value: string): string {
   return /[",\n\r]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
 }
 
-/** Serialize rows to a CSV string (CRLF line endings, RFC-4180 style). Drops any
- *  column whose `platforms` list excludes the current platform (GHL Tags / GHL
- *  Forms only export on the GHL pages), matching what the table shows. */
-function rowsToCsv(rows: AutomationRow[], platform: string): string {
-  const cols = EXPORT_COLUMNS.filter(
-    (c) => !c.platforms || c.platforms.includes(platform),
-  );
+/** Serialize rows to a CSV string (CRLF line endings, RFC-4180 style). Name +
+ *  Link come first (the frozen identity column), then the middle columns in the
+ *  caller's current on-screen order (already platform-filtered), matching what
+ *  the table shows and honoring any user reordering. */
+function rowsToCsv(
+  rows: AutomationRow[],
+  orderedMiddle: MiddleColumnDef[],
+): string {
+  const cols: { header: string; value: (r: AutomationRow) => string }[] = [
+    { header: "Name", value: (r) => r.name ?? "" },
+    { header: "Link", value: (r) => r.externalUrl ?? "" },
+    ...orderedMiddle.map((c) => ({ header: c.title, value: c.exportValue })),
+  ];
   const header = cols.map((c) => csvEscape(c.header)).join(",");
-  const body = rows.map((r) =>
-    cols.map((c) => csvEscape(c.value(r))).join(","),
-  );
+  const body = rows.map((r) => cols.map((c) => csvEscape(c.value(r))).join(","));
   return [header, ...body].join("\r\n");
 }
 
@@ -999,7 +1113,7 @@ export function AutomationsTableClient({
   // triggers a client-side download. A leading BOM keeps Excel reading it as
   // UTF-8. Filename: <platform>-automations-MM-DD-YYYY.csv.
   const handleExportCsv = () => {
-    const csv = rowsToCsv(rows, platform);
+    const csv = rowsToCsv(rows, orderedMiddle);
     const blob = new Blob(["﻿" + csv], {
       type: "text/csv;charset=utf-8;",
     });
@@ -1024,6 +1138,389 @@ export function AutomationsTableClient({
     activeSortKey: sortKey,
     sortDir,
     onCycleSort: toggleSort,
+  };
+
+  // ── Reorderable MIDDLE columns ─────────────────────────────────────────────
+  // The order is user-controlled (Move Column Left/Right in a header's edit-mode
+  // dropdown) and persisted PER PAGE in localStorage (same approach as the
+  // Filter). Name (frozen, first) and Actions (last) are pinned and excluded.
+  const columnOrderKey = `automations:columnOrder:${platform}`;
+  const [columnOrder, setColumnOrder] = useState<MiddleColumnId[]>(() => {
+    if (typeof window === "undefined") return MIDDLE_DEFAULT_ORDER;
+    try {
+      const raw = window.localStorage.getItem(columnOrderKey);
+      return raw ? normalizeColumnOrder(JSON.parse(raw)) : MIDDLE_DEFAULT_ORDER;
+    } catch {
+      return MIDDLE_DEFAULT_ORDER;
+    }
+  });
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(columnOrderKey, JSON.stringify(columnOrder));
+    } catch {
+      // ignore (private mode / storage full)
+    }
+  }, [columnOrder, columnOrderKey]);
+
+  // The middle columns in the user's order, filtered to those visible on this
+  // platform (drops GHL Tags / GHL Forms off the GHL pages). Single source that
+  // drives the header, the body cells, AND the CSV export so they stay in sync.
+  const orderedMiddle = useMemo(
+    () =>
+      columnOrder
+        .map((id) => MIDDLE_COLUMNS.find((c) => c.id === id))
+        .filter((c): c is MiddleColumnDef => !!c)
+        .filter((c) => !c.platforms || c.platforms.includes(platform)),
+    [columnOrder, platform],
+  );
+
+  // Swap a column with its visible neighbor in `dir` and persist. Operates on the
+  // VISIBLE order so an off-platform column never causes a dead swap.
+  const moveColumn = (id: MiddleColumnId, dir: -1 | 1) => {
+    setColumnOrder((prev) => {
+      const visible = prev.filter((cid) => {
+        const def = MIDDLE_COLUMNS.find((c) => c.id === cid);
+        return def && (!def.platforms || def.platforms.includes(platform));
+      });
+      const vIdx = visible.indexOf(id);
+      const targetId = visible[vIdx + dir];
+      if (vIdx < 0 || targetId === undefined) return prev;
+      const next = [...prev];
+      const a = next.indexOf(id);
+      const b = next.indexOf(targetId);
+      [next[a], next[b]] = [next[b], next[a]];
+      return next;
+    });
+  };
+
+  // Header cell for a middle column: its ColumnHeader (inner marker/label/arrow)
+  // plus the reorder handlers (disabled at the edges via undefined).
+  const renderMiddleHeader = (col: MiddleColumnDef, vIdx: number) => {
+    const inner = col.sortKey ? (
+      <span className="inline-flex items-center justify-center gap-1">
+        {isSynced(col.sortKey) && (
+          <SyncedColumnMarker
+            platformLabel={label}
+            spinning={refreshing}
+            tooltip={col.syncTooltip}
+          />
+        )}
+        {col.title}
+        <SortArrow active={sortKey === col.sortKey} dir={sortDir} />
+      </span>
+    ) : (
+      col.title
+    );
+    return (
+      <ColumnHeader
+        key={col.id}
+        {...headerProps}
+        sortKey={col.sortKey}
+        className={col.thClassName}
+        onMoveLeft={vIdx > 0 ? () => moveColumn(col.id, -1) : undefined}
+        onMoveRight={
+          vIdx < orderedMiddle.length - 1
+            ? () => moveColumn(col.id, 1)
+            : undefined
+        }
+      >
+        {inner}
+      </ColumnHeader>
+    );
+  };
+
+  // Body cell for a middle column + a row (the former inline <td> per column,
+  // moved here verbatim so behavior is unchanged; only their ORDER is now
+  // data-driven).
+  const renderMiddleCell = (id: MiddleColumnId, r: AutomationRow): ReactNode => {
+    switch (id) {
+      case "status":
+        return (
+          <td key={id} className="px-3 py-2 text-center align-top">
+            {/* Status pill (badge): green Active, neutral gray Paused. */}
+            <span
+              className={cn(
+                "inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium",
+                r.status === "active"
+                  ? "bg-emerald-100 text-emerald-700"
+                  : "bg-zinc-100 text-zinc-700",
+              )}
+            >
+              {r.status === "active" ? "Active" : "Paused"}
+            </span>
+          </td>
+        );
+      case "author":
+        return (
+          <td
+            key={id}
+            className="w-[160px] min-w-[160px] max-w-[160px] px-3 py-2 text-center align-top"
+          >
+            {r.author ? (
+              <ColorBadge
+                value={r.author}
+                badgeColor={r.authorBadgeColor}
+                textColor={r.authorTextColor}
+              />
+            ) : (
+              <span className="text-xs font-medium text-red-600">None</span>
+            )}
+          </td>
+        );
+      case "automationTags":
+        return (
+          <td
+            key={id}
+            className="w-[240px] min-w-[240px] max-w-[240px] px-3 py-2 text-center align-top"
+          >
+            {r.automationTags && r.automationTags.length > 0 ? (
+              // 1-4 tags show in full; in a 5+ tag row, chips whose name is 7+
+              // chars shorten to 4 letters + "…" (full name on hover).
+              <span className="flex flex-wrap justify-center gap-1">
+                {r.automationTags.map((t) => {
+                  const truncate =
+                    r.automationTags!.length > 4 && t.value.length >= 7;
+                  const tagLabel = truncate ? `${t.value.slice(0, 4)}…` : t.value;
+                  return (
+                    <ColorBadge
+                      key={t.id}
+                      value={tagLabel}
+                      title={truncate ? t.value : undefined}
+                      badgeColor={t.badgeColor}
+                      textColor={t.textColor}
+                    />
+                  );
+                })}
+              </span>
+            ) : (
+              <span className="text-xs font-medium text-red-600">None</span>
+            )}
+          </td>
+        );
+      case "triggerEvent":
+        return (
+          <td
+            key={id}
+            className="w-[160px] min-w-[160px] max-w-[160px] px-3 py-2 text-center align-top"
+          >
+            {r.triggerEvent ? (
+              <ColorBadge
+                value={r.triggerEvent}
+                badgeColor={r.triggerEventBadgeColor}
+                textColor={r.triggerEventTextColor}
+              />
+            ) : (
+              <span className="text-xs font-medium text-red-600">None</span>
+            )}
+          </td>
+        );
+      case "purpose":
+        return (
+          <td
+            key={id}
+            className="w-[240px] min-w-[240px] max-w-[240px] px-3 py-2 text-left align-top"
+          >
+            {r.purpose ? (
+              <Tooltip disableHoverablePopup>
+                <TooltipTrigger
+                  render={
+                    <button
+                      type="button"
+                      disabled={editMode}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowingPurpose(r.purpose ?? "");
+                      }}
+                      className="w-full cursor-pointer line-clamp-2 break-words text-left text-xs text-zinc-700 hover:text-zinc-900 hover:underline disabled:pointer-events-none disabled:cursor-default disabled:no-underline"
+                      style={{ WebkitLineClamp: purposeClamp[r.id] ?? 2 }}
+                    >
+                      {r.purpose}
+                    </button>
+                  }
+                />
+                <TooltipContent className="max-w-xs whitespace-pre-wrap text-left normal-case">
+                  {r.purpose}
+                </TooltipContent>
+              </Tooltip>
+            ) : (
+              <span className="text-xs font-medium text-red-600">None</span>
+            )}
+          </td>
+        );
+      case "notes":
+        return (
+          <td
+            key={id}
+            className="w-[240px] min-w-[240px] max-w-[240px] px-3 py-2 text-left align-top"
+          >
+            {r.notes ? (
+              <Tooltip disableHoverablePopup>
+                <TooltipTrigger
+                  render={
+                    <button
+                      type="button"
+                      disabled={editMode}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowingNotes(r.notes ?? "");
+                      }}
+                      className="w-full cursor-pointer line-clamp-2 break-words text-left text-xs text-zinc-700 hover:text-zinc-900 hover:underline disabled:pointer-events-none disabled:cursor-default disabled:no-underline"
+                      style={{ WebkitLineClamp: purposeClamp[r.id] ?? 2 }}
+                    >
+                      {r.notes}
+                    </button>
+                  }
+                />
+                <TooltipContent className="max-w-xs whitespace-pre-wrap text-left normal-case">
+                  {r.notes}
+                </TooltipContent>
+              </Tooltip>
+            ) : (
+              <span className="text-xs font-medium text-red-600">None</span>
+            )}
+          </td>
+        );
+      case "ghlTags":
+        return (
+          <td
+            key={id}
+            className="w-[180px] min-w-[180px] max-w-[180px] px-3 py-2 text-left align-top"
+          >
+            {r.ghlTags && r.ghlTags.length > 0 ? (
+              <div
+                className="overflow-hidden"
+                style={{ maxHeight: (purposeClamp[r.id] ?? 2) * 16 }}
+              >
+                {r.ghlTags.map((t, i, arr) => (
+                  <div
+                    key={t.id}
+                    title={t.value}
+                    className="truncate text-xs text-zinc-700"
+                  >
+                    {i === 0 && (
+                      <span className="font-medium text-amber-600">
+                        ({arr.length}){" "}
+                      </span>
+                    )}
+                    {t.value}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <span className="text-xs font-medium text-red-600">None</span>
+            )}
+          </td>
+        );
+      case "ghlForms":
+        return (
+          <td
+            key={id}
+            className="w-[180px] min-w-[180px] max-w-[180px] px-3 py-2 text-left align-top"
+          >
+            {r.ghlForms && r.ghlForms.length > 0 ? (
+              <div
+                className="overflow-hidden"
+                style={{ maxHeight: (purposeClamp[r.id] ?? 2) * 16 }}
+              >
+                {r.ghlForms.map((f, i, arr) => (
+                  <div
+                    key={f.id}
+                    title={f.value}
+                    className="truncate text-xs text-zinc-700"
+                  >
+                    {i === 0 && (
+                      <span className="font-medium text-amber-600">
+                        ({arr.length}){" "}
+                      </span>
+                    )}
+                    {f.value}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <span className="text-xs font-medium text-red-600">None</span>
+            )}
+          </td>
+        );
+      case "webhooks":
+        return (
+          <td
+            key={id}
+            className="w-[240px] min-w-[240px] max-w-[240px] px-3 py-2 text-left align-top"
+          >
+            {r.webhooks && r.webhooks.length > 0 ? (
+              <div
+                className="overflow-hidden"
+                style={{ maxHeight: (purposeClamp[r.id] ?? 2) * 16 }}
+              >
+                {r.webhooks.map((w, i, arr) => (
+                  <button
+                    key={w.id}
+                    type="button"
+                    disabled={editMode}
+                    title={w.url}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setWebhookLookup({
+                        anchor: { id: r.id, name: r.name, platform },
+                        webhooks: arr.map((wh) => ({ id: wh.id, url: wh.url })),
+                      });
+                    }}
+                    className="block w-full cursor-pointer truncate text-left text-xs text-blue-600 hover:underline disabled:pointer-events-none disabled:cursor-default disabled:no-underline"
+                  >
+                    {i === 0 && (
+                      <span className="font-medium text-amber-600">
+                        ({arr.length}){" "}
+                      </span>
+                    )}
+                    {w.url}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <span className="text-xs font-medium text-red-600">None</span>
+            )}
+          </td>
+        );
+      case "lastEditedAt":
+        return (
+          <td key={id} className="px-3 py-2 align-top text-center">
+            {r.lastEditedAt ? (
+              <span className="text-xs tabular-nums text-zinc-700">
+                {formatDateCell(r.lastEditedAt)}
+              </span>
+            ) : (
+              <span className="text-xs text-zinc-400">-</span>
+            )}
+          </td>
+        );
+      case "lastRunAt":
+        return (
+          <td key={id} className="px-3 py-2 align-top text-center">
+            {r.lastRunAt ? (
+              <span className="text-xs tabular-nums text-zinc-700">
+                {formatDateCell(r.lastRunAt)}
+              </span>
+            ) : (
+              <span className="text-xs text-zinc-400">-</span>
+            )}
+          </td>
+        );
+      case "lastErrorAt":
+        return (
+          <td key={id} className="px-3 py-2 align-top text-center">
+            {r.lastErrorAt ? (
+              <span className="text-xs tabular-nums text-red-600">
+                {formatDateCell(r.lastErrorAt)}
+              </span>
+            ) : (
+              <span className="text-xs text-zinc-400">-</span>
+            )}
+          </td>
+        );
+      default:
+        return null;
+    }
   };
 
   return (
@@ -1368,151 +1865,10 @@ export function AutomationsTableClient({
                       <SortArrow active={sortKey === "name"} dir={sortDir} />
                     </span>
                   </ColumnHeader>
-                  <ColumnHeader
-                    {...headerProps}
-                    sortKey="status"
-                    className="sticky top-0 z-10 cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700"
-                  >
-                    <span className="inline-flex items-center justify-center gap-1">
-                      {isSynced("status") && (
-                        <SyncedColumnMarker platformLabel={label} spinning={refreshing} />
-                      )}
-                      Status
-                      <SortArrow active={sortKey === "status"} dir={sortDir} />
-                    </span>
-                  </ColumnHeader>
-                  {/* Author: single-select dropdown column, center-aligned.
-                      Sortable alphabetically (A-Z); "None" rows sink to the
-                      bottom. Never synced (set in the Add/Edit dialog). Sits
-                      between Status and Trigger Event (the two dropdown cols). */}
-                  <ColumnHeader
-                    {...headerProps}
-                    sortKey="author"
-                    className="sticky top-0 z-10 w-[160px] min-w-[160px] max-w-[160px] cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700"
-                  >
-                    <span className="inline-flex items-center justify-center gap-1">
-                      Author
-                      <SortArrow active={sortKey === "author"} dir={sortDir} />
-                    </span>
-                  </ColumnHeader>
-                  {/* Automation Tags: MULTI-select dropdown column, center-aligned,
-                      display-only (not sortable — a row has many tags), never
-                      synced. Renders wrapping coloured chips; 200px gives them
-                      room. Sits between Author and Trigger Event. */}
-                  <ColumnHeader
-                    {...headerProps}
-                    sortKey={null}
-                    className="sticky top-0 z-10 w-[240px] min-w-[240px] max-w-[240px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]"
-                  >
-                    Automation Tags
-                  </ColumnHeader>
-                  {/* Trigger Event: single-select dropdown column, center-aligned,
-                      display-only (not sortable), never synced. Sits after Author. */}
-                  <ColumnHeader
-                    {...headerProps}
-                    sortKey={null}
-                    className="sticky top-0 z-10 w-[160px] min-w-[160px] max-w-[160px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]"
-                  >
-                    Trigger Event
-                  </ColumnHeader>
-                  <ColumnHeader
-                    {...headerProps}
-                    sortKey={null}
-                    className="sticky top-0 z-10 w-[240px] min-w-[240px] max-w-[240px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]"
-                  >
-                    Purpose
-                  </ColumnHeader>
-                  {/* Notes: mirrors the Purpose column exactly, one column to its
-                      right. Not sortable (like Purpose). */}
-                  <ColumnHeader
-                    {...headerProps}
-                    sortKey={null}
-                    className="sticky top-0 z-10 w-[240px] min-w-[240px] max-w-[240px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]"
-                  >
-                    Notes
-                  </ColumnHeader>
-                  {/* GHL Tags + GHL Forms: MULTI-select dropdown columns, GHL-only
-                      (gated on visibleOnPlatforms), display-only, never synced.
-                      Plain-text lines in the cell (like Webhook Links), not chips.
-                      Sit just LEFT of Webhook Links (after Notes). */}
-                  {showGhlTags && (
-                    <ColumnHeader
-                      {...headerProps}
-                      sortKey={null}
-                      className="sticky top-0 z-10 w-[180px] min-w-[180px] max-w-[180px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]"
-                    >
-                      GHL Tags
-                    </ColumnHeader>
-                  )}
-                  {showGhlForms && (
-                    <ColumnHeader
-                      {...headerProps}
-                      sortKey={null}
-                      className="sticky top-0 z-10 w-[180px] min-w-[180px] max-w-[180px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]"
-                    >
-                      GHL Forms
-                    </ColumnHeader>
-                  )}
-                  {/* Webhook Links: MULTI-select dropdown column, display-only
-                      (not sortable). Selected webhooks render one truncated line
-                      each. Sits after GHL Forms, before the date columns. 240px. */}
-                  <ColumnHeader
-                    {...headerProps}
-                    sortKey={null}
-                    className="sticky top-0 z-10 w-[240px] min-w-[240px] max-w-[240px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]"
-                  >
-                    Webhook Links
-                  </ColumnHeader>
-                  <ColumnHeader
-                    {...headerProps}
-                    sortKey="lastEditedAt"
-                    className="sticky top-0 z-10 cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700"
-                  >
-                    <span className="inline-flex items-center justify-center gap-1">
-                      {isSynced("lastEditedAt") && (
-                        <SyncedColumnMarker platformLabel={label} spinning={refreshing} />
-                      )}
-                      Last Edited
-                      <SortArrow
-                        active={sortKey === "lastEditedAt"}
-                        dir={sortDir}
-                      />
-                    </span>
-                  </ColumnHeader>
-                  <ColumnHeader
-                    {...headerProps}
-                    sortKey="lastRunAt"
-                    className="sticky top-0 z-10 cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700"
-                  >
-                    <span className="inline-flex items-center justify-center gap-1">
-                      {isSynced("lastRunAt") && (
-                        <SyncedColumnMarker platformLabel={label} spinning={refreshing} />
-                      )}
-                      Last Runtime
-                      <SortArrow active={sortKey === "lastRunAt"} dir={sortDir} />
-                    </span>
-                  </ColumnHeader>
-                  <ColumnHeader
-                    {...headerProps}
-                    sortKey="lastErrorAt"
-                    className="sticky top-0 z-10 cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700"
-                  >
-                    <span className="inline-flex items-center justify-center gap-1">
-                      {isSynced("lastErrorAt") && (
-                        // Behaves exactly like the other synced-column markers
-                        // (spins with a Refresh List sync); only its tooltip is
-                        // tailored, since Last Error is fed by error capture
-                        // (Check for New Errors + cron) rather than Refresh List.
-                        <SyncedColumnMarker
-                          platformLabel={label}
-                          spinning={refreshing}
-                          tooltip="Updated by error tracking."
-                        />
-                      )}
-                      Last Error
-                      <SortArrow active={sortKey === "lastErrorAt"} dir={sortDir} />
-                    </span>
-                  </ColumnHeader>
+                  {/* The reorderable middle columns (Status through Last Error),
+                      rendered in the user's saved order. GHL Tags / GHL Forms are
+                      filtered out on non-GHL pages by orderedMiddle. */}
+                  {orderedMiddle.map((col, i) => renderMiddleHeader(col, i))}
                   {/* Actions (delete) column. ALWAYS rendered, even when edit
                       mode is off, so toggling only shows/hides the trash icon
                       INSIDE the cell instead of adding/removing a whole column
@@ -1525,7 +1881,7 @@ export function AutomationsTableClient({
                 {filtered.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={12 + extraGhlCols}
+                      colSpan={2 + orderedMiddle.length}
                       className="px-3 py-16 text-center text-sm text-zinc-500"
                     >
                       {rows.length === 0
@@ -1594,348 +1950,12 @@ export function AutomationsTableClient({
                           </a>
                         )}
                       </td>
-                      <td className="px-3 py-2 text-center align-top">
-                        {/* Status pill (badge): green for Active, neutral gray
-                            for Paused. Matches the house badge convention
-                            (Subscriptions / GHL-tag StatusBadge). */}
-                        <span
-                          className={cn(
-                            "inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium",
-                            r.status === "active"
-                              ? "bg-emerald-100 text-emerald-700"
-                              : "bg-zinc-100 text-zinc-700",
-                          )}
-                        >
-                          {r.status === "active" ? "Active" : "Paused"}
-                        </span>
-                      </td>
-                      {/* Author: the selected option rendered as a coloured pill
-                          (its configured badge + text colours; plain text if no
-                          badge colour), or red "None" when unset. Mirrors the
-                          Trigger Event cell. Center-aligned, 160px. */}
-                      <td className="w-[160px] min-w-[160px] max-w-[160px] px-3 py-2 text-center align-top">
-                        {r.author ? (
-                          <ColorBadge
-                            value={r.author}
-                            badgeColor={r.authorBadgeColor}
-                            textColor={r.authorTextColor}
-                          />
-                        ) : (
-                          <span className="text-xs font-medium text-red-600">
-                            None
-                          </span>
-                        )}
-                      </td>
-                      {/* Automation Tags: the selected tags as wrapping coloured
-                          chips (ColorBadge each; plain text for a tag with no
-                          badge colour), or red "None" when empty. Multi-select,
-                          set in the Add/Edit dialog. 200px, between Author and
-                          Trigger Event. */}
-                      <td className="w-[240px] min-w-[240px] max-w-[240px] px-3 py-2 text-center align-top">
-                        {r.automationTags && r.automationTags.length > 0 ? (
-                          // 1-4 tags show in full. In a 5+ tag row, only chips
-                          // whose name is 7+ chars shorten to 4 letters + "…" (full
-                          // name on hover); shorter tags stay full — count-based.
-                          <span className="flex flex-wrap justify-center gap-1">
-                            {r.automationTags.map((t) => {
-                              const truncate =
-                                r.automationTags!.length > 4 && t.value.length >= 7;
-                              const label = truncate
-                                ? `${t.value.slice(0, 4)}…`
-                                : t.value;
-                              return (
-                                <ColorBadge
-                                  key={t.id}
-                                  value={label}
-                                  title={truncate ? t.value : undefined}
-                                  badgeColor={t.badgeColor}
-                                  textColor={t.textColor}
-                                />
-                              );
-                            })}
-                          </span>
-                        ) : (
-                          <span className="text-xs font-medium text-red-600">
-                            None
-                          </span>
-                        )}
-                      </td>
-                      {/* Trigger Event: the selected option rendered as a
-                          coloured pill (its configured badge + text colours;
-                          plain text if no badge colour), or red "None" when
-                          unset. Center-aligned, 160px. */}
-                      <td className="w-[160px] min-w-[160px] max-w-[160px] px-3 py-2 text-center align-top">
-                        {r.triggerEvent ? (
-                          <ColorBadge
-                            value={r.triggerEvent}
-                            badgeColor={r.triggerEventBadgeColor}
-                            textColor={r.triggerEventTextColor}
-                          />
-                        ) : (
-                          <span className="text-xs font-medium text-red-600">
-                            None
-                          </span>
-                        )}
-                      </td>
-                      <td className="w-[240px] min-w-[240px] max-w-[240px] px-3 py-2 text-left align-top">
-                        {/* Purpose: a preview of the purpose text that fills the
-                            FIXED-WIDTH column (locked to 240px on the th + td, same
-                            trick the frozen Name column uses) and clamps to 2 lines
-                            (`line-clamp-2`) before the ellipsis. Clicking it opens
-                            the read-only popup with the full text; hovering shows a
-                            tooltip with the same full text (the popup/tooltip are how
-                            the rest is read). "None" (red) when empty. In edit mode
-                            the blurb is disabled (pointer-events-none) so a row click
-                            falls through to open the Edit Workflow dialog (where the
-                            purpose is set).
-                            ⚠️ DO NOT add `block` (or any display utility) to the
-                            button: Tailwind v4 emits `.block{display:block}` AFTER
-                            `.line-clamp-2{display:-webkit-box}` in the stylesheet, so
-                            `block` overrides the -webkit-box that line-clamp needs and
-                            the clamp silently stops working (text wraps unbounded).
-                            The 240px column width is the width knob (change on th+td).
-                            Line count is ADAPTIVE: `line-clamp-2` is the 2-line
-                            minimum, and `WebkitLineClamp` inline-style overrides it
-                            per row with however many lines fit the (Name-driven) row
-                            height, computed by the measuring effect above. */}
-                        {r.purpose ? (
-                          // disableHoverablePopup: the tooltip closes as soon as
-                          // the cursor leaves the blurb, even if the popup itself is
-                          // under the cursor (default keeps it open while hovering
-                          // the popup, which the user found sticky).
-                          <Tooltip disableHoverablePopup>
-                            <TooltipTrigger
-                              render={
-                                <button
-                                  type="button"
-                                  disabled={editMode}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setShowingPurpose(r.purpose ?? "");
-                                  }}
-                                  className="w-full cursor-pointer line-clamp-2 break-words text-left text-xs text-zinc-700 hover:text-zinc-900 hover:underline disabled:pointer-events-none disabled:cursor-default disabled:no-underline"
-                                  style={{ WebkitLineClamp: purposeClamp[r.id] ?? 2 }}
-                                >
-                                  {r.purpose}
-                                </button>
-                              }
-                            />
-                            <TooltipContent className="max-w-xs whitespace-pre-wrap text-left normal-case">
-                              {r.purpose}
-                            </TooltipContent>
-                          </Tooltip>
-                        ) : (
-                          <span className="text-xs font-medium text-red-600">
-                            None
-                          </span>
-                        )}
-                      </td>
-                      {/* Notes: mirrors the Purpose cell exactly (fixed 240px,
-                          adaptive line-clamp, "Show" tooltip + read-only popup,
-                          red "None" when empty, disabled in edit mode so the row
-                          click opens the Edit dialog). Reuses purposeClamp since
-                          both cells share the Name-cell-driven row height. */}
-                      <td className="w-[240px] min-w-[240px] max-w-[240px] px-3 py-2 text-left align-top">
-                        {r.notes ? (
-                          <Tooltip disableHoverablePopup>
-                            <TooltipTrigger
-                              render={
-                                <button
-                                  type="button"
-                                  disabled={editMode}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setShowingNotes(r.notes ?? "");
-                                  }}
-                                  className="w-full cursor-pointer line-clamp-2 break-words text-left text-xs text-zinc-700 hover:text-zinc-900 hover:underline disabled:pointer-events-none disabled:cursor-default disabled:no-underline"
-                                  style={{ WebkitLineClamp: purposeClamp[r.id] ?? 2 }}
-                                >
-                                  {r.notes}
-                                </button>
-                              }
-                            />
-                            <TooltipContent className="max-w-xs whitespace-pre-wrap text-left normal-case">
-                              {r.notes}
-                            </TooltipContent>
-                          </Tooltip>
-                        ) : (
-                          <span className="text-xs font-medium text-red-600">
-                            None
-                          </span>
-                        )}
-                      </td>
-                      {/* GHL Tags + GHL Forms: selected values as plain-text lines
-                          (one per value, hover title = full value), like the
-                          Webhook Links cell, NOT chips (their config has no
-                          colours). Red "None" when empty. GHL-only, 180px. Sit
-                          just LEFT of Webhook Links. */}
-                      {showGhlTags && (
-                        <td className="w-[180px] min-w-[180px] max-w-[180px] px-3 py-2 text-left align-top">
-                          {r.ghlTags && r.ghlTags.length > 0 ? (
-                            <div
-                              className="overflow-hidden"
-                              // Cap the item list to the SAME height as the
-                              // Purpose/Notes clamp (purposeClamp lines x 16px),
-                              // so a row with many items shows only the lines that
-                              // fit and never stretches the row taller than the
-                              // Name-cell-driven height. Items beyond that are
-                              // clipped (each item is a 16px text-xs line).
-                              style={{ maxHeight: (purposeClamp[r.id] ?? 2) * 16 }}
-                            >
-                              {r.ghlTags.map((t, i, arr) => (
-                                <div
-                                  key={t.id}
-                                  title={t.value}
-                                  className="truncate text-xs text-zinc-700"
-                                >
-                                  {/* Gold "(N)" count of ALL selected items, at the
-                                      very start of the first line (the cell clips
-                                      the rest, so the count tells you the true
-                                      total). */}
-                                  {i === 0 && (
-                                    <span className="font-medium text-amber-600">
-                                      ({arr.length}){" "}
-                                    </span>
-                                  )}
-                                  {t.value}
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <span className="text-xs font-medium text-red-600">
-                              None
-                            </span>
-                          )}
-                        </td>
-                      )}
-                      {showGhlForms && (
-                        <td className="w-[180px] min-w-[180px] max-w-[180px] px-3 py-2 text-left align-top">
-                          {r.ghlForms && r.ghlForms.length > 0 ? (
-                            <div
-                              className="overflow-hidden"
-                              // Cap the item list to the SAME height as the
-                              // Purpose/Notes clamp (purposeClamp lines x 16px),
-                              // so a row with many items shows only the lines that
-                              // fit and never stretches the row taller than the
-                              // Name-cell-driven height. Items beyond that are
-                              // clipped (each item is a 16px text-xs line).
-                              style={{ maxHeight: (purposeClamp[r.id] ?? 2) * 16 }}
-                            >
-                              {r.ghlForms.map((f, i, arr) => (
-                                <div
-                                  key={f.id}
-                                  title={f.value}
-                                  className="truncate text-xs text-zinc-700"
-                                >
-                                  {i === 0 && (
-                                    <span className="font-medium text-amber-600">
-                                      ({arr.length}){" "}
-                                    </span>
-                                  )}
-                                  {f.value}
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <span className="text-xs font-medium text-red-600">
-                              None
-                            </span>
-                          )}
-                        </td>
-                      )}
-                      {/* Webhook Links: one truncated line per selected webhook
-                          (hover title shows the full URL); red "None" when empty.
-                          Multi-select, set in the Add/Edit dialog. 240px. */}
-                      <td className="w-[240px] min-w-[240px] max-w-[240px] px-3 py-2 text-left align-top">
-                        {r.webhooks && r.webhooks.length > 0 ? (
-                          <div
-                            className="overflow-hidden"
-                            // Same row-height clamp as GHL Tags/Forms + Purpose/
-                            // Notes: cap at purposeClamp lines x 16px so a big
-                            // webhook list doesn't stretch the row (this cell being
-                            // un-clamped was inflating purposeClamp and un-clamping
-                            // the others).
-                            style={{ maxHeight: (purposeClamp[r.id] ?? 2) * 16 }}
-                          >
-                            {/* Every webhook line is a button that opens the
-                                "related automations" lookup (not just the gold
-                                count, so the whole cell is an obvious click
-                                target). Disabled in edit mode so the row's
-                                edit-click falls through, mirroring the Notes
-                                button. */}
-                            {r.webhooks.map((w, i, arr) => (
-                              <button
-                                key={w.id}
-                                type="button"
-                                disabled={editMode}
-                                title={w.url}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setWebhookLookup({
-                                    anchor: {
-                                      id: r.id,
-                                      name: r.name,
-                                      platform,
-                                    },
-                                    webhooks: arr.map((wh) => ({
-                                      id: wh.id,
-                                      url: wh.url,
-                                    })),
-                                  });
-                                }}
-                                className="block w-full cursor-pointer truncate text-left text-xs text-blue-600 hover:underline disabled:pointer-events-none disabled:cursor-default disabled:no-underline"
-                              >
-                                {i === 0 && (
-                                  <span className="font-medium text-amber-600">
-                                    ({arr.length}){" "}
-                                  </span>
-                                )}
-                                {w.url}
-                              </button>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-xs font-medium text-red-600">
-                            None
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-3 py-2 align-top text-center">
-                        {/* Last Edited: sync/import-filled date (MM-DD-YYYY). A
-                            plain "-" when empty (sync-only, never manual). */}
-                        {r.lastEditedAt ? (
-                          <span className="text-xs tabular-nums text-zinc-700">
-                            {formatDateCell(r.lastEditedAt)}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-zinc-400">-</span>
-                        )}
-                      </td>
-                      <td className="px-3 py-2 align-top text-center">
-                        {/* Last Runtime: sync-filled date (MM-DD-YYYY). A plain
-                            "-" when empty (the column never accepts manual
-                            entry). */}
-                        {r.lastRunAt ? (
-                          <span className="text-xs tabular-nums text-zinc-700">
-                            {formatDateCell(r.lastRunAt)}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-zinc-400">-</span>
-                        )}
-                      </td>
-                      <td className="px-3 py-2 align-top text-center">
-                        {/* Last Error: latest captured error date (MM-DD-YYYY),
-                            rendered in RED. From the automation_errors table
-                            (Make + n8n); "-" when the row has no captured
-                            error. */}
-                        {r.lastErrorAt ? (
-                          <span className="text-xs tabular-nums text-red-600">
-                            {formatDateCell(r.lastErrorAt)}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-zinc-400">-</span>
-                        )}
-                      </td>
+                      {/* The reorderable middle cells (Status through Last Error),
+                          rendered in the user's saved order; GHL Tags / GHL Forms
+                          are dropped on non-GHL pages by orderedMiddle. Each cell's
+                          markup was moved verbatim into renderMiddleCell, so only
+                          their ORDER is now data-driven. */}
+                      {orderedMiddle.map((col) => renderMiddleCell(col.id, r))}
                       {/* Actions cell: always present (reserves the column
                           width); the trash button only renders in edit mode, so
                           toggling never resizes the table. Trash-icon delete,
