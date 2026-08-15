@@ -223,23 +223,29 @@ function ColumnHeader({
           {children}
         </DropdownMenuTrigger>
         <DropdownMenuContent align="center" className="w-auto min-w-48">
-          <DropdownMenuItem
-            disabled={!sortKey}
-            onClick={sortKey ? () => onCycleSort(sortKey) : undefined}
-          >
-            <ArrowDownUp />
-            Cycle Sort
-          </DropdownMenuItem>
-          {/* Move the column left/right. Disabled when it can't go that way (a
-              pinned column, or already at the edge of the movable columns). */}
-          <DropdownMenuItem disabled={!onMoveLeft} onClick={onMoveLeft}>
-            <ArrowLeft />
-            Move Column Left
-          </DropdownMenuItem>
-          <DropdownMenuItem disabled={!onMoveRight} onClick={onMoveRight}>
-            <ArrowRight />
-            Move Column Right
-          </DropdownMenuItem>
+          {/* Cycle Sort, shown ONLY on sortable columns (hidden on the
+              display-only ones instead of appearing disabled/grayed). */}
+          {sortKey && (
+            <DropdownMenuItem onClick={() => onCycleSort(sortKey)}>
+              <ArrowDownUp />
+              Cycle Sort
+            </DropdownMenuItem>
+          )}
+          {/* Move the column left/right, shown ONLY when it can actually go that
+              way. So both are hidden on the pinned Name column (nothing to move),
+              and the edge item is hidden on the first / last movable column. */}
+          {onMoveLeft && (
+            <DropdownMenuItem onClick={onMoveLeft}>
+              <ArrowLeft />
+              Move Column Left
+            </DropdownMenuItem>
+          )}
+          {onMoveRight && (
+            <DropdownMenuItem onClick={onMoveRight}>
+              <ArrowRight />
+              Move Column Right
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     </th>
