@@ -259,9 +259,14 @@ function ColumnHeader({
             </DropdownMenuItem>
           )}
           {/* Reset ALL columns to the default arrangement (table-wide action),
-              at the bottom, below the per-column sort/move items. */}
+              at the bottom, below the per-column sort/move items. Red-filled
+              (white text + icon) to flag it as destructive; the `!` overrides the
+              base item's focus/descendant colour rules. */}
           {onResetOrder && (
-            <DropdownMenuItem onClick={onResetOrder}>
+            <DropdownMenuItem
+              onClick={onResetOrder}
+              className="!bg-red-600 !text-white [&_svg]:!text-white focus:!bg-red-700"
+            >
               <RotateCcw />
               Reset Column Order
             </DropdownMenuItem>
@@ -1219,8 +1224,24 @@ export function AutomationsTableClient({
     });
   };
 
-  // Reset every column to the default arrangement (persisted via the effect).
-  const resetColumnOrder = () => setColumnOrder([...MIDDLE_DEFAULT_ORDER]);
+  // Reset every column to the default arrangement (persisted via the effect),
+  // behind a confirm so an accidental click can't wipe a custom layout. Deferred
+  // with setTimeout so the header dropdown finishes closing before the confirm
+  // dialog opens (opening it synchronously from a menu item clashes on focus).
+  const resetColumnOrder = () => {
+    setTimeout(async () => {
+      if (
+        !(await confirmDialog({
+          title: "Reset column order",
+          body: "Reset all columns to their default arrangement?",
+          confirmLabel: "Reset",
+          destructive: true,
+        }))
+      )
+        return;
+      setColumnOrder([...MIDDLE_DEFAULT_ORDER]);
+    }, 0);
+  };
 
   // Header cell for a middle column: its ColumnHeader (inner marker/label/arrow)
   // plus the reorder handlers (disabled at the edges via undefined).
