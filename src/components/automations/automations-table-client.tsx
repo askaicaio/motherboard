@@ -55,6 +55,7 @@ import {
   ArrowDownUp,
   ArrowLeft,
   ArrowRight,
+  RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -168,6 +169,7 @@ function ColumnHeader({
   onCycleSort,
   onMoveLeft,
   onMoveRight,
+  onResetOrder,
   children,
 }: {
   className: string;
@@ -180,6 +182,8 @@ function ColumnHeader({
    *  item (pinned column, or already at the edge). */
   onMoveLeft?: () => void;
   onMoveRight?: () => void;
+  /** Reset ALL columns to their default arrangement (table-wide action). */
+  onResetOrder?: () => void;
   children: ReactNode;
 }) {
   const ariaSort = sortKey
@@ -252,6 +256,14 @@ function ColumnHeader({
             <DropdownMenuItem onClick={onMoveRight}>
               <ArrowRight />
               Move Column Right
+            </DropdownMenuItem>
+          )}
+          {/* Reset ALL columns to the default arrangement (table-wide action),
+              at the bottom, below the per-column sort/move items. */}
+          {onResetOrder && (
+            <DropdownMenuItem onClick={onResetOrder}>
+              <RotateCcw />
+              Reset Column Order
             </DropdownMenuItem>
           )}
         </DropdownMenuContent>
@@ -1207,6 +1219,9 @@ export function AutomationsTableClient({
     });
   };
 
+  // Reset every column to the default arrangement (persisted via the effect).
+  const resetColumnOrder = () => setColumnOrder([...MIDDLE_DEFAULT_ORDER]);
+
   // Header cell for a middle column: its ColumnHeader (inner marker/label/arrow)
   // plus the reorder handlers (disabled at the edges via undefined).
   const renderMiddleHeader = (col: MiddleColumnDef, vIdx: number) => {
@@ -1237,6 +1252,7 @@ export function AutomationsTableClient({
             ? () => moveColumn(col.id, 1)
             : undefined
         }
+        onResetOrder={resetColumnOrder}
       >
         {inner}
       </ColumnHeader>
@@ -1869,6 +1885,7 @@ export function AutomationsTableClient({
                     {...headerProps}
                     sortKey="name"
                     className="sticky left-0 top-0 z-20 w-[400px] min-w-[400px] max-w-[400px] cursor-pointer select-none bg-zinc-50 px-3 py-2 text-left shadow-[inset_0_-1px_0_0_#e4e4e7,inset_-1px_0_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700"
+                    onResetOrder={resetColumnOrder}
                   >
                     <span className="inline-flex items-center gap-1">
                       {isSynced("name") && (
