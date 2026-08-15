@@ -1,13 +1,14 @@
 "use client";
 
-// Per Website Page, header (auto-refresh toggle + "Refresh List" + edit-mode
-// toggle + "+ New Workflow"), search, and the automations table. The Name cell
+// Per Website Page, header (auto-refresh toggle + "Refresh List" + Export CSV +
+// edit-mode toggle), a search row (search bar + Filter + "+ New Workflow"), and
+// the automations table. The Name cell
 // shows the name with the automation's link beneath it (the link is still its
 // identity; it's just no longer a separate column). Search filters by NAME or LINK.
 //
-// Edit mode (the toggle, top-right): when ON it reveals the "+ New Workflow"
-// button and makes table rows clickable (click a row to edit it). When OFF
-// the table is read-only. Add/Edit happen in the WorkflowDialog.
+// Edit mode (the toggle, top-right): when ON it makes table rows clickable
+// (click a row to edit it). When OFF the table is read-only. Add/Edit happen in
+// the WorkflowDialog.
 //
 // Auto-refresh mode (the toggle, far left of the toolbar): Option A. Turning
 // it ON anchors a 24h countdown to now; the background cron refreshes the list
@@ -1655,20 +1656,12 @@ export function AutomationsTableClient({
               List) and the editing controls (Edit mode + New Workflow). */}
           <Separator orientation="vertical" className="h-5 self-center" />
 
-          {/* Edit mode toggle. The "+ New Workflow" (add) button sits BELOW the
-              toggle (absolutely positioned via `top-full`, so it never reflows the
-              toolbar). It is ALWAYS shown now, independent of the Edit toggle, so a
-              new workflow can be added without turning edit mode on. */}
-          <div className="relative flex items-center gap-2 text-xs text-zinc-600">
+          {/* Edit mode toggle. (The "+ New Workflow" add button lives in the
+              search row below, to the right of the Filter button.) */}
+          <div className="flex items-center gap-2 text-xs text-zinc-600">
             <Pencil className="h-3.5 w-3.5" />
             Edit mode
             <Switch checked={editMode} onCheckedChange={setEditMode} />
-            <div className="absolute right-0 top-full z-10 mt-2">
-              <Button size="sm" onClick={() => setAddOpen(true)}>
-                <Plus className="mr-2 h-3.5 w-3.5" />
-                New Workflow
-              </Button>
-            </div>
           </div>
         </div>
       </div>
@@ -1825,6 +1818,13 @@ export function AutomationsTableClient({
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
+            {/* New Workflow (add) button, to the RIGHT of the Filter button.
+                ALWAYS shown, independent of Edit mode, so a workflow can be added
+                without turning edit mode on. */}
+            <Button size="sm" onClick={() => setAddOpen(true)}>
+              <Plus className="mr-2 h-3.5 w-3.5" />
+              New Workflow
+            </Button>
           </div>
         </div>
 
