@@ -15,7 +15,7 @@
 
 import { db } from "@/lib/db";
 import { automations } from "@/lib/db/schema";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { listN8nAutomations, getN8nLastRunAt } from "./n8n-client";
 
 const PLATFORM = "n8n";
@@ -131,19 +131,8 @@ export async function syncN8nAutomations(
   };
 }
 
-/** Fetch the current n8n rows in the shape the per-website table expects. */
-export async function getN8nRows() {
-  return db
-    .select({
-      id: automations.id,
-      name: automations.name,
-      externalUrl: automations.externalUrl,
-      status: automations.status,
-      purpose: automations.purpose,
-      lastRunAt: automations.lastRunAt,
-      lastEditedAt: automations.lastEditedAt,
-    })
-    .from(automations)
-    .where(and(eq(automations.platform, PLATFORM)))
-    .orderBy(automations.name);
-}
+// NOTE: this file no longer exports a row getter. Rows for the Per Website table
+// come from the ONE shared loader, getPerWebsiteRows in
+// src/lib/automations/per-website-rows.ts. The old short getN8nRows() selected only 7
+// columns, which blanked every other column when the client swapped in the sync
+// response. Do not reintroduce a local row query here.

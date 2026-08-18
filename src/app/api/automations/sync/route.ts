@@ -2,20 +2,23 @@
 // source (currently Make only). Triggered by the "Refresh List" button.
 //
 // Body: { platform: string }
-// On success returns the freshly-synced rows (so the client can replace its
-// table) plus the sync counts. Platforms without a sync yet return 400 with
-// a clear message.
+// On success returns the freshly-synced rows in the Per Website table's FULL
+// row shape (via getPerWebsiteRows, so the client can replace its table without
+// losing columns) plus the sync counts. Platforms without a sync yet return
+// 400 with a clear message.
 
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getOptionalAuth } from "@/lib/auth/guard";
 import { isSyncablePlatform } from "@/lib/automations/sites";
-import { syncMakeAutomations, getMakeRows } from "@/lib/integrations/make-sync";
-import { syncN8nAutomations, getN8nRows } from "@/lib/integrations/n8n-sync";
-import {
-  syncGhlAutomations,
-  getGhlRows,
-} from "@/lib/integrations/ghl-automations-sync";
+import { syncMakeAutomations } from "@/lib/integrations/make-sync";
+import { syncN8nAutomations } from "@/lib/integrations/n8n-sync";
+import { syncGhlAutomations } from "@/lib/integrations/ghl-automations-sync";
+// Rows come back through the SHARED loader every other surface uses, so this
+// response carries the table's FULL row shape. Do NOT swap this for a local
+// query: the client replaces its rows with this payload wholesale, so a short
+// one blanks every column it omits (see the helper's header comment).
+import { getPerWebsiteRows } from "@/lib/automations/per-website-rows";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -52,19 +55,19 @@ export async function POST(request: NextRequest) {
   try {
     if (platform === "n8n") {
       const result = await syncN8nAutomations(user.id);
-      const rows = await getN8nRows();
+      const rows = await getPerWebsiteRows(platform);
       return NextResponse.json({ ok: true, result, rows });
     }
     if (platform === "ghl" || platform === "ghl-b2b") {
       const result = await syncGhlAutomations(platform, user.id);
-      const rows = await getGhlRows(platform);
+      const rows = await getPerWebsiteRows(platform);
       return NextResponse.json({ ok: true, result, rows });
     }
     // Default: Make. Error capture is NOT run here — it's a background-only
     // sweep on an 8h timer (see the checker cron). The Refresh button just
-    // re-reads what's captured (the client calls router.refresh after this).
+    // re-reads what's captured.
     const result = await syncMakeAutomations(user.id);
-    const rows = await getMakeRows();
+    const rows = await getPerWebsiteRows(platform);
     return NextResponse.json({ ok: true, result, rows });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

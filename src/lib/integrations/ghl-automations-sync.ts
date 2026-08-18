@@ -20,7 +20,7 @@
 
 import { db } from "@/lib/db";
 import { automations } from "@/lib/db/schema";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { listGhlAutomations } from "./ghl-client";
 
 export interface GhlSyncResult {
@@ -120,21 +120,8 @@ export async function syncGhlAutomations(
   };
 }
 
-/** Fetch a GHL subaccount's rows in the shape the per-website table expects. */
-export async function getGhlRows(platform: string) {
-  return db
-    .select({
-      id: automations.id,
-      name: automations.name,
-      externalUrl: automations.externalUrl,
-      status: automations.status,
-      purpose: automations.purpose,
-      lastRunAt: automations.lastRunAt,
-      // GHL DOES return a last-edited timestamp (workflow `updatedAt`), synced
-      // above — so this column is populated for GHL (unlike Last Runtime).
-      lastEditedAt: automations.lastEditedAt,
-    })
-    .from(automations)
-    .where(and(eq(automations.platform, platform)))
-    .orderBy(automations.name);
-}
+// NOTE: this file no longer exports a row getter. Rows for the Per Website table
+// come from the ONE shared loader, getPerWebsiteRows in
+// src/lib/automations/per-website-rows.ts. The old short getGhlRows() selected only 7
+// columns, which blanked every other column when the client swapped in the sync
+// response. Do not reintroduce a local row query here.

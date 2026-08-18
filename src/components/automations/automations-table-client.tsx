@@ -364,6 +364,13 @@ function SyncedColumnMarker({
   );
 }
 
+// ⚠️ Nearly every field below is OPTIONAL, which means a SHORT row payload still
+// satisfies this interface and TypeScript will NOT flag it. The table replaces its
+// rows wholesale with whatever a sync/poll returns (`setRows(data.rows)`), so a
+// loader that omits columns silently blanks them on screen — it looks like data
+// loss but the DB is fine. Rows must therefore ALWAYS come from the one shared
+// loader, getPerWebsiteRows in src/lib/automations/per-website-rows.ts.
+// Background + the add-a-column checklist: docs/per-website-row-loading.md
 export interface AutomationRow {
   id: string;
   name: string;

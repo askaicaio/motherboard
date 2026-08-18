@@ -9,22 +9,16 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import {
-  automations,
   automationDropdownChoices,
   automationWebhookChoices,
 } from "@/lib/db/schema";
-import { alias } from "drizzle-orm/pg-core";
 import { asc, eq } from "drizzle-orm";
 import { requireAuth } from "@/lib/auth/guard";
 import { ArrowLeft } from "lucide-react";
 import { getAutomationSite, isSyncablePlatform } from "@/lib/automations/sites";
 import { platformHasApiKey } from "@/lib/automations/credentials";
 import { getAutoRefreshFor } from "@/lib/automations/autorefresh";
-import { getLastErrorAtByPlatform } from "@/lib/automations/errors";
-import {
-  getSelectionsByColumn,
-  getWebhooksByAutomation,
-} from "@/lib/automations/dropdown-selections";
+import { getPerWebsiteRows } from "@/lib/automations/per-website-rows";
 import { AutomationsTableClient } from "@/components/automations/automations-table-client";
 
 export const dynamic = "force-dynamic";
@@ -40,45 +34,8 @@ export default async function AutomationWebsitePage({
   const site = getAutomationSite(platform);
   if (!site) notFound();
 
-  // Second self-join of the choices table for Trigger Event (Author already
-  // joins it unaliased), so both single-select values resolve in one query.
-  const triggerChoices = alias(automationDropdownChoices, "trigger_choices");
-
-  const baseRows = await db
-    .select({
-      id: automations.id,
-      name: automations.name,
-      externalUrl: automations.externalUrl,
-      status: automations.status,
-      purpose: automations.purpose,
-      notes: automations.notes,
-      lastRunAt: automations.lastRunAt,
-      lastEditedAt: automations.lastEditedAt,
-      // Author: the stored choice id + its resolved display value (left join,
-      // so rows with no author come back null), plus the choice's badge + text
-      // colours so the cell can render a coloured pill (mirrors Trigger Event).
-      authorChoiceId: automations.authorChoiceId,
-      author: automationDropdownChoices.value,
-      authorBadgeColor: automationDropdownChoices.badgeColor,
-      authorTextColor: automationDropdownChoices.textColor,
-      // Trigger Event: same, via the aliased second join, plus the choice's
-      // badge + text colours so the cell can render a coloured pill.
-      triggerEventChoiceId: automations.triggerEventChoiceId,
-      triggerEvent: triggerChoices.value,
-      triggerEventBadgeColor: triggerChoices.badgeColor,
-      triggerEventTextColor: triggerChoices.textColor,
-    })
-    .from(automations)
-    .leftJoin(
-      automationDropdownChoices,
-      eq(automations.authorChoiceId, automationDropdownChoices.id),
-    )
-    .leftJoin(
-      triggerChoices,
-      eq(automations.triggerEventChoiceId, triggerChoices.id),
-    )
-    .where(eq(automations.platform, site.slug))
-    .orderBy(asc(automations.name));
+  // ALL row loading goes through this ONE helper (see its header comment).
+  const rows = await getPerWebsiteRows(site.slug);
 
   // Options for the single-select dropdowns (managed on the Dropdown
   // Configuration page). Passed to the table's Add/Edit Workflow dialog.
@@ -155,40 +112,6 @@ export default async function AutomationWebsitePage({
         .from(automationWebhookChoices)
         .orderBy(asc(automationWebhookChoices.url)),
     ]);
-
-  // Latest captured error date per automation, merged onto each row as the
-  // "Last Error" column. Comes from the automation_errors table (Make writes it
-  // today); a row with no captured error is left null and renders "-".
-  const lastErrorByAutomation = await getLastErrorAtByPlatform(site.slug);
-  // Automation Tags (multi-select): each row's selected tag choices, rendered
-  // as chips. Scoped to this platform's automations.
-  const tagsByAutomation = await getSelectionsByColumn(
-    "automation_tags",
-    baseRows.map((r) => r.id),
-  );
-  // GHL Tags + GHL Forms (multi-select, GHL pages): each row's selected choices.
-  // Scoped to this platform's automations; empty maps on non-GHL platforms.
-  const ghlTagsByAutomation = await getSelectionsByColumn(
-    "ghl_tags",
-    baseRows.map((r) => r.id),
-  );
-  const ghlFormsByAutomation = await getSelectionsByColumn(
-    "ghl_forms",
-    baseRows.map((r) => r.id),
-  );
-  // Webhook Links (multi-select): each row's selected webhooks, via the
-  // automation_webhooks junction. Scoped to this platform's automations.
-  const webhooksByAutomation = await getWebhooksByAutomation(
-    baseRows.map((r) => r.id),
-  );
-  const rows = baseRows.map((r) => ({
-    ...r,
-    lastErrorAt: lastErrorByAutomation.get(r.id) ?? null,
-    automationTags: tagsByAutomation.get(r.id) ?? [],
-    ghlTags: ghlTagsByAutomation.get(r.id) ?? [],
-    ghlForms: ghlFormsByAutomation.get(r.id) ?? [],
-    webhooks: webhooksByAutomation.get(r.id) ?? [],
-  }));
 
   const autoRefresh = await getAutoRefreshFor(site.slug);
 
