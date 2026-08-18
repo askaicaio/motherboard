@@ -1152,13 +1152,23 @@ export function AutomationsTableClient({
   const handleDelete = async (row: AutomationRow) => {
     // The name sits on its OWN line above the warning, so an unnamed automation
     // needs a capitalised stand-alone fallback (not the old mid-sentence "this
-    // automation"). ConfirmHost renders the body with whitespace-pre-line, so the
-    // escaped newline below becomes a real line break.
+    // automation").
     const label = row.name || "This automation";
     if (
       !(await confirmDialog({
         title: "Delete Automation?",
-        body: `${label}\nThis cannot be undone.`,
+        // JSX body (ConfirmOptions.body is a ReactNode) so only the warning line
+        // is red — a plain string can't carry per-line colour. <br /> rather than
+        // a "\n" so the line break survives even if ConfirmHost ever loses its
+        // whitespace-pre-line. The name line keeps the description's default
+        // muted colour.
+        body: (
+          <>
+            {label}
+            <br />
+            <span className="text-red-600">This cannot be undone.</span>
+          </>
+        ),
         confirmLabel: "Delete",
         destructive: true,
       }))
