@@ -611,16 +611,19 @@ export function WorkflowDialog({
           <DialogFooter className="shrink-0">
             {/* Delete (edit mode only). Same trash icon the removed per-row
                 Actions column used, but RED at rest instead of gray-until-hover.
-                sm:mr-auto pushes it to the footer's left edge, leaving Cancel +
-                Save changes right-aligned. type="button" so it never submits the
-                form; the confirm + request live in the caller's handleDelete. */}
+                size-8 matches the h-8 of the Cancel / Save changes buttons beside
+                it, so all three footer controls are the same height (the icon
+                itself stays 16px). sm:mr-auto pushes it to the footer's left edge,
+                leaving Cancel + Save changes right-aligned. type="button" so it
+                never submits the form; the confirm + request live in the caller's
+                handleDelete. */}
             {isEdit && onDelete && (
               <button
                 type="button"
                 onClick={onDelete}
                 disabled={submitting}
                 aria-label="Delete this automation"
-                className="inline-flex items-center self-center rounded-md p-1 text-red-600 transition-colors hover:bg-red-50 hover:text-red-700 disabled:pointer-events-none disabled:opacity-50 sm:mr-auto"
+                className="inline-flex size-8 shrink-0 items-center justify-center self-center rounded-md text-red-600 transition-colors hover:bg-red-50 hover:text-red-700 disabled:pointer-events-none disabled:opacity-50 sm:mr-auto"
               >
                 <Trash2 className="h-4 w-4" />
               </button>
