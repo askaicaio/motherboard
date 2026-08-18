@@ -47,7 +47,6 @@ import {
   RefreshCw,
   Clock,
   Download,
-  Trash2,
   Filter,
   ChevronDown,
   ChevronLeft,
@@ -443,10 +442,11 @@ export interface AutomationRow {
 // `platforms` (optional): restrict a column to those platform slugs, mirroring the
 // on-screen platform-gated columns (GHL Tags / GHL Forms). Omitted = every export.
 // ---------------------------------------------------------------------------
-// The reorderable MIDDLE columns (everything between the frozen Name column and
-// the Actions column). ONE source of truth that drives the header, the body
-// cells, the CSV export, AND the user-facing reorder (Move Column Left/Right).
-// Name (pinned first, frozen) and Actions (pinned last) are NOT in this list.
+// The reorderable MIDDLE columns (everything after the frozen Name column). ONE
+// source of truth that drives the header, the body cells, the CSV export, AND the
+// user-facing reorder (Move Column Left/Right). Name (pinned first, frozen) is
+// NOT in this list. (There is no longer a trailing Actions column — delete moved
+// into the Edit Workflow dialog.)
 
 // Shared header <th> class strings (widths + sticky + text-align; the sortable
 // ones also carry the interactive cursor/hover classes, matching the old
@@ -587,8 +587,8 @@ const MIDDLE_DEFAULT_ORDER: MiddleColumnId[] = MIDDLE_COLUMNS.map((c) => c.id);
 
 // Approximate rendered width (px) of each middle column, used to size the table's
 // min-width from the CURRENTLY VISIBLE columns so the table shrinks when a column
-// is hidden (auto-width columns like Status / the dates are estimated). Name (400,
-// frozen) + Actions (64) are added on top via NAME_ACTIONS_WIDTH.
+// is hidden (auto-width columns like Status / the dates are estimated). The frozen
+// Name column is added on top via NAME_COLUMN_WIDTH.
 const COLUMN_WIDTHS: Record<MiddleColumnId, number> = {
   status: 136,
   author: 160,
@@ -603,7 +603,7 @@ const COLUMN_WIDTHS: Record<MiddleColumnId, number> = {
   lastRunAt: 136,
   lastErrorAt: 136,
 };
-const NAME_ACTIONS_WIDTH = 464; // Name (400, frozen) + Actions (64), always shown.
+const NAME_COLUMN_WIDTH = 400; // The frozen Name column, always shown.
 
 /** Reconcile a persisted order with the known columns: keep valid ids in their
  *  saved order, drop unknown ones, and append any new columns not yet saved. */
@@ -1144,7 +1144,11 @@ export function AutomationsTableClient({
     }
   };
 
-  // Hard delete, permanently removes the row after a confirm.
+  // Hard delete, permanently removes the row after a confirm. Invoked from the
+  // Edit Workflow dialog's red trash button (the per-row Actions column it used
+  // to live in was removed). Base UI supports a nested dialog, so the confirm
+  // stacks on top of the still-open Edit dialog; on success we close that dialog
+  // too, since the row it was editing no longer exists.
   const handleDelete = async (row: AutomationRow) => {
     const label = row.name || "this automation";
     if (
@@ -1162,6 +1166,7 @@ export function AutomationsTableClient({
       return;
     }
     setRows((prev) => prev.filter((r) => r.id !== row.id));
+    setEditing(null);
     toast.success("Deleted");
   };
 
@@ -1199,7 +1204,7 @@ export function AutomationsTableClient({
   // ── Reorderable MIDDLE columns ─────────────────────────────────────────────
   // The order is user-controlled (Move Column Left/Right in a header's edit-mode
   // dropdown) and persisted PER PAGE in localStorage (same approach as the
-  // Filter). Name (frozen, first) and Actions (last) are pinned and excluded.
+  // Filter). Name (frozen, first) is pinned and excluded.
   const columnOrderKey = `automations:columnOrder:${platform}`;
   const [columnOrder, setColumnOrder] = useState<MiddleColumnId[]>(() => {
     if (typeof window === "undefined") return MIDDLE_DEFAULT_ORDER;
@@ -2021,7 +2026,7 @@ export function AutomationsTableClient({
               className="w-full text-sm"
               style={{
                 minWidth:
-                  NAME_ACTIONS_WIDTH +
+                  NAME_COLUMN_WIDTH +
                   visibleMiddle.reduce((sum, c) => sum + COLUMN_WIDTHS[c.id], 0),
               }}
             >
@@ -2049,19 +2054,13 @@ export function AutomationsTableClient({
                       rendered in the user's saved order. GHL Tags / GHL Forms are
                       filtered out on non-GHL pages by orderedMiddle. */}
                   {visibleMiddle.map((col, i) => renderMiddleHeader(col, i))}
-                  {/* Actions (delete) column. ALWAYS rendered, even when edit
-                      mode is off, so toggling only shows/hides the trash icon
-                      INSIDE the cell instead of adding/removing a whole column
-                      (which would resize + shift every other column). Fixed
-                      width reserves the space; the header stays empty. */}
-                  <th className="sticky top-0 z-10 w-16 bg-zinc-50 px-3 py-2 shadow-[inset_0_-1px_0_0_#e4e4e7]"></th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={2 + visibleMiddle.length}
+                      colSpan={1 + visibleMiddle.length}
                       className="px-3 py-16 text-center text-sm text-zinc-500"
                     >
                       {rows.length === 0
@@ -2136,26 +2135,6 @@ export function AutomationsTableClient({
                           markup was moved verbatim into renderMiddleCell, so only
                           their ORDER is now data-driven. */}
                       {visibleMiddle.map((col) => renderMiddleCell(col.id, r))}
-                      {/* Actions cell: always present (reserves the column
-                          width); the trash button only renders in edit mode, so
-                          toggling never resizes the table. Trash-icon delete,
-                          matching the Error History table: subtle gray, red on
-                          hover. */}
-                      <td className="px-3 py-2 align-top text-center">
-                        {editMode && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDelete(r);
-                            }}
-                            aria-label="Delete this automation"
-                            className="inline-flex items-center rounded-md p-1 text-zinc-400 transition-colors hover:bg-red-50 hover:text-red-600"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        )}
-                      </td>
                     </tr>
                   ))
                 )}
@@ -2192,6 +2171,7 @@ export function AutomationsTableClient({
         ghlFormChoices={ghlFormChoices}
         webhookChoices={webhookChoices}
         onSaved={handleSaved}
+        onDelete={editing ? () => handleDelete(editing) : undefined}
       />
 
       {/* Read-only "Show purpose" popup */}
