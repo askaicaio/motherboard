@@ -14,6 +14,7 @@ import {
 import { getOptionalAuth } from "@/lib/auth/guard";
 import { and, asc, eq } from "drizzle-orm";
 import { getAutomationSite } from "@/lib/automations/sites";
+import { getPerWebsiteRows } from "@/lib/automations/per-website-rows";
 
 const createSchema = z.object({
   // platform must be one of the known website slugs (single source of truth)
@@ -100,10 +101,19 @@ export async function GET(request: NextRequest) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const platform = request.nextUrl.searchParams.get("platform");
+
+  // Platform-scoped (what the Per Website table polls): go through the SHARED
+  // loader so the payload carries the table's FULL row shape. The client
+  // replaces its rows with this response, so a short query here blanks every
+  // column it omits (see getPerWebsiteRows' header comment).
+  if (platform) {
+    return NextResponse.json({ automations: await getPerWebsiteRows(platform) });
+  }
+
+  // Unscoped listing (no ?platform=): base columns only, no table consumes it.
   const rows = await db
     .select()
     .from(automations)
-    .where(platform ? eq(automations.platform, platform) : undefined)
     .orderBy(asc(automations.name));
 
   return NextResponse.json({ automations: rows });
