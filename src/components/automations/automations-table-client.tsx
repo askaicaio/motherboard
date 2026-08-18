@@ -1150,11 +1150,15 @@ export function AutomationsTableClient({
   // stacks on top of the still-open Edit dialog; on success we close that dialog
   // too, since the row it was editing no longer exists.
   const handleDelete = async (row: AutomationRow) => {
-    const label = row.name || "this automation";
+    // The name sits on its OWN line above the warning, so an unnamed automation
+    // needs a capitalised stand-alone fallback (not the old mid-sentence "this
+    // automation"). ConfirmHost renders the body with whitespace-pre-line, so the
+    // escaped newline below becomes a real line break.
+    const label = row.name || "This automation";
     if (
       !(await confirmDialog({
-        title: "Delete automation",
-        body: `Delete ${label}? This can't be undone.`,
+        title: "Delete Automation?",
+        body: `${label}\nThis cannot be undone.`,
         confirmLabel: "Delete",
         destructive: true,
       }))
