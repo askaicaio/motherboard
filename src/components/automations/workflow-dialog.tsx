@@ -524,10 +524,15 @@ export function WorkflowDialog({
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="wf-triage">Evaluation</Label>
-
             {/* Single-select: what should HAPPEN to this automation. Optional;
                 the "None" row clears it back to NOT YET TRIAGED, which is a
-                different thing from the "Unknown" choice. Mirrors Trigger Event. */}
+                different thing from the "Unknown" choice.
+                Opens LEFT: this is a LEFT-column field (the grid runs
+                Status/Author, Automation Tags/Trigger Event, then Evaluation),
+                and docs/dropdown-menu-standard.md sets side by column. Do NOT
+                copy the side="right" from Trigger Event above — that one sits in
+                the RIGHT column, and copying it made this popup cover Purpose
+                and Notes. */}
             <SingleChoiceCombobox
               id="wf-triage"
               options={triageChoices}
@@ -539,8 +544,7 @@ export function WorkflowDialog({
               searchPlaceholder="Search evaluations…"
               emptyLabel="None"
               noResultsLabel="No evaluations found."
-
-              side="right"
+              side="left"
             />
             <p className="text-[10px] text-zinc-500">
               What should happen to this automation.
