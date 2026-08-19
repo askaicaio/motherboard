@@ -975,11 +975,14 @@ export function AutomationsTableClient({
           return dir * (ta - tb);
         }
         case "webhooks":
-          // Grouping toggle like Status (NOT a true ordering): asc puts rows with
-          // a SHARED webhook first, then rows with webhooks but none shared.
-          // Rows with NO webhooks always sink to the bottom in BOTH directions,
-          // the same blanks-last rule the date + Author columns use. Ties keep
-          // their name order (Array#sort is stable; rows arrive name-ascending).
+          // Three groups that REVERSE COMPLETELY on the flip:
+          //   asc   shared -> webhooks-but-unshared -> no webhooks
+          //   desc  no webhooks -> webhooks-but-unshared -> shared
+          // NOTE this intentionally does NOT follow the blanks-last rule used by
+          // the date columns + Author: "no webhooks" is a meaningful third group
+          // here, not a missing value, so it travels with the flip (user-specified
+          // 2026-08-19). Ties keep their name order (Array#sort is stable; rows
+          // arrive name-ascending).
           return compareWebhookShared(a, b, dir);
         case "author": {
           // Alphabetical (case-insensitive) like Name; "None" (unset) ALWAYS

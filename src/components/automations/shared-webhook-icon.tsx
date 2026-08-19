@@ -54,14 +54,9 @@ export function SharedWebhookIcon({ sharedWith }: { sharedWith?: number }) {
  *    1 = has webhooks, none shared
  *    2 = no webhooks at all
  *
- *  Tier 2 is handled by the CALLER, which always sinks it to the bottom
- *  regardless of sort direction — the same blanks-last rule the date columns and
- *  Author use. Tiers 0 and 1 swap on direction, matching the Status column's
- *  grouping-toggle behaviour rather than a true ordering.
- *
  *  Deliberately does NOT rank by HOW MANY webhooks are shared: this is a
- *  two-group toggle like Status, so ties fall through and (because Array#sort is
- *  stable and rows arrive name-ascending) keep their alphabetical order. */
+ *  group toggle, so ties fall through and (because Array#sort is stable and rows
+ *  arrive name-ascending) keep their alphabetical order. */
 export function webhookSortRank(row: {
   webhooks?: Pick<SelectedWebhook, "sharedWith">[];
 }): 0 | 1 | 2 {
@@ -70,17 +65,21 @@ export function webhookSortRank(row: {
   return list.some((w) => (w.sharedWith ?? 0) > 0) ? 0 : 1;
 }
 
-/** Comparator body for the Webhook Links column. `dir` is 1 for asc, -1 for
- *  desc. Rows with no webhooks always finish last, in both directions. */
+/** Comparator body for the Webhook Links column. `dir` is 1 for asc, -1 for desc.
+ *
+ *    asc   shared  ->  webhooks-but-unshared  ->  no webhooks
+ *    desc  no webhooks  ->  webhooks-but-unshared  ->  shared
+ *
+ *  ⚠️ This column REVERSES COMPLETELY, on purpose (user-specified 2026-08-19).
+ *  It INTENTIONALLY BREAKS the blanks-last rule that the date columns and Author
+ *  follow, where empties stay pinned to the bottom in both directions. Do NOT
+ *  "fix" this back to that convention: here the empty tier is a meaningful third
+ *  group ("no links"), not a missing value, so the user wants it to travel with
+ *  the flip. That is why there is no special case for rank 2 below. */
 export function compareWebhookShared(
   a: { webhooks?: Pick<SelectedWebhook, "sharedWith">[] },
   b: { webhooks?: Pick<SelectedWebhook, "sharedWith">[] },
   dir: number,
 ): number {
-  const ra = webhookSortRank(a);
-  const rb = webhookSortRank(b);
-  if (ra === 2 && rb === 2) return 0;
-  if (ra === 2) return 1;
-  if (rb === 2) return -1;
-  return dir * (ra - rb);
+  return dir * (webhookSortRank(a) - webhookSortRank(b));
 }
