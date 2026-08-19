@@ -1222,6 +1222,19 @@ export const automations = pgTable(
       () => automationDropdownChoices.id,
       { onDelete: "set null" },
     ),
+    /** Selected Triage option (single-select dropdown column, mirrors Author):
+     *  what should HAPPEN to this automation. Nullable FK to an
+     *  `automation_dropdown_choices` row with column_key = 'triage'. Set via the
+     *  Add/Edit Workflow dialog (and the one-off Notes backfill), never by a sync.
+     *  ON DELETE SET NULL.
+     *
+     *  NULL means "not yet triaged", which is DELIBERATELY DISTINCT from the
+     *  "Unknown" choice ("looked at, couldn't decide"). Do not collapse the two.
+     *  Migration 0049. */
+    triageChoiceId: uuid("triage_choice_id").references(
+      () => automationDropdownChoices.id,
+      { onDelete: "set null" },
+    ),
 
     createdBy: uuid("created_by").references(() => adminUsers.id),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -1236,6 +1249,7 @@ export const automations = pgTable(
     index("idx_automations_platform").on(table.platform),
     index("idx_automations_author_choice").on(table.authorChoiceId),
     index("idx_automations_trigger_event_choice").on(table.triggerEventChoiceId),
+    index("idx_automations_triage_choice").on(table.triageChoiceId),
   ],
 );
 
@@ -1320,7 +1334,7 @@ export const automationDropdownChoices = pgTable(
   {
     id: uuid("id").defaultRandom().primaryKey(),
     /** Which dropdown column this option belongs to:
-     *  'author' | 'automation_tags' | 'ghl_tags' | 'ghl_forms' | 'trigger_event'. */
+     *  'author' | 'automation_tags' | 'ghl_tags' | 'ghl_forms' | 'trigger_event' | 'triage'. */
     columnKey: text("column_key").notNull(),
     /** The option text shown in the dropdown / choice table. */
     value: text("value").notNull(),

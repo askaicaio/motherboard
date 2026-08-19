@@ -15,7 +15,8 @@ export type DropdownColumnKey =
   | "automation_tags"
   | "ghl_tags"
   | "ghl_forms"
-  | "trigger_event";
+  | "trigger_event"
+  | "triage";
 
 /** One status option: its label plus display tones. `badge` = pill bg + text for
  *  the table's Status column; `text` = text-only colour for the option + selected
@@ -213,6 +214,30 @@ export const DROPDOWN_COLUMNS: DropdownColumnConfig[] = [
     fieldLabel: "Trigger event",
     placeholder: "e.g. Form submitted",
     rowLabel: "Trigger Event",
+    hasColor: true,
+    hasNotes: true,
+  },
+  {
+    // Triage / Badge Color / Text Color / Notes table. Colour table, same shape
+    // as Author + Trigger Event. Records what should HAPPEN to an automation.
+    //
+    // Seeded by migration 0049 with the FIVE states that already existed in the
+    // imported Notes text — To Remove, To Remove?, Unknown, Keep?, Keep — rather
+    // than an invented vocabulary. The trailing "?" means probably-but-
+    // unconfirmed and is its own value (user decision 2026-08-20).
+    //
+    // NOT values, deliberately: "Incomplete" (only ever a REASON attached to
+    // "To Remove?" rows, never a state) and "Standby" (occurs nowhere in the
+    // data). They can still be added here like any other choice if that changes.
+    //
+    // Placed after Trigger Event so the Config tabs keep matching the Per Website
+    // column order (user-set rule, see the GHL Tags note below).
+    key: "triage",
+    title: "Triage",
+    singular: "triage state",
+    fieldLabel: "Triage",
+    placeholder: "e.g. To Remove",
+    rowLabel: "Triage",
     hasColor: true,
     hasNotes: true,
   },
