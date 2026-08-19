@@ -54,9 +54,14 @@ export function SharedWebhookIcon({ sharedWith }: { sharedWith?: number }) {
  *    1 = has webhooks, none shared
  *    2 = no webhooks at all
  *
+ *  Tier 2 is handled by the CALLER, which always sinks it to the bottom
+ *  regardless of sort direction — the same blanks-last rule the date columns and
+ *  Author use. Tiers 0 and 1 swap on direction, matching the Status column's
+ *  grouping-toggle behaviour rather than a true ordering.
+ *
  *  Deliberately does NOT rank by HOW MANY webhooks are shared: this is a
- *  group toggle, so ties fall through and (because Array#sort is stable and rows
- *  arrive name-ascending) keep their alphabetical order. */
+ *  two-group toggle like Status, so ties fall through and (because Array#sort is
+ *  stable and rows arrive name-ascending) keep their alphabetical order. */
 export function webhookSortRank(row: {
   webhooks?: Pick<SelectedWebhook, "sharedWith">[];
 }): 0 | 1 | 2 {
@@ -68,18 +73,24 @@ export function webhookSortRank(row: {
 /** Comparator body for the Webhook Links column. `dir` is 1 for asc, -1 for desc.
  *
  *    asc   shared  ->  webhooks-but-unshared  ->  no webhooks
- *    desc  no webhooks  ->  webhooks-but-unshared  ->  shared
+ *    desc  webhooks-but-unshared  ->  shared  ->  no webhooks
  *
- *  ⚠️ This column REVERSES COMPLETELY, on purpose (user-specified 2026-08-19).
- *  It INTENTIONALLY BREAKS the blanks-last rule that the date columns and Author
- *  follow, where empties stay pinned to the bottom in both directions. Do NOT
- *  "fix" this back to that convention: here the empty tier is a meaningful third
- *  group ("no links"), not a missing value, so the user wants it to travel with
- *  the flip. That is why there is no special case for rank 2 below. */
+ *  Rows with no webhooks always finish last, in BOTH directions — the same
+ *  blanks-last rule the date columns and Author follow.
+ *
+ *  SETTLED, do not flip again: a full reversal (empty tier rising to the top on
+ *  desc) was tried and reverted at the user's request on 2026-08-19. Keeping the
+ *  empty tier pinned means the two groups you actually care about stay adjacent
+ *  to the top in both directions, instead of a wall of empty rows landing there. */
 export function compareWebhookShared(
   a: { webhooks?: Pick<SelectedWebhook, "sharedWith">[] },
   b: { webhooks?: Pick<SelectedWebhook, "sharedWith">[] },
   dir: number,
 ): number {
-  return dir * (webhookSortRank(a) - webhookSortRank(b));
+  const ra = webhookSortRank(a);
+  const rb = webhookSortRank(b);
+  if (ra === 2 && rb === 2) return 0;
+  if (ra === 2) return 1;
+  if (rb === 2) return -1;
+  return dir * (ra - rb);
 }

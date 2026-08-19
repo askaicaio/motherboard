@@ -401,11 +401,10 @@ export function AllAutomationsTableClient({
           return dir * (ta - tb);
         }
         case "webhooks":
-          // Three groups that REVERSE COMPLETELY on the flip (asc: shared ->
-          // unshared -> none; desc: none -> unshared -> shared). Intentionally
-          // NOT the blanks-last rule the date columns + Author use — see the
-          // comparator. Same shared comparator the Per Website table uses, so the
-          // two pages cannot drift.
+          // Grouping toggle like Status: asc puts rows with a SHARED webhook
+          // first, then rows with webhooks but none shared; rows with NO webhooks
+          // always sink to the bottom in BOTH directions. Same comparator the Per
+          // Website table uses, so the two pages cannot drift.
           return compareWebhookShared(a, b, dir);
         case "author": {
           // Alphabetical (case-insensitive); "None" (unset) ALWAYS sinks to the
