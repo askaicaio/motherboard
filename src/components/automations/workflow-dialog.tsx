@@ -61,6 +61,9 @@ interface Props {
   authorChoices?: ChoiceOption[];
   /** Configured Trigger Event options for its single-select dropdown. */
   triggerEventChoices?: ChoiceOption[];
+  /** Configured Triage options for the single-select Triage dropdown. */
+  triageChoices?: ChoiceOption[];
+
   /** Configured Automation Tags options for the multi-select chip picker. */
   automationTagChoices?: ChoiceOption[];
   /** Configured GHL Tags options (multi-select; only used on the GHL pages). */
@@ -84,6 +87,8 @@ export function WorkflowDialog({
   existing,
   authorChoices = [],
   triggerEventChoices = [],
+  triageChoices = [],
+
   automationTagChoices = [],
   ghlTagChoices = [],
   ghlFormChoices = [],
@@ -106,6 +111,10 @@ export function WorkflowDialog({
   const [authorChoiceId, setAuthorChoiceId] = useState("");
   // Trigger Event: the selected choice id ("" = none). Single-select dropdown.
   const [triggerEventChoiceId, setTriggerEventChoiceId] = useState("");
+  // Triage: the selected Triage choice id ("" = not yet triaged, which is
+  // DISTINCT from the "Unknown" choice — see the AutomationRow comment).
+  const [triageChoiceId, setTriageChoiceId] = useState("");
+
   // Automation Tags: the selected tag choice ids (multi-select). Empty = none.
   const [automationTagChoiceIds, setAutomationTagChoiceIds] = useState<string[]>([]);
   // GHL Tags + GHL Forms: selected choice ids (multi-select, GHL pages only).
@@ -140,6 +149,8 @@ export function WorkflowDialog({
     setNotes(existing?.notes ?? "");
     setAuthorChoiceId(existing?.authorChoiceId ?? "");
     setTriggerEventChoiceId(existing?.triggerEventChoiceId ?? "");
+    setTriageChoiceId(existing?.triageChoiceId ?? "");
+
     setAutomationTagChoiceIds((existing?.automationTags ?? []).map((t) => t.id));
     setGhlTagChoiceIds((existing?.ghlTags ?? []).map((t) => t.id));
     setGhlFormChoiceIds((existing?.ghlForms ?? []).map((f) => f.id));
@@ -164,6 +175,8 @@ export function WorkflowDialog({
       // single-select ids: send the selected id, or null to clear it.
       const authorPayload = authorChoiceId || null;
       const triggerEventPayload = triggerEventChoiceId || null;
+      const triagePayload = triageChoiceId || null;
+
       // GHL Tags / GHL Forms are only sent on GHL pages (where the pickers show).
       // Omitting them on non-GHL platforms means the API leaves those columns
       // untouched rather than wiping them.
@@ -172,8 +185,9 @@ export function WorkflowDialog({
         ...(showGhlForms ? { ghlFormChoiceIds } : {}),
       };
       const body = isEdit
-        ? { name: name.trim(), externalUrl: externalUrl.trim(), status, purpose: purpose.trim(), notes: notes.trim(), authorChoiceId: authorPayload, triggerEventChoiceId: triggerEventPayload, automationTagChoiceIds, webhookChoiceIds, ...ghlFields }
-        : { platform, name: name.trim(), externalUrl: externalUrl.trim(), status, purpose: purpose.trim(), notes: notes.trim(), authorChoiceId: authorPayload, triggerEventChoiceId: triggerEventPayload, automationTagChoiceIds, webhookChoiceIds, ...ghlFields };
+        ? { name: name.trim(), externalUrl: externalUrl.trim(), status, purpose: purpose.trim(), notes: notes.trim(), authorChoiceId: authorPayload, triggerEventChoiceId: triggerEventPayload, triageChoiceId: triagePayload, automationTagChoiceIds, webhookChoiceIds, ...ghlFields }
+        : { platform, name: name.trim(), externalUrl: externalUrl.trim(), status, purpose: purpose.trim(), notes: notes.trim(), authorChoiceId: authorPayload, triggerEventChoiceId: triggerEventPayload, triageChoiceId: triagePayload, automationTagChoiceIds, webhookChoiceIds, ...ghlFields };
+
 
       const res = await fetch(endpoint, {
         method,
@@ -205,6 +219,11 @@ export function WorkflowDialog({
       const savedTriggerEvent = triggerEventChoices.find(
         (c) => c.id === saved.triggerEventChoiceId,
       );
+      // Triage: resolve the chosen option (value + colours) the same way.
+      const savedTriage = triageChoices.find(
+        (c) => c.id === saved.triageChoiceId,
+      );
+
       const row: AutomationRow = {
         id: saved.id,
         name: saved.name,
@@ -222,6 +241,11 @@ export function WorkflowDialog({
         // (not just after a reload).
         triggerEventBadgeColor: savedTriggerEvent?.badgeColor ?? null,
         triggerEventTextColor: savedTriggerEvent?.textColor ?? null,
+        triageChoiceId: saved.triageChoiceId ?? null,
+        triage: savedTriage?.value ?? null,
+        triageBadgeColor: savedTriage?.badgeColor ?? null,
+        triageTextColor: savedTriage?.textColor ?? null,
+
         // Automation Tags: resolve the selected ids to their choices (value +
         // colours) so the row's chips render immediately, without a reload.
         // Alphabetical by value to match the loader's ordering.
@@ -498,6 +522,29 @@ export function WorkflowDialog({
               This is how the automation is activated.
             </p>
           </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="wf-triage">Triage</Label>
+            {/* Single-select: what should HAPPEN to this automation. Optional;
+                the "None" row clears it back to NOT YET TRIAGED, which is a
+                different thing from the "Unknown" choice. Mirrors Trigger Event. */}
+            <SingleChoiceCombobox
+              id="wf-triage"
+              options={triageChoices}
+              value={triageChoiceId}
+              onChange={(v) => {
+                setTriageChoiceId(v);
+                setError(null);
+              }}
+              searchPlaceholder="Search triage states…"
+              emptyLabel="None"
+              noResultsLabel="No triage states found."
+              side="right"
+            />
+            <p className="text-[10px] text-zinc-500">
+              What should happen to this automation.
+            </p>
+          </div>
+
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="wf-purpose">Purpose</Label>

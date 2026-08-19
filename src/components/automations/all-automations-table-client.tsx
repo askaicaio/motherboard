@@ -67,6 +67,7 @@ import {
 } from "./shared-webhook-icon";
 import {
   columnVisibleOnPlatform,
+  compareTriage,
   type ChoiceOption,
 } from "@/lib/automations/dropdown-config";
 import type { AutomationRow } from "./automations-table-client";
@@ -90,7 +91,9 @@ type SortKey =
   | "lastRunAt"
   | "lastErrorAt"
   | "author"
-  | "webhooks";
+  | "webhooks"
+  | "triage";
+
 
 /** MM-DD-YYYY, or "-" when empty/invalid. Same as the per-website table. */
 function formatDateCell(value: string | Date | null | undefined): string {
@@ -172,20 +175,24 @@ const ALL_HIDEABLE_COLUMNS: {
   { id: "author", label: "Author", index: 4, width: 160 },
   { id: "automationTags", label: "Automation Tags", index: 5, width: 240 },
   { id: "triggerEvent", label: "Trigger Event", index: 6, width: 160 },
-  { id: "purpose", label: "Purpose", index: 7, width: 240 },
-  { id: "notes", label: "Notes", index: 8, width: 240 },
-  { id: "ghlTags", label: "GHL Tags", index: 9, width: 180 },
-  { id: "ghlForms", label: "GHL Forms", index: 10, width: 180 },
-  { id: "webhooks", label: "Webhook Links", index: 11, width: 240 },
-  { id: "lastEditedAt", label: "Last Edited", index: 12, width: 136 },
-  { id: "lastRunAt", label: "Last Runtime", index: 13, width: 136 },
-  { id: "lastErrorAt", label: "Last Error", index: 14, width: 136 },
+  { id: "triage", label: "Triage", index: 7, width: 160 },
+  { id: "purpose", label: "Purpose", index: 8, width: 240 },
+  { id: "notes", label: "Notes", index: 9, width: 240 },
+  { id: "ghlTags", label: "GHL Tags", index: 10, width: 180 },
+  { id: "ghlForms", label: "GHL Forms", index: 11, width: 180 },
+  { id: "webhooks", label: "Webhook Links", index: 12, width: 240 },
+  { id: "lastEditedAt", label: "Last Edited", index: 13, width: 136 },
+  { id: "lastRunAt", label: "Last Runtime", index: 14, width: 136 },
+  { id: "lastErrorAt", label: "Last Error", index: 15, width: 136 },
 ];
+
 
 export function AllAutomationsTableClient({
   rows,
   authorChoices = [],
   triggerEventChoices = [],
+  triageChoices = [],
+
   automationTagChoices = [],
 }: {
   rows: AllAutomationRow[];
@@ -193,6 +200,8 @@ export function AllAutomationsTableClient({
    *  dimensions as the Per Website filter; this table mirrors that feature. */
   authorChoices?: ChoiceOption[];
   triggerEventChoices?: ChoiceOption[];
+  triageChoices?: ChoiceOption[];
+
   automationTagChoices?: ChoiceOption[];
 }) {
   const [query, setQuery] = useState("");
@@ -273,9 +282,12 @@ export function AllAutomationsTableClient({
         `.all-cols-table>thead>tr>th:nth-child(${c.index}),.all-cols-table>tbody>tr>td:nth-child(${c.index}){display:none}`,
     )
     .join("");
-  // Shrink the table min-width by the hidden columns' widths (base 2800).
+  // Shrink the table min-width by the hidden columns' widths (base 2960 = the
+  // old 2800 plus the 160px Triage column added 2026-08-20).
+
   const tableMinWidth =
-    2800 -
+    2960 -
+
     ALL_HIDEABLE_COLUMNS.filter((c) => hiddenColumns.has(c.id)).reduce(
       (sum, c) => sum + c.width,
       0,
@@ -333,6 +345,12 @@ export function AllAutomationsTableClient({
     // NO value in that dimension, OR'd with the dimension's selected values.
     const authorNone = filterSelected.has("none:author");
     const triggerNone = filterSelected.has("none:trigger_event");
+    const triageSel = new Set(
+      triageChoices.filter((c) => filterSelected.has(c.id)).map((c) => c.id),
+    );
+    // "None" here means NOT YET TRIAGED (null FK), not the "Unknown" choice.
+    const triageNone = filterSelected.has("none:triage");
+
     const tagNone = filterSelected.has("none:automation_tags");
     const base = rows.filter((r) => {
       if (
@@ -355,6 +373,13 @@ export function AllAutomationsTableClient({
           (id != null && triggerSel.has(id)) || (triggerNone && id == null);
         if (!ok) return false;
       }
+      if (triageSel.size || triageNone) {
+        const id = r.triageChoiceId;
+        const ok =
+          (id != null && triageSel.has(id)) || (triageNone && id == null);
+        if (!ok) return false;
+      }
+
       if (tagSel.size || tagNone) {
         const tags = r.automationTags ?? [];
         const ok =
@@ -406,6 +431,10 @@ export function AllAutomationsTableClient({
           // always sink to the bottom in BOTH directions. Same comparator the Per
           // Website table uses, so the two pages cannot drift.
           return compareWebhookShared(a, b, dir);
+        case "triage":
+          // Lifecycle order (see TRIAGE_ORDER), untriaged last in both directions.
+          // Same shared comparator the Per Website table uses.
+          return compareTriage(a, b, dir);
         case "author": {
           // Alphabetical (case-insensitive); "None" (unset) ALWAYS sinks to the
           // bottom, regardless of direction. Same rule as the per-website table.
@@ -428,6 +457,8 @@ export function AllAutomationsTableClient({
     filterSelected,
     authorChoices,
     triggerEventChoices,
+    triageChoices,
+
     automationTagChoices,
   ]);
 
@@ -561,7 +592,9 @@ export function AllAutomationsTableClient({
                 key: "trigger_event",
                 choices: triggerEventChoices,
               },
+              { label: "Triage", key: "triage", choices: triageChoices },
             ].map((dim) => (
+
               <DropdownMenuSub key={dim.label}>
                 <DropdownMenuSubTrigger className="[&>svg:last-child]:hidden">
                   <ChevronLeft className="size-4" />
@@ -713,6 +746,19 @@ export function AllAutomationsTableClient({
                   <th className="sticky top-0 z-10 w-[160px] min-w-[160px] max-w-[160px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
                     Trigger Event
                   </th>
+                  {/* Triage: what should HAPPEN to the automation. Sortable (it
+                      is the column you work the cleanup from), 160px. */}
+                  <th
+                    onClick={() => toggleSort("triage")}
+                    aria-sort={ariaSort("triage")}
+                    className="sticky top-0 z-10 w-[160px] min-w-[160px] max-w-[160px] cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700"
+                  >
+                    <span className="inline-flex items-center justify-center gap-1">
+                      Triage
+                      <SortArrow active={sortKey === "triage"} dir={sortDir} />
+                    </span>
+                  </th>
+
                   <th className="sticky top-0 z-10 w-[240px] min-w-[240px] max-w-[240px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
                     Purpose
                   </th>
@@ -914,8 +960,24 @@ export function AllAutomationsTableClient({
                           </span>
                         )}
                       </td>
+                      {/* Triage: the selected state as a coloured pill. Untriaged
+                          renders a muted "-", NOT the red "None" the other manual
+                          columns use — untriaged is a normal starting state, not a
+                          missing value. Mirrors the Per Website column. */}
+                      <td className="w-[160px] min-w-[160px] max-w-[160px] px-3 py-2 text-center align-top">
+                        {r.triage ? (
+                          <ColorBadge
+                            value={r.triage}
+                            badgeColor={r.triageBadgeColor}
+                            textColor={r.triageTextColor}
+                          />
+                        ) : (
+                          <span className="text-xs text-zinc-400">-</span>
+                        )}
+                      </td>
                       <td className="w-[240px] min-w-[240px] max-w-[240px] px-3 py-2 text-left align-top">
                         {/* Purpose: a preview that fills the FIXED-WIDTH column
+
                             (locked to 240px on th + td). Line count is ADAPTIVE:
                             `line-clamp-2` is the 2-line minimum, `WebkitLineClamp`
                             inline-style overrides it per row with however many lines

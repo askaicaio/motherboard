@@ -42,7 +42,9 @@ export default async function AutomationWebsitePage({
   const [
     authorChoices,
     triggerEventChoices,
+    triageChoices,
     automationTagChoices,
+
     ghlTagChoices,
     ghlFormChoices,
     webhookChoices,
@@ -68,6 +70,20 @@ export default async function AutomationWebsitePage({
         .from(automationDropdownChoices)
         .where(eq(automationDropdownChoices.columnKey, "trigger_event"))
         .orderBy(asc(automationDropdownChoices.value)),
+      // Triage (single-select): options for the dialog's dropdown. Seeded by
+      // migration 0049; editable on the Dropdown Configuration page like any
+      // other choice column.
+      db
+        .select({
+          id: automationDropdownChoices.id,
+          value: automationDropdownChoices.value,
+          badgeColor: automationDropdownChoices.badgeColor,
+          textColor: automationDropdownChoices.textColor,
+        })
+        .from(automationDropdownChoices)
+        .where(eq(automationDropdownChoices.columnKey, "triage"))
+        .orderBy(asc(automationDropdownChoices.value)),
+
       // Automation Tags (multi-select): the options for the dialog's chip picker.
       db
         .select({
@@ -134,6 +150,8 @@ export default async function AutomationWebsitePage({
         initialRows={rows}
         authorChoices={authorChoices}
         triggerEventChoices={triggerEventChoices}
+        triageChoices={triageChoices}
+
         automationTagChoices={automationTagChoices}
         ghlTagChoices={ghlTagChoices}
         ghlFormChoices={ghlFormChoices}

@@ -32,6 +32,8 @@ export default async function AllAutomationsPage() {
   // Second self-join of the choices table for Trigger Event (Author already
   // joins it unaliased).
   const triggerChoices = alias(automationDropdownChoices, "trigger_choices");
+  const triageChoicesTbl = alias(automationDropdownChoices, "triage_choices");
+
 
   const baseRows = await db
     .select({
@@ -56,7 +58,14 @@ export default async function AllAutomationsPage() {
       triggerEvent: triggerChoices.value,
       triggerEventBadgeColor: triggerChoices.badgeColor,
       triggerEventTextColor: triggerChoices.textColor,
+      // Triage: third aliased join (migration 0049). NULL = not yet triaged,
+      // distinct from the "Unknown" choice.
+      triageChoiceId: automations.triageChoiceId,
+      triage: triageChoicesTbl.value,
+      triageBadgeColor: triageChoicesTbl.badgeColor,
+      triageTextColor: triageChoicesTbl.textColor,
     })
+
     .from(automations)
     .leftJoin(
       automationDropdownChoices,
@@ -66,7 +75,12 @@ export default async function AllAutomationsPage() {
       triggerChoices,
       eq(automations.triggerEventChoiceId, triggerChoices.id),
     )
+    .leftJoin(
+      triageChoicesTbl,
+      eq(automations.triageChoiceId, triageChoicesTbl.id),
+    )
     .orderBy(asc(automations.name));
+
 
   // Latest captured error per automation (across all platforms) → Last Error.
   const lastErrorByAutomation = await getLastErrorAtAllAutomations();
@@ -101,7 +115,8 @@ export default async function AllAutomationsPage() {
   // Filter-menu options for the View All Lists Filter (mirrors the Per Website
   // filter's three dimensions). Global choice lists from the Dropdown Config
   // Page, value-ascending, same shape/order the per-website loader uses.
-  const [authorChoices, triggerEventChoices, automationTagChoices] =
+  const [authorChoices, triggerEventChoices, triageChoices, automationTagChoices] =
+
     await Promise.all([
       db
         .select({
@@ -123,6 +138,18 @@ export default async function AllAutomationsPage() {
         .from(automationDropdownChoices)
         .where(eq(automationDropdownChoices.columnKey, "trigger_event"))
         .orderBy(asc(automationDropdownChoices.value)),
+      // Triage options (single-select), for the Filter menu's Triage dimension.
+      db
+        .select({
+          id: automationDropdownChoices.id,
+          value: automationDropdownChoices.value,
+          badgeColor: automationDropdownChoices.badgeColor,
+          textColor: automationDropdownChoices.textColor,
+        })
+        .from(automationDropdownChoices)
+        .where(eq(automationDropdownChoices.columnKey, "triage"))
+        .orderBy(asc(automationDropdownChoices.value)),
+
       db
         .select({
           id: automationDropdownChoices.id,
@@ -156,6 +183,8 @@ export default async function AllAutomationsPage() {
         rows={rows}
         authorChoices={authorChoices}
         triggerEventChoices={triggerEventChoices}
+        triageChoices={triageChoices}
+
         automationTagChoices={automationTagChoices}
       />
     </div>

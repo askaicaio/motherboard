@@ -35,6 +35,8 @@ const createSchema = z.object({
   // Trigger Event (single-select): the chosen id, or null. Validated below to
   // be a real 'trigger_event' option.
   triggerEventChoiceId: z.string().uuid().nullable().optional(),
+  triageChoiceId: z.string().uuid().nullable().optional(),
+
   // Automation Tags (MULTI-select): the chosen automation_dropdown_choices ids
   // (column_key = 'automation_tags'). Each validated below; empty = no tags.
   automationTagChoiceIds: z.array(z.string().uuid()).optional().default([]),
@@ -149,6 +151,13 @@ export async function POST(request: NextRequest) {
   ) {
     return NextResponse.json({ error: "Unknown trigger event option." }, { status: 400 });
   }
+  if (
+    body.triageChoiceId &&
+    !(await isChoiceOfColumn(body.triageChoiceId, "triage"))
+  ) {
+    return NextResponse.json({ error: "Unknown triage option." }, { status: 400 });
+  }
+
 
   // Automation Tags (multi-select): dedupe, then reject any id that isn't a real
   // 'automation_tags' option.
@@ -210,6 +219,8 @@ export async function POST(request: NextRequest) {
           notes: body.notes.trim() || null,
           authorChoiceId: body.authorChoiceId ?? null,
           triggerEventChoiceId: body.triggerEventChoiceId ?? null,
+          triageChoiceId: body.triageChoiceId ?? null,
+
           createdBy: user.id,
         })
         .returning();

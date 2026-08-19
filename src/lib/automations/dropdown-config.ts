@@ -377,3 +377,48 @@ export interface RelatedAutomation {
   status: string;
   externalUrl: string;
 }
+
+// ---------------------------------------------------------------------------
+// Triage ordering
+// ---------------------------------------------------------------------------
+
+/** The Triage states in LIFECYCLE order, most-actionable first. Sorting this
+ *  column alphabetically would be useless ("Keep" before "To Remove"); the point
+ *  of sorting it is to surface what needs action, so the order is explicit.
+ *
+ *  Matches the values seeded by migration 0049. A choice added later on the
+ *  Dropdown Configuration page is not in this list and sorts just AFTER the known
+ *  states (but still before untriaged rows), so it stays visible rather than
+ *  vanishing to the bottom. */
+export const TRIAGE_ORDER = [
+  "To Remove",
+  "To Remove?",
+  "Unknown",
+  "Keep?",
+  "Keep",
+] as const;
+
+/** Comparator body for the Triage column, shared by the Per Website table and
+ *  View All Lists so the two cannot drift. `dir` is 1 for asc, -1 for desc.
+ *
+ *  UNTRIAGED (null) rows always finish LAST in both directions — the blanks-last
+ *  rule the date columns and Author follow. Unlike Webhook Links, untriaged really
+ *  is a missing value here ("nobody has looked yet"), not a meaningful group, so
+ *  floating a wall of them to the top on the flip would never be useful. */
+export function compareTriage(
+  a: { triage?: string | null },
+  b: { triage?: string | null },
+  dir: number,
+): number {
+  const rank = (v: string | null | undefined): number | null => {
+    if (!v) return null;
+    const i = (TRIAGE_ORDER as readonly string[]).indexOf(v);
+    return i === -1 ? TRIAGE_ORDER.length : i;
+  };
+  const ra = rank(a.triage);
+  const rb = rank(b.triage);
+  if (ra === null && rb === null) return 0;
+  if (ra === null) return 1;
+  if (rb === null) return -1;
+  return dir * (ra - rb);
+}

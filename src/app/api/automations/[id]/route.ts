@@ -28,6 +28,8 @@ const patchSchema = z.object({
   // Trigger Event (single-select): the chosen id, or null to clear it. Only
   // applied when present. Validated below.
   triggerEventChoiceId: z.string().uuid().nullable().optional(),
+  triageChoiceId: z.string().uuid().nullable().optional(),
+
   // Automation Tags (MULTI-select): the FULL desired set of tag choice ids.
   // Only synced when the key is present (absent = leave tags untouched). Each
   // validated below.
@@ -126,6 +128,13 @@ export async function PATCH(
   ) {
     return NextResponse.json({ error: "Unknown trigger event option." }, { status: 400 });
   }
+  if (
+    body.triageChoiceId != null &&
+    !(await isChoiceOfColumn(body.triageChoiceId, "triage"))
+  ) {
+    return NextResponse.json({ error: "Unknown triage option." }, { status: 400 });
+  }
+
   // Automation Tags (multi-select): validate each provided id when the key is
   // present (absent leaves the tags untouched).
   if (body.automationTagChoiceIds !== undefined) {
@@ -171,6 +180,9 @@ export async function PATCH(
   if (body.authorChoiceId !== undefined) patch.authorChoiceId = body.authorChoiceId;
   if (body.triggerEventChoiceId !== undefined)
     patch.triggerEventChoiceId = body.triggerEventChoiceId;
+  if (body.triageChoiceId !== undefined)
+    patch.triageChoiceId = body.triageChoiceId;
+
 
   // Deterministic duplicate check, block if ANOTHER row already uses this
   // link (the link is the automation's identity). Excludes the row itself.
