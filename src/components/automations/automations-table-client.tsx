@@ -424,6 +424,8 @@ export interface AutomationRow {
   // Triage (single-select dropdown column, mirrors Author): what should HAPPEN
   // to this automation. `triageChoiceId` is the stored choice id; `triage` is its
   // resolved display value. Manual only; never synced.
+  // ⚠️ Shown to users as "EVALUATION". The internal name stays `triage`
+  // everywhere (display-only rename 2026-08-20), so grep for either.
   // ⚠️ NULL/absent means "not yet triaged" — DISTINCT from the "Unknown" CHOICE,
   // which means "looked at, couldn't decide". Do not collapse the two.
   triageChoiceId?: string | null;
@@ -549,7 +551,8 @@ const MIDDLE_COLUMNS: MiddleColumnDef[] = [
     // Triage: what should HAPPEN to this automation. Sortable (it is the column
     // you work the cleanup from), so it uses the sortable 160px header.
     id: "triage",
-    title: "Triage",
+    title: "Evaluation",
+
     sortKey: "triage",
     thClassName: TH_SORTABLE_160,
     exportValue: (r) => r.triage ?? "",
@@ -2039,7 +2042,8 @@ export function AutomationsTableClient({
                   key: "trigger_event",
                   choices: triggerEventChoices,
                 },
-                { label: "Triage", key: "triage", choices: triageChoices },
+                { label: "Evaluation", key: "triage", choices: triageChoices },
+
               ].map((dim) => (
 
                 <DropdownMenuSub key={dim.label}>

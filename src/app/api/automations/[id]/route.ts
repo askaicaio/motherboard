@@ -132,7 +132,8 @@ export async function PATCH(
     body.triageChoiceId != null &&
     !(await isChoiceOfColumn(body.triageChoiceId, "triage"))
   ) {
-    return NextResponse.json({ error: "Unknown triage option." }, { status: 400 });
+    return NextResponse.json({ error: "Unknown evaluation option." }, { status: 400 });
+
   }
 
   // Automation Tags (multi-select): validate each provided id when the key is

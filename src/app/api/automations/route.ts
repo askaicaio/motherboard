@@ -155,7 +155,8 @@ export async function POST(request: NextRequest) {
     body.triageChoiceId &&
     !(await isChoiceOfColumn(body.triageChoiceId, "triage"))
   ) {
-    return NextResponse.json({ error: "Unknown triage option." }, { status: 400 });
+    return NextResponse.json({ error: "Unknown evaluation option." }, { status: 400 });
+
   }
 
 

@@ -175,7 +175,8 @@ const ALL_HIDEABLE_COLUMNS: {
   { id: "author", label: "Author", index: 4, width: 160 },
   { id: "automationTags", label: "Automation Tags", index: 5, width: 240 },
   { id: "triggerEvent", label: "Trigger Event", index: 6, width: 160 },
-  { id: "triage", label: "Triage", index: 7, width: 160 },
+  { id: "triage", label: "Evaluation", index: 7, width: 160 },
+
   { id: "purpose", label: "Purpose", index: 8, width: 240 },
   { id: "notes", label: "Notes", index: 9, width: 240 },
   { id: "ghlTags", label: "GHL Tags", index: 10, width: 180 },
@@ -592,7 +593,8 @@ export function AllAutomationsTableClient({
                 key: "trigger_event",
                 choices: triggerEventChoices,
               },
-              { label: "Triage", key: "triage", choices: triageChoices },
+              { label: "Evaluation", key: "triage", choices: triageChoices },
+
             ].map((dim) => (
 
               <DropdownMenuSub key={dim.label}>
@@ -754,8 +756,9 @@ export function AllAutomationsTableClient({
                     className="sticky top-0 z-10 w-[160px] min-w-[160px] max-w-[160px] cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700"
                   >
                     <span className="inline-flex items-center justify-center gap-1">
-                      Triage
+                      Evaluation
                       <SortArrow active={sortKey === "triage"} dir={sortDir} />
+
                     </span>
                   </th>
 

@@ -523,7 +523,8 @@ export function WorkflowDialog({
             </p>
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="wf-triage">Triage</Label>
+            <Label htmlFor="wf-triage">Evaluation</Label>
+
             {/* Single-select: what should HAPPEN to this automation. Optional;
                 the "None" row clears it back to NOT YET TRIAGED, which is a
                 different thing from the "Unknown" choice. Mirrors Trigger Event. */}
@@ -535,9 +536,10 @@ export function WorkflowDialog({
                 setTriageChoiceId(v);
                 setError(null);
               }}
-              searchPlaceholder="Search triage states…"
+              searchPlaceholder="Search evaluations…"
               emptyLabel="None"
-              noResultsLabel="No triage states found."
+              noResultsLabel="No evaluations found."
+
               side="right"
             />
             <p className="text-[10px] text-zinc-500">

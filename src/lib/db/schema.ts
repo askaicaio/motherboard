@@ -1223,7 +1223,14 @@ export const automations = pgTable(
       { onDelete: "set null" },
     ),
     /** Selected Triage option (single-select dropdown column, mirrors Author):
-     *  what should HAPPEN to this automation. Nullable FK to an
+     *  what should HAPPEN to this automation.
+     *
+     *  ⚠️ NAMING: the USER-FACING label is "Evaluation" (renamed 2026-08-20,
+     *  "triage" read as a medical term). Everything internal stays `triage`: this
+     *  column, `column_key = 'triage'`, and the code identifiers. Display-only
+     *  rename, so no migration was needed and nothing keyed on the word broke.
+     *
+     *  Nullable FK to an
      *  `automation_dropdown_choices` row with column_key = 'triage'. Set via the
      *  Add/Edit Workflow dialog (and the one-off Notes backfill), never by a sync.
      *  ON DELETE SET NULL.
