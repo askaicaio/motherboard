@@ -1023,10 +1023,41 @@ export function AutomationsTableClient({
     return () => window.removeEventListener("resize", measure);
   }, [filtered]);
 
-  const handleCreated = (row: AutomationRow) =>
+  // Re-read this platform's rows from the server and swap them in, quietly.
+  //
+  // WHY: the Add/Edit dialog builds its row OPTIMISTICALLY from the loaded
+  // dropdown choices, which carry `{id, url}` for a webhook and NO sharing
+  // count. Left alone, the shared-webhook icon would VANISH from the row you
+  // just saved (undefined reads as 0), and a different row that just BECAME
+  // shared because of your edit would stay unmarked. Deleting a row can also
+  // drop another row's count, possibly to 0.
+  //
+  // Only the server can recompute this: sharing is cross-platform, so the
+  // counts come from a query over the whole junction (see getWebhooksByAutomation).
+  // This endpoint returns the table's FULL row shape, so the swap is safe.
+  //
+  // Deliberately fire-and-forget AFTER the optimistic update, so the edit still
+  // feels instant and a failure here changes nothing the user can see (a reload
+  // would fix the counts anyway). Never surfaces an error.
+  const reconcileRows = async () => {
+    try {
+      const res = await fetch(`/api/automations?platform=${platform}`);
+      if (!res.ok) return;
+      const { automations } = await res.json();
+      if (Array.isArray(automations)) setRows(automations);
+    } catch {
+      // Non-critical; the optimistic row is already on screen.
+    }
+  };
+
+  const handleCreated = (row: AutomationRow) => {
     setRows((prev) => [row, ...prev]);
-  const handleSaved = (row: AutomationRow) =>
+    void reconcileRows();
+  };
+  const handleSaved = (row: AutomationRow) => {
     setRows((prev) => prev.map((r) => (r.id === row.id ? row : r)));
+    void reconcileRows();
+  };
 
   // Show a red error under the button for 5s, then auto-revert. Used for both
   // the placeholder (non-syncable platforms) and real sync failures.
@@ -1185,6 +1216,9 @@ export function AutomationsTableClient({
     }
     setRows((prev) => prev.filter((r) => r.id !== row.id));
     setEditing(null);
+    // Deleting can drop ANOTHER row's shared-webhook count (possibly to 0, i.e.
+    // no longer shared), so reconcile here too.
+    void reconcileRows();
     toast.success("Deleted");
   };
 
