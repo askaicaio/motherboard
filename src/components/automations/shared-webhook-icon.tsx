@@ -10,7 +10,7 @@
 // dialog still fetches its own LIVE counts and stays authoritative — these counts
 // come from page load (see the staleness note on `sharedWith` below).
 
-import { Link2 } from "lucide-react";
+import { Share2 } from "lucide-react";
 import type { SelectedWebhook } from "@/lib/automations/dropdown-config";
 
 /** A webhook line's native hover text: the full URL (the cell truncates it), plus
@@ -23,18 +23,27 @@ export function webhookLineTitle(w: Pick<SelectedWebhook, "url" | "sharedWith">)
   return `${w.url}\nShared with ${n} other automation${n === 1 ? "" : "s"}`;
 }
 
-/** Amber chain-link glyph shown before a SHARED webhook's URL (and nothing at all
- *  when the webhook is used only by this automation). 12px to match the text-xs
- *  URL line, so it never grows the row. Amber matches the cell's existing count
- *  colour, keeping "meta about the webhooks" visually distinct from the blue
- *  clickable URLs. aria-hidden because webhookLineTitle already carries the
- *  meaning in text. */
+/** Muted share glyph (one node branching to two) shown before a SHARED webhook's
+ *  URL, and nothing at all when the webhook is used only by this automation.
+ *
+ *  COLOUR: deliberately quiet zinc-400, the same muted tone the empty-cell "-"
+ *  uses. It is NOT amber: amber already means "count" in this cell (the gold
+ *  `(N)`), and the two sat adjacent, so an amber icon merged with the count into
+ *  one blob despite meaning something entirely different. Every other colour in
+ *  the Automations tab is spoken for too — red = errors/delete, blue = URLs,
+ *  emerald = Active status — so a neutral was the honest choice for a PASSIVE
+ *  signal that should inform without competing.
+ *
+ *  SIZE: 14px, not 12px. Share2 is a 5-element glyph and muddied at 12px. The
+ *  URL line box is 16px, so 14px still never grows the row.
+ *
+ *  aria-hidden because webhookLineTitle already carries the meaning as text. */
 export function SharedWebhookIcon({ sharedWith }: { sharedWith?: number }) {
   if ((sharedWith ?? 0) <= 0) return null;
   return (
-    <Link2
+    <Share2
       aria-hidden
-      className="mr-1 inline h-3 w-3 align-[-2px] text-amber-600"
+      className="mr-1 inline h-3.5 w-3.5 align-[-3px] text-zinc-400"
     />
   );
 }
