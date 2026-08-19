@@ -232,12 +232,18 @@ export const DROPDOWN_COLUMNS: DropdownColumnConfig[] = [
     //
     // Placed after Trigger Event so the Config tabs keep matching the Per Website
     // column order (user-set rule, see the GHL Tags note below).
+    // NOTE the user-facing label is "Evaluation" (renamed from "Triage"
+    // 2026-08-20 — "triage" read as a medical term). The internal key, the DB
+    // column_key, and every variable name stay `triage`, so the rename is
+    // display-only: no migration, and TRIAGE_ORDER still matches on the VALUE
+    // strings, not the column name.
     key: "triage",
-    title: "Triage",
-    singular: "triage state",
-    fieldLabel: "Triage",
+    title: "Evaluation",
+    singular: "evaluation",
+    fieldLabel: "Evaluation",
     placeholder: "e.g. To Remove",
-    rowLabel: "Triage",
+    rowLabel: "Evaluation",
+
     hasColor: true,
     hasNotes: true,
   },
