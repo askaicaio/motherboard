@@ -53,9 +53,12 @@ import {
  * @param platform the platform slug (e.g. "make", "n8n", "ghl", "ghl-b2b")
  */
 export async function getPerWebsiteRows(platform: string) {
-  // Second self-join of the choices table for Trigger Event (Author already
-  // joins it unaliased), so both single-select values resolve in one query.
+  // Self-joins of the choices table for the single-select columns. Author uses
+  // the unaliased table; Trigger Event and Triage each need their own alias, so
+  // all three values resolve in ONE query.
   const triggerChoices = alias(automationDropdownChoices, "trigger_choices");
+  const triageChoices = alias(automationDropdownChoices, "triage_choices");
+
 
   const baseRows = await db
     .select({
@@ -80,7 +83,14 @@ export async function getPerWebsiteRows(platform: string) {
       triggerEvent: triggerChoices.value,
       triggerEventBadgeColor: triggerChoices.badgeColor,
       triggerEventTextColor: triggerChoices.textColor,
+      // Triage: same shape again (migration 0049). NULL = not yet triaged, which
+      // is distinct from the "Unknown" choice.
+      triageChoiceId: automations.triageChoiceId,
+      triage: triageChoices.value,
+      triageBadgeColor: triageChoices.badgeColor,
+      triageTextColor: triageChoices.textColor,
     })
+
     .from(automations)
     .leftJoin(
       automationDropdownChoices,
@@ -90,6 +100,8 @@ export async function getPerWebsiteRows(platform: string) {
       triggerChoices,
       eq(automations.triggerEventChoiceId, triggerChoices.id),
     )
+    .leftJoin(triageChoices, eq(automations.triageChoiceId, triageChoices.id))
+
     .where(eq(automations.platform, platform))
     .orderBy(asc(automations.name));
 

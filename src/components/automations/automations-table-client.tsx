@@ -76,6 +76,7 @@ import {
   compareWebhookShared,
   webhookLineTitle,
 } from "./shared-webhook-icon";
+import { compareTriage } from "@/lib/automations/dropdown-config";
 import { confirmDialog } from "@/components/ui/confirm";
 import type {
   ChoiceOption,
@@ -116,7 +117,9 @@ type SortKey =
   | "lastRunAt"
   | "lastErrorAt"
   | "author"
-  | "webhooks";
+  | "webhooks"
+  | "triage";
+
 
 /** Sort indicator next to every sortable column header, always in the SAME
  *  fixed-width (w-3) slot so the header label never shifts when sorting changes:
@@ -418,6 +421,16 @@ export interface AutomationRow {
   // the choices table), so the cell can render a coloured pill.
   triggerEventBadgeColor?: string | null;
   triggerEventTextColor?: string | null;
+  // Triage (single-select dropdown column, mirrors Author): what should HAPPEN
+  // to this automation. `triageChoiceId` is the stored choice id; `triage` is its
+  // resolved display value. Manual only; never synced.
+  // ⚠️ NULL/absent means "not yet triaged" — DISTINCT from the "Unknown" CHOICE,
+  // which means "looked at, couldn't decide". Do not collapse the two.
+  triageChoiceId?: string | null;
+  triage?: string | null;
+  triageBadgeColor?: string | null;
+  triageTextColor?: string | null;
+
   // Automation Tags (MULTI-select dropdown column). The set of selected tag
   // choices (id + value + colours), resolved from the junction; rendered as
   // wrapping coloured chips. Empty array when none. Set only via the Add/Edit
@@ -475,7 +488,9 @@ type MiddleColumnId =
   | "author"
   | "automationTags"
   | "triggerEvent"
+  | "triage"
   | "purpose"
+
   | "notes"
   | "ghlTags"
   | "ghlForms"
@@ -530,6 +545,16 @@ const MIDDLE_COLUMNS: MiddleColumnDef[] = [
     thClassName: TH_PLAIN_160,
     exportValue: (r) => r.triggerEvent ?? "",
   },
+  {
+    // Triage: what should HAPPEN to this automation. Sortable (it is the column
+    // you work the cleanup from), so it uses the sortable 160px header.
+    id: "triage",
+    title: "Triage",
+    sortKey: "triage",
+    thClassName: TH_SORTABLE_160,
+    exportValue: (r) => r.triage ?? "",
+  },
+
   {
     id: "purpose",
     title: "Purpose",
@@ -600,6 +625,8 @@ const MIDDLE_DEFAULT_ORDER: MiddleColumnId[] = MIDDLE_COLUMNS.map((c) => c.id);
 const COLUMN_WIDTHS: Record<MiddleColumnId, number> = {
   status: 136,
   author: 160,
+  triage: 160,
+
   automationTags: 240,
   triggerEvent: 160,
   purpose: 240,
@@ -660,6 +687,8 @@ export function AutomationsTableClient({
   initialRows,
   authorChoices = [],
   triggerEventChoices = [],
+  triageChoices = [],
+
   automationTagChoices = [],
   ghlTagChoices = [],
   ghlFormChoices = [],
@@ -681,6 +710,9 @@ export function AutomationsTableClient({
   authorChoices?: ChoiceOption[];
   /** Trigger Event options for its single-select dropdown (Add/Edit dialog). */
   triggerEventChoices?: ChoiceOption[];
+  /** Triage options for its single-select dropdown (Add/Edit dialog). */
+  triageChoices?: ChoiceOption[];
+
   /** Automation Tags options for the multi-select chip picker (Add/Edit dialog). */
   automationTagChoices?: ChoiceOption[];
   /** GHL Tags options for its multi-select picker (Add/Edit dialog, GHL pages). */
@@ -913,9 +945,17 @@ export function AutomationsTableClient({
     // match rows that have NO value in that dimension. OR'd with the dimension's
     // selected values (within-dimension OR). A dimension is only skipped when it
     // has neither selected ids nor its None option.
+    const triageSel = new Set(
+      triageChoices.filter((c) => filterSelected.has(c.id)).map((c) => c.id),
+    );
     const authorNone = filterSelected.has("none:author");
+
     const triggerNone = filterSelected.has("none:trigger_event");
     const tagNone = filterSelected.has("none:automation_tags");
+    // For Triage, "None" means NOT YET TRIAGED (a null FK) — it does NOT mean the
+    // "Unknown" choice, which is a real, selectable value like any other.
+    const triageNone = filterSelected.has("none:triage");
+
     const base = rows.filter((r) => {
       if (
         q &&
@@ -943,6 +983,13 @@ export function AutomationsTableClient({
           tags.some((t) => tagSel.has(t.id)) || (tagNone && tags.length === 0);
         if (!ok) return false;
       }
+      if (triageSel.size || triageNone) {
+        const id = r.triageChoiceId;
+        const ok =
+          (id != null && triageSel.has(id)) || (triageNone && id == null);
+        if (!ok) return false;
+      }
+
       return true;
     });
     const dir = sortDir === "asc" ? 1 : -1;
@@ -981,8 +1028,15 @@ export function AutomationsTableClient({
           // the same blanks-last rule the date + Author columns use. Ties keep
           // their name order (Array#sort is stable; rows arrive name-ascending).
           return compareWebhookShared(a, b, dir);
+        case "triage":
+          // Ordered by the TRIAGE LIFECYCLE, not alphabetically (see TRIAGE_ORDER):
+          // To Remove -> To Remove? -> Unknown -> Keep? -> Keep. Untriaged rows
+          // always sink to the bottom, both directions. Shared with View All Lists.
+          return compareTriage(a, b, dir);
+
         case "author": {
           // Alphabetical (case-insensitive) like Name; "None" (unset) ALWAYS
+
           // sinks to the bottom, regardless of direction, matching the date
           // columns' blanks-last rule.
           const av = a.author?.trim() ?? "";
@@ -1005,7 +1059,9 @@ export function AutomationsTableClient({
     authorChoices,
     triggerEventChoices,
     automationTagChoices,
+    triageChoices,
   ]);
+
 
   // Recompute the per-row Purpose line count after layout, and whenever the
   // visible rows change (sort/filter/data) or the window resizes. text-xs
@@ -1451,6 +1507,26 @@ export function AutomationsTableClient({
             </span>
           </td>
         );
+      case "triage":
+        return (
+          <td
+            key={id}
+            className="w-[160px] min-w-[160px] max-w-[160px] px-3 py-2 text-center align-top"
+          >
+            {r.triage ? (
+              <ColorBadge
+                value={r.triage}
+                badgeColor={r.triageBadgeColor}
+                textColor={r.triageTextColor}
+              />
+            ) : (
+              // Untriaged renders a muted "-", NOT the red "None" the other
+              // manual columns use: an untriaged automation is a normal starting
+              // state, not a missing value someone forgot to fill in.
+              <span className="text-xs text-zinc-400">-</span>
+            )}
+          </td>
+        );
       case "author":
         return (
           <td
@@ -1458,6 +1534,7 @@ export function AutomationsTableClient({
             className="w-[160px] min-w-[160px] max-w-[160px] px-3 py-2 text-center align-top"
           >
             {r.author ? (
+
               <ColorBadge
                 value={r.author}
                 badgeColor={r.authorBadgeColor}
@@ -1962,7 +2039,9 @@ export function AutomationsTableClient({
                   key: "trigger_event",
                   choices: triggerEventChoices,
                 },
+                { label: "Triage", key: "triage", choices: triageChoices },
               ].map((dim) => (
+
                 <DropdownMenuSub key={dim.label}>
                   {/* This Filter menu is right-aligned, so its submenus fly out
                       to the LEFT. So the sub-trigger's caret points LEFT and sits
@@ -2216,6 +2295,7 @@ export function AutomationsTableClient({
         platform={platform}
         authorChoices={authorChoices}
         triggerEventChoices={triggerEventChoices}
+        triageChoices={triageChoices}
         automationTagChoices={automationTagChoices}
         ghlTagChoices={ghlTagChoices}
         ghlFormChoices={ghlFormChoices}
@@ -2230,6 +2310,7 @@ export function AutomationsTableClient({
         existing={editing ?? undefined}
         authorChoices={authorChoices}
         triggerEventChoices={triggerEventChoices}
+        triageChoices={triageChoices}
         automationTagChoices={automationTagChoices}
         ghlTagChoices={ghlTagChoices}
         ghlFormChoices={ghlFormChoices}
