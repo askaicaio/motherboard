@@ -71,6 +71,10 @@ import {
   WebhookRelatedDialog,
   type WebhookLookupTarget,
 } from "./webhook-related-dialog";
+import {
+  SharedWebhookIcon,
+  webhookLineTitle,
+} from "./shared-webhook-icon";
 import { confirmDialog } from "@/components/ui/confirm";
 import type {
   ChoiceOption,
@@ -1610,7 +1614,7 @@ export function AutomationsTableClient({
                     key={w.id}
                     type="button"
                     disabled={editMode}
-                    title={w.url}
+                    title={webhookLineTitle(w)}
                     onClick={(e) => {
                       e.stopPropagation();
                       setWebhookLookup({
@@ -1625,6 +1629,7 @@ export function AutomationsTableClient({
                         ({arr.length}){" "}
                       </span>
                     )}
+                    <SharedWebhookIcon sharedWith={w.sharedWith} />
                     {w.url}
                   </button>
                 ))}

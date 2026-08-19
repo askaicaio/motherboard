@@ -332,6 +332,12 @@ export interface SelectedChoice {
 export interface SelectedWebhook {
   id: string;
   url: string;
+  /** How many OTHER automations also use this webhook, ACROSS ALL PLATFORMS
+   *  (0 = this automation is the only user). Attached by getWebhooksByAutomation,
+   *  so every consumer of that helper gets it. Powers the passive "shared"
+   *  indicator in the Webhook Links cells; the click-through dialog still fetches
+   *  its own LIVE counts, which stay authoritative. */
+  sharedWith?: number;
 }
 
 /** One automation surfaced by the Webhook Links "related automations" lookup:
