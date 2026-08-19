@@ -61,6 +61,10 @@ import {
   type WebhookLookupTarget,
 } from "./webhook-related-dialog";
 import {
+  SharedWebhookIcon,
+  webhookLineTitle,
+} from "./shared-webhook-icon";
+import {
   columnVisibleOnPlatform,
   type ChoiceOption,
 } from "@/lib/automations/dropdown-config";
@@ -1058,7 +1062,7 @@ export function AllAutomationsTableClient({
                               <button
                                 key={w.id}
                                 type="button"
-                                title={w.url}
+                                title={webhookLineTitle(w)}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setWebhookLookup({
@@ -1080,6 +1084,7 @@ export function AllAutomationsTableClient({
                                     ({arr.length}){" "}
                                   </span>
                                 )}
+                                <SharedWebhookIcon sharedWith={w.sharedWith} />
                                 {w.url}
                               </button>
                             ))}

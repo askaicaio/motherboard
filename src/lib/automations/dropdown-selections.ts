@@ -111,6 +111,33 @@ export async function getWebhooksByAutomation(
     if (list) list.push(entry);
     else map.set(r.automationId, [entry]);
   }
+
+  // Attach each webhook's "shared with N others" count so the Webhook Links
+  // cells can show a passive shared indicator without opening the dialog.
+  //
+  // Done HERE rather than in the callers because BOTH row loaders (the Per
+  // Website getPerWebsiteRows and the View All Lists page, which has its own
+  // query) go through this helper — so both surfaces get the count from one
+  // place instead of two.
+  //
+  // getWebhookOthersCounts with NO excludeAutomationId returns the TOTAL number
+  // of automations using each webhook, across every platform. The junction has a
+  // uniqueIndex on (automation_id, webhook_choice_id), so a row that uses a
+  // webhook is counted exactly once and "others" is precisely total - 1.
+  //
+  // Sharing is CROSS-PLATFORM, which is why this cannot be derived on the client
+  // from the loaded rows: a Make webhook may be shared with an n8n automation
+  // that the Per Website page never loads.
+  const choiceIds = [...new Set(rows.map((r) => r.id))];
+  if (choiceIds.length > 0) {
+    const totals = await getWebhookOthersCounts(choiceIds);
+    for (const list of map.values()) {
+      for (const entry of list) {
+        entry.sharedWith = Math.max(0, (totals[entry.id] ?? 1) - 1);
+      }
+    }
+  }
+
   return map;
 }
 
