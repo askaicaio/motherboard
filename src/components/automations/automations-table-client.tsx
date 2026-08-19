@@ -73,6 +73,7 @@ import {
 } from "./webhook-related-dialog";
 import {
   SharedWebhookIcon,
+  compareWebhookShared,
   webhookLineTitle,
 } from "./shared-webhook-icon";
 import { confirmDialog } from "@/components/ui/confirm";
@@ -114,7 +115,8 @@ type SortKey =
   | "lastEditedAt"
   | "lastRunAt"
   | "lastErrorAt"
-  | "author";
+  | "author"
+  | "webhooks";
 
 /** Sort indicator next to every sortable column header, always in the SAME
  *  fixed-width (w-3) slot so the header label never shifts when sorting changes:
@@ -463,6 +465,8 @@ const TH_PLAIN_160 =
   "sticky top-0 z-10 w-[160px] min-w-[160px] max-w-[160px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]";
 const TH_PLAIN_180 =
   "sticky top-0 z-10 w-[180px] min-w-[180px] max-w-[180px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]";
+const TH_SORTABLE_240 =
+  "sticky top-0 z-10 w-[240px] min-w-[240px] max-w-[240px] cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700";
 const TH_PLAIN_240 =
   "sticky top-0 z-10 w-[240px] min-w-[240px] max-w-[240px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]";
 
@@ -559,8 +563,8 @@ const MIDDLE_COLUMNS: MiddleColumnDef[] = [
   {
     id: "webhooks",
     title: "Webhook Links",
-    sortKey: null,
-    thClassName: TH_PLAIN_240,
+    sortKey: "webhooks",
+    thClassName: TH_SORTABLE_240,
     exportValue: (r) => (r.webhooks ?? []).map((w) => w.url).join(", "),
   },
   {
@@ -970,6 +974,13 @@ export function AutomationsTableClient({
           if (tb === null) return -1;
           return dir * (ta - tb);
         }
+        case "webhooks":
+          // Grouping toggle like Status (NOT a true ordering): asc puts rows with
+          // a SHARED webhook first, then rows with webhooks but none shared.
+          // Rows with NO webhooks always sink to the bottom in BOTH directions,
+          // the same blanks-last rule the date + Author columns use. Ties keep
+          // their name order (Array#sort is stable; rows arrive name-ascending).
+          return compareWebhookShared(a, b, dir);
         case "author": {
           // Alphabetical (case-insensitive) like Name; "None" (unset) ALWAYS
           // sinks to the bottom, regardless of direction, matching the date

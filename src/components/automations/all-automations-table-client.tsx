@@ -62,6 +62,7 @@ import {
 } from "./webhook-related-dialog";
 import {
   SharedWebhookIcon,
+  compareWebhookShared,
   webhookLineTitle,
 } from "./shared-webhook-icon";
 import {
@@ -88,7 +89,8 @@ type SortKey =
   | "lastEditedAt"
   | "lastRunAt"
   | "lastErrorAt"
-  | "author";
+  | "author"
+  | "webhooks";
 
 /** MM-DD-YYYY, or "-" when empty/invalid. Same as the per-website table. */
 function formatDateCell(value: string | Date | null | undefined): string {
@@ -398,6 +400,12 @@ export function AllAutomationsTableClient({
           if (tb === null) return -1;
           return dir * (ta - tb);
         }
+        case "webhooks":
+          // Grouping toggle like Status: asc puts rows with a SHARED webhook
+          // first, then rows with webhooks but none shared; rows with NO webhooks
+          // always sink to the bottom in BOTH directions. Same comparator the Per
+          // Website table uses, so the two pages cannot drift.
+          return compareWebhookShared(a, b, dir);
         case "author": {
           // Alphabetical (case-insensitive); "None" (unset) ALWAYS sinks to the
           // bottom, regardless of direction. Same rule as the per-website table.
@@ -725,9 +733,17 @@ export function AllAutomationsTableClient({
                     GHL Forms
                   </th>
                   {/* Webhook Links: mirrors the Per Website column, after GHL Forms.
-                      One truncated line per selected webhook. Not sortable. 240px. */}
-                  <th className="sticky top-0 z-10 w-[240px] min-w-[240px] max-w-[240px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
-                    Webhook Links
+                      One truncated line per selected webhook. 240px. Sortable as a
+                      GROUPING toggle (shared webhooks first), not a true ordering. */}
+                  <th
+                    onClick={() => toggleSort("webhooks")}
+                    aria-sort={ariaSort("webhooks")}
+                    className="sticky top-0 z-10 w-[240px] min-w-[240px] max-w-[240px] cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700"
+                  >
+                    <span className="inline-flex items-center justify-center gap-1">
+                      Webhook Links
+                      <SortArrow active={sortKey === "webhooks"} dir={sortDir} />
+                    </span>
                   </th>
                   <th
                     onClick={() => toggleSort("lastEditedAt")}
