@@ -1,15 +1,21 @@
 "use client";
 
-// The "Everything Table" — every automation across all 5 websites in ONE
-// read-only table. Reached from the Main Page "View All Lists" toolbar button
-// (route /automations/all).
+// The "Everything Table": every automation across all 5 websites in ONE table.
+// Reached from the Main Page "View All Lists" toolbar button (route
+// /automations/all).
 //
-// It mirrors the Per Website Page table (search + columns + column sort +
-// Purpose popup + sticky header / frozen Name / horizontal scroll) but WITHOUT
-// the per-platform toolbar (Auto-refresh, Refresh List, Export CSV, Edit mode)
-// and WITHOUT edit/delete — those are per-platform and don't translate to a
-// mixed table. It ADDS a "Website" column so rows from different platforms are
-// distinguishable.
+// It mirrors the Per Website Page table (search + filter + columns + column
+// sort + Purpose popup + sticky header / frozen Name / horizontal scroll +
+// Edit mode) and ADDS a "Website" column so rows from different platforms are
+// distinguishable. What it does NOT have is the per-platform TOOLBAR
+// (Auto-refresh, Refresh List, Export CSV) and CREATE, which genuinely do not
+// translate to a mixed table: each is scoped to one platform, and a create here
+// would have to ask which website first.
+//
+// EDITING a row DOES work here (2026-08-21). It is not per-platform in the way
+// it looked: the dropdown choice lists are global, the PATCH/DELETE routes take
+// only an id, and the only per-row thing the dialog needs is r.platform, which
+// merely decides whether the GHL Tags / GHL Forms fields appear.
 //
 // ⚠️ SEPARATE component from AutomationsTableClient ON PURPOSE (that one is
 // tightly coupled to a single platform + its toolbar/sync/markers). The two are
@@ -18,6 +24,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { useFitViewportHeight } from "@/lib/automations/use-fit-viewport-height";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -68,6 +76,7 @@ import {
 } from "./webhook-related-dialog";
 import { useColumnDrag } from "./use-column-drag";
 import { ColumnHeader, NAME_HEADER_MENU } from "./column-header";
+import { WorkflowDialog } from "./workflow-dialog";
 import {
   SharedWebhookIcon,
   compareWebhookShared,
@@ -276,15 +285,24 @@ export function AllAutomationsTableClient({
   triageChoices = [],
 
   automationTagChoices = [],
+  ghlTagChoices = [],
+  ghlFormChoices = [],
+  webhookChoices = [],
 }: {
   rows: AllAutomationRow[];
-  /** Filter-menu options (the Dropdown Config Page choices). Same three
-   *  dimensions as the Per Website filter; this table mirrors that feature. */
+  /** Dropdown Config Page choices. The first four also drive the Filter menu's
+   *  dimensions; all seven are handed to the Edit dialog. They are GLOBAL, not
+   *  per-platform (automation_dropdown_choices is keyed by column_key alone),
+   *  which is what lets this cross-platform table drive the same dialog the
+   *  per-platform pages use. */
   authorChoices?: ChoiceOption[];
   triggerEventChoices?: ChoiceOption[];
   triageChoices?: ChoiceOption[];
 
   automationTagChoices?: ChoiceOption[];
+  ghlTagChoices?: ChoiceOption[];
+  ghlFormChoices?: ChoiceOption[];
+  webhookChoices?: ChoiceOption[];
 }) {
   const [query, setQuery] = useState("");
   // Filter menu selection (multi-select), mirrors the Per Website table and is
@@ -364,11 +382,18 @@ export function AllAutomationsTableClient({
   const hiddenCount = hiddenColumns.size;
 
   // ── Edit mode ──────────────────────────────────────────────────────────────
-  // Mirrors the Per Website page. On THIS page it gates column dragging and the
-  // per-column header menu (Cycle Sort / Move Left / Move Right / Hide Column).
-  // It does NOT yet gate row-click-to-edit or delete: this page is still
-  // read-only, and editing here needs a per-row platform + choice lists first
-  // (WorkflowDialog is per-platform, this table is cross-platform).
+  // Mirrors the Per Website page. On THIS page it gates column dragging, the
+  // per-column header menu (Cycle Sort / Move Left / Move Right / Hide Column),
+  // and row-click-to-edit (plus the row pointer cursor, and the delete inside
+  // that dialog). CREATE is the one thing it does NOT gate: there is no
+  // "+ New Workflow" here, because a cross-platform table would have to ask
+  // which website the new automation belongs to first.
+  //
+  // ⚠️ The three cell buttons (Purpose / Notes / Webhook lookup) are
+  // `disabled={editMode}` for THIS reason, not as polish: without it a click on
+  // one of those cells is swallowed by the button and never reaches the row, so
+  // "click a row to edit" would work in some columns and silently fail in
+  // others. If row-click ever changes, they change with it.
   const [editMode, setEditMode] = useState(false);
 
   // ── Column order ───────────────────────────────────────────────────────────
@@ -455,6 +480,61 @@ export function AllAutomationsTableClient({
   const tableMinWidth =
     ALL_NAME_WIDTH + visibleColumns.reduce((sum, c) => sum + c.width, 0);
 
+
+  // ── Editing ────────────────────────────────────────────────────────────────
+  // The row whose Edit dialog is open (null = closed). Reachable ONLY by
+  // clicking a row in edit mode; this page has no "+ New Workflow" button, so
+  // the dialog is edit-only and never runs its create path.
+  const [editing, setEditing] = useState<AllAutomationRow | null>(null);
+
+  // ⚠️ REFRESH VIA router.refresh(), NOT a fetch. `rows` is a PROP straight from
+  // this page's server component, so re-running that component is the whole
+  // reconcile. The tempting alternative, the Per Website table's reconcileRows()
+  // hitting /api/automations, does NOT work here: that route only returns the
+  // full row shape when given ?platform=, and its UNSCOPED branch returns base
+  // columns only. Using it would blank most of this table, which is exactly the
+  // incident documented in lib/automations/per-website-rows.ts.
+  const router = useRouter();
+
+  const handleSaved = () => {
+    setEditing(null);
+    router.refresh();
+  };
+
+  // Hard delete, from the red trash in the Edit dialog footer (same entry point
+  // as the Per Website table, which has no per-row delete button either). Base
+  // UI stacks the confirm on top of the still-open Edit dialog.
+  const handleDelete = async (row: AllAutomationRow) => {
+    // The name sits on its OWN line above the warning, so an unnamed automation
+    // needs a capitalised stand-alone fallback. Copy is character-for-character
+    // the Per Website one: same title, same two lines, same red warning.
+    const label = row.name || "This automation";
+    if (
+      !(await confirmDialog({
+        title: "Delete Automation?",
+        body: (
+          <>
+            {label}
+            <br />
+            <span className="text-red-600">This cannot be undone.</span>
+          </>
+        ),
+        confirmLabel: "Delete",
+        destructive: true,
+      }))
+    )
+      return;
+    const res = await fetch(`/api/automations/${row.id}`, { method: "DELETE" });
+    if (!res.ok) {
+      toast.error("Failed to delete");
+      return;
+    }
+    setEditing(null);
+    // Deleting can drop ANOTHER row's shared-webhook count (possibly to 0), so
+    // the whole page reloads rather than just dropping this row locally.
+    router.refresh();
+    toast.success("Deleted");
+  };
 
   // The purpose text shown in the read-only popup (null = closed).
   const [showingPurpose, setShowingPurpose] = useState<string | null>(null);
@@ -725,6 +805,7 @@ export function AllAutomationsTableClient({
             <Link
               href={`/automations/${r.platform}`}
               title={`Open the ${websiteLabelFor(r.platform)} page`}
+              onClick={(e) => e.stopPropagation()}
               className="inline-flex rounded hover:underline"
             >
               <WebsiteBadge slug={r.platform} />
@@ -857,7 +938,11 @@ export function AllAutomationsTableClient({
                   render={
                     <button
                       type="button"
-                      onClick={() => setShowingPurpose(r.purpose ?? "")}
+                      disabled={editMode}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowingPurpose(r.purpose ?? "");
+                      }}
                       className="w-full cursor-pointer line-clamp-2 break-words text-left text-xs text-zinc-700 hover:text-zinc-900 hover:underline"
                       style={{ WebkitLineClamp: purposeClamp[r.id] ?? 2 }}
                     >
@@ -887,7 +972,11 @@ export function AllAutomationsTableClient({
                   render={
                     <button
                       type="button"
-                      onClick={() => setShowingNotes(r.notes ?? "")}
+                      disabled={editMode}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowingNotes(r.notes ?? "");
+                      }}
                       className="w-full cursor-pointer line-clamp-2 break-words text-left text-xs text-zinc-700 hover:text-zinc-900 hover:underline"
                       style={{ WebkitLineClamp: purposeClamp[r.id] ?? 2 }}
                     >
@@ -998,6 +1087,7 @@ export function AllAutomationsTableClient({
                   <button
                     key={w.id}
                     type="button"
+                    disabled={editMode}
                     title={webhookLineTitle(w)}
                     onClick={(e) => {
                       e.stopPropagation();
@@ -1247,10 +1337,9 @@ export function AllAutomationsTableClient({
           </DropdownMenuContent>
         </DropdownMenu>
 
-          {/* Edit mode toggle, matching the Per Website page. On THIS page it
-              gates dragging a column header to reorder AND the per-column header
-              menu. Row-click-to-edit and delete are still not wired up here (see
-              the Edit mode note above the state). */}
+          {/* Edit mode toggle, matching the Per Website page: column dragging,
+              the per-column header menu, and click-a-row-to-edit. See the Edit
+              mode note above the state for what it does NOT cover (create). */}
           <div className="flex items-center gap-2 text-xs text-zinc-600">
             <Pencil className="h-3.5 w-3.5" />
             Edit mode
@@ -1315,7 +1404,14 @@ export function AllAutomationsTableClient({
                   </tr>
                 ) : (
                   filtered.map((r) => (
-                    <tr key={r.id} className="group border-t hover:bg-zinc-50">
+                    <tr
+                      key={r.id}
+                      onClick={editMode ? () => setEditing(r) : undefined}
+                      className={cn(
+                        "group border-t hover:bg-zinc-50",
+                        editMode && "cursor-pointer",
+                      )}
+                    >
                       <td
                         ref={(el) => {
                           if (el) nameCellRefs.current.set(r.id, el);
@@ -1333,11 +1429,16 @@ export function AllAutomationsTableClient({
                             </span>
                           )}
                         </div>
+                        {/* stopPropagation, or in edit mode this would open the
+                            automation in a new tab AND leave the Edit dialog
+                            open behind it. Same guard the Per Website Name cell
+                            has. */}
                         {r.externalUrl && (
                           <a
                             href={r.externalUrl}
                             target="_blank"
                             rel="noreferrer"
+                            onClick={(e) => e.stopPropagation()}
                             title={r.externalUrl}
                             className="mt-0.5 flex items-center gap-1 text-xs text-blue-600 hover:underline"
                           >
@@ -1363,6 +1464,26 @@ export function AllAutomationsTableClient({
       </TooltipProvider>
 
       {/* Read-only "Show purpose" popup (same as the per-website table). */}
+      {/* Edit. No "+ New Workflow" counterpart: this page never CREATES, it is
+          cross-platform and a create would have to ask which website first. The
+          dialog gets its platform from the ROW, which is all it needs it for
+          (whether to show the GHL Tags / GHL Forms fields). */}
+      <WorkflowDialog
+        open={!!editing}
+        onOpenChange={(o) => !o && setEditing(null)}
+        platform={editing?.platform ?? ""}
+        existing={editing ?? undefined}
+        authorChoices={authorChoices}
+        triggerEventChoices={triggerEventChoices}
+        triageChoices={triageChoices}
+        automationTagChoices={automationTagChoices}
+        ghlTagChoices={ghlTagChoices}
+        ghlFormChoices={ghlFormChoices}
+        webhookChoices={webhookChoices}
+        onSaved={handleSaved}
+        onDelete={editing ? () => handleDelete(editing) : undefined}
+      />
+
       <Dialog
         open={showingPurpose !== null}
         onOpenChange={(o) => !o && setShowingPurpose(null)}
