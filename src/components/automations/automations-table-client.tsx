@@ -183,8 +183,8 @@ function ColumnHeader({
   onMoveLeft,
   onMoveRight,
   onHide,
-  onResetOrder,
   makeDragHandlers,
+
   isDragging,
   dropEdge,
   dragKey,
@@ -202,8 +202,7 @@ function ColumnHeader({
   onMoveRight?: () => void;
   /** Hide this column; omit on non-hideable columns (e.g. Name). */
   onHide?: () => void;
-  /** Reset ALL columns to their default arrangement (table-wide action). */
-  onResetOrder?: () => void;
+
   /** Provided only on DRAGGABLE headers (the reorderable middle columns, edit
    *  mode). Omit on the pinned Name column, which then keeps the plain
    *  click-opens-the-menu behaviour with no gesture handling at all. */
@@ -333,23 +332,19 @@ function ColumnHeader({
             </DropdownMenuItem>
           )}
           {/* Hide this column (persists per page; re-show via the Columns
-              control). Sits between Move and Reset. */}
+              control). Last item in this menu since Reset moved out. */}
           {onHide && (
             <DropdownMenuItem onClick={onHide}>
               <EyeOff />
               Hide Column
             </DropdownMenuItem>
           )}
-          {/* Reset ALL columns to the default arrangement (table-wide action),
-              at the bottom, below the per-column sort/move items. Plain item,
-              same style as the rest of the menu; the confirm dialog is the
-              accidental-click guard. */}
-          {onResetOrder && (
-            <DropdownMenuItem onClick={onResetOrder}>
-              <RotateCcw />
-              Reset Column Order
-            </DropdownMenuItem>
-          )}
+          {/* NOTE "Reset Column Order" USED to live here. It moved into the
+              "Columns" dropdown 2026-08-20 (user request) so both tables keep it
+              in the same place — View All Lists has no header menu to hold it.
+              This menu is now per-COLUMN actions only; the table-wide one is in
+              the toolbar. */}
+
         </DropdownMenuContent>
       </DropdownMenu>
     </th>
@@ -611,22 +606,24 @@ const MIDDLE_COLUMNS: MiddleColumnDef[] = [
     exportValue: (r) => r.triggerEvent ?? "",
   },
   {
-    // Triage: what should HAPPEN to this automation. Sortable (it is the column
-    // you work the cleanup from), so it uses the sortable 160px header.
-    id: "triage",
-    title: "Evaluation",
-
-    sortKey: "triage",
-    thClassName: TH_SORTABLE_160,
-    exportValue: (r) => r.triage ?? "",
-  },
-
-  {
     id: "purpose",
     title: "Purpose",
     sortKey: null,
     thClassName: TH_PLAIN_240,
     exportValue: (r) => r.purpose ?? "",
+  },
+  {
+    // Evaluation: what should HAPPEN to this automation. Sortable (it is the
+    // column you work the cleanup from), so it uses the sortable 160px header.
+    // Sits AFTER Purpose: this array's order IS the default arrangement (see
+    // MIDDLE_DEFAULT_ORDER below), and the user set that default 2026-08-20 by
+    // pointing at the live Make table. Reading Purpose before its Evaluation
+    // matches how the triage was actually recorded, as a state plus a reason.
+    id: "triage",
+    title: "Evaluation",
+    sortKey: "triage",
+    thClassName: TH_SORTABLE_160,
+    exportValue: (r) => r.triage ?? "",
   },
   {
     id: "notes",
@@ -1562,6 +1559,12 @@ export function AutomationsTableClient({
   // behind a confirm so an accidental click can't wipe a custom layout. Deferred
   // with setTimeout so the header dropdown finishes closing before the confirm
   // dialog opens (opening it synchronously from a menu item clashes on focus).
+  // True when the saved order already matches the default, used to grey out the
+  // "Reset column order" item (mirrors how "Show all columns" greys out).
+  const isDefaultOrder = columnOrder.every(
+    (id, i) => id === MIDDLE_DEFAULT_ORDER[i],
+  );
+
   const resetColumnOrder = () => {
     setTimeout(async () => {
       if (
@@ -1608,7 +1611,6 @@ export function AutomationsTableClient({
             : undefined
         }
         onHide={() => hideColumn(col.id)}
-        onResetOrder={resetColumnOrder}
         dragKey={col.id}
         makeDragHandlers={(onPlainClick) =>
           headerHandlers(col.id, onPlainClick)
@@ -2135,6 +2137,19 @@ export function AutomationsTableClient({
               >
                 Show all columns
               </DropdownMenuItem>
+              {/* Reset the arrangement. Moved here from the header dropdown
+                  2026-08-20 so it sits in the SAME place on both tables (View
+                  All Lists has no header menu). Greyed when already default,
+                  mirroring "Show all columns"; the confirm is the
+                  accidental-click guard. */}
+              <DropdownMenuItem
+                disabled={isDefaultOrder}
+                onClick={resetColumnOrder}
+              >
+                <RotateCcw />
+                Reset column order
+              </DropdownMenuItem>
+
             </DropdownMenuContent>
           </DropdownMenu>
             {/* Filter menu (trigger keeps the Export CSV outline look). */}
@@ -2320,8 +2335,7 @@ export function AutomationsTableClient({
                     {...headerProps}
                     sortKey="name"
                     className="sticky left-0 top-0 z-20 w-[400px] min-w-[400px] max-w-[400px] cursor-pointer select-none bg-zinc-50 px-3 py-2 text-left shadow-[inset_0_-1px_0_0_#e4e4e7,inset_-1px_0_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700"
-                    onResetOrder={resetColumnOrder}
-                  >
+                              >
                     <span className="inline-flex items-center gap-1">
                       {isSynced("name") && (
                         <SyncedColumnMarker platformLabel={label} spinning={refreshing} />

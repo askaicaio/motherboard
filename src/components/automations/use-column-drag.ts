@@ -173,6 +173,22 @@ export function useColumnDrag<Id extends string>({
   ): ColumnDragHandlers => ({
     onPointerDown: (e) => {
       if (e.button !== 0) return; // left button only
+      // ⚠️ Ignore events that did not ORIGINATE inside this cell.
+      //
+      // A header's dropdown menu is PORTALED out of the <th> in the DOM, but it
+      // is still a child in the REACT tree — and React propagates synthetic
+      // events through portals. So a pointerdown on a MENU ITEM arrives here,
+      // and cancelling it (below) suppressed the compatibility mouse events,
+      // which killed the menu item's own click. Result: every item in the header
+      // menu silently did nothing and the menu re-opened on release.
+      // (Regression introduced with the drag work, fixed 2026-08-20.)
+      //
+      // `contains` is the discriminator: portaled popup content is NOT a DOM
+      // descendant of the cell, so this bails for it and handles only real
+      // presses on the header itself.
+      if (!(e.target instanceof Node) || !e.currentTarget.contains(e.target)) {
+        return;
+      }
       e.preventDefault();
       pressXRef.current = e.clientX;
       draggingRef.current = false;
