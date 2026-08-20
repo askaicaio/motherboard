@@ -158,34 +158,85 @@ function WebsiteBadge({ slug }: { slug: string }) {
   );
 }
 
-// The View All Lists table renders 14 FIXED columns (hardcoded). This drives the
-// "Columns" show/hide control: each hideable column carries its 1-based POSITION
-// in the row (used by a scoped nth-child <style> to hide it) + an approximate
-// width (subtracted from the table min-width so it shrinks when hidden). Name
-// (position 1, frozen) is always shown and is not listed here.
-const ALL_HIDDEN_KEY = "automations:all:hiddenColumns";
-const ALL_HIDEABLE_COLUMNS: {
-  id: string;
-  label: string;
-  index: number;
-  width: number;
-}[] = [
-  { id: "website", label: "Website", index: 2, width: 120 },
-  { id: "status", label: "Status", index: 3, width: 110 },
-  { id: "author", label: "Author", index: 4, width: 160 },
-  { id: "automationTags", label: "Automation Tags", index: 5, width: 240 },
-  { id: "triggerEvent", label: "Trigger Event", index: 6, width: 160 },
-  { id: "triage", label: "Evaluation", index: 7, width: 160 },
+// ---------------------------------------------------------------------------
+// The MIDDLE columns (everything after the frozen Name column). ONE source of
+// truth driving the header, the body cell, the Columns show/hide control, and
+// the table min-width. Name is pinned first and is NOT in this list.
+//
+// This replaced a hardcoded 14-column table plus a parallel list of 1-based
+// nth-child POSITIONS used to hide columns via a scoped <style> block. That
+// worked only while the positions were fixed, and it cost real maintenance:
+// inserting Evaluation at position 7 meant hand-shifting every later index and
+// the base min-width (and the empty-state colSpan was missed, left at 14 for a
+// 15-column table). Hiding is now per-cell, so positions are gone entirely and
+// adding a column is a ONE-PLACE edit here.
+// ---------------------------------------------------------------------------
 
-  { id: "purpose", label: "Purpose", index: 8, width: 240 },
-  { id: "notes", label: "Notes", index: 9, width: 240 },
-  { id: "ghlTags", label: "GHL Tags", index: 10, width: 180 },
-  { id: "ghlForms", label: "GHL Forms", index: 11, width: 180 },
-  { id: "webhooks", label: "Webhook Links", index: 12, width: 240 },
-  { id: "lastEditedAt", label: "Last Edited", index: 13, width: 136 },
-  { id: "lastRunAt", label: "Last Runtime", index: 14, width: 136 },
-  { id: "lastErrorAt", label: "Last Error", index: 15, width: 136 },
+// Shared header <th> classes. Sortable variants carry the cursor/hover
+// affordance; plain ones do not. AUTO = no fixed width (browser sizes it).
+const ALL_TH_S_AUTO =
+  "sticky top-0 z-10 cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700";
+const ALL_TH_S_160 =
+  "sticky top-0 z-10 w-[160px] min-w-[160px] max-w-[160px] cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700";
+const ALL_TH_S_240 =
+  "sticky top-0 z-10 w-[240px] min-w-[240px] max-w-[240px] cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700";
+const ALL_TH_P_160 =
+  "sticky top-0 z-10 w-[160px] min-w-[160px] max-w-[160px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]";
+const ALL_TH_P_180 =
+  "sticky top-0 z-10 w-[180px] min-w-[180px] max-w-[180px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]";
+const ALL_TH_P_240 =
+  "sticky top-0 z-10 w-[240px] min-w-[240px] max-w-[240px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]";
+
+type AllColumnId =
+  | "website"
+  | "status"
+  | "author"
+  | "automationTags"
+  | "triggerEvent"
+  | "triage"
+  | "purpose"
+  | "notes"
+  | "ghlTags"
+  | "ghlForms"
+  | "webhooks"
+  | "lastEditedAt"
+  | "lastRunAt"
+  | "lastErrorAt";
+
+interface AllColumnDef {
+  id: AllColumnId;
+  /** Header label AND the label in the Columns show/hide checklist. */
+  title: string;
+  /** Sort key when sortable; null for the display-only columns. */
+  sortKey: SortKey | null;
+  thClassName: string;
+  /** Approximate rendered width, summed into the table min-width so the table
+   *  shrinks when a column is hidden (the AUTO-width ones are estimates). */
+  width: number;
+}
+
+const ALL_HIDDEN_KEY = "automations:all:hiddenColumns";
+const ALL_COLUMNS: AllColumnDef[] = [
+  { id: "website", title: "Website", sortKey: "website", thClassName: ALL_TH_S_AUTO, width: 120 },
+  { id: "status", title: "Status", sortKey: "status", thClassName: ALL_TH_S_AUTO, width: 110 },
+  { id: "author", title: "Author", sortKey: "author", thClassName: ALL_TH_S_160, width: 160 },
+  { id: "automationTags", title: "Automation Tags", sortKey: null, thClassName: ALL_TH_P_240, width: 240 },
+  { id: "triggerEvent", title: "Trigger Event", sortKey: null, thClassName: ALL_TH_P_160, width: 160 },
+  { id: "triage", title: "Evaluation", sortKey: "triage", thClassName: ALL_TH_S_160, width: 160 },
+  { id: "purpose", title: "Purpose", sortKey: null, thClassName: ALL_TH_P_240, width: 240 },
+  { id: "notes", title: "Notes", sortKey: null, thClassName: ALL_TH_P_240, width: 240 },
+  { id: "ghlTags", title: "GHL Tags", sortKey: null, thClassName: ALL_TH_P_180, width: 180 },
+  { id: "ghlForms", title: "GHL Forms", sortKey: null, thClassName: ALL_TH_P_180, width: 180 },
+  { id: "webhooks", title: "Webhook Links", sortKey: "webhooks", thClassName: ALL_TH_S_240, width: 240 },
+  { id: "lastEditedAt", title: "Last Edited", sortKey: "lastEditedAt", thClassName: ALL_TH_S_AUTO, width: 136 },
+  { id: "lastRunAt", title: "Last Runtime", sortKey: "lastRunAt", thClassName: ALL_TH_S_AUTO, width: 136 },
+  { id: "lastErrorAt", title: "Last Error", sortKey: "lastErrorAt", thClassName: ALL_TH_S_AUTO, width: 136 },
 ];
+
+/** The frozen Name column's fixed width, added on top of the visible middle
+ *  columns' widths to get the table min-width. */
+const ALL_NAME_WIDTH = 400;
+
 
 
 export function AllAutomationsTableClient({
@@ -241,15 +292,16 @@ export function AllAutomationsTableClient({
     }
   }, [filterSelected, filterStorageKey]);
 
-  // Columns hidden via the "Columns" control, persisted for THIS page. Hiding is
-  // by column POSITION (a scoped nth-child <style> below), so the hardcoded table
-  // cells don't each need a per-cell visibility gate.
+  // Columns hidden via the "Columns" control, persisted for THIS page. A hidden
+  // id is simply filtered out of ALL_COLUMNS (see visibleColumns), so its header
+  // and cells are never rendered at all.
   const [hiddenColumns, setHiddenColumns] = useState<Set<string>>(() => {
     if (typeof window === "undefined") return new Set();
     try {
       const raw = localStorage.getItem(ALL_HIDDEN_KEY);
       const saved: unknown = raw ? JSON.parse(raw) : [];
-      const known = new Set(ALL_HIDEABLE_COLUMNS.map((c) => c.id));
+      const known = new Set<string>(ALL_COLUMNS.map((c) => c.id));
+
       return new Set(
         (Array.isArray(saved) ? saved : []).filter(
           (id): id is string => typeof id === "string" && known.has(id),
@@ -276,23 +328,17 @@ export function AllAutomationsTableClient({
     });
   const showAllColumns = () => setHiddenColumns(new Set());
   const hiddenCount = hiddenColumns.size;
-  // CSS that hides each chosen column by position, scoped to this table.
-  const hideColsCss = ALL_HIDEABLE_COLUMNS.filter((c) => hiddenColumns.has(c.id))
-    .map(
-      (c) =>
-        `.all-cols-table>thead>tr>th:nth-child(${c.index}),.all-cols-table>tbody>tr>td:nth-child(${c.index}){display:none}`,
-    )
-    .join("");
-  // Shrink the table min-width by the hidden columns' widths (base 2960 = the
-  // old 2800 plus the 160px Triage column added 2026-08-20).
-
+  // The middle columns actually rendered: the full list minus whatever the
+  // Columns control has hidden. Drives the header, the body cells, the
+  // empty-state colSpan, and the table min-width — so hiding a column now
+  // genuinely removes its cells instead of hiding them by CSS position.
+  const visibleColumns = ALL_COLUMNS.filter((c) => !hiddenColumns.has(c.id));
+  // Summed from the VISIBLE columns (plus the frozen Name column) rather than
+  // subtracted from a hardcoded base, so the number cannot drift out of step
+  // when a column is added or removed.
   const tableMinWidth =
-    2960 -
+    ALL_NAME_WIDTH + visibleColumns.reduce((sum, c) => sum + c.width, 0);
 
-    ALL_HIDEABLE_COLUMNS.filter((c) => hiddenColumns.has(c.id)).reduce(
-      (sum, c) => sum + c.width,
-      0,
-    );
 
   // The purpose text shown in the read-only popup (null = closed).
   const [showingPurpose, setShowingPurpose] = useState<string | null>(null);
@@ -499,6 +545,380 @@ export function AllAutomationsTableClient({
   // Fit-to-viewport height for the table's scroll container (shared hook).
   const { ref: scrollRef, style: scrollStyle } = useFitViewportHeight();
 
+  // ── Header + cell renderers ────────────────────────────────────────────────
+  // Driven by ALL_COLUMNS, so the header row, the body row, the Columns control,
+  // the colSpan and the min-width all agree by construction. Every cell's markup
+  // below was moved VERBATIM from the hardcoded table, so only their ORDER and
+  // presence changed, not their rendering.
+  const renderAllHeader = (col: AllColumnDef) => {
+    if (!col.sortKey) {
+      return (
+        <th key={col.id} className={col.thClassName}>
+          {col.title}
+        </th>
+      );
+    }
+    const key = col.sortKey;
+    return (
+      <th
+        key={col.id}
+        onClick={() => toggleSort(key)}
+        aria-sort={ariaSort(key)}
+        className={col.thClassName}
+      >
+        <span className="inline-flex items-center justify-center gap-1">
+          {col.title}
+          <SortArrow active={sortKey === key} dir={sortDir} />
+        </span>
+      </th>
+    );
+  };
+
+  const renderAllCell = (id: AllColumnId, r: AllAutomationRow) => {
+    switch (id) {
+      case "website":
+        return (
+          <td key={id} className="px-3 py-2 text-center align-top">
+            {/* Clicking the website entry opens that platform's Per Website Page. */}
+            <Link
+              href={`/automations/${r.platform}`}
+              title={`Open the ${websiteLabelFor(r.platform)} page`}
+              className="inline-flex rounded hover:underline"
+            >
+              <WebsiteBadge slug={r.platform} />
+            </Link>
+          </td>
+        );
+      case "status":
+        return (
+          <td key={id} className="px-3 py-2 text-center align-top">
+            {/* Status pill (badge): green for Active, neutral gray for Paused.
+                Matches the Per Website table + the house badge convention. */}
+            <span
+              className={cn(
+                "inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium",
+                r.status === "active"
+                  ? "bg-emerald-100 text-emerald-700"
+                  : "bg-zinc-100 text-zinc-700",
+              )}
+            >
+              {r.status === "active" ? "Active" : "Paused"}
+            </span>
+          </td>
+        );
+      case "author":
+        // The selected option as a coloured pill (badge + text colours; plain
+        // text if none), or red "None" when unset (mirrors Per Website).
+        return (
+          <td
+            key={id}
+            className="w-[160px] min-w-[160px] max-w-[160px] px-3 py-2 text-center align-top"
+          >
+            {r.author ? (
+              <ColorBadge
+                value={r.author}
+                badgeColor={r.authorBadgeColor}
+                textColor={r.authorTextColor}
+              />
+            ) : (
+              <span className="text-xs font-medium text-red-600">None</span>
+            )}
+          </td>
+        );
+      case "automationTags":
+        // The selected tags as wrapping coloured chips, red "None" when empty.
+        return (
+          <td
+            key={id}
+            className="w-[240px] min-w-[240px] max-w-[240px] px-3 py-2 text-center align-top"
+          >
+            {r.automationTags && r.automationTags.length > 0 ? (
+              // 1-4 tags show in full. In a 5+ tag row, only chips whose name is
+              // 7+ chars shorten to 4 letters + an ellipsis (full name on hover);
+              // shorter tags stay full. Count-based.
+              <span className="flex flex-wrap justify-center gap-1">
+                {r.automationTags.map((t) => {
+                  const truncate =
+                    r.automationTags!.length > 4 && t.value.length >= 7;
+                  const label = truncate ? `${t.value.slice(0, 4)}…` : t.value;
+                  return (
+                    <ColorBadge
+                      key={t.id}
+                      value={label}
+                      title={truncate ? t.value : undefined}
+                      badgeColor={t.badgeColor}
+                      textColor={t.textColor}
+                    />
+                  );
+                })}
+              </span>
+            ) : (
+              <span className="text-xs font-medium text-red-600">None</span>
+            )}
+          </td>
+        );
+      case "triggerEvent":
+        return (
+          <td
+            key={id}
+            className="w-[160px] min-w-[160px] max-w-[160px] px-3 py-2 text-center align-top"
+          >
+            {r.triggerEvent ? (
+              <ColorBadge
+                value={r.triggerEvent}
+                badgeColor={r.triggerEventBadgeColor}
+                textColor={r.triggerEventTextColor}
+              />
+            ) : (
+              <span className="text-xs font-medium text-red-600">None</span>
+            )}
+          </td>
+        );
+      case "triage":
+        // Untriaged renders a muted "-", NOT the red "None" the other manual
+        // columns use: untriaged is a normal starting state, not a missing value.
+        return (
+          <td
+            key={id}
+            className="w-[160px] min-w-[160px] max-w-[160px] px-3 py-2 text-center align-top"
+          >
+            {r.triage ? (
+              <ColorBadge
+                value={r.triage}
+                badgeColor={r.triageBadgeColor}
+                textColor={r.triageTextColor}
+              />
+            ) : (
+              <span className="text-xs text-zinc-400">-</span>
+            )}
+          </td>
+        );
+      case "purpose":
+        return (
+          <td
+            key={id}
+            className="w-[240px] min-w-[240px] max-w-[240px] px-3 py-2 text-left align-top"
+          >
+            {/* Purpose: a preview that fills the FIXED-WIDTH column (locked to
+                240px on th + td). Line count is ADAPTIVE: line-clamp-2 is the
+                2-line minimum, the WebkitLineClamp inline style overrides it per
+                row with however many lines fit the (Name-driven) row height (see
+                the measuring effect). Click opens the read-only popup, hover
+                shows a tooltip with the full text. Red "None" when empty.
+                ⚠️ DO NOT add `block` to the button: Tailwind v4 emits
+                .block{display:block} AFTER .line-clamp-2{display:-webkit-box},
+                so block overrides the -webkit-box that line-clamp needs and the
+                clamp silently stops working. */}
+            {r.purpose ? (
+              <Tooltip disableHoverablePopup>
+                <TooltipTrigger
+                  render={
+                    <button
+                      type="button"
+                      onClick={() => setShowingPurpose(r.purpose ?? "")}
+                      className="w-full cursor-pointer line-clamp-2 break-words text-left text-xs text-zinc-700 hover:text-zinc-900 hover:underline"
+                      style={{ WebkitLineClamp: purposeClamp[r.id] ?? 2 }}
+                    >
+                      {r.purpose}
+                    </button>
+                  }
+                />
+                <TooltipContent className="max-w-xs whitespace-pre-wrap text-left normal-case">
+                  {r.purpose}
+                </TooltipContent>
+              </Tooltip>
+            ) : (
+              <span className="text-xs font-medium text-red-600">None</span>
+            )}
+          </td>
+        );
+      case "notes":
+        // Mirrors the Purpose cell (reuses purposeClamp for the row-height clamp).
+        return (
+          <td
+            key={id}
+            className="w-[240px] min-w-[240px] max-w-[240px] px-3 py-2 text-left align-top"
+          >
+            {r.notes ? (
+              <Tooltip disableHoverablePopup>
+                <TooltipTrigger
+                  render={
+                    <button
+                      type="button"
+                      onClick={() => setShowingNotes(r.notes ?? "")}
+                      className="w-full cursor-pointer line-clamp-2 break-words text-left text-xs text-zinc-700 hover:text-zinc-900 hover:underline"
+                      style={{ WebkitLineClamp: purposeClamp[r.id] ?? 2 }}
+                    >
+                      {r.notes}
+                    </button>
+                  }
+                />
+                <TooltipContent className="max-w-xs whitespace-pre-wrap text-left normal-case">
+                  {r.notes}
+                </TooltipContent>
+              </Tooltip>
+            ) : (
+              <span className="text-xs font-medium text-red-600">None</span>
+            )}
+          </td>
+        );
+      case "ghlTags":
+        // Plain-text lines (like Webhook Links), populated only for GHL / GHL b2b
+        // rows. Non-GHL rows show a muted "-" (the column does not apply).
+        return (
+          <td
+            key={id}
+            className="w-[180px] min-w-[180px] max-w-[180px] px-3 py-2 text-left align-top"
+          >
+            {!columnVisibleOnPlatform("ghl_tags", r.platform) ? (
+              <span className="text-xs text-zinc-400">-</span>
+            ) : r.ghlTags && r.ghlTags.length > 0 ? (
+              <div
+                className="overflow-hidden"
+                // Cap the item list to the SAME height as the Purpose/Notes clamp
+                // (purposeClamp lines x 16px), so a row with many items shows only
+                // the lines that fit and never stretches the row taller than the
+                // Name-cell-driven height. Items beyond that are clipped (each
+                // item is a 16px text-xs line).
+                style={{ maxHeight: (purposeClamp[r.id] ?? 2) * 16 }}
+              >
+                {r.ghlTags.map((t, i, arr) => (
+                  <div
+                    key={t.id}
+                    title={t.value}
+                    className="truncate text-xs text-zinc-700"
+                  >
+                    {/* Gold "(N)" total-selected count on the first line (the
+                        cell clips the rest). */}
+                    {i === 0 && (
+                      <span className="font-medium text-amber-600">
+                        ({arr.length}){" "}
+                      </span>
+                    )}
+                    {t.value}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <span className="text-xs font-medium text-red-600">None</span>
+            )}
+          </td>
+        );
+      case "ghlForms":
+        return (
+          <td
+            key={id}
+            className="w-[180px] min-w-[180px] max-w-[180px] px-3 py-2 text-left align-top"
+          >
+            {!columnVisibleOnPlatform("ghl_forms", r.platform) ? (
+              <span className="text-xs text-zinc-400">-</span>
+            ) : r.ghlForms && r.ghlForms.length > 0 ? (
+              <div
+                className="overflow-hidden"
+                style={{ maxHeight: (purposeClamp[r.id] ?? 2) * 16 }}
+              >
+                {r.ghlForms.map((f, i, arr) => (
+                  <div
+                    key={f.id}
+                    title={f.value}
+                    className="truncate text-xs text-zinc-700"
+                  >
+                    {i === 0 && (
+                      <span className="font-medium text-amber-600">
+                        ({arr.length}){" "}
+                      </span>
+                    )}
+                    {f.value}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <span className="text-xs font-medium text-red-600">None</span>
+            )}
+          </td>
+        );
+      case "webhooks":
+        // One truncated line per selected webhook (hover title shows the full URL
+        // plus the sharing count); red "None" when empty.
+        return (
+          <td
+            key={id}
+            className="w-[240px] min-w-[240px] max-w-[240px] px-3 py-2 text-left align-top"
+          >
+            {r.webhooks && r.webhooks.length > 0 ? (
+              <div
+                className="overflow-hidden"
+                style={{ maxHeight: (purposeClamp[r.id] ?? 2) * 16 }}
+              >
+                {/* Every webhook line opens the "related automations" lookup (not
+                    just the gold count), so the whole cell is a click target. */}
+                {r.webhooks.map((w, i, arr) => (
+                  <button
+                    key={w.id}
+                    type="button"
+                    title={webhookLineTitle(w)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setWebhookLookup({
+                        anchor: {
+                          id: r.id,
+                          name: r.name,
+                          platform: r.platform,
+                        },
+                        webhooks: arr.map((wh) => ({
+                          id: wh.id,
+                          url: wh.url,
+                        })),
+                      });
+                    }}
+                    className="block w-full cursor-pointer truncate text-left text-xs text-blue-600 hover:underline"
+                  >
+                    {i === 0 && (
+                      <span className="font-medium text-amber-600">
+                        ({arr.length}){" "}
+                      </span>
+                    )}
+                    <SharedWebhookIcon sharedWith={w.sharedWith} />
+                    {w.url}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <span className="text-xs font-medium text-red-600">None</span>
+            )}
+          </td>
+        );
+      case "lastEditedAt":
+      case "lastRunAt":
+        return (
+          <td key={id} className="px-3 py-2 align-top text-center">
+            {r[id] ? (
+              <span className="text-xs tabular-nums text-zinc-700">
+                {formatDateCell(r[id])}
+              </span>
+            ) : (
+              <span className="text-xs text-zinc-400">-</span>
+            )}
+          </td>
+        );
+      case "lastErrorAt":
+        return (
+          <td key={id} className="px-3 py-2 align-top text-center">
+            {/* Last Error: red MM-DD-YYYY, same as the per-website table; "-"
+                when none. */}
+            {r.lastErrorAt ? (
+              <span className="text-xs tabular-nums text-red-600">
+                {formatDateCell(r.lastErrorAt)}
+              </span>
+            ) : (
+              <span className="text-xs text-zinc-400">-</span>
+            )}
+          </td>
+        );
+    }
+  };
+
+
   return (
     <div className="space-y-3">
       {/* Search row (mirrors the Per Website table): search bar LEFT, Filter
@@ -540,7 +960,8 @@ export function AllAutomationsTableClient({
             <ChevronDown className="h-3 w-3" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-auto min-w-48">
-            {ALL_HIDEABLE_COLUMNS.map((col) => (
+            {ALL_COLUMNS.map((col) => (
+
               <DropdownMenuItem
                 key={col.id}
                 closeOnClick={false}
@@ -551,7 +972,7 @@ export function AllAutomationsTableClient({
                   tabIndex={-1}
                   className="pointer-events-none"
                 />
-                {col.label}
+                {col.title}
               </DropdownMenuItem>
             ))}
             <DropdownMenuSeparator />
@@ -682,12 +1103,8 @@ export function AllAutomationsTableClient({
             {/* Same shell as the per-website table: bounded scroll, sticky
                 header (Option B), frozen Name column, horizontal scroll once the
                 columns exceed the card width. */}
-            {/* Scoped CSS that hides the chosen columns by position (hideColsCss).
-                suppressHydrationWarning: the rules come from localStorage, empty
-                on the server and populated on the client. */}
-            <style suppressHydrationWarning>{hideColsCss}</style>
             <table
-              className="all-cols-table w-full text-sm"
+              className="w-full text-sm"
               style={{ minWidth: tableMinWidth }}
             >
               <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
@@ -703,134 +1120,16 @@ export function AllAutomationsTableClient({
                       <SortArrow active={sortKey === "name"} dir={sortDir} />
                     </span>
                   </th>
-                  <th
-                    onClick={() => toggleSort("website")}
-                    aria-sort={ariaSort("website")}
-                    className="sticky top-0 z-10 cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700"
-                  >
-                    <span className="inline-flex items-center justify-center gap-1">
-                      Website
-                      <SortArrow active={sortKey === "website"} dir={sortDir} />
-                    </span>
-                  </th>
-                  <th
-                    onClick={() => toggleSort("status")}
-                    aria-sort={ariaSort("status")}
-                    className="sticky top-0 z-10 cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700"
-                  >
-                    <span className="inline-flex items-center justify-center gap-1">
-                      Status
-                      <SortArrow active={sortKey === "status"} dir={sortDir} />
-                    </span>
-                  </th>
-                  {/* Author: mirrors the Per Website column. Center-aligned,
-                      sortable alphabetically ("None" sinks last), fixed 160px.
-                      Sits between Status and Trigger Event (the two dropdown
-                      cols). */}
-                  <th
-                    onClick={() => toggleSort("author")}
-                    aria-sort={ariaSort("author")}
-                    className="sticky top-0 z-10 w-[160px] min-w-[160px] max-w-[160px] cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700"
-                  >
-                    <span className="inline-flex items-center justify-center gap-1">
-                      Author
-                      <SortArrow active={sortKey === "author"} dir={sortDir} />
-                    </span>
-                  </th>
-                  {/* Automation Tags: mirrors the Per Website column, between
-                      Author and Trigger Event. Multi-select, display-only, not
-                      sortable; wrapping coloured chips. 200px. */}
-                  <th className="sticky top-0 z-10 w-[240px] min-w-[240px] max-w-[240px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
-                    Automation Tags
-                  </th>
-                  {/* Trigger Event: mirrors the Per Website column, after Author.
-                      Display-only, not sortable, 160px. */}
-                  <th className="sticky top-0 z-10 w-[160px] min-w-[160px] max-w-[160px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
-                    Trigger Event
-                  </th>
-                  {/* Triage: what should HAPPEN to the automation. Sortable (it
-                      is the column you work the cleanup from), 160px. */}
-                  <th
-                    onClick={() => toggleSort("triage")}
-                    aria-sort={ariaSort("triage")}
-                    className="sticky top-0 z-10 w-[160px] min-w-[160px] max-w-[160px] cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700"
-                  >
-                    <span className="inline-flex items-center justify-center gap-1">
-                      Evaluation
-                      <SortArrow active={sortKey === "triage"} dir={sortDir} />
-
-                    </span>
-                  </th>
-
-                  <th className="sticky top-0 z-10 w-[240px] min-w-[240px] max-w-[240px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
-                    Purpose
-                  </th>
-                  {/* Notes: mirrors Purpose, one column to its right (same as the
-                      Per Website table). Display-only, not sortable. */}
-                  <th className="sticky top-0 z-10 w-[240px] min-w-[240px] max-w-[240px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
-                    Notes
-                  </th>
-                  {/* GHL Tags + GHL Forms: GHL-only columns; here on the combined
-                      table they always render, but each cell is populated only for
-                      GHL / GHL b2b rows (a muted "-" on the other platforms).
-                      Plain-text lines (like Webhook Links), not chips. 180px. Sit
-                      just LEFT of Webhook Links. */}
-                  <th className="sticky top-0 z-10 w-[180px] min-w-[180px] max-w-[180px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
-                    GHL Tags
-                  </th>
-                  <th className="sticky top-0 z-10 w-[180px] min-w-[180px] max-w-[180px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]">
-                    GHL Forms
-                  </th>
-                  {/* Webhook Links: mirrors the Per Website column, after GHL Forms.
-                      One truncated line per selected webhook. 240px. Sortable as a
-                      GROUPING toggle (shared webhooks first), not a true ordering. */}
-                  <th
-                    onClick={() => toggleSort("webhooks")}
-                    aria-sort={ariaSort("webhooks")}
-                    className="sticky top-0 z-10 w-[240px] min-w-[240px] max-w-[240px] cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700"
-                  >
-                    <span className="inline-flex items-center justify-center gap-1">
-                      Webhook Links
-                      <SortArrow active={sortKey === "webhooks"} dir={sortDir} />
-                    </span>
-                  </th>
-                  <th
-                    onClick={() => toggleSort("lastEditedAt")}
-                    aria-sort={ariaSort("lastEditedAt")}
-                    className="sticky top-0 z-10 cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700"
-                  >
-                    <span className="inline-flex items-center justify-center gap-1">
-                      Last Edited
-                      <SortArrow active={sortKey === "lastEditedAt"} dir={sortDir} />
-                    </span>
-                  </th>
-                  <th
-                    onClick={() => toggleSort("lastRunAt")}
-                    aria-sort={ariaSort("lastRunAt")}
-                    className="sticky top-0 z-10 cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700"
-                  >
-                    <span className="inline-flex items-center justify-center gap-1">
-                      Last Runtime
-                      <SortArrow active={sortKey === "lastRunAt"} dir={sortDir} />
-                    </span>
-                  </th>
-                  <th
-                    onClick={() => toggleSort("lastErrorAt")}
-                    aria-sort={ariaSort("lastErrorAt")}
-                    className="sticky top-0 z-10 cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700"
-                  >
-                    <span className="inline-flex items-center justify-center gap-1">
-                      Last Error
-                      <SortArrow active={sortKey === "lastErrorAt"} dir={sortDir} />
-                    </span>
-                  </th>
+                  {/* The middle columns, in ALL_COLUMNS order, minus any hidden
+                      by the Columns control. */}
+                  {visibleColumns.map(renderAllHeader)}
                 </tr>
               </thead>
               <tbody>
                 {filtered.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={14}
+                      colSpan={1 + visibleColumns.length}
                       className="px-3 py-16 text-center text-sm text-zinc-500"
                     >
                       {rows.length === 0
@@ -873,338 +1172,11 @@ export function AllAutomationsTableClient({
                           </a>
                         )}
                       </td>
-                      <td className="px-3 py-2 text-center align-top">
-                        {/* Clicking the website entry opens that platform's Per
-                            Website Page. */}
-                        <Link
-                          href={`/automations/${r.platform}`}
-                          title={`Open the ${websiteLabelFor(r.platform)} page`}
-                          className="inline-flex rounded hover:underline"
-                        >
-                          <WebsiteBadge slug={r.platform} />
-                        </Link>
-                      </td>
-                      <td className="px-3 py-2 text-center align-top">
-                        {/* Status pill (badge): green for Active, neutral gray
-                            for Paused. Matches the Per Website table + the house
-                            badge convention. */}
-                        <span
-                          className={cn(
-                            "inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium",
-                            r.status === "active"
-                              ? "bg-emerald-100 text-emerald-700"
-                              : "bg-zinc-100 text-zinc-700",
-                          )}
-                        >
-                          {r.status === "active" ? "Active" : "Paused"}
-                        </span>
-                      </td>
-                      {/* Author: the selected option as a coloured pill (badge +
-                          text colours; plain text if none), or red "None" when
-                          unset (mirrors the Per Website column). */}
-                      <td className="w-[160px] min-w-[160px] max-w-[160px] px-3 py-2 text-center align-top">
-                        {r.author ? (
-                          <ColorBadge
-                            value={r.author}
-                            badgeColor={r.authorBadgeColor}
-                            textColor={r.authorTextColor}
-                          />
-                        ) : (
-                          <span className="text-xs font-medium text-red-600">
-                            None
-                          </span>
-                        )}
-                      </td>
-                      {/* Automation Tags: the selected tags as wrapping coloured
-                          chips (plain text for a tag with no badge colour), or
-                          red "None" when empty (mirrors the Per Website column). */}
-                      <td className="w-[240px] min-w-[240px] max-w-[240px] px-3 py-2 text-center align-top">
-                        {r.automationTags && r.automationTags.length > 0 ? (
-                          // 1-4 tags show in full. In a 5+ tag row, only chips
-                          // whose name is 7+ chars shorten to 4 letters + "…" (full
-                          // name on hover); shorter tags stay full — count-based.
-                          <span className="flex flex-wrap justify-center gap-1">
-                            {r.automationTags.map((t) => {
-                              const truncate =
-                                r.automationTags!.length > 4 && t.value.length >= 7;
-                              const label = truncate
-                                ? `${t.value.slice(0, 4)}…`
-                                : t.value;
-                              return (
-                                <ColorBadge
-                                  key={t.id}
-                                  value={label}
-                                  title={truncate ? t.value : undefined}
-                                  badgeColor={t.badgeColor}
-                                  textColor={t.textColor}
-                                />
-                              );
-                            })}
-                          </span>
-                        ) : (
-                          <span className="text-xs font-medium text-red-600">
-                            None
-                          </span>
-                        )}
-                      </td>
-                      {/* Trigger Event: the selected option as a coloured pill
-                          (badge + text colours; plain text if none), or red
-                          "None" when unset (mirrors the Per Website column). */}
-                      <td className="w-[160px] min-w-[160px] max-w-[160px] px-3 py-2 text-center align-top">
-                        {r.triggerEvent ? (
-                          <ColorBadge
-                            value={r.triggerEvent}
-                            badgeColor={r.triggerEventBadgeColor}
-                            textColor={r.triggerEventTextColor}
-                          />
-                        ) : (
-                          <span className="text-xs font-medium text-red-600">
-                            None
-                          </span>
-                        )}
-                      </td>
-                      {/* Triage: the selected state as a coloured pill. Untriaged
-                          renders a muted "-", NOT the red "None" the other manual
-                          columns use — untriaged is a normal starting state, not a
-                          missing value. Mirrors the Per Website column. */}
-                      <td className="w-[160px] min-w-[160px] max-w-[160px] px-3 py-2 text-center align-top">
-                        {r.triage ? (
-                          <ColorBadge
-                            value={r.triage}
-                            badgeColor={r.triageBadgeColor}
-                            textColor={r.triageTextColor}
-                          />
-                        ) : (
-                          <span className="text-xs text-zinc-400">-</span>
-                        )}
-                      </td>
-                      <td className="w-[240px] min-w-[240px] max-w-[240px] px-3 py-2 text-left align-top">
-                        {/* Purpose: a preview that fills the FIXED-WIDTH column
-
-                            (locked to 240px on th + td). Line count is ADAPTIVE:
-                            `line-clamp-2` is the 2-line minimum, `WebkitLineClamp`
-                            inline-style overrides it per row with however many lines
-                            fit the (Name-driven) row height (see the measuring effect).
-                            Click opens the read-only popup, hover shows a tooltip with
-                            the full text. Same as the per-website table (no edit mode
-                            here, so the blurb is always clickable). "None" (red) when
-                            empty.
-                            ⚠️ DO NOT add `block` to the button: Tailwind v4 emits
-                            `.block{display:block}` after `.line-clamp-2{display:
-                            -webkit-box}`, so block overrides the -webkit-box that
-                            line-clamp needs and the clamp stops working. */}
-                        {r.purpose ? (
-                          <Tooltip disableHoverablePopup>
-                            <TooltipTrigger
-                              render={
-                                <button
-                                  type="button"
-                                  onClick={() => setShowingPurpose(r.purpose ?? "")}
-                                  className="w-full cursor-pointer line-clamp-2 break-words text-left text-xs text-zinc-700 hover:text-zinc-900 hover:underline"
-                                  style={{ WebkitLineClamp: purposeClamp[r.id] ?? 2 }}
-                                >
-                                  {r.purpose}
-                                </button>
-                              }
-                            />
-                            <TooltipContent className="max-w-xs whitespace-pre-wrap text-left normal-case">
-                              {r.purpose}
-                            </TooltipContent>
-                          </Tooltip>
-                        ) : (
-                          <span className="text-xs font-medium text-red-600">
-                            None
-                          </span>
-                        )}
-                      </td>
-                      {/* Notes: mirrors the Purpose cell (display-only, reuses
-                          purposeClamp for the row-height-driven clamp). */}
-                      <td className="w-[240px] min-w-[240px] max-w-[240px] px-3 py-2 text-left align-top">
-                        {r.notes ? (
-                          <Tooltip disableHoverablePopup>
-                            <TooltipTrigger
-                              render={
-                                <button
-                                  type="button"
-                                  onClick={() => setShowingNotes(r.notes ?? "")}
-                                  className="w-full cursor-pointer line-clamp-2 break-words text-left text-xs text-zinc-700 hover:text-zinc-900 hover:underline"
-                                  style={{ WebkitLineClamp: purposeClamp[r.id] ?? 2 }}
-                                >
-                                  {r.notes}
-                                </button>
-                              }
-                            />
-                            <TooltipContent className="max-w-xs whitespace-pre-wrap text-left normal-case">
-                              {r.notes}
-                            </TooltipContent>
-                          </Tooltip>
-                        ) : (
-                          <span className="text-xs font-medium text-red-600">
-                            None
-                          </span>
-                        )}
-                      </td>
-                      {/* GHL Tags + GHL Forms: plain-text lines (like Webhook
-                          Links), populated only for GHL / GHL b2b rows. Non-GHL
-                          rows show a muted "-" (the column doesn't apply). Sit
-                          just LEFT of Webhook Links. */}
-                      <td className="w-[180px] min-w-[180px] max-w-[180px] px-3 py-2 text-left align-top">
-                        {!columnVisibleOnPlatform("ghl_tags", r.platform) ? (
-                          <span className="text-xs text-zinc-400">-</span>
-                        ) : r.ghlTags && r.ghlTags.length > 0 ? (
-                          <div
-                            className="overflow-hidden"
-                            // Cap the item list to the SAME height as the
-                            // Purpose/Notes clamp (purposeClamp lines x 16px), so a
-                            // row with many items shows only the lines that fit and
-                            // never stretches the row taller than the Name-cell-
-                            // driven height. Items beyond that are clipped (each
-                            // item is a 16px text-xs line).
-                            style={{ maxHeight: (purposeClamp[r.id] ?? 2) * 16 }}
-                          >
-                            {r.ghlTags.map((t, i, arr) => (
-                              <div
-                                key={t.id}
-                                title={t.value}
-                                className="truncate text-xs text-zinc-700"
-                              >
-                                {/* Gold "(N)" total-selected count on the first
-                                    line (the cell clips the rest). */}
-                                {i === 0 && (
-                                  <span className="font-medium text-amber-600">
-                                    ({arr.length}){" "}
-                                  </span>
-                                )}
-                                {t.value}
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-xs font-medium text-red-600">
-                            None
-                          </span>
-                        )}
-                      </td>
-                      <td className="w-[180px] min-w-[180px] max-w-[180px] px-3 py-2 text-left align-top">
-                        {!columnVisibleOnPlatform("ghl_forms", r.platform) ? (
-                          <span className="text-xs text-zinc-400">-</span>
-                        ) : r.ghlForms && r.ghlForms.length > 0 ? (
-                          <div
-                            className="overflow-hidden"
-                            // Cap the item list to the SAME height as the
-                            // Purpose/Notes clamp (purposeClamp lines x 16px), so a
-                            // row with many items shows only the lines that fit and
-                            // never stretches the row taller than the Name-cell-
-                            // driven height. Items beyond that are clipped (each
-                            // item is a 16px text-xs line).
-                            style={{ maxHeight: (purposeClamp[r.id] ?? 2) * 16 }}
-                          >
-                            {r.ghlForms.map((f, i, arr) => (
-                              <div
-                                key={f.id}
-                                title={f.value}
-                                className="truncate text-xs text-zinc-700"
-                              >
-                                {i === 0 && (
-                                  <span className="font-medium text-amber-600">
-                                    ({arr.length}){" "}
-                                  </span>
-                                )}
-                                {f.value}
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-xs font-medium text-red-600">
-                            None
-                          </span>
-                        )}
-                      </td>
-                      {/* Webhook Links: one truncated line per selected webhook
-                          (hover title shows the full URL); red "None" when empty.
-                          Mirrors the Per Website column. 240px. */}
-                      <td className="w-[240px] min-w-[240px] max-w-[240px] px-3 py-2 text-left align-top">
-                        {r.webhooks && r.webhooks.length > 0 ? (
-                          <div
-                            className="overflow-hidden"
-                            // Cap the item list to the SAME height as the
-                            // Purpose/Notes clamp (purposeClamp lines x 16px), so a
-                            // row with many items shows only the lines that fit and
-                            // never stretches the row taller than the Name-cell-
-                            // driven height. Items beyond that are clipped (each
-                            // item is a 16px text-xs line).
-                            style={{ maxHeight: (purposeClamp[r.id] ?? 2) * 16 }}
-                          >
-                            {/* Every webhook line opens the "related automations"
-                                lookup (not just the gold count), so the whole
-                                cell is an obvious click target. Mirrors the Per
-                                Website table. */}
-                            {r.webhooks.map((w, i, arr) => (
-                              <button
-                                key={w.id}
-                                type="button"
-                                title={webhookLineTitle(w)}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setWebhookLookup({
-                                    anchor: {
-                                      id: r.id,
-                                      name: r.name,
-                                      platform: r.platform,
-                                    },
-                                    webhooks: arr.map((wh) => ({
-                                      id: wh.id,
-                                      url: wh.url,
-                                    })),
-                                  });
-                                }}
-                                className="block w-full cursor-pointer truncate text-left text-xs text-blue-600 hover:underline"
-                              >
-                                {i === 0 && (
-                                  <span className="font-medium text-amber-600">
-                                    ({arr.length}){" "}
-                                  </span>
-                                )}
-                                <SharedWebhookIcon sharedWith={w.sharedWith} />
-                                {w.url}
-                              </button>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-xs font-medium text-red-600">
-                            None
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-3 py-2 align-top text-center">
-                        {r.lastEditedAt ? (
-                          <span className="text-xs tabular-nums text-zinc-700">
-                            {formatDateCell(r.lastEditedAt)}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-zinc-400">-</span>
-                        )}
-                      </td>
-                      <td className="px-3 py-2 align-top text-center">
-                        {r.lastRunAt ? (
-                          <span className="text-xs tabular-nums text-zinc-700">
-                            {formatDateCell(r.lastRunAt)}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-zinc-400">-</span>
-                        )}
-                      </td>
-                      <td className="px-3 py-2 align-top text-center">
-                        {/* Last Error: red MM-DD-YYYY, same as the per-website
-                            table; "-" when none. */}
-                        {r.lastErrorAt ? (
-                          <span className="text-xs tabular-nums text-red-600">
-                            {formatDateCell(r.lastErrorAt)}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-zinc-400">-</span>
-                        )}
-                      </td>
+                      {/* The middle cells, in ALL_COLUMNS order, minus any
+                          hidden by the Columns control. Each cell keeps the
+                          markup it had when these were hardcoded; only their
+                          ORDER and presence are data-driven now. */}
+                      {visibleColumns.map((col) => renderAllCell(col.id, r))}
                     </tr>
                   ))
                 )}
