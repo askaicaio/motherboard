@@ -4,14 +4,25 @@
 // LITERAL route segment (`all`), so it takes precedence over the sibling
 // `[platform]` dynamic route for this exact path.
 //
-// The heavy lifting (search / sort / display) is in AllAutomationsTableClient,
-// which mirrors the Per Website Page table minus the per-platform toolbar and
-// edit/delete, plus a Website column. This server shell just loads every
-// platform's rows + their latest error date.
+// The heavy lifting (search / sort / display / edit) is in
+// AllAutomationsTableClient, which mirrors the Per Website Page table minus the
+// per-platform toolbar (Auto-refresh / Refresh List / Export CSV) and minus
+// CREATE, plus a Website column. This server shell loads every platform's rows,
+// their latest error date, and the dropdown choice lists.
+//
+// ⚠️ The choice lists below are GLOBAL, not per-platform:
+// automation_dropdown_choices is keyed by column_key alone. That is why one
+// cross-platform table can drive the same Edit dialog the per-platform pages
+// use. The only per-row thing the dialog needs is r.platform, which decides
+// whether the GHL Tags / GHL Forms fields are shown.
 
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { automations, automationDropdownChoices } from "@/lib/db/schema";
+import {
+  automations,
+  automationDropdownChoices,
+  automationWebhookChoices,
+} from "@/lib/db/schema";
 import { alias } from "drizzle-orm/pg-core";
 import { asc, eq } from "drizzle-orm";
 import { requireAuth } from "@/lib/auth/guard";
@@ -112,10 +123,18 @@ export default async function AllAutomationsPage() {
     webhooks: webhooksByAutomation.get(r.id) ?? [],
   }));
 
-  // Filter-menu options for the View All Lists Filter (mirrors the Per Website
-  // filter's three dimensions). Global choice lists from the Dropdown Config
-  // Page, value-ascending, same shape/order the per-website loader uses.
-  const [authorChoices, triggerEventChoices, triageChoices, automationTagChoices] =
+  // Choice lists from the Dropdown Config Page, value-ascending, in the same
+  // shape/order the per-website loader uses. The first four also drive the
+  // Filter menu's dimensions; the last three exist only for the Edit dialog.
+  const [
+    authorChoices,
+    triggerEventChoices,
+    triageChoices,
+    automationTagChoices,
+    ghlTagChoices,
+    ghlFormChoices,
+    webhookChoices,
+  ] =
 
     await Promise.all([
       db
@@ -160,6 +179,39 @@ export default async function AllAutomationsPage() {
         .from(automationDropdownChoices)
         .where(eq(automationDropdownChoices.columnKey, "automation_tags"))
         .orderBy(asc(automationDropdownChoices.value)),
+      // GHL Tags (multi-select): options for the Edit dialog's picker. Loaded
+      // for every row regardless of platform; the dialog itself only shows the
+      // field when that row's platform is a GHL one.
+      db
+        .select({
+          id: automationDropdownChoices.id,
+          value: automationDropdownChoices.value,
+          badgeColor: automationDropdownChoices.badgeColor,
+          textColor: automationDropdownChoices.textColor,
+        })
+        .from(automationDropdownChoices)
+        .where(eq(automationDropdownChoices.columnKey, "ghl_tags"))
+        .orderBy(asc(automationDropdownChoices.value)),
+      // GHL Forms (multi-select): same treatment as GHL Tags.
+      db
+        .select({
+          id: automationDropdownChoices.id,
+          value: automationDropdownChoices.value,
+          badgeColor: automationDropdownChoices.badgeColor,
+          textColor: automationDropdownChoices.textColor,
+        })
+        .from(automationDropdownChoices)
+        .where(eq(automationDropdownChoices.columnKey, "ghl_forms"))
+        .orderBy(asc(automationDropdownChoices.value)),
+      // Webhook Links (multi-select): its own choices table, so the URL maps to
+      // the picker's `value`. Mirrors the per-website page loader exactly.
+      db
+        .select({
+          id: automationWebhookChoices.id,
+          value: automationWebhookChoices.url,
+        })
+        .from(automationWebhookChoices)
+        .orderBy(asc(automationWebhookChoices.url)),
     ]);
 
   return (
@@ -186,6 +238,9 @@ export default async function AllAutomationsPage() {
         triageChoices={triageChoices}
 
         automationTagChoices={automationTagChoices}
+        ghlTagChoices={ghlTagChoices}
+        ghlFormChoices={ghlFormChoices}
+        webhookChoices={webhookChoices}
       />
     </div>
   );
