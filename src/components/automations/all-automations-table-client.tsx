@@ -53,8 +53,11 @@ import {
   ChevronDown,
   ChevronLeft,
   Columns3,
+  Eye,
   Pencil,
+  RotateCcw,
 } from "lucide-react";
+
 import { cn } from "@/lib/utils";
 import { confirmDialog } from "@/components/ui/confirm";
 import { AUTOMATION_SITES } from "@/lib/automations/sites";
@@ -1129,18 +1132,21 @@ export function AllAutomationsTableClient({
               disabled={hiddenCount === 0}
               onClick={showAllColumns}
             >
+              <Eye />
               Show all columns
             </DropdownMenuItem>
-            {/* Reset the drag-reordered arrangement. Lives here because this page
-                has no header menus (the Per Website table keeps its copy in the
-                header dropdown). Greyed when already default, mirroring the
-                "Show all columns" item above. */}
+            {/* Reset the drag-reordered arrangement. Both tables keep this in the
+                Columns dropdown (the Per Website copy moved here from its header
+                menu 2026-08-20), so the two match. Greyed when already default,
+                mirroring "Show all columns" above. */}
             <DropdownMenuItem
               disabled={isDefaultOrder}
               onClick={resetColumnOrder}
             >
+              <RotateCcw />
               Reset column order
             </DropdownMenuItem>
+
 
           </DropdownMenuContent>
         </DropdownMenu>

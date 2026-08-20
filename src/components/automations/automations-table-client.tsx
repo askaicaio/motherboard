@@ -54,8 +54,10 @@ import {
   ArrowLeft,
   ArrowRight,
   RotateCcw,
+  Eye,
   EyeOff,
   Columns3,
+
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -606,24 +608,27 @@ const MIDDLE_COLUMNS: MiddleColumnDef[] = [
     exportValue: (r) => r.triggerEvent ?? "",
   },
   {
-    id: "purpose",
-    title: "Purpose",
-    sortKey: null,
-    thClassName: TH_PLAIN_240,
-    exportValue: (r) => r.purpose ?? "",
-  },
-  {
     // Evaluation: what should HAPPEN to this automation. Sortable (it is the
     // column you work the cleanup from), so it uses the sortable 160px header.
-    // Sits AFTER Purpose: this array's order IS the default arrangement (see
-    // MIDDLE_DEFAULT_ORDER below), and the user set that default 2026-08-20 by
-    // pointing at the live Make table. Reading Purpose before its Evaluation
-    // matches how the triage was actually recorded, as a state plus a reason.
+    //
+    // Sits BEFORE Purpose. ⚠️ This array's order IS the default arrangement
+    // (MIDDLE_DEFAULT_ORDER is derived from it below), so changing the default
+    // means reordering THESE ENTRIES. Purpose/Evaluation were swapped to
+    // Purpose-first on 2026-08-20 and swapped straight back the same day at the
+    // user's request — leaving it as Evaluation-first. Do not "restore" either
+    // way without being asked.
     id: "triage",
     title: "Evaluation",
     sortKey: "triage",
     thClassName: TH_SORTABLE_160,
     exportValue: (r) => r.triage ?? "",
+  },
+  {
+    id: "purpose",
+    title: "Purpose",
+    sortKey: null,
+    thClassName: TH_PLAIN_240,
+    exportValue: (r) => r.purpose ?? "",
   },
   {
     id: "notes",
@@ -1555,17 +1560,18 @@ export function AutomationsTableClient({
     dropEdgeFor,
   } = useColumnDrag<MiddleColumnId>({ scrollRef, onCommit: moveColumnTo });
 
-  // Reset every column to the default arrangement (persisted via the effect),
-  // behind a confirm so an accidental click can't wipe a custom layout. Deferred
-  // with setTimeout so the header dropdown finishes closing before the confirm
-  // dialog opens (opening it synchronously from a menu item clashes on focus).
   // True when the saved order already matches the default, used to grey out the
   // "Reset column order" item (mirrors how "Show all columns" greys out).
   const isDefaultOrder = columnOrder.every(
     (id, i) => id === MIDDLE_DEFAULT_ORDER[i],
   );
 
+  // Reset every column to the default arrangement (persisted via the effect),
+  // behind a confirm so an accidental click can't wipe a custom layout. Deferred
+  // with setTimeout so the Columns dropdown finishes closing before the confirm
+  // dialog opens (opening it synchronously from a menu item clashes on focus).
   const resetColumnOrder = () => {
+
     setTimeout(async () => {
       if (
         !(await confirmDialog({
@@ -2135,8 +2141,12 @@ export function AutomationsTableClient({
                 disabled={hiddenCount === 0}
                 onClick={showAllColumns}
               >
+                {/* Eye pairs with the EyeOff on each header's "Hide Column",
+                    so the hide/show pair reads as opposites. */}
+                <Eye />
                 Show all columns
               </DropdownMenuItem>
+
               {/* Reset the arrangement. Moved here from the header dropdown
                   2026-08-20 so it sits in the SAME place on both tables (View
                   All Lists has no header menu). Greyed when already default,
