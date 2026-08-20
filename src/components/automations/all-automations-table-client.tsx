@@ -67,7 +67,7 @@ import {
   type WebhookLookupTarget,
 } from "./webhook-related-dialog";
 import { useColumnDrag } from "./use-column-drag";
-import { ColumnHeader } from "./column-header";
+import { ColumnHeader, NAME_HEADER_MENU } from "./column-header";
 import {
   SharedWebhookIcon,
   compareWebhookShared,
@@ -1277,12 +1277,13 @@ export function AllAutomationsTableClient({
               <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
                 <tr>
                   {/* Corner cell: frozen Name column, sticky on both axes.
-                      Name is PINNED, so its edit-mode menu offers Cycle Sort
-                      only: there is nothing to move it past and hiding it would
-                      leave the table with no identifying column. No drag
-                      handlers either, for the same reason. */}
+                      Name is PINNED: no drag handlers, and no move/hide items,
+                      because there is nothing to move it past and hiding the
+                      identifying column makes no sense. That left a Cycle-Sort-
+                      only menu, which is OFF (see NAME_HEADER_MENU), so in edit
+                      mode this cell keeps the plain click-to-sort behaviour. */}
                   <ColumnHeader
-                    editMode={editMode}
+                    editMode={editMode && NAME_HEADER_MENU}
                     sortKey="name"
                     activeSortKey={sortKey}
                     sortDir={sortDir}

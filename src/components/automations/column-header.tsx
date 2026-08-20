@@ -35,6 +35,25 @@ import {
 import { cn } from "@/lib/utils";
 import { DRAG_COL_ATTR, type ColumnDragHandlers } from "./use-column-drag";
 
+/** ⏸️ OFF SWITCH for the FROZEN NAME column's edit-mode menu, on BOTH tables.
+ *
+ *  Name is pinned, so its menu can only ever offer "Cycle Sort": there is
+ *  nothing to move it past, and hiding the identifying column makes no sense.
+ *  A one-item menu is strictly worse than the plain click it replaced, so the
+ *  user turned it off (2026-08-21) and clicking the Name header in edit mode
+ *  cycles the sort again, exactly as it does off edit mode.
+ *
+ *  ⚠️ TURNED OFF, NOT REMOVED, deliberately (user's word: "turn off"). Nothing
+ *  else was deleted: both Name headers still render a ColumnHeader and still
+ *  pass their sort props. Flip this to `true` to bring the menu back on both
+ *  pages at once, and add `onMoveLeft`/`onMoveRight`/`onHide` at the two call
+ *  sites if Name ever stops being pinned. Nothing else to change.
+ *
+ *  Mechanism: the call sites pass `editMode={editMode && NAME_HEADER_MENU}`, so
+ *  the cell simply takes ColumnHeader's off-edit-mode branch (plain <th>, click
+ *  cycles the sort) while the rest of the table stays in edit mode. */
+export const NAME_HEADER_MENU = false;
+
 // Interactive affordance shared by clickable headers (sortable ones off edit
 // mode, and EVERY header while edit mode is on).
 export const HEADER_INTERACTIVE =
