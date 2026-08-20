@@ -77,6 +77,11 @@ import {
   webhookLineTitle,
 } from "./shared-webhook-icon";
 import { compareTriage } from "@/lib/automations/dropdown-config";
+import {
+  useColumnDrag,
+  DRAG_COL_ATTR,
+  type ColumnDragHandlers,
+} from "./use-column-drag";
 import { confirmDialog } from "@/components/ui/confirm";
 import type {
   ChoiceOption,
@@ -154,11 +159,6 @@ function SortArrow({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {
 
 // Interactive affordance shared by clickable headers (sortable ones off edit
 // mode, and EVERY header while edit mode is on).
-/** How far the pointer must travel sideways before a press on a column header
- *  counts as a DRAG rather than a click. Small enough that dragging feels
- *  immediate, large enough that a normal click still opens the header menu. */
-const DRAG_THRESHOLD_PX = 5;
-
 const HEADER_INTERACTIVE =
   "cursor-pointer select-none transition-colors hover:bg-zinc-200 hover:text-zinc-700";
 
@@ -184,9 +184,7 @@ function ColumnHeader({
   onMoveRight,
   onHide,
   onResetOrder,
-  onDragBegin,
-  onDragMove,
-  onDragEnd,
+  makeDragHandlers,
   isDragging,
   dropEdge,
   dragKey,
@@ -209,11 +207,13 @@ function ColumnHeader({
   /** Provided only on DRAGGABLE headers (the reorderable middle columns, edit
    *  mode). Omit on the pinned Name column, which then keeps the plain
    *  click-opens-the-menu behaviour with no gesture handling at all. */
-  onDragBegin?: (clientX: number) => void;
-  onDragMove?: (clientX: number) => void;
-  /** `commit` is false when the gesture was cancelled (Escape, or the browser
-   *  taking the pointer away), so the column snaps back. */
-  onDragEnd?: (commit: boolean) => void;
+  /** Provided only on DRAGGABLE headers. Called with what a PLAIN CLICK should
+   *  do (open this header s menu), and returns the pointer handlers to spread
+   *  onto the cell. Omit on the pinned Name column, which then gets no gesture
+   *  handling at all. */
+  makeDragHandlers?: (
+    onPlainClick: (cell: HTMLTableCellElement) => void,
+  ) => ColumnDragHandlers;
   /** This column is the one being dragged: dim it. */
   isDragging?: boolean;
   /** Draw the insertion line on this cell's left or right edge, or neither. */
@@ -236,84 +236,21 @@ function ColumnHeader({
   const alignClass = className.includes("text-left") ? "text-left" : "text-center";
 
   // ── Click vs drag ──────────────────────────────────────────────────────────
-  // The header is BOTH a menu trigger and a drag handle, so the two have to be
-  // told apart from the same press. The menu is therefore CONTROLLED: we suppress
-  // Base UI's own open-on-press and decide ourselves on release.
+  // The header is BOTH a menu trigger and a drag handle, so the same press has to
+  // resolve into one or the other. The gesture itself lives in useColumnDrag; all
+  // that belongs here is what a PLAIN CLICK means.
   //
-  // Cancelling `pointerdown` is what buys us that control — per the Pointer
-  // Events spec it also suppresses the compatibility mouse events (mousedown /
-  // mouseup / click), so Base UI never sees a click and cannot open the menu
-  // behind our back. The costs, both handled below: we open the menu manually on
-  // a clean release, and we focus the button manually since the default focus is
-  // suppressed too. Keyboard is unaffected (Enter/Space fires a real click, which
-  // the controlled menu still honours), so the menu stays keyboard-reachable.
+  // The menu is therefore CONTROLLED: the hook cancels pointerdown (which, per
+  // the Pointer Events spec, also suppresses mousedown/mouseup/click), so Base UI
+  // never sees a click and cannot open the menu behind a drag. The two costs of
+  // that are paid right here — the open is re-created by hand, and so is the focus
+  // the cancelled default would have set. Keyboard is unaffected: Enter/Space
+  // fires a real click, which the controlled menu still honours.
   const [menuOpen, setMenuOpen] = useState(false);
-  const pressRef = useRef<number | null>(null);
-  const draggingRef = useRef(false);
-
-  const handlePointerDown = (e: React.PointerEvent<HTMLTableCellElement>) => {
-    if (!onDragBegin || e.button !== 0) return; // not draggable, or not a left press
-    e.preventDefault();
-    pressRef.current = e.clientX;
-    draggingRef.current = false;
-    // Pointer capture keeps the move/up events coming to THIS cell even once the
-    // pointer leaves it, which it immediately does when dragging sideways.
-    e.currentTarget.setPointerCapture(e.pointerId);
-  };
-  const handlePointerMove = (e: React.PointerEvent<HTMLTableCellElement>) => {
-    if (pressRef.current === null) return;
-    if (!draggingRef.current) {
-      // Only a deliberate sideways movement starts a drag; anything under the
-      // threshold stays a click, so the menu still opens normally.
-      if (Math.abs(e.clientX - pressRef.current) < DRAG_THRESHOLD_PX) return;
-      draggingRef.current = true;
-      onDragBegin?.(e.clientX);
-      return;
-    }
-    onDragMove?.(e.clientX);
-  };
-  const handlePointerUp = (e: React.PointerEvent<HTMLTableCellElement>) => {
-    if (pressRef.current === null) return;
-    const dragged = draggingRef.current;
-    pressRef.current = null;
-    draggingRef.current = false;
-    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
-      e.currentTarget.releasePointerCapture(e.pointerId);
-    }
-    if (dragged) {
-      onDragEnd?.(true);
-    } else {
-      // A plain click: do what the trigger would have done, plus the focus that
-      // the cancelled pointerdown suppressed.
-      e.currentTarget.querySelector("button")?.focus();
-      setMenuOpen(true);
-    }
-  };
-  const handlePointerCancel = () => {
-    if (pressRef.current === null) return;
-    const dragged = draggingRef.current;
-    pressRef.current = null;
-    draggingRef.current = false;
-    if (dragged) onDragEnd?.(false);
-  };
-
-  // Escape aborts an in-flight drag. This has to be a WINDOW listener: the
-  // cancelled pointerdown means the header never took focus, so a keydown on the
-  // cell itself would never fire. Kept in a ref so the effect does not need to
-  // re-subscribe on every render.
-  const cancelRef = useRef(handlePointerCancel);
-  // Updated in an effect, not during render (same pattern as handleRefreshRef).
-  useEffect(() => {
-    cancelRef.current = handlePointerCancel;
+  const dragHandlers = makeDragHandlers?.((cell) => {
+    cell.querySelector("button")?.focus();
+    setMenuOpen(true);
   });
-  useEffect(() => {
-    if (!isDragging) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") cancelRef.current();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [isDragging]);
 
   if (!editMode) {
     // The passed className already carries the interactive classes for sortable
@@ -339,7 +276,7 @@ function ColumnHeader({
   return (
     <th
       aria-sort={ariaSort}
-      data-mid-col={dragKey ?? undefined}
+      {...(dragKey ? { [DRAG_COL_ATTR]: dragKey } : {})}
       className={cn(
         className,
         "p-0",
@@ -353,10 +290,7 @@ function ColumnHeader({
         dropEdge === "right" &&
           "shadow-[inset_-2px_0_0_0_#2563eb,inset_0_-1px_0_0_#e4e4e7]",
       )}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerCancel}
+      {...dragHandlers}
     >
       <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
         <DropdownMenuTrigger
@@ -369,7 +303,7 @@ function ColumnHeader({
             HEADER_INTERACTIVE,
             // Draggable headers claim the touch gesture, otherwise a touch drag
             // just scrolls the table horizontally and never reorders.
-            onDragBegin && "touch-none",
+            makeDragHandlers && "touch-none",
           )}
         >
           {children}
@@ -1614,83 +1548,15 @@ export function AutomationsTableClient({
   // INSERTION LINE marks where it will land (an inset box-shadow on the
   // neighbouring cell edge, so there is no absolute positioning to keep in sync
   // with the horizontal scroll).
-  const [dragColId, setDragColId] = useState<MiddleColumnId | null>(null);
-  const [dropIndex, setDropIndex] = useState<number | null>(null);
-  const tableRef = useRef<HTMLTableElement>(null);
-  // Latest pointer x, read by the auto-scroll loop (which runs on its own rAF
-  // ticks, so it keeps scrolling while the pointer is HELD still at an edge).
-  const dragXRef = useRef(0);
-  const autoScrollRef = useRef<number | null>(null);
-
-  // Which insertion gap is the pointer nearest? Returns 0..n (n = after the last
-  // column). Measures the live header rects, so it is correct at any scroll
-  // position and after any hide/reorder.
-  const computeDropIndex = (clientX: number): number | null => {
-    const el = tableRef.current;
-    if (!el) return null;
-    const ths = Array.from(
-      el.querySelectorAll<HTMLElement>("th[data-mid-col]"),
-    );
-    if (ths.length === 0) return null;
-    for (let i = 0; i < ths.length; i++) {
-      const r = ths[i].getBoundingClientRect();
-      if (clientX < r.left + r.width / 2) return i;
-    }
-    return ths.length;
-  };
-
-  const stopAutoScroll = () => {
-    if (autoScrollRef.current !== null) {
-      cancelAnimationFrame(autoScrollRef.current);
-      autoScrollRef.current = null;
-    }
-  };
-
-  // Edge auto-scroll: without it you cannot drag a column from one end of a
-  // ~2000px-wide table to the other, since the target is off-screen.
-  const startAutoScroll = () => {
-    const EDGE = 56; // px from the container edge that triggers scrolling
-    const MAX = 18; // px per frame at the very edge
-    const tick = () => {
-      const box = scrollRef.current;
-      if (box) {
-        const r = box.getBoundingClientRect();
-        const x = dragXRef.current;
-        let dx = 0;
-        if (x < r.left + EDGE) dx = -MAX * Math.min(1, (r.left + EDGE - x) / EDGE);
-        else if (x > r.right - EDGE) dx = MAX * Math.min(1, (x - (r.right - EDGE)) / EDGE);
-        if (dx !== 0) {
-          box.scrollLeft += dx;
-          // The columns moved under the pointer, so re-measure the target gap.
-          setDropIndex(computeDropIndex(x));
-        }
-      }
-      autoScrollRef.current = requestAnimationFrame(tick);
-    };
-    stopAutoScroll();
-    autoScrollRef.current = requestAnimationFrame(tick);
-  };
-
-  const handleDragBegin = (id: MiddleColumnId, clientX: number) => {
-    dragXRef.current = clientX;
-    setDragColId(id);
-    setDropIndex(computeDropIndex(clientX));
-    startAutoScroll();
-  };
-  const handleDragMove = (clientX: number) => {
-    dragXRef.current = clientX;
-    setDropIndex(computeDropIndex(clientX));
-  };
-  const handleDragEnd = (commit: boolean) => {
-    stopAutoScroll();
-    if (commit && dragColId !== null && dropIndex !== null) {
-      moveColumnTo(dragColId, dropIndex);
-    }
-    setDragColId(null);
-    setDropIndex(null);
-  };
-  // Never leave a rAF loop running if the table unmounts mid-drag.
-  useEffect(() => stopAutoScroll, []);
+  // Drag gesture lives in the SHARED hook so this table and View All Lists
+  // cannot drift apart. The hook only reports "column X dropped at gap N"; the
+  // order + persistence stay here.
+  const {
+    tableRef,
+    dragId: dragColId,
+    headerHandlers,
+    dropEdgeFor,
+  } = useColumnDrag<MiddleColumnId>({ scrollRef, onCommit: moveColumnTo });
 
   // Reset every column to the default arrangement (persisted via the effect),
   // behind a confirm so an accidental click can't wipe a custom layout. Deferred
@@ -1744,19 +1610,11 @@ export function AutomationsTableClient({
         onHide={() => hideColumn(col.id)}
         onResetOrder={resetColumnOrder}
         dragKey={col.id}
-        onDragBegin={(x) => handleDragBegin(col.id, x)}
-        onDragMove={handleDragMove}
-        onDragEnd={handleDragEnd}
-        isDragging={dragColId === col.id}
-        dropEdge={
-          dropIndex === null || dragColId === null
-            ? null
-            : dropIndex === vIdx
-              ? "left"
-              : dropIndex === visibleMiddle.length && vIdx === visibleMiddle.length - 1
-                ? "right"
-                : null
+        makeDragHandlers={(onPlainClick) =>
+          headerHandlers(col.id, onPlainClick)
         }
+        isDragging={dragColId === col.id}
+        dropEdge={dropEdgeFor(vIdx, visibleMiddle.length)}
       >
         {inner}
       </ColumnHeader>
