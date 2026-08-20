@@ -66,7 +66,8 @@ import {
   WebhookRelatedDialog,
   type WebhookLookupTarget,
 } from "./webhook-related-dialog";
-import { useColumnDrag, DRAG_COL_ATTR } from "./use-column-drag";
+import { useColumnDrag } from "./use-column-drag";
+import { ColumnHeader } from "./column-header";
 import {
   SharedWebhookIcon,
   compareWebhookShared,
@@ -355,14 +356,19 @@ export function AllAutomationsTableClient({
       else next.add(id);
       return next;
     });
+  // Hide one column outright (the header menu's "Hide Column"); re-show it from
+  // the Columns control, same as the Per Website table.
+  const hideColumn = (id: AllColumnId) =>
+    setHiddenColumns((prev) => new Set(prev).add(id));
   const showAllColumns = () => setHiddenColumns(new Set());
   const hiddenCount = hiddenColumns.size;
 
   // ── Edit mode ──────────────────────────────────────────────────────────────
-  // Introduced here purely to gate column dragging, mirroring the Per Website
-  // page (where it also enables row-click-to-edit). The other edit-mode features
-  // are deliberately NOT wired up on this page yet — this page is read-only for
-  // now, so the toggle currently means "let me rearrange columns".
+  // Mirrors the Per Website page. On THIS page it gates column dragging and the
+  // per-column header menu (Cycle Sort / Move Left / Move Right / Hide Column).
+  // It does NOT yet gate row-click-to-edit or delete: this page is still
+  // read-only, and editing here needs a per-row platform + choice lists first
+  // (WorkflowDialog is per-platform, this table is cross-platform).
   const [editMode, setEditMode] = useState(false);
 
   // ── Column order ───────────────────────────────────────────────────────────
@@ -419,10 +425,10 @@ export function AllAutomationsTableClient({
     });
   };
 
-  // Reset the arrangement. Lives in the Columns dropdown rather than a header
-  // menu, because this page has no header menus yet (see the Edit mode note);
-  // it can move into one if those land. Behind a confirm so a stray click can't
-  // wipe a custom layout, deferred so the menu finishes closing first.
+  // Reset the arrangement. Lives in the Columns dropdown on BOTH tables, NOT in
+  // the header menu: it is a table-wide action, while that menu is per-column.
+  // Behind a confirm so a stray click can't wipe a custom layout, deferred so
+  // the menu finishes closing first.
   const resetColumnOrder = () => {
     setTimeout(async () => {
       if (
@@ -652,13 +658,6 @@ export function AllAutomationsTableClient({
   }, [filtered]);
 
 
-  const ariaSort = (key: SortKey) =>
-    sortKey === key
-      ? sortDir === "asc"
-        ? "ascending"
-        : "descending"
-      : "none";
-
   // Fit-to-viewport height for the table's scroll container (shared hook).
   const { ref: scrollRef, style: scrollStyle } = useFitViewportHeight();
 
@@ -674,61 +673,45 @@ export function AllAutomationsTableClient({
   // below was moved VERBATIM from the hardcoded table, so only their ORDER and
   // presence changed, not their rendering.
   const renderAllHeader = (col: AllColumnDef, vIdx: number) => {
-    const key = col.sortKey;
-    // Off edit mode the header behaves exactly as it always did: a plain click
-    // toggles the sort (or does nothing on the display-only columns), and there
-    // is no gesture handling at all.
-    if (!editMode) {
-      return key ? (
-        <th
-          key={col.id}
-          onClick={() => toggleSort(key)}
-          aria-sort={ariaSort(key)}
-          className={col.thClassName}
-        >
+    // The shared ColumnHeader owns BOTH behaviours (see ./column-header.tsx):
+    // off edit mode a plain click sorts, and on edit mode the cell becomes a
+    // drag handle whose plain click opens this options menu instead.
+    //
+    // Move Left / Right are expressed through `moveColumnTo`, which takes an
+    // INSERTION GAP rather than an index — hence `vIdx - 1` to go left but
+    // `vIdx + 2` to go right (the gap after the right-hand neighbour, since the
+    // gap at `vIdx + 1` is where the column already sits). Both are `undefined`
+    // at the ends, which HIDES the item rather than graying it.
+    return (
+      <ColumnHeader
+        key={col.id}
+        editMode={editMode}
+        sortKey={col.sortKey}
+        activeSortKey={sortKey}
+        sortDir={sortDir}
+        onCycleSort={toggleSort}
+        className={col.thClassName}
+        onMoveLeft={vIdx > 0 ? () => moveColumnTo(col.id, vIdx - 1) : undefined}
+        onMoveRight={
+          vIdx < visibleColumns.length - 1
+            ? () => moveColumnTo(col.id, vIdx + 2)
+            : undefined
+        }
+        onHide={() => hideColumn(col.id)}
+        dragKey={col.id}
+        makeDragHandlers={(onPlainClick) => headerHandlers(col.id, onPlainClick)}
+        isDragging={dragId === col.id}
+        dropEdge={dropEdgeFor(vIdx, visibleColumns.length)}
+      >
+        {col.sortKey ? (
           <span className="inline-flex items-center justify-center gap-1">
             {col.title}
-            <SortArrow active={sortKey === key} dir={sortDir} />
+            <SortArrow active={sortKey === col.sortKey} dir={sortDir} />
           </span>
-        </th>
-      ) : (
-        <th key={col.id} className={col.thClassName}>
-          {col.title}
-        </th>
-      );
-    }
-    // Edit mode: the cell becomes a drag handle. A plain click still sorts (the
-    // hook tells the two apart by a 5px threshold), so sorting is not lost while
-    // rearranging. Unlike the Per Website table there is no header menu here, so
-    // no controlled-menu handling is needed — the click just sorts.
-    const dropEdge = dropEdgeFor(vIdx, visibleColumns.length);
-    return (
-      <th
-        key={col.id}
-        {...{ [DRAG_COL_ATTR]: col.id }}
-        aria-sort={key ? ariaSort(key) : undefined}
-        className={cn(
-          col.thClassName,
-          "cursor-grab select-none touch-none",
-          dragId === col.id && "opacity-40",
-          // Insertion line as an INSET box-shadow on the cell edge, so it scrolls
-          // with the table and needs no absolute positioning. Listed together
-          // with the header's own bottom-border shadow, since a second
-          // box-shadow would otherwise replace it.
-          dropEdge === "left" &&
-            "shadow-[inset_2px_0_0_0_#2563eb,inset_0_-1px_0_0_#e4e4e7]",
-          dropEdge === "right" &&
-            "shadow-[inset_-2px_0_0_0_#2563eb,inset_0_-1px_0_0_#e4e4e7]",
+        ) : (
+          col.title
         )}
-        {...headerHandlers(col.id, () => {
-          if (key) toggleSort(key);
-        })}
-      >
-        <span className="inline-flex items-center justify-center gap-1">
-          {col.title}
-          {key && <SortArrow active={sortKey === key} dir={sortDir} />}
-        </span>
-      </th>
+      </ColumnHeader>
     );
   };
 
@@ -1265,9 +1248,9 @@ export function AllAutomationsTableClient({
         </DropdownMenu>
 
           {/* Edit mode toggle, matching the Per Website page. On THIS page it
-              currently gates one thing: dragging a column header to reorder.
-              The other edit-mode features (row-click-to-edit, delete, the header
-              menus) are not wired up here yet. */}
+              gates dragging a column header to reorder AND the per-column header
+              menu. Row-click-to-edit and delete are still not wired up here (see
+              the Edit mode note above the state). */}
           <div className="flex items-center gap-2 text-xs text-zinc-600">
             <Pencil className="h-3.5 w-3.5" />
             Edit mode
@@ -1293,17 +1276,24 @@ export function AllAutomationsTableClient({
             >
               <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
                 <tr>
-                  {/* Corner cell: frozen Name column, sticky on both axes. */}
-                  <th
-                    onClick={() => toggleSort("name")}
-                    aria-sort={ariaSort("name")}
+                  {/* Corner cell: frozen Name column, sticky on both axes.
+                      Name is PINNED, so its edit-mode menu offers Cycle Sort
+                      only: there is nothing to move it past and hiding it would
+                      leave the table with no identifying column. No drag
+                      handlers either, for the same reason. */}
+                  <ColumnHeader
+                    editMode={editMode}
+                    sortKey="name"
+                    activeSortKey={sortKey}
+                    sortDir={sortDir}
+                    onCycleSort={toggleSort}
                     className="sticky left-0 top-0 z-20 w-[400px] min-w-[400px] max-w-[400px] cursor-pointer select-none bg-zinc-50 px-3 py-2 text-left shadow-[inset_0_-1px_0_0_#e4e4e7,inset_-1px_0_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700"
                   >
                     <span className="inline-flex items-center gap-1">
                       Name
                       <SortArrow active={sortKey === "name"} dir={sortDir} />
                     </span>
-                  </th>
+                  </ColumnHeader>
                   {/* The middle columns, in ALL_COLUMNS order, minus any hidden
                       by the Columns control. */}
                   {visibleColumns.map((col, i) => renderAllHeader(col, i))}
