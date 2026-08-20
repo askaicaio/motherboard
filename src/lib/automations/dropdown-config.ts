@@ -407,6 +407,13 @@ export const TRIAGE_ORDER = [
 /** Comparator body for the Triage column, shared by the Per Website table and
  *  View All Lists so the two cannot drift. `dir` is 1 for asc, -1 for desc.
  *
+ *  ⚠️ NOTE THE `-dir` BELOW: this column is INVERTED on purpose (user request
+ *  2026-08-21). TRIAGE_ORDER still reads as the lifecycle (To Remove first), but
+ *  the FIRST click (▲) walks it from the OTHER end, so **Keep** lands on top and
+ *  To Remove sits at the bottom. The arrow glyphs were deliberately left alone,
+ *  so ▲ here does NOT mean "first element of TRIAGE_ORDER". Flip this back only
+ *  if asked — it is a stated preference, not an oversight.
+ *
  *  UNTRIAGED (null) rows always finish LAST in both directions — the blanks-last
  *  rule the date columns and Author follow. Unlike Webhook Links, untriaged really
  *  is a missing value here ("nobody has looked yet"), not a meaningful group, so
@@ -426,5 +433,5 @@ export function compareTriage(
   if (ra === null && rb === null) return 0;
   if (ra === null) return 1;
   if (rb === null) return -1;
-  return dir * (ra - rb);
+  return -dir * (ra - rb);
 }

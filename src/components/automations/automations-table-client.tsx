@@ -1082,12 +1082,19 @@ export function AutomationsTableClient({
         case "lastRunAt":
         case "lastErrorAt": {
           // Date sort with blanks ("-") ALWAYS last, regardless of direction.
+          //
+          // ⚠️ NOTE THE `-dir`: these columns are INVERTED on purpose (user
+          // request 2026-08-21). The FIRST click (▲) shows the NEWEST date at the
+          // top, not the oldest, because recent activity is what you actually
+          // want to see first. The arrow glyphs were deliberately left alone, so
+          // ▲ here does NOT mean "smallest first" the way it does on Name.
+          // Applies to Last Edited, Last Runtime AND Last Error, in both tables.
           const ta = time(a[sortKey]);
           const tb = time(b[sortKey]);
           if (ta === null && tb === null) return 0;
           if (ta === null) return 1;
           if (tb === null) return -1;
-          return dir * (ta - tb);
+          return -dir * (ta - tb);
         }
         case "webhooks":
           // Grouping toggle like Status (NOT a true ordering): asc puts rows with
