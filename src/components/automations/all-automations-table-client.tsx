@@ -943,7 +943,7 @@ export function AllAutomationsTableClient({
                         e.stopPropagation();
                         setShowingPurpose(r.purpose ?? "");
                       }}
-                      className="w-full cursor-pointer line-clamp-2 break-words text-left text-xs text-zinc-700 hover:text-zinc-900 hover:underline"
+                      className="w-full cursor-pointer line-clamp-2 break-words text-left text-xs text-zinc-700 hover:text-zinc-900 hover:underline disabled:pointer-events-none disabled:cursor-default disabled:no-underline"
                       style={{ WebkitLineClamp: purposeClamp[r.id] ?? 2 }}
                     >
                       {r.purpose}
@@ -977,7 +977,7 @@ export function AllAutomationsTableClient({
                         e.stopPropagation();
                         setShowingNotes(r.notes ?? "");
                       }}
-                      className="w-full cursor-pointer line-clamp-2 break-words text-left text-xs text-zinc-700 hover:text-zinc-900 hover:underline"
+                      className="w-full cursor-pointer line-clamp-2 break-words text-left text-xs text-zinc-700 hover:text-zinc-900 hover:underline disabled:pointer-events-none disabled:cursor-default disabled:no-underline"
                       style={{ WebkitLineClamp: purposeClamp[r.id] ?? 2 }}
                     >
                       {r.notes}
@@ -1103,7 +1103,7 @@ export function AllAutomationsTableClient({
                         })),
                       });
                     }}
-                    className="block w-full cursor-pointer truncate text-left text-xs text-blue-600 hover:underline"
+                    className="block w-full cursor-pointer truncate text-left text-xs text-blue-600 hover:underline disabled:pointer-events-none disabled:cursor-default disabled:no-underline"
                   >
                     {i === 0 && (
                       <span className="font-medium text-amber-600">
