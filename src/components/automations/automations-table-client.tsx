@@ -50,12 +50,8 @@ import {
   Filter,
   ChevronDown,
   ChevronLeft,
-  ArrowDownUp,
-  ArrowLeft,
-  ArrowRight,
   RotateCcw,
   Eye,
-  EyeOff,
   Columns3,
 
 } from "lucide-react";
@@ -79,11 +75,8 @@ import {
   webhookLineTitle,
 } from "./shared-webhook-icon";
 import { compareTriage } from "@/lib/automations/dropdown-config";
-import {
-  useColumnDrag,
-  DRAG_COL_ATTR,
-  type ColumnDragHandlers,
-} from "./use-column-drag";
+import { useColumnDrag } from "./use-column-drag";
+import { ColumnHeader } from "./column-header";
 import { confirmDialog } from "@/components/ui/confirm";
 import type {
   ChoiceOption,
@@ -159,199 +152,10 @@ function SortArrow({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {
   );
 }
 
-// Interactive affordance shared by clickable headers (sortable ones off edit
-// mode, and EVERY header while edit mode is on).
-const HEADER_INTERACTIVE =
-  "cursor-pointer select-none transition-colors hover:bg-zinc-200 hover:text-zinc-700";
-
-/** A column header cell.
- *
- *  OFF edit mode: behaves exactly as before. Sortable headers (a non-null
- *  `sortKey`) click to CYCLE the sort and carry the hover affordance (already in
- *  their `className`); the rest are inert plain headers.
- *
- *  ON edit mode: EVERY header instead hosts a full-width dropdown-trigger BUTTON
- *  inside the (still fixed-width) cell, so clicking it opens an options menu in
- *  place of the plain sort-cycle click. "Cycle Sort" runs the same sort cycle and
- *  is disabled on non-sortable columns; "Move Column Left/Right" are placeholders
- *  (labels only for now, behavior TBD). */
-function ColumnHeader({
-  className,
-  editMode,
-  sortKey,
-  activeSortKey,
-  sortDir,
-  onCycleSort,
-  onMoveLeft,
-  onMoveRight,
-  onHide,
-  makeDragHandlers,
-
-  isDragging,
-  dropEdge,
-  dragKey,
-  children,
-}: {
-  className: string;
-  editMode: boolean;
-  sortKey: SortKey | null;
-  activeSortKey: SortKey;
-  sortDir: "asc" | "desc";
-  onCycleSort: (key: SortKey) => void;
-  /** Provided (enabled) when the column can move that way; omit to disable the
-   *  item (pinned column, or already at the edge). */
-  onMoveLeft?: () => void;
-  onMoveRight?: () => void;
-  /** Hide this column; omit on non-hideable columns (e.g. Name). */
-  onHide?: () => void;
-
-  /** Provided only on DRAGGABLE headers (the reorderable middle columns, edit
-   *  mode). Omit on the pinned Name column, which then keeps the plain
-   *  click-opens-the-menu behaviour with no gesture handling at all. */
-  /** Provided only on DRAGGABLE headers. Called with what a PLAIN CLICK should
-   *  do (open this header s menu), and returns the pointer handlers to spread
-   *  onto the cell. Omit on the pinned Name column, which then gets no gesture
-   *  handling at all. */
-  makeDragHandlers?: (
-    onPlainClick: (cell: HTMLTableCellElement) => void,
-  ) => ColumnDragHandlers;
-  /** This column is the one being dragged: dim it. */
-  isDragging?: boolean;
-  /** Draw the insertion line on this cell's left or right edge, or neither. */
-  dropEdge?: "left" | "right" | null;
-  /** Column id, stamped as `data-mid-col` so the drag can measure the header
-   *  rects. Present on the reorderable middle columns only. */
-  dragKey?: string;
-  children: ReactNode;
-}) {
-  const ariaSort = sortKey
-    ? activeSortKey === sortKey
-      ? sortDir === "asc"
-        ? "ascending"
-        : "descending"
-      : "none"
-    : undefined;
-
-  // Mirror the cell's own text-align onto the trigger button so the label sits
-  // exactly where the static header puts it (Name is left, the rest center).
-  const alignClass = className.includes("text-left") ? "text-left" : "text-center";
-
-  // ── Click vs drag ──────────────────────────────────────────────────────────
-  // The header is BOTH a menu trigger and a drag handle, so the same press has to
-  // resolve into one or the other. The gesture itself lives in useColumnDrag; all
-  // that belongs here is what a PLAIN CLICK means.
-  //
-  // The menu is therefore CONTROLLED: the hook cancels pointerdown (which, per
-  // the Pointer Events spec, also suppresses mousedown/mouseup/click), so Base UI
-  // never sees a click and cannot open the menu behind a drag. The two costs of
-  // that are paid right here — the open is re-created by hand, and so is the focus
-  // the cancelled default would have set. Keyboard is unaffected: Enter/Space
-  // fires a real click, which the controlled menu still honours.
-  const [menuOpen, setMenuOpen] = useState(false);
-  const dragHandlers = makeDragHandlers?.((cell) => {
-    cell.querySelector("button")?.focus();
-    setMenuOpen(true);
-  });
-
-  if (!editMode) {
-    // The passed className already carries the interactive classes for sortable
-    // headers (and omits them for the rest), so behavior is byte-for-byte as before.
-    return (
-      <th
-        onClick={sortKey ? () => onCycleSort(sortKey) : undefined}
-        aria-sort={ariaSort}
-        className={className}
-      >
-        {children}
-      </th>
-    );
-  }
-
-  // Edit mode: keep the <th> a plain, fixed-width cell (p-0) and put a full-width
-  // BUTTON inside it as the dropdown trigger. Rendering the <th> ITSELF as the
-  // trigger (Base UI `render`) broke both behaviors: a non-button trigger opened
-  // only on press-and-hold (released = closed), and the <th> stopped honoring its
-  // fixed width once it became the menu's anchor. A real <button> (the standard
-  // trigger, matching every other dropdown) fixes both. The button carries the
-  // padding + interactive affordance; the cell keeps its width/sticky/shadow.
-  return (
-    <th
-      aria-sort={ariaSort}
-      {...(dragKey ? { [DRAG_COL_ATTR]: dragKey } : {})}
-      className={cn(
-        className,
-        "p-0",
-        isDragging && "opacity-40",
-        // Insertion line as an INSET box-shadow on the cell edge, so it scrolls
-        // with the table and needs no absolute positioning. The header cells
-        // already use inset shadows for their bottom border, so both are listed
-        // together here (a second box-shadow would override the first).
-        dropEdge === "left" &&
-          "shadow-[inset_2px_0_0_0_#2563eb,inset_0_-1px_0_0_#e4e4e7]",
-        dropEdge === "right" &&
-          "shadow-[inset_-2px_0_0_0_#2563eb,inset_0_-1px_0_0_#e4e4e7]",
-      )}
-      {...dragHandlers}
-    >
-      <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
-        <DropdownMenuTrigger
-          // `uppercase` re-applies the header text-transform that the <button>
-          // reset strips (Tailwind preflight sets `text-transform: none` on
-          // buttons), so the trigger label stays uppercase like the static <th>.
-          className={cn(
-            "block w-full px-3 py-2 uppercase",
-            alignClass,
-            HEADER_INTERACTIVE,
-            // Draggable headers claim the touch gesture, otherwise a touch drag
-            // just scrolls the table horizontally and never reorders.
-            makeDragHandlers && "touch-none",
-          )}
-        >
-          {children}
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="center" className="w-auto min-w-48">
-          {/* Cycle Sort, shown ONLY on sortable columns (hidden on the
-              display-only ones instead of appearing disabled/grayed). */}
-          {sortKey && (
-            <DropdownMenuItem onClick={() => onCycleSort(sortKey)}>
-              <ArrowDownUp />
-              Cycle Sort
-            </DropdownMenuItem>
-          )}
-          {/* Move the column left/right, shown ONLY when it can actually go that
-              way. So both are hidden on the pinned Name column (nothing to move),
-              and the edge item is hidden on the first / last movable column. */}
-          {onMoveLeft && (
-            <DropdownMenuItem onClick={onMoveLeft}>
-              <ArrowLeft />
-              Move Column Left
-            </DropdownMenuItem>
-          )}
-          {onMoveRight && (
-            <DropdownMenuItem onClick={onMoveRight}>
-              <ArrowRight />
-              Move Column Right
-            </DropdownMenuItem>
-          )}
-          {/* Hide this column (persists per page; re-show via the Columns
-              control). Last item in this menu since Reset moved out. */}
-          {onHide && (
-            <DropdownMenuItem onClick={onHide}>
-              <EyeOff />
-              Hide Column
-            </DropdownMenuItem>
-          )}
-          {/* NOTE "Reset Column Order" USED to live here. It moved into the
-              "Columns" dropdown 2026-08-20 (user request) so both tables keep it
-              in the same place — View All Lists has no header menu to hold it.
-              This menu is now per-COLUMN actions only; the table-wide one is in
-              the toolbar. */}
-
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </th>
-  );
-}
+// NOTE the shared `ColumnHeader` cell (and HEADER_INTERACTIVE) used to be
+// defined here. It moved to ./column-header.tsx 2026-08-21 when View All Lists
+// gained the same edit-mode header menu, so the click/drag/portal handling has
+// ONE home. Behaviour here is unchanged.
 
 // ---------------------------------------------------------------------------
 // Which table columns are AUTO-MANAGED per platform (auto-populated, so a manual
