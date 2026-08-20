@@ -45,6 +45,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Switch } from "@/components/ui/switch";
 import {
   Search,
   ExternalLink,
@@ -52,14 +53,17 @@ import {
   ChevronDown,
   ChevronLeft,
   Columns3,
+  Pencil,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { confirmDialog } from "@/components/ui/confirm";
 import { AUTOMATION_SITES } from "@/lib/automations/sites";
 import { ColorBadge } from "./color-badge";
 import {
   WebhookRelatedDialog,
   type WebhookLookupTarget,
 } from "./webhook-related-dialog";
+import { useColumnDrag, DRAG_COL_ATTR } from "./use-column-drag";
 import {
   SharedWebhookIcon,
   compareWebhookShared,
@@ -216,6 +220,8 @@ interface AllColumnDef {
 }
 
 const ALL_HIDDEN_KEY = "automations:all:hiddenColumns";
+const ALL_ORDER_KEY = "automations:all:columnOrder";
+
 const ALL_COLUMNS: AllColumnDef[] = [
   { id: "website", title: "Website", sortKey: "website", thClassName: ALL_TH_S_AUTO, width: 120 },
   { id: "status", title: "Status", sortKey: "status", thClassName: ALL_TH_S_AUTO, width: 110 },
@@ -236,6 +242,26 @@ const ALL_COLUMNS: AllColumnDef[] = [
 /** The frozen Name column's fixed width, added on top of the visible middle
  *  columns' widths to get the table min-width. */
 const ALL_NAME_WIDTH = 400;
+
+const ALL_DEFAULT_ORDER: AllColumnId[] = ALL_COLUMNS.map((c) => c.id);
+
+/** Reconcile a persisted order with the known columns: keep valid ids in their
+ *  saved order, drop unknown ones, and append any column added since the order
+ *  was saved. So a new column shows up (at the end) instead of vanishing. */
+function normalizeAllOrder(saved: unknown): AllColumnId[] {
+  const valid = new Set<string>(ALL_DEFAULT_ORDER);
+  const seen = new Set<string>();
+  const out: AllColumnId[] = [];
+  for (const id of Array.isArray(saved) ? saved : []) {
+    if (typeof id === "string" && valid.has(id) && !seen.has(id)) {
+      seen.add(id);
+      out.push(id as AllColumnId);
+    }
+  }
+  for (const id of ALL_DEFAULT_ORDER) if (!seen.has(id)) out.push(id);
+  return out;
+}
+
 
 
 
@@ -328,11 +354,92 @@ export function AllAutomationsTableClient({
     });
   const showAllColumns = () => setHiddenColumns(new Set());
   const hiddenCount = hiddenColumns.size;
-  // The middle columns actually rendered: the full list minus whatever the
-  // Columns control has hidden. Drives the header, the body cells, the
-  // empty-state colSpan, and the table min-width — so hiding a column now
-  // genuinely removes its cells instead of hiding them by CSS position.
-  const visibleColumns = ALL_COLUMNS.filter((c) => !hiddenColumns.has(c.id));
+
+  // ── Edit mode ──────────────────────────────────────────────────────────────
+  // Introduced here purely to gate column dragging, mirroring the Per Website
+  // page (where it also enables row-click-to-edit). The other edit-mode features
+  // are deliberately NOT wired up on this page yet — this page is read-only for
+  // now, so the toggle currently means "let me rearrange columns".
+  const [editMode, setEditMode] = useState(false);
+
+  // ── Column order ───────────────────────────────────────────────────────────
+  // User-controlled by dragging a header (edit mode only), persisted for THIS
+  // page. Name is pinned first and is not part of the order.
+  const [columnOrder, setColumnOrder] = useState<AllColumnId[]>(() => {
+    if (typeof window === "undefined") return ALL_DEFAULT_ORDER;
+    try {
+      const raw = localStorage.getItem(ALL_ORDER_KEY);
+      return normalizeAllOrder(raw ? JSON.parse(raw) : null);
+    } catch {
+      return ALL_DEFAULT_ORDER;
+    }
+  });
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      localStorage.setItem(ALL_ORDER_KEY, JSON.stringify(columnOrder));
+    } catch {
+      // ignore storage failures
+    }
+  }, [columnOrder]);
+
+  // The middle columns actually rendered: in the user's saved order, minus
+  // whatever the Columns control has hidden. Drives the header, the body cells,
+  // the empty-state colSpan, and the table min-width.
+  const orderedColumns = columnOrder
+    .map((id) => ALL_COLUMNS.find((c) => c.id === id))
+    .filter((c): c is AllColumnDef => !!c);
+  const visibleColumns = orderedColumns.filter((c) => !hiddenColumns.has(c.id));
+
+  // Drop a column at an ARBITRARY visible position. `to` is an insertion GAP in
+  // the VISIBLE list, so it is expressed relative to the visible ANCHOR and then
+  // applied to the full order (which also holds hidden ids), keeping hidden
+  // columns roughly where they were.
+  const moveColumnTo = (id: AllColumnId, to: number) => {
+    setColumnOrder((prev) => {
+      const visible = prev.filter((cid) => !hiddenColumns.has(cid));
+      const from = visible.indexOf(id);
+      if (from < 0) return prev;
+      // The gaps either side of the dragged column are where it already is.
+      if (to === from || to === from + 1) return prev;
+      const anchorId = to < visible.length ? visible[to] : null;
+      const next = prev.filter((cid) => cid !== id);
+      if (anchorId === null) {
+        const last = visible[visible.length - 1];
+        const anchor = last === id ? visible[visible.length - 2] : last;
+        const at = anchor ? next.indexOf(anchor) + 1 : next.length;
+        next.splice(at, 0, id);
+      } else {
+        next.splice(next.indexOf(anchorId), 0, id);
+      }
+      return next;
+    });
+  };
+
+  // Reset the arrangement. Lives in the Columns dropdown rather than a header
+  // menu, because this page has no header menus yet (see the Edit mode note);
+  // it can move into one if those land. Behind a confirm so a stray click can't
+  // wipe a custom layout, deferred so the menu finishes closing first.
+  const resetColumnOrder = () => {
+    setTimeout(async () => {
+      if (
+        !(await confirmDialog({
+          title: "Reset column order",
+          body: "Reset all columns to their default arrangement?",
+          confirmLabel: "Reset",
+          destructive: true,
+        }))
+      )
+        return;
+      setColumnOrder([...ALL_DEFAULT_ORDER]);
+    }, 0);
+  };
+
+  const isDefaultOrder = columnOrder.every(
+    (id, i) => id === ALL_DEFAULT_ORDER[i],
+  );
+
+
   // Summed from the VISIBLE columns (plus the frozen Name column) rather than
   // subtracted from a hardcoded base, so the number cannot drift out of step
   // when a column is added or removed.
@@ -545,34 +652,76 @@ export function AllAutomationsTableClient({
   // Fit-to-viewport height for the table's scroll container (shared hook).
   const { ref: scrollRef, style: scrollStyle } = useFitViewportHeight();
 
+  // Drag-to-reorder, gated on Edit mode below. Declared AFTER scrollRef because
+  // the hook needs it for edge auto-scroll.
+  const { tableRef, dragId, headerHandlers, dropEdgeFor } =
+    useColumnDrag<AllColumnId>({ scrollRef, onCommit: moveColumnTo });
+
+
   // ── Header + cell renderers ────────────────────────────────────────────────
   // Driven by ALL_COLUMNS, so the header row, the body row, the Columns control,
   // the colSpan and the min-width all agree by construction. Every cell's markup
   // below was moved VERBATIM from the hardcoded table, so only their ORDER and
   // presence changed, not their rendering.
-  const renderAllHeader = (col: AllColumnDef) => {
-    if (!col.sortKey) {
-      return (
+  const renderAllHeader = (col: AllColumnDef, vIdx: number) => {
+    const key = col.sortKey;
+    // Off edit mode the header behaves exactly as it always did: a plain click
+    // toggles the sort (or does nothing on the display-only columns), and there
+    // is no gesture handling at all.
+    if (!editMode) {
+      return key ? (
+        <th
+          key={col.id}
+          onClick={() => toggleSort(key)}
+          aria-sort={ariaSort(key)}
+          className={col.thClassName}
+        >
+          <span className="inline-flex items-center justify-center gap-1">
+            {col.title}
+            <SortArrow active={sortKey === key} dir={sortDir} />
+          </span>
+        </th>
+      ) : (
         <th key={col.id} className={col.thClassName}>
           {col.title}
         </th>
       );
     }
-    const key = col.sortKey;
+    // Edit mode: the cell becomes a drag handle. A plain click still sorts (the
+    // hook tells the two apart by a 5px threshold), so sorting is not lost while
+    // rearranging. Unlike the Per Website table there is no header menu here, so
+    // no controlled-menu handling is needed — the click just sorts.
+    const dropEdge = dropEdgeFor(vIdx, visibleColumns.length);
     return (
       <th
         key={col.id}
-        onClick={() => toggleSort(key)}
-        aria-sort={ariaSort(key)}
-        className={col.thClassName}
+        {...{ [DRAG_COL_ATTR]: col.id }}
+        aria-sort={key ? ariaSort(key) : undefined}
+        className={cn(
+          col.thClassName,
+          "cursor-grab select-none touch-none",
+          dragId === col.id && "opacity-40",
+          // Insertion line as an INSET box-shadow on the cell edge, so it scrolls
+          // with the table and needs no absolute positioning. Listed together
+          // with the header's own bottom-border shadow, since a second
+          // box-shadow would otherwise replace it.
+          dropEdge === "left" &&
+            "shadow-[inset_2px_0_0_0_#2563eb,inset_0_-1px_0_0_#e4e4e7]",
+          dropEdge === "right" &&
+            "shadow-[inset_-2px_0_0_0_#2563eb,inset_0_-1px_0_0_#e4e4e7]",
+        )}
+        {...headerHandlers(col.id, () => {
+          if (key) toggleSort(key);
+        })}
       >
         <span className="inline-flex items-center justify-center gap-1">
           {col.title}
-          <SortArrow active={sortKey === key} dir={sortDir} />
+          {key && <SortArrow active={sortKey === key} dir={sortDir} />}
         </span>
       </th>
     );
   };
+
 
   const renderAllCell = (id: AllColumnId, r: AllAutomationRow) => {
     switch (id) {
@@ -982,6 +1131,17 @@ export function AllAutomationsTableClient({
             >
               Show all columns
             </DropdownMenuItem>
+            {/* Reset the drag-reordered arrangement. Lives here because this page
+                has no header menus (the Per Website table keeps its copy in the
+                header dropdown). Greyed when already default, mirroring the
+                "Show all columns" item above. */}
+            <DropdownMenuItem
+              disabled={isDefaultOrder}
+              onClick={resetColumnOrder}
+            >
+              Reset column order
+            </DropdownMenuItem>
+
           </DropdownMenuContent>
         </DropdownMenu>
           {/* Filter menu (trigger keeps the Export CSV outline look). */}
@@ -1090,6 +1250,16 @@ export function AllAutomationsTableClient({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+
+          {/* Edit mode toggle, matching the Per Website page. On THIS page it
+              currently gates one thing: dragging a column header to reorder.
+              The other edit-mode features (row-click-to-edit, delete, the header
+              menus) are not wired up here yet. */}
+          <div className="flex items-center gap-2 text-xs text-zinc-600">
+            <Pencil className="h-3.5 w-3.5" />
+            Edit mode
+            <Switch checked={editMode} onCheckedChange={setEditMode} />
+          </div>
         </div>
       </div>
 
@@ -1104,6 +1274,7 @@ export function AllAutomationsTableClient({
                 header (Option B), frozen Name column, horizontal scroll once the
                 columns exceed the card width. */}
             <table
+              ref={tableRef}
               className="w-full text-sm"
               style={{ minWidth: tableMinWidth }}
             >
@@ -1122,7 +1293,8 @@ export function AllAutomationsTableClient({
                   </th>
                   {/* The middle columns, in ALL_COLUMNS order, minus any hidden
                       by the Columns control. */}
-                  {visibleColumns.map(renderAllHeader)}
+                  {visibleColumns.map((col, i) => renderAllHeader(col, i))}
+
                 </tr>
               </thead>
               <tbody>
