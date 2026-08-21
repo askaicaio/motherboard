@@ -168,6 +168,70 @@ Over to you for the handover.
 > Message** — pick the channel, and include `<@U08K1UTDXCP>` in the text to
 > @-mention Katie.
 
+## Slack notifications
+
+Each path can also post to Slack. Paths A and B tag **Dani** (she runs the
+session); Path C tags **Katie**.
+
+> **Replace `DANI_MEMBER_ID`** with Dani's Slack member ID. To find it: in Slack,
+> click her profile picture -> **View full profile** -> the **⋮ (More)** button ->
+> **Copy member ID**. It looks like `U01ABC23DEF`. Katie's is already filled in.
+
+### Path A — AI Leadership Kickstart Day (add a Slack step after the Gmail step)
+
+```
+:zap: New AI Kickstart purchase
+<@DANI_MEMBER_ID>
+
+Client: {{buyer_name}} ({{buyer_email}})
+Amount: {{amount_formatted}}
+Referred by: {{affiliate_code}}
+
+Over to you to schedule the session.
+```
+
+### Path B — ROI Blueprint (add a Slack step after the Gmail step)
+
+```
+:bar_chart: New ROI Blueprint purchase
+<@DANI_MEMBER_ID>
+
+Client: {{buyer_name}} ({{buyer_email}})
+Amount: {{amount_formatted}}
+Referred by: {{affiliate_code}}
+
+Over to you to schedule the session.
+```
+
+### Path C — CAIO Certification
+
+```
+:mortar_board: New CAIO Certification purchase
+<@U08K1UTDXCP>
+
+Client: {{buyer_name}} ({{buyer_email}})
+Amount: {{amount_formatted}}
+Referred by: {{affiliate_code}}
+
+Over to you for the handover.
+```
+
+### Bot icon — use a direct image URL, not a Google Drive link
+
+Slack's **Bot Icon** field needs a URL that returns the actual image bytes. A
+Google Drive share link (`drive.google.com/file/d/.../view?usp=sharing`) returns
+an HTML *web page*, so Slack shows no icon. Use the CAIO mark already hosted on
+the affiliate site:
+
+```
+https://affiliates.chiefaiofficer.com/apple-icon-caio.png
+```
+
+(180x180 PNG. There is also `/icon-caio.png`, but at 64x64 it looks blurry as an
+avatar.)
+
+**Bot Name:** `CAIO Affiliate Program`
+
 ## Step 5 — Turn it on
 
 Test each path, then **Publish** the Zap.
