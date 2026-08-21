@@ -384,9 +384,11 @@ export function SettingsClient({
               </CardTitle>
               <p className="mt-1 text-xs text-zinc-500">
                 Edit the name and list value, set a per-program commission
-                override (blank = use default), toggle availability, and wire up
-                Stripe. The slug and Stripe IDs stay fixed. Each row saves on its
-                own.
+                override (blank = use default), and toggle availability. Each row
+                saves on its own. Changing the list value also updates what
+                Stripe charges — a new Stripe price is created and the old one
+                retired, so the advertised price and the checkout price can never
+                disagree. The slug stays fixed.
               </p>
             </div>
             <div className="flex shrink-0 items-center gap-2">
@@ -857,12 +859,19 @@ function ProgramRow({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
         toast.error(data.error || "Failed to save program");
         return;
       }
-      toast.success(`Saved ${program.name}`);
+      // An amount change mints a NEW Stripe price (unit_amount is immutable),
+      // so reflect the new id in this row immediately.
+      if (data.program?.stripePriceId) {
+        setStripePriceId(data.program.stripePriceId);
+      }
+      toast.success(`Saved ${trimmedName}`, {
+        description: data.stripeNote ?? undefined,
+      });
       router.refresh();
     } catch {
       toast.error("Network error saving program");
