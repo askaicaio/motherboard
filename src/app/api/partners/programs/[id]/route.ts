@@ -99,16 +99,19 @@ export async function PATCH(
     patch.listValueCents = body.listValueCents;
 
   const nameChanged = body.name !== undefined && body.name !== existing.name;
-  const amountChanged =
-    body.listValueCents !== undefined &&
-    body.listValueCents !== existing.listValueCents;
+  // Note we do NOT compare against existing.listValueCents. The check below is
+  // against what Stripe ACTUALLY charges, so a plain Save also heals a product
+  // that is already divergent (e.g. the amount was edited before this route
+  // synced Stripe). That makes Save idempotent and self-correcting.
+  const amountSubmitted = body.listValueCents !== undefined;
+  const targetAmount = body.listValueCents ?? existing.listValueCents;
 
   // ── Reconcile Stripe BEFORE persisting, so the DB can never advertise a
   // price the customer won't be charged. Sales-led programs and programs not
   // yet wired to Stripe have nothing to reconcile.
   let stripeNote: string | null = null;
   if (
-    (nameChanged || amountChanged) &&
+    (nameChanged || amountSubmitted) &&
     !existing.salesLed &&
     existing.stripeProductId
   ) {
@@ -121,7 +124,7 @@ export async function PATCH(
         });
       }
 
-      if (amountChanged && existing.stripePriceId) {
+      if (amountSubmitted && existing.stripePriceId) {
         // Preserve the existing price's currency, and refuse to silently
         // convert a recurring price into a one-time one.
         const oldPrice = await stripe.prices.retrieve(existing.stripePriceId);
@@ -135,24 +138,35 @@ export async function PATCH(
           );
         }
 
-        // unit_amount is immutable — create a replacement price.
-        const newPrice = await stripe.prices.create({
-          product: existing.stripeProductId,
-          currency: oldPrice.currency || "usd",
-          unit_amount: body.listValueCents!,
-        });
+        // Only mint a new price when Stripe's live amount actually differs.
+        if (oldPrice.unit_amount !== targetAmount) {
+          // unit_amount is immutable — create a replacement price.
+          const newPrice = await stripe.prices.create({
+            product: existing.stripeProductId,
+            currency: oldPrice.currency || "usd",
+            unit_amount: targetAmount,
+          });
 
-        // Make it the product's default, then retire the old price so nothing
-        // can start a new checkout at the stale amount. In-flight sessions
-        // created with the old price still complete normally.
-        await stripe.products.update(existing.stripeProductId, {
-          default_price: newPrice.id,
-        });
-        await stripe.prices.update(existing.stripePriceId, { active: false });
+          // Make it the product's default, then retire the old price so nothing
+          // can start a new checkout at the stale amount. In-flight sessions
+          // created with the old price still complete normally.
+          await stripe.products.update(existing.stripeProductId, {
+            default_price: newPrice.id,
+          });
+          await stripe.prices.update(existing.stripePriceId, { active: false });
 
-        patch.stripePriceId = newPrice.id;
-        stripeNote = `Stripe price updated — new price ${newPrice.id} created, previous price retired.`;
-      } else if (amountChanged && !existing.stripePriceId) {
+          patch.stripePriceId = newPrice.id;
+          const was = ((oldPrice.unit_amount ?? 0) / 100).toLocaleString(
+            "en-US",
+            { style: "currency", currency: "USD" },
+          );
+          const now = (targetAmount / 100).toLocaleString("en-US", {
+            style: "currency",
+            currency: "USD",
+          });
+          stripeNote = `Stripe now charges ${now} (was ${was}). New price created, old one retired.`;
+        }
+      } else if (amountSubmitted && !existing.stripePriceId) {
         stripeNote =
           'Saved. This product has no Stripe price yet — use "Create in Stripe" to wire it up.';
       }
