@@ -173,15 +173,15 @@ Over to you for the handover.
 Each path can also post to Slack. Paths A and B tag **Dani** (she runs the
 session); Path C tags **Katie**.
 
-> **Replace `DANI_MEMBER_ID`** with Dani's Slack member ID. To find it: in Slack,
-> click her profile picture -> **View full profile** -> the **⋮ (More)** button ->
-> **Copy member ID**. It looks like `U01ABC23DEF`. Katie's is already filled in.
+> Member IDs are already filled in: Dani is `U09QWP7G4F2`, Katie is
+> `U08K1UTDXCP`. To find anyone else's: click their profile picture ->
+> **View full profile** -> **⋮ (More)** -> **Copy member ID**.
 
 ### Path A — AI Leadership Kickstart Day (add a Slack step after the Gmail step)
 
 ```
 :zap: New AI Kickstart purchase
-<@DANI_MEMBER_ID>
+<@U09QWP7G4F2>
 
 Client: {{buyer_name}} ({{buyer_email}})
 Amount: {{amount_formatted}}
@@ -194,7 +194,7 @@ Over to you to schedule the session.
 
 ```
 :bar_chart: New ROI Blueprint purchase
-<@DANI_MEMBER_ID>
+<@U09QWP7G4F2>
 
 Client: {{buyer_name}} ({{buyer_email}})
 Amount: {{amount_formatted}}
@@ -220,15 +220,15 @@ Over to you for the handover.
 
 Slack's **Bot Icon** field needs a URL that returns the actual image bytes. A
 Google Drive share link (`drive.google.com/file/d/.../view?usp=sharing`) returns
-an HTML *web page*, so Slack shows no icon. Use the CAIO mark already hosted on
-the affiliate site:
+an HTML *web page*, so Slack shows no icon. Use the white-on-purple CAIO mark
+already hosted on the affiliate site:
 
 ```
-https://affiliates.chiefaiofficer.com/apple-icon-caio.png
+https://affiliates.chiefaiofficer.com/caio-logo-purple.png
 ```
 
-(180x180 PNG. There is also `/icon-caio.png`, but at 64x64 it looks blurry as an
-avatar.)
+512x512 PNG on the brand purple (#6749E3) - exactly Slack's recommended avatar
+size, already deployed, nothing to upload.
 
 **Bot Name:** `CAIO Affiliate Program`
 
