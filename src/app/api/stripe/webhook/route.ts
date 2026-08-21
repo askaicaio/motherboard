@@ -28,6 +28,7 @@ import { ingestConversion } from "@/lib/partners/ingest";
 import { resolveProgram } from "@/lib/partners/queries";
 import { reverseConversion, createClawback } from "@/lib/partners/lifecycle";
 import { sendTemplatedEmail } from "@/lib/email/render";
+import { sendPurchaseWebhook } from "@/lib/integrations/zapier";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -106,41 +107,83 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     currency: (session.currency || "usd").toUpperCase(),
   });
 
-  // Fire onboarding emails exactly once per NEW paid purchase. idempotentReplay
-  // means this was a Stripe redelivery (the row already existed) — skip so we
-  // don't double-email. A "rejected" conversion (unmatched affiliate) is still a
-  // real purchase that needs onboarding, so we do NOT gate on status.
+  // Fan out exactly once per NEW paid purchase. idempotentReplay means this was
+  // a Stripe redelivery (the row already existed) — skip so we don't double-send.
+  // A "rejected" conversion (unmatched affiliate) is still a real purchase that
+  // needs onboarding, so we do NOT gate on status.
   if (result.ok && !result.idempotentReplay) {
-    await sendPurchaseEmails(session, programRef, affId);
+    await handleNewPurchase(session, programRef, affId);
   }
   // (The $1 test product is auto-refunded 95% ~1 day later by the
   // test-product-refunds cron — not here — so testers see the charge settle
   // first, then the partial refund.)
 }
 
+type ResolvedProgram = Awaited<ReturnType<typeof resolveProgram>> | null;
+
 /**
- * On a new paid purchase, email (a) the buyer a generic branded confirmation and
- * (b) the handover team so they can onboard the client. Best-effort: wrapped so a
- * mail/DB hiccup can never throw and make Stripe retry an already-ingested event.
+ * Everything that fans out from a NEW paid purchase: the buyer + handover
+ * emails, and the Zapier webhook that drives the no-code automations (Dani's
+ * personal per-product emails, the Slack ping for the CAIO cert). The program is
+ * resolved ONCE here and shared by both. Each step is independently best-effort
+ * — one failing must not skip the others, and none may throw, since a throw
+ * returns 500 and makes Stripe retry an already-ingested event.
+ */
+async function handleNewPurchase(
+  session: Stripe.Checkout.Session,
+  programRef: string,
+  affId: string | null,
+) {
+  let program: ResolvedProgram = null;
+  try {
+    program = await resolveProgram(programRef);
+  } catch (err) {
+    console.error("[stripe] resolveProgram failed:", err);
+  }
+
+  await sendPurchaseEmails(session, program, affId);
+  await sendPurchaseZap(session, program, programRef, affId);
+}
+
+/** Buyer's display name + first name from the Stripe session (may be absent). */
+function buyerNames(session: Stripe.Checkout.Session): {
+  buyerName: string;
+  firstName: string;
+} {
+  const buyerName = session.customer_details?.name || "";
+  return { buyerName, firstName: buyerName.split(" ")[0] || "there" };
+}
+
+/** Amount actually paid, formatted for display (e.g. "$12,000.00"). */
+function paidAmount(session: Stripe.Checkout.Session): {
+  currency: string;
+  amount: string;
+} {
+  const currency = (session.currency || "usd").toUpperCase();
+  return {
+    currency,
+    amount: new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency,
+    }).format((session.amount_total ?? 0) / 100),
+  };
+}
+
+/**
+ * Email (a) the buyer a generic branded confirmation and (b) the handover team
+ * so they can onboard the client. Best-effort — never throws.
  */
 async function sendPurchaseEmails(
   session: Stripe.Checkout.Session,
-  programRef: string,
+  program: ResolvedProgram,
   affId: string | null,
 ) {
   try {
     const buyerEmail = session.customer_details?.email || "";
     if (!buyerEmail) return;
 
-    const buyerName = session.customer_details?.name || "";
-    const firstName = buyerName.split(" ")[0] || "there";
-    const currency = (session.currency || "usd").toUpperCase();
-    const amount = new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency,
-    }).format((session.amount_total ?? 0) / 100);
-
-    const program = await resolveProgram(programRef);
+    const { buyerName, firstName } = buyerNames(session);
+    const { amount } = paidAmount(session);
     const programName = program?.name ?? "your CAIO program";
 
     // (a) Buyer confirmation.
@@ -162,6 +205,46 @@ async function sendPurchaseEmails(
     }
   } catch (err) {
     console.error("[stripe] purchase emails failed:", err);
+  }
+}
+
+/**
+ * Notify Zapier of the purchase so the no-code Zap can branch on program_slug
+ * (Dani's Kickstart / ROI Blueprint emails, the CAIO-cert Slack ping to Katie).
+ * sendPurchaseWebhook is itself best-effort + timeout-bounded; this wrapper only
+ * guards the payload assembly.
+ */
+async function sendPurchaseZap(
+  session: Stripe.Checkout.Session,
+  program: ResolvedProgram,
+  programRef: string,
+  affId: string | null,
+) {
+  try {
+    const buyerEmail = session.customer_details?.email || "";
+    if (!buyerEmail) return;
+
+    const { buyerName, firstName } = buyerNames(session);
+    const { amount, currency } = paidAmount(session);
+
+    await sendPurchaseWebhook({
+      event: "purchase.completed",
+      occurred_at: new Date().toISOString(),
+      first_name: firstName,
+      buyer_name: buyerName,
+      buyer_email: buyerEmail,
+      program_name: program?.name ?? "CAIO program",
+      // Fall back to the raw ref so the Zap still sees something identifying.
+      program_slug: program?.slug ?? programRef,
+      amount_formatted: amount,
+      amount_cents: session.amount_total ?? 0,
+      currency,
+      affiliate_code: affId || "",
+      is_test_purchase: program?.isSample ?? false,
+      stripe_session_id: session.id,
+    });
+  } catch (err) {
+    console.error("[stripe] purchase zap failed:", err);
   }
 }
 
