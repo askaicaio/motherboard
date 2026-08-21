@@ -30,7 +30,7 @@ export interface PurchaseWebhookPayload {
   amount_formatted: string;
   amount_cents: number;
   currency: string;
-  /** Referring affiliate's code, or "" when the purchase was direct. */
+  /** Referring affiliate's code, or "direct" when nobody referred them. */
   affiliate_code: string;
   /** True for the $1 sample/test product — lets a Zap path filter test runs. */
   is_test_purchase: boolean;

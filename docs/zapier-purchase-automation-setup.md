@@ -33,7 +33,7 @@ you can drop into an email.
 | `amount_formatted` | `$15,000.00` | What they actually paid |
 | `amount_cents` | `1500000` | Same number, for maths |
 | `currency` | `USD` | |
-| `affiliate_code` | `DEMO2026` | Empty string when it was a direct purchase |
+| `affiliate_code` | `DEMO2026` | The literal word `direct` when nobody referred them |
 | `is_test_purchase` | `false` | `true` only for the $1 Test Product |
 | `stripe_session_id` | `cs_live_a1b2…` | Useful for tracing back to Stripe |
 

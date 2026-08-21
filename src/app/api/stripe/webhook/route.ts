@@ -239,7 +239,9 @@ async function sendPurchaseZap(
       amount_formatted: amount,
       amount_cents: session.amount_total ?? 0,
       currency,
-      affiliate_code: affId || "",
+      // Sentinel rather than "" so Zapier/Slack renders something readable
+      // ("Referred by: direct") instead of a blank.
+      affiliate_code: affId || "direct",
       is_test_purchase: program?.isSample ?? false,
       stripe_session_id: session.id,
     });
