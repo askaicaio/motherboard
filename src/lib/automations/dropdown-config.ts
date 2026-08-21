@@ -168,6 +168,11 @@ export interface DropdownColumnConfig {
    *  e.g. "Tag" for GHL Tags, "Form" for GHL Forms, "Author" for Author,
    *  "Trigger Event" for Trigger Event. Only used by the rich tables. */
   rowLabel?: string;
+  /** Show a "Relationships" column on this column's Config table: the
+   *  automations that selected each choice, with a browse-all lookup. GHL Tags
+   *  only today (Webhook Links has its own descriptor). Requires the page loader
+   *  to populate `relatedAutomations` for this column. */
+  hasRelationships?: boolean;
 }
 
 // Order here is the top-to-bottom order the tables render on the Config page.
@@ -266,6 +271,10 @@ export const DROPDOWN_COLUMNS: DropdownColumnConfig[] = [
     statusGrouped: true,
     hasNotes: true,
     rowLabel: "Tag",
+    // Tags get shared between automations, so this table shows who uses each one
+    // (added 2026-08-21, same lookup as Webhook Links). Makes it a 4-column
+    // table: Tag | Status | Relationships | Notes.
+    hasRelationships: true,
   },
   {
     // Form / Status / Notes table mirroring GHL Tags (hasStatus + hasNotes); the
@@ -317,6 +326,10 @@ export interface DropdownChoiceRow {
   /** Color-bearing columns only (Trigger Event, Author, Automation Tags): the
    *  chosen text colour key. Null/undefined otherwise. */
   textColor?: string | null;
+  /** Relationship-bearing columns only (GHL Tags): the automations that selected
+   *  this choice (reverse lookup, name order), for the Config page's
+   *  Relationships cell. Mirrors WebhookChoiceRow.relatedAutomations. */
+  relatedAutomations?: RelatedAutomation[];
 }
 
 /** A single webhook URL choice. */

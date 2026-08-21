@@ -102,9 +102,15 @@ export default async function AllAutomationsPage() {
   );
   // GHL Tags + GHL Forms (multi-select, GHL rows only): each row's selected
   // choices. Non-GHL rows simply have none (the cell shows a muted "-").
+  //
+  // GHL Tags passes withSharedCounts=true so each tag carries how many OTHER
+  // automations use it, feeding the passive share icon + the shared-first sort
+  // (same treatment Webhook Links gets). GHL Forms does NOT, having no sharing
+  // indicator, and the flag costs an extra aggregate query.
   const ghlTagsByAutomation = await getSelectionsByColumn(
     "ghl_tags",
     baseRows.map((r) => r.id),
+    true,
   );
   const ghlFormsByAutomation = await getSelectionsByColumn(
     "ghl_forms",

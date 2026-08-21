@@ -70,10 +70,10 @@ import {
   type RelatedLookupTarget,
 } from "./related-automations-dialog";
 import {
-  SharedWebhookIcon,
-  compareWebhookShared,
-  webhookLineTitle,
-} from "./shared-webhook-icon";
+  SharedItemIcon,
+  compareShared,
+  sharedItemTitle,
+} from "./shared-item-icon";
 import { compareTriage } from "@/lib/automations/dropdown-config";
 import { useColumnDrag } from "./use-column-drag";
 import { ColumnHeader, NAME_HEADER_MENU } from "./column-header";
@@ -118,6 +118,7 @@ type SortKey =
   | "lastErrorAt"
   | "author"
   | "webhooks"
+  | "ghlTags"
   | "triage";
 
 
@@ -344,6 +345,8 @@ const TH_PLAIN_160 =
   "sticky top-0 z-10 w-[160px] min-w-[160px] max-w-[160px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]";
 const TH_PLAIN_180 =
   "sticky top-0 z-10 w-[180px] min-w-[180px] max-w-[180px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]";
+const TH_SORTABLE_180 =
+  "sticky top-0 z-10 w-[180px] min-w-[180px] max-w-[180px] cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700";
 const TH_SORTABLE_240 =
   "sticky top-0 z-10 w-[240px] min-w-[240px] max-w-[240px] cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700";
 const TH_PLAIN_240 =
@@ -444,8 +447,8 @@ const MIDDLE_COLUMNS: MiddleColumnDef[] = [
   {
     id: "ghlTags",
     title: "GHL Tags",
-    sortKey: null,
-    thClassName: TH_PLAIN_180,
+    sortKey: "ghlTags",
+    thClassName: TH_SORTABLE_180,
     platforms: ["ghl", "ghl-b2b"],
     exportValue: (r) => (r.ghlTags ?? []).map((t) => t.value).join(", "),
   },
@@ -647,11 +650,12 @@ export function AutomationsTableClient({
   // Mirrors showingPurpose. (The per-row clamp is shared: Notes reuses
   // purposeClamp since both cells share the Name-cell-driven row height.)
   const [showingNotes, setShowingNotes] = useState<string | null>(null);
-  // The Webhook Links "related automations" lookup target (null = closed). Set
-  // when the gold count in a webhook cell is clicked; drives RelatedAutomationsDialog.
-  const [webhookLookup, setWebhookLookup] = useState<RelatedLookupTarget | null>(
-    null,
-  );
+  // The "related automations" lookup target (null = closed). ONE piece of state
+  // for BOTH the Webhook Links and GHL Tags cells: only one lookup can be open
+  // at a time, and the dialog is column-generic (the target's `kind` tells it
+  // which). Set when any line in either cell is clicked.
+  const [relatedLookup, setRelatedLookup] =
+    useState<RelatedLookupTarget | null>(null);
   // Adaptive Purpose clamp: how many lines of the Purpose blurb to show per row
   // (keyed by row id, default 2). Taller rows (a long Name that wraps) get more
   // lines so the blurb fills the extra height instead of leaving a gap under a
@@ -906,7 +910,11 @@ export function AutomationsTableClient({
           // Rows with NO webhooks always sink to the bottom in BOTH directions,
           // the same blanks-last rule the date + Author columns use. Ties keep
           // their name order (Array#sort is stable; rows arrive name-ascending).
-          return compareWebhookShared(a, b, dir);
+          return compareShared(a.webhooks, b.webhooks, dir);
+        case "ghlTags":
+          // Identical grouping toggle to Webhook Links (see above), on the GHL
+          // Tags cell instead. Rows with no tags sink to the bottom either way.
+          return compareShared(a.ghlTags, b.ghlTags, dir);
         case "triage":
           // Ordered by the TRIAGE LIFECYCLE, not alphabetically (see TRIAGE_ORDER):
           // To Remove -> To Remove? -> Unknown -> Keep? -> Keep. Untriaged rows
@@ -1623,19 +1631,37 @@ export function AutomationsTableClient({
                 className="overflow-hidden"
                 style={{ maxHeight: (purposeClamp[r.id] ?? 2) * 16 }}
               >
+                {/* Every tag line opens the "related automations" lookup (not
+                    just the gold count), exactly like the Webhook Links cell, so
+                    the whole cell is a click target. Disabled in edit mode +
+                    stopPropagation so the row's edit-click wins there. */}
                 {r.ghlTags.map((t, i, arr) => (
-                  <div
+                  <button
                     key={t.id}
-                    title={t.value}
-                    className="truncate text-xs text-zinc-700"
+                    type="button"
+                    disabled={editMode}
+                    title={sharedItemTitle(t.value, t.sharedWith)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setRelatedLookup({
+                        kind: "ghlTag",
+                        anchor: { id: r.id, name: r.name, platform },
+                        items: arr.map((tag) => ({
+                          id: tag.id,
+                          label: tag.value,
+                        })),
+                      });
+                    }}
+                    className="block w-full cursor-pointer truncate text-left text-xs text-zinc-700 hover:underline disabled:pointer-events-none disabled:cursor-default disabled:no-underline"
                   >
                     {i === 0 && (
                       <span className="font-medium text-amber-600">
                         ({arr.length}){" "}
                       </span>
                     )}
+                    <SharedItemIcon sharedWith={t.sharedWith} />
                     {t.value}
-                  </div>
+                  </button>
                 ))}
               </div>
             ) : (
@@ -1690,10 +1716,10 @@ export function AutomationsTableClient({
                     key={w.id}
                     type="button"
                     disabled={editMode}
-                    title={webhookLineTitle(w)}
+                    title={sharedItemTitle(w.url, w.sharedWith)}
                     onClick={(e) => {
                       e.stopPropagation();
-                      setWebhookLookup({
+                      setRelatedLookup({
                         kind: "webhook",
                         anchor: { id: r.id, name: r.name, platform },
                         items: arr.map((wh) => ({ id: wh.id, label: wh.url })),
@@ -1706,7 +1732,7 @@ export function AutomationsTableClient({
                         ({arr.length}){" "}
                       </span>
                     )}
-                    <SharedWebhookIcon sharedWith={w.sharedWith} />
+                    <SharedItemIcon sharedWith={w.sharedWith} />
                     {w.url}
                   </button>
                 ))}
@@ -2330,11 +2356,12 @@ export function AutomationsTableClient({
         </DialogContent>
       </Dialog>
 
-      {/* Webhook Links "related automations" lookup (opened from a cell's gold
-          count). Read-only; fetches the cross-platform list on demand. */}
+      {/* "Related automations" lookup, shared by the Webhook Links and GHL Tags
+          cells (opened from any line in either). Read-only; fetches the
+          cross-platform list on demand. */}
       <RelatedAutomationsDialog
-        target={webhookLookup}
-        onOpenChange={(o) => !o && setWebhookLookup(null)}
+        target={relatedLookup}
+        onOpenChange={(o) => !o && setRelatedLookup(null)}
       />
     </div>
   );

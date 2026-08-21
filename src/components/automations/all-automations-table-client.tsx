@@ -78,10 +78,10 @@ import { useColumnDrag } from "./use-column-drag";
 import { ColumnHeader, NAME_HEADER_MENU } from "./column-header";
 import { WorkflowDialog } from "./workflow-dialog";
 import {
-  SharedWebhookIcon,
-  compareWebhookShared,
-  webhookLineTitle,
-} from "./shared-webhook-icon";
+  SharedItemIcon,
+  compareShared,
+  sharedItemTitle,
+} from "./shared-item-icon";
 import {
   columnVisibleOnPlatform,
   compareTriage,
@@ -109,6 +109,7 @@ type SortKey =
   | "lastErrorAt"
   | "author"
   | "webhooks"
+  | "ghlTags"
   | "triage";
 
 
@@ -199,6 +200,8 @@ const ALL_TH_S_240 =
   "sticky top-0 z-10 w-[240px] min-w-[240px] max-w-[240px] cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700";
 const ALL_TH_P_160 =
   "sticky top-0 z-10 w-[160px] min-w-[160px] max-w-[160px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]";
+const ALL_TH_S_180 =
+  "sticky top-0 z-10 w-[180px] min-w-[180px] max-w-[180px] cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700";
 const ALL_TH_P_180 =
   "sticky top-0 z-10 w-[180px] min-w-[180px] max-w-[180px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]";
 const ALL_TH_P_240 =
@@ -244,7 +247,7 @@ const ALL_COLUMNS: AllColumnDef[] = [
   { id: "triage", title: "Evaluation", sortKey: "triage", thClassName: ALL_TH_S_160, width: 160 },
   { id: "purpose", title: "Purpose", sortKey: null, thClassName: ALL_TH_P_240, width: 240 },
   { id: "notes", title: "Notes", sortKey: null, thClassName: ALL_TH_P_240, width: 240 },
-  { id: "ghlTags", title: "GHL Tags", sortKey: null, thClassName: ALL_TH_P_180, width: 180 },
+  { id: "ghlTags", title: "GHL Tags", sortKey: "ghlTags", thClassName: ALL_TH_S_180, width: 180 },
   { id: "ghlForms", title: "GHL Forms", sortKey: null, thClassName: ALL_TH_P_180, width: 180 },
   { id: "webhooks", title: "Webhook Links", sortKey: "webhooks", thClassName: ALL_TH_S_240, width: 240 },
   { id: "lastEditedAt", title: "Last Edited", sortKey: "lastEditedAt", thClassName: ALL_TH_S_AUTO, width: 136 },
@@ -540,10 +543,11 @@ export function AllAutomationsTableClient({
   const [showingPurpose, setShowingPurpose] = useState<string | null>(null);
   // The notes text shown in the read-only "Show notes" popup (mirrors Purpose).
   const [showingNotes, setShowingNotes] = useState<string | null>(null);
-  // The Webhook Links "related automations" lookup target (null = closed).
-  const [webhookLookup, setWebhookLookup] = useState<RelatedLookupTarget | null>(
-    null,
-  );
+  // The "related automations" lookup target (null = closed). ONE piece of state
+  // for BOTH the Webhook Links and GHL Tags cells: only one can be open at a
+  // time, and the dialog is column-generic (the target's `kind` tells it which).
+  const [relatedLookup, setRelatedLookup] =
+    useState<RelatedLookupTarget | null>(null);
   // Adaptive Purpose clamp (see the per-website AutomationsTableClient for the
   // full rationale): line count per row, sized to the fixed-width Name cell so
   // taller rows fill their height instead of leaving a 2-line gap.
@@ -680,7 +684,12 @@ export function AllAutomationsTableClient({
           // first, then rows with webhooks but none shared; rows with NO webhooks
           // always sink to the bottom in BOTH directions. Same comparator the Per
           // Website table uses, so the two pages cannot drift.
-          return compareWebhookShared(a, b, dir);
+          return compareShared(a.webhooks, b.webhooks, dir);
+        case "ghlTags":
+          // Identical grouping toggle to Webhook Links (see above). Rows with no
+          // GHL Tags sink to the bottom in both directions, which on THIS table
+          // also means every non-GHL row (they can never have tags).
+          return compareShared(a.ghlTags, b.ghlTags, dir);
         case "triage":
           // Lifecycle order (see TRIAGE_ORDER), untriaged last in both directions.
           // Same shared comparator the Per Website table uses.
@@ -1013,11 +1022,32 @@ export function AllAutomationsTableClient({
                 // item is a 16px text-xs line).
                 style={{ maxHeight: (purposeClamp[r.id] ?? 2) * 16 }}
               >
+                {/* Every tag line opens the "related automations" lookup (not
+                    just the gold count), exactly like the Webhook Links cell, so
+                    the whole cell is a click target. Disabled in edit mode +
+                    stopPropagation so the row's edit-click wins there. */}
                 {r.ghlTags.map((t, i, arr) => (
-                  <div
+                  <button
                     key={t.id}
-                    title={t.value}
-                    className="truncate text-xs text-zinc-700"
+                    type="button"
+                    disabled={editMode}
+                    title={sharedItemTitle(t.value, t.sharedWith)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setRelatedLookup({
+                        kind: "ghlTag",
+                        anchor: {
+                          id: r.id,
+                          name: r.name,
+                          platform: r.platform,
+                        },
+                        items: arr.map((tag) => ({
+                          id: tag.id,
+                          label: tag.value,
+                        })),
+                      });
+                    }}
+                    className="block w-full cursor-pointer truncate text-left text-xs text-zinc-700 hover:underline disabled:pointer-events-none disabled:cursor-default disabled:no-underline"
                   >
                     {/* Gold "(N)" total-selected count on the first line (the
                         cell clips the rest). */}
@@ -1026,8 +1056,9 @@ export function AllAutomationsTableClient({
                         ({arr.length}){" "}
                       </span>
                     )}
+                    <SharedItemIcon sharedWith={t.sharedWith} />
                     {t.value}
-                  </div>
+                  </button>
                 ))}
               </div>
             ) : (
@@ -1088,10 +1119,10 @@ export function AllAutomationsTableClient({
                     key={w.id}
                     type="button"
                     disabled={editMode}
-                    title={webhookLineTitle(w)}
+                    title={sharedItemTitle(w.url, w.sharedWith)}
                     onClick={(e) => {
                       e.stopPropagation();
-                      setWebhookLookup({
+                      setRelatedLookup({
                         kind: "webhook",
                         anchor: {
                           id: r.id,
@@ -1111,7 +1142,7 @@ export function AllAutomationsTableClient({
                         ({arr.length}){" "}
                       </span>
                     )}
-                    <SharedWebhookIcon sharedWith={w.sharedWith} />
+                    <SharedItemIcon sharedWith={w.sharedWith} />
                     {w.url}
                   </button>
                 ))}
@@ -1514,11 +1545,12 @@ export function AllAutomationsTableClient({
         </DialogContent>
       </Dialog>
 
-      {/* Webhook Links "related automations" lookup (opened from a cell's gold
-          count). Read-only; fetches the cross-platform list on demand. */}
+      {/* "Related automations" lookup, shared by the Webhook Links and GHL Tags
+          cells (opened from any line in either). Read-only; fetches the
+          cross-platform list on demand. */}
       <RelatedAutomationsDialog
-        target={webhookLookup}
-        onOpenChange={(o) => !o && setWebhookLookup(null)}
+        target={relatedLookup}
+        onOpenChange={(o) => !o && setRelatedLookup(null)}
       />
     </div>
   );

@@ -116,7 +116,12 @@ export async function getPerWebsiteRows(platform: string) {
   const tagsByAutomation = await getSelectionsByColumn("automation_tags", ids);
   // GHL Tags + GHL Forms (multi-select, GHL pages): each row's selected choices.
   // Scoped to this platform's automations; empty maps on non-GHL platforms.
-  const ghlTagsByAutomation = await getSelectionsByColumn("ghl_tags", ids);
+  //
+  // GHL Tags passes withSharedCounts=true so each tag carries how many OTHER
+  // automations use it, feeding the passive share icon + the shared-first sort
+  // (same treatment Webhook Links gets). GHL Forms does NOT, because it has no
+  // sharing indicator, and the flag costs an extra aggregate query.
+  const ghlTagsByAutomation = await getSelectionsByColumn("ghl_tags", ids, true);
   const ghlFormsByAutomation = await getSelectionsByColumn("ghl_forms", ids);
   // Webhook Links (multi-select): each row's selected webhooks, via the
   // automation_webhooks junction. Scoped to this platform's automations.

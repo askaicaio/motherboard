@@ -90,8 +90,8 @@ interface TableDescriptor {
   hasNotes?: boolean;
   /** Rows carry Badge + Text colours; value renders as a pill (Trigger Event). */
   hasColor?: boolean;
-  /** Webhook Links only: show a numeric "Relationships" column (count of
-   *  automations using each webhook). */
+  /** Show a "Relationships" column: the automations that use this choice, with a
+   *  browse-all lookup. Webhook Links and GHL Tags today. */
   hasRelationships?: boolean;
   /** First-column header for the rich table view ("Tag", "Form", "Author"). */
   rowLabel?: string;
@@ -124,6 +124,7 @@ const TABLES: TableDescriptor[] = [
     hasNotes: c.hasNotes,
     hasColor: c.hasColor,
     rowLabel: c.rowLabel,
+    hasRelationships: c.hasRelationships,
   })),
   WEBHOOK_TABLE,
 ];
@@ -163,9 +164,8 @@ export function DropdownConfigClient({
   // The webhook browse-all lookup target (null = closed). Opened from a Webhook
   // Links row's Relationships count; reuses the shared RelatedAutomationsDialog in
   // "all" mode (anchor null → lists every automation using the webhook).
-  const [webhookLookup, setWebhookLookup] = useState<RelatedLookupTarget | null>(
-    null,
-  );
+  const [relatedLookup, setRelatedLookup] =
+    useState<RelatedLookupTarget | null>(null);
 
   const itemsByTable = useMemo(() => {
     const m: Record<string, Item[]> = {};
@@ -427,8 +427,11 @@ export function DropdownConfigClient({
           onDelete={(item) => handleDelete(activeDescriptor, item)}
           onShowNotes={(n) => setShowingNotes(n)}
           onShowRelationships={(item) =>
-            setWebhookLookup({
-              kind: "webhook",
+            setRelatedLookup({
+              // Which column's lookup this is, which decides BOTH the dialog's
+              // wording and which junction it reads. The webhooks table is the
+              // only non-choice one; every other table is a selections column.
+              kind: activeDescriptor.id === "webhooks" ? "webhook" : "ghlTag",
               anchor: null,
               items: [{ id: item.id, label: item.value }],
             })
@@ -488,8 +491,8 @@ export function DropdownConfigClient({
             Links row's Relationships count). Same dialog as the table lookup, in
             "all" mode: lists every automation using the webhook. */}
         <RelatedAutomationsDialog
-          target={webhookLookup}
-          onOpenChange={(o) => !o && setWebhookLookup(null)}
+          target={relatedLookup}
+          onOpenChange={(o) => !o && setRelatedLookup(null)}
         />
       </div>
     </TooltipProvider>

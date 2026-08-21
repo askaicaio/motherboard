@@ -21,7 +21,10 @@ import {
   automationWebhookChoices,
 } from "@/lib/db/schema";
 import { asc } from "drizzle-orm";
-import { getAutomationsByWebhookChoiceGrouped } from "@/lib/automations/dropdown-selections";
+import {
+  getAutomationsByWebhookChoiceGrouped,
+  getAutomationsBySelectionGrouped,
+} from "@/lib/automations/dropdown-selections";
 import { DropdownConfigClient } from "@/components/automations/dropdown-config-client";
 import type {
   DropdownChoiceRow,
@@ -63,6 +66,11 @@ export default async function AutomationsDropdownConfigPage() {
   // Links cell); the count is just the list length.
   const automationsByWebhook = await getAutomationsByWebhookChoiceGrouped();
 
+  // Same reverse lookup for GHL Tags, off the GENERIC selections junction. Only
+  // GHL Tags is loaded because it is the only choice column with a Relationships
+  // column today; the other multi-selects would each cost another join.
+  const automationsByGhlTag = await getAutomationsBySelectionGrouped("ghl_tags");
+
   const choices: DropdownChoiceRow[] = choiceRows.map((r) => ({
     id: r.id,
     columnKey: r.columnKey as DropdownColumnKey,
@@ -71,6 +79,9 @@ export default async function AutomationsDropdownConfigPage() {
     notes: r.notes,
     badgeColor: r.badgeColor,
     textColor: r.textColor,
+    // Only GHL Tags renders a Relationships column, so only it carries the list.
+    relatedAutomations:
+      r.columnKey === "ghl_tags" ? automationsByGhlTag.get(r.id) ?? [] : undefined,
   }));
   const webhooks: WebhookChoiceRow[] = webhookRows.map((r) => {
     const related = automationsByWebhook.get(r.id) ?? [];
