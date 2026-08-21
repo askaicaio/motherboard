@@ -356,6 +356,14 @@ export interface SelectedChoice {
   value: string;
   badgeColor?: string | null;
   textColor?: string | null;
+  /** How many OTHER automations also selected this choice, ACROSS ALL PLATFORMS
+   *  (0 = this automation is the only one). Present ONLY when the loader was
+   *  asked for it (`getSelectionsByColumn(..., withSharedCounts)`), which today
+   *  means GHL Tags; the other multi-select columns leave it undefined. Powers
+   *  the passive "shared" indicator, exactly like SelectedWebhook.sharedWith.
+   *  The lookup dialog still fetches its own LIVE counts and stays
+   *  authoritative. */
+  sharedWith?: number;
 }
 
 /** One webhook an automation uses (from the automation_webhooks junction),

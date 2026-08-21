@@ -71,9 +71,9 @@ import { confirmDialog } from "@/components/ui/confirm";
 import { AUTOMATION_SITES } from "@/lib/automations/sites";
 import { ColorBadge } from "./color-badge";
 import {
-  WebhookRelatedDialog,
-  type WebhookLookupTarget,
-} from "./webhook-related-dialog";
+  RelatedAutomationsDialog,
+  type RelatedLookupTarget,
+} from "./related-automations-dialog";
 import { useColumnDrag } from "./use-column-drag";
 import { ColumnHeader, NAME_HEADER_MENU } from "./column-header";
 import { WorkflowDialog } from "./workflow-dialog";
@@ -541,7 +541,7 @@ export function AllAutomationsTableClient({
   // The notes text shown in the read-only "Show notes" popup (mirrors Purpose).
   const [showingNotes, setShowingNotes] = useState<string | null>(null);
   // The Webhook Links "related automations" lookup target (null = closed).
-  const [webhookLookup, setWebhookLookup] = useState<WebhookLookupTarget | null>(
+  const [webhookLookup, setWebhookLookup] = useState<RelatedLookupTarget | null>(
     null,
   );
   // Adaptive Purpose clamp (see the per-website AutomationsTableClient for the
@@ -1092,14 +1092,15 @@ export function AllAutomationsTableClient({
                     onClick={(e) => {
                       e.stopPropagation();
                       setWebhookLookup({
+                        kind: "webhook",
                         anchor: {
                           id: r.id,
                           name: r.name,
                           platform: r.platform,
                         },
-                        webhooks: arr.map((wh) => ({
+                        items: arr.map((wh) => ({
                           id: wh.id,
-                          url: wh.url,
+                          label: wh.url,
                         })),
                       });
                     }}
@@ -1515,7 +1516,7 @@ export function AllAutomationsTableClient({
 
       {/* Webhook Links "related automations" lookup (opened from a cell's gold
           count). Read-only; fetches the cross-platform list on demand. */}
-      <WebhookRelatedDialog
+      <RelatedAutomationsDialog
         target={webhookLookup}
         onOpenChange={(o) => !o && setWebhookLookup(null)}
       />

@@ -1,8 +1,9 @@
 "use client";
 
-// The Webhook Links "related automations" lookup dialog. Opened from the gold
-// count in a Webhook Links cell (anchored to that automation) or from the
-// Config page Relationships count (browse-all). Two stages in one modal:
+// The "related automations" lookup dialog, shared by EVERY multi-select column
+// that can be shared between automations. Opened from the gold count in a cell
+// (anchored to that automation) or from a Config page Relationships count
+// (browse-all). Two stages in one modal:
 //
 //   Stage 1 (pick a webhook): only when the target has MORE THAN ONE webhook.
 //     Lists them, each with a "shared with N other automations" badge. A single
@@ -12,7 +13,17 @@
 //     across all platforms. Header line gives the webhook + anchor context.
 //
 // Read-only. The cross-platform list is fetched on demand from
-// /api/automations/webhook-related (a page holds only its own platform's rows).
+// /api/automations/related-automations (a page holds only its own platform's
+// rows, while sharing spans platforms).
+//
+// ⚠️ ONE DIALOG, MANY COLUMNS. What differs per column is (a) which junction
+// backs it and (b) the WORDS, so both live in KINDS below and nothing else in
+// here is column-aware. Adding another column = one KINDS entry. Was
+// webhook-only until 2026-08-21, when GHL Tags gained the same lookup.
+//
+// ⚠️ WEBHOOK BEHAVIOUR MUST NOT DRIFT: its copy, its monospace font and its
+// click-to-copy are all preserved exactly by the `webhook` KINDS entry. If you
+// change shared markup here, re-check the Webhook Links lookup too.
 
 import { useEffect, useState } from "react";
 import {
@@ -27,41 +38,91 @@ import { cn } from "@/lib/utils";
 import { getAutomationSite } from "@/lib/automations/sites";
 import type { RelatedAutomation } from "@/lib/automations/dropdown-config";
 
-/** Copy a webhook URL to the clipboard with a toast (the header URL is
- *  click-to-copy rather than a navigable link). */
-async function copyWebhookUrl(url: string) {
+/** Copy the chosen value to the clipboard with a toast. Used for the webhook
+ *  URL, which is click-to-copy rather than a navigable link. */
+async function copyValue(value: string, nounLabel: string) {
   try {
-    await navigator.clipboard.writeText(url);
-    toast.success("Webhook link copied");
+    await navigator.clipboard.writeText(value);
+    toast.success(`${nounLabel} link copied`);
   } catch {
     toast.error("Could not copy link");
   }
 }
 
+/** Which column's lookup this is. Drives the API source and every noun on
+ *  screen; see KINDS. */
+export type RelatedLookupKind = "webhook" | "ghlTag";
+
+/** Per-column wording + rendering. The ONLY column-aware thing in this file.
+ *
+ *  `mono`/`copyable` exist because a webhook VALUE is a long URL (monospace,
+ *  click-to-copy, since it is not navigable) whereas a tag value is a short
+ *  human label, where both would look wrong. */
+const KINDS: Record<
+  RelatedLookupKind,
+  {
+    /** Lower-case singular, used mid-sentence ("...use this webhook."). */
+    noun: string;
+    /** Sentence-start plural ("Webhooks on X."). */
+    nounPlural: string;
+    /** Sentence-start singular, labelling the chosen value ("Webhook: ..."). */
+    nounLabel: string;
+    /** Which junction backs it, passed to the API as `source`. */
+    source: "webhook" | "selection";
+    /** Render the value in monospace (long machine strings only). */
+    mono: boolean;
+    /** Make the value click-to-copy rather than plain text. */
+    copyable: boolean;
+  }
+> = {
+  webhook: {
+    noun: "webhook",
+    nounPlural: "Webhooks",
+    nounLabel: "Webhook",
+    source: "webhook",
+    mono: true,
+    copyable: true,
+  },
+  ghlTag: {
+    noun: "GHL tag",
+    nounPlural: "GHL tags",
+    nounLabel: "GHL tag",
+    source: "selection",
+    mono: false,
+    copyable: false,
+  },
+};
+
 /** What the dialog was opened for. `anchor` present → anchored flow (exclude
  *  that automation, show "on <name>" context); null → Config browse-all (all
- *  users, no exclusion). `webhooks` is the choose-from set (one → skip stage 1).
+ *  users, no exclusion). `items` is the choose-from set (one → skip stage 1),
+ *  each with the display `label` for that column (a URL for webhooks, a tag
+ *  name for GHL Tags).
  *  The stage-1 "shared with N others" counts are fetched live on open (see
  *  below), NOT carried here, so they can't go stale after an in-session edit. */
-export interface WebhookLookupTarget {
+export interface RelatedLookupTarget {
+  kind: RelatedLookupKind;
   anchor: { id: string; name: string; platform: string } | null;
-  webhooks: { id: string; url: string }[];
+  items: { id: string; label: string }[];
 }
 
 function platformLabel(slug: string): string {
   return getAutomationSite(slug)?.label ?? slug;
 }
 
-export function WebhookRelatedDialog({
+export function RelatedAutomationsDialog({
   target,
   onOpenChange,
 }: {
-  target: WebhookLookupTarget | null;
+  target: RelatedLookupTarget | null;
   onOpenChange: (open: boolean) => void;
 }) {
   const open = target !== null;
-  const webhooks = target?.webhooks ?? [];
-  const multi = webhooks.length > 1;
+  const items = target?.items ?? [];
+  const multi = items.length > 1;
+  // Wording + rendering for this column. Falls back to webhook when closed, so
+  // the render path never has to null-check it.
+  const kind = KINDS[target?.kind ?? "webhook"];
 
   // The chosen webhook (stage 2). A single-webhook target auto-picks it so the
   // stage-1 picker is skipped.
@@ -76,7 +137,7 @@ export function WebhookRelatedDialog({
   // Reset when opened for a different target (row / webhook).
   useEffect(() => {
     if (!target) return;
-    setPickedId(target.webhooks.length === 1 ? target.webhooks[0].id : null);
+    setPickedId(target.items.length === 1 ? target.items[0].id : null);
     setList(null);
     setError(false);
   }, [target]);
@@ -85,17 +146,18 @@ export function WebhookRelatedDialog({
   // Only the multi-webhook picker shows them; a single webhook skips stage 1.
   // Excludes the anchor automation so the badge matches the stage-2 list.
   useEffect(() => {
-    if (!target || target.webhooks.length <= 1) {
+    if (!target || target.items.length <= 1) {
       setCounts({});
       return;
     }
     let cancelled = false;
     setCounts(null);
     const params = new URLSearchParams({
-      choiceIds: target.webhooks.map((w) => w.id).join(","),
+      choiceIds: target.items.map((w) => w.id).join(","),
+      source: KINDS[target.kind].source,
     });
     if (target.anchor) params.set("excludeId", target.anchor.id);
-    fetch(`/api/automations/webhook-related?${params.toString()}`)
+    fetch(`/api/automations/related-automations?${params.toString()}`)
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error("failed"))))
       .then((data) => {
         if (!cancelled) setCounts((data.counts ?? {}) as Record<string, number>);
@@ -117,9 +179,12 @@ export function WebhookRelatedDialog({
     setLoading(true);
     setError(false);
     setList(null);
-    const params = new URLSearchParams({ choiceId: pickedId });
+    const params = new URLSearchParams({
+      choiceId: pickedId,
+      source: KINDS[target.kind].source,
+    });
     if (excludeId) params.set("excludeId", excludeId);
-    fetch(`/api/automations/webhook-related?${params.toString()}`)
+    fetch(`/api/automations/related-automations?${params.toString()}`)
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error("failed"))))
       .then((data) => {
         if (!cancelled) setList(data.automations as RelatedAutomation[]);
@@ -135,7 +200,7 @@ export function WebhookRelatedDialog({
     };
   }, [pickedId, target]);
 
-  const picked = webhooks.find((w) => w.id === pickedId) ?? null;
+  const picked = items.find((w) => w.id === pickedId) ?? null;
   const anchor = target?.anchor ?? null;
 
   return (
@@ -150,22 +215,28 @@ export function WebhookRelatedDialog({
           <div className="flex min-h-0 flex-1 flex-col">
             <p className="mb-2 shrink-0 text-sm text-zinc-500">
               {anchor
-                ? `Webhooks on ${anchor.name}. Pick one to see the automations that share it.`
-                : "Pick a webhook to see the automations that use it."}
+                ? `${kind.nounPlural} on ${anchor.name}. Pick one to see the automations that share it.`
+                : `Pick a ${kind.noun} to see the automations that use it.`}
             </p>
             <ul className="min-h-0 flex-1 space-y-1 overflow-y-auto">
-              {webhooks.map((w) => (
+              {items.map((w) => (
                 <li key={w.id}>
                   <button
                     type="button"
                     onClick={() => setPickedId(w.id)}
                     className="flex w-full items-start justify-between gap-3 rounded-md border border-zinc-200 px-3 py-2 text-left transition-colors hover:bg-zinc-50"
                   >
-                    {/* Full URL, wrapping across lines rather than truncating
-                        (overflow-wrap:anywhere breaks the long unbroken token so
-                        the whole URL is visible even on the narrow dialog). */}
-                    <span className="min-w-0 flex-1 [overflow-wrap:anywhere] font-mono text-xs text-blue-600">
-                      {w.url}
+                    {/* Full value, wrapping across lines rather than truncating
+                        (overflow-wrap:anywhere breaks a long unbroken token like
+                        a URL so the whole thing is visible on the narrow dialog).
+                        Monospace only for machine strings; see KINDS.mono. */}
+                    <span
+                      className={cn(
+                        "min-w-0 flex-1 [overflow-wrap:anywhere] text-xs text-blue-600",
+                        kind.mono && "font-mono",
+                      )}
+                    >
+                      {w.label}
                     </span>
                     <span className="shrink-0 whitespace-nowrap text-xs text-zinc-500">
                       {counts === null
@@ -190,7 +261,7 @@ export function WebhookRelatedDialog({
                   className="mb-2 inline-flex items-center gap-1 text-xs text-zinc-500 transition-colors hover:text-zinc-900"
                 >
                   <ArrowLeft className="h-3.5 w-3.5" />
-                  All webhooks
+                  All {kind.nounPlural.toLowerCase()}
                 </button>
               )}
               {/* Anchor context on its own line (anchored flow only). */}
@@ -203,19 +274,34 @@ export function WebhookRelatedDialog({
                   </span>
                 </p>
               )}
-              {/* The webhook URL, blue + click-to-copy (not a navigable link). */}
+              {/* The chosen value. Copyable columns (a webhook URL, which is not
+                  navigable) render a click-to-copy button; the rest render plain
+                  text, since a short tag name has nothing worth copying. */}
               <p className="mt-0.5 text-sm text-zinc-700">
-                Webhook:{" "}
-                {picked && (
-                  <button
-                    type="button"
-                    onClick={() => copyWebhookUrl(picked.url)}
-                    title="Click to copy"
-                    className="cursor-pointer break-all text-left font-mono text-xs text-blue-600 hover:underline"
-                  >
-                    {picked.url}
-                  </button>
-                )}
+                {kind.nounLabel}:{" "}
+                {picked &&
+                  (kind.copyable ? (
+                    <button
+                      type="button"
+                      onClick={() => copyValue(picked.label, kind.nounLabel)}
+                      title="Click to copy"
+                      className={cn(
+                        "cursor-pointer break-all text-left text-xs text-blue-600 hover:underline",
+                        kind.mono && "font-mono",
+                      )}
+                    >
+                      {picked.label}
+                    </button>
+                  ) : (
+                    <span
+                      className={cn(
+                        "break-all text-xs text-zinc-900",
+                        kind.mono && "font-mono",
+                      )}
+                    >
+                      {picked.label}
+                    </span>
+                  ))}
               </p>
             </div>
 
@@ -264,8 +350,8 @@ export function WebhookRelatedDialog({
               ) : (
                 <p className="text-sm text-zinc-500">
                   {anchor
-                    ? "No other automations use this webhook."
-                    : "No automations use this webhook."}
+                    ? `No other automations use this ${kind.noun}.`
+                    : `No automations use this ${kind.noun}.`}
                 </p>
               )}
             </div>

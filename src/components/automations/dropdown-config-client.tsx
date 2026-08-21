@@ -52,9 +52,9 @@ import {
 import { useFitViewportHeight } from "@/lib/automations/use-fit-viewport-height";
 import { ChoiceDialog } from "./choice-dialog";
 import {
-  WebhookRelatedDialog,
-  type WebhookLookupTarget,
-} from "./webhook-related-dialog";
+  RelatedAutomationsDialog,
+  type RelatedLookupTarget,
+} from "./related-automations-dialog";
 import { confirmDialog } from "@/components/ui/confirm";
 
 /** A unified row shown in any of the tables. */
@@ -161,9 +161,9 @@ export function DropdownConfigClient({
   // The notes text shown in the read-only Notes popup (null = closed).
   const [showingNotes, setShowingNotes] = useState<string | null>(null);
   // The webhook browse-all lookup target (null = closed). Opened from a Webhook
-  // Links row's Relationships count; reuses the shared WebhookRelatedDialog in
+  // Links row's Relationships count; reuses the shared RelatedAutomationsDialog in
   // "all" mode (anchor null → lists every automation using the webhook).
-  const [webhookLookup, setWebhookLookup] = useState<WebhookLookupTarget | null>(
+  const [webhookLookup, setWebhookLookup] = useState<RelatedLookupTarget | null>(
     null,
   );
 
@@ -428,8 +428,9 @@ export function DropdownConfigClient({
           onShowNotes={(n) => setShowingNotes(n)}
           onShowRelationships={(item) =>
             setWebhookLookup({
+              kind: "webhook",
               anchor: null,
-              webhooks: [{ id: item.id, url: item.value }],
+              items: [{ id: item.id, label: item.value }],
             })
           }
         />
@@ -486,7 +487,7 @@ export function DropdownConfigClient({
         {/* Webhook browse-all "related automations" lookup (opened from a Webhook
             Links row's Relationships count). Same dialog as the table lookup, in
             "all" mode: lists every automation using the webhook. */}
-        <WebhookRelatedDialog
+        <RelatedAutomationsDialog
           target={webhookLookup}
           onOpenChange={(o) => !o && setWebhookLookup(null)}
         />

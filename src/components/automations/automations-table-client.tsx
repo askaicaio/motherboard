@@ -66,9 +66,9 @@ import {
 import { WorkflowDialog } from "./workflow-dialog";
 import { ColorBadge } from "./color-badge";
 import {
-  WebhookRelatedDialog,
-  type WebhookLookupTarget,
-} from "./webhook-related-dialog";
+  RelatedAutomationsDialog,
+  type RelatedLookupTarget,
+} from "./related-automations-dialog";
 import {
   SharedWebhookIcon,
   compareWebhookShared,
@@ -648,8 +648,8 @@ export function AutomationsTableClient({
   // purposeClamp since both cells share the Name-cell-driven row height.)
   const [showingNotes, setShowingNotes] = useState<string | null>(null);
   // The Webhook Links "related automations" lookup target (null = closed). Set
-  // when the gold count in a webhook cell is clicked; drives WebhookRelatedDialog.
-  const [webhookLookup, setWebhookLookup] = useState<WebhookLookupTarget | null>(
+  // when the gold count in a webhook cell is clicked; drives RelatedAutomationsDialog.
+  const [webhookLookup, setWebhookLookup] = useState<RelatedLookupTarget | null>(
     null,
   );
   // Adaptive Purpose clamp: how many lines of the Purpose blurb to show per row
@@ -1694,8 +1694,9 @@ export function AutomationsTableClient({
                     onClick={(e) => {
                       e.stopPropagation();
                       setWebhookLookup({
+                        kind: "webhook",
                         anchor: { id: r.id, name: r.name, platform },
-                        webhooks: arr.map((wh) => ({ id: wh.id, url: wh.url })),
+                        items: arr.map((wh) => ({ id: wh.id, label: wh.url })),
                       });
                     }}
                     className="block w-full cursor-pointer truncate text-left text-xs text-blue-600 hover:underline disabled:pointer-events-none disabled:cursor-default disabled:no-underline"
@@ -2331,7 +2332,7 @@ export function AutomationsTableClient({
 
       {/* Webhook Links "related automations" lookup (opened from a cell's gold
           count). Read-only; fetches the cross-platform list on demand. */}
-      <WebhookRelatedDialog
+      <RelatedAutomationsDialog
         target={webhookLookup}
         onOpenChange={(o) => !o && setWebhookLookup(null)}
       />
