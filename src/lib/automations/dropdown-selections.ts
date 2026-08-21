@@ -30,6 +30,7 @@ import type {
 export async function getSelectionsByColumn(
   columnKey: string,
   automationIds?: string[],
+  withSharedCounts = false,
 ): Promise<Map<string, SelectedChoice[]>> {
   const map = new Map<string, SelectedChoice[]>();
   // An explicit empty id list means "no automations" → nothing to load (and
@@ -70,6 +71,26 @@ export async function getSelectionsByColumn(
     if (list) list.push(entry);
     else map.set(r.automationId, [entry]);
   }
+
+  // Opt-in "shared with N others" pass, mirroring getWebhooksByAutomation.
+  // OPT-IN rather than always-on because it costs an extra aggregate query and
+  // only the columns that render a sharing indicator need it (GHL Tags today).
+  // Same reasoning as the webhook version: sharing is CROSS-PLATFORM, so it
+  // cannot be derived on the client from the rows a page happens to hold.
+  if (withSharedCounts) {
+    const choiceIds = [...new Set(rows.map((r) => r.id))];
+    if (choiceIds.length > 0) {
+      const totals = await getSelectionOthersCounts(choiceIds);
+      for (const list of map.values()) {
+        for (const entry of list) {
+          // The junction is unique on (automation_id, choice_id), so a selecting
+          // automation is counted exactly once and "others" is exactly total - 1.
+          entry.sharedWith = Math.max(0, (totals[entry.id] ?? 1) - 1);
+        }
+      }
+    }
+  }
+
   return map;
 }
 
@@ -138,6 +159,124 @@ export async function getWebhooksByAutomation(
     }
   }
 
+  return map;
+}
+
+// ---------------------------------------------------------------------------
+// RELATED-AUTOMATIONS LOOKUP, the generic (selections junction) side
+// ---------------------------------------------------------------------------
+// These mirror the three webhook helpers below, but read the GENERIC junction
+// automation_dropdown_selections instead of automation_webhooks. Together the
+// two sets back one shared dialog + one API route (see
+// related-automations-dialog.tsx), so "which other automations share this?" is
+// answered the same way for every multi-select column.
+//
+// ⚠️ NOTE THEY TAKE NO COLUMN KEY. Choice ids are globally unique in
+// automation_dropdown_choices, so a choice id already implies its column. Only
+// the GROUPED variant needs a column key, because it has no id to start from
+// and must decide which choices to include.
+// ---------------------------------------------------------------------------
+
+/**
+ * For each of `choiceIds`, how many OTHER automations selected that choice
+ * (excluding `excludeAutomationId`, the anchor). Omit the exclusion to count
+ * ALL selecting automations, which is what the "browse-all" and the passive
+ * indicator both want. Keyed by choice id; an unselected choice is absent.
+ */
+export async function getSelectionOthersCounts(
+  choiceIds: string[],
+  excludeAutomationId?: string,
+): Promise<Record<string, number>> {
+  if (choiceIds.length === 0) return {};
+
+  const rows = await db
+    .select({
+      choiceId: automationDropdownSelections.choiceId,
+      n: count(),
+    })
+    .from(automationDropdownSelections)
+    .where(
+      and(
+        inArray(automationDropdownSelections.choiceId, choiceIds),
+        excludeAutomationId
+          ? ne(automationDropdownSelections.automationId, excludeAutomationId)
+          : undefined,
+      ),
+    )
+    .groupBy(automationDropdownSelections.choiceId);
+
+  const out: Record<string, number> = {};
+  for (const r of rows) out[r.choiceId] = r.n;
+  return out;
+}
+
+/**
+ * Every automation that selected `choiceId`, across ALL platforms, resolved for
+ * the related list (name / platform / status / link), name-ascending. The caller
+ * decides whether to drop the anchor.
+ */
+export async function getAutomationsBySelection(
+  choiceId: string,
+): Promise<RelatedAutomation[]> {
+  return db
+    .select({
+      id: automations.id,
+      name: automations.name,
+      platform: automations.platform,
+      status: automations.status,
+      externalUrl: automations.externalUrl,
+    })
+    .from(automationDropdownSelections)
+    .innerJoin(
+      automations,
+      eq(automationDropdownSelections.automationId, automations.id),
+    )
+    .where(eq(automationDropdownSelections.choiceId, choiceId))
+    .orderBy(asc(automations.name));
+}
+
+/**
+ * Every choice's selecting automations for ONE column, grouped by choice id
+ * (name-ascending within each). Powers a Config-page Relationships column.
+ * Choices nobody selected are simply absent (an empty list at the call site).
+ */
+export async function getAutomationsBySelectionGrouped(
+  columnKey: string,
+): Promise<Map<string, RelatedAutomation[]>> {
+  const rows = await db
+    .select({
+      choiceId: automationDropdownSelections.choiceId,
+      id: automations.id,
+      name: automations.name,
+      platform: automations.platform,
+      status: automations.status,
+      externalUrl: automations.externalUrl,
+    })
+    .from(automationDropdownSelections)
+    .innerJoin(
+      automations,
+      eq(automationDropdownSelections.automationId, automations.id),
+    )
+    .innerJoin(
+      automationDropdownChoices,
+      eq(automationDropdownSelections.choiceId, automationDropdownChoices.id),
+    )
+    .where(eq(automationDropdownChoices.columnKey, columnKey))
+    .orderBy(asc(automations.name));
+
+  const map = new Map<string, RelatedAutomation[]>();
+  for (const r of rows) {
+    const entry: RelatedAutomation = {
+      id: r.id,
+      name: r.name,
+      platform: r.platform,
+      status: r.status,
+      externalUrl: r.externalUrl,
+    };
+    const list = map.get(r.choiceId);
+    if (list) list.push(entry);
+    else map.set(r.choiceId, [entry]);
+  }
   return map;
 }
 
