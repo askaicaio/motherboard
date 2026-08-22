@@ -80,7 +80,9 @@ import { WorkflowDialog } from "./workflow-dialog";
 import {
   SharedItemIcon,
   compareShared,
+  countShared,
   sharedItemTitle,
+  sharedRowTitle,
 } from "./shared-item-icon";
 import {
   columnVisibleOnPlatform,
@@ -1051,12 +1053,24 @@ export function AllAutomationsTableClient({
                   >
                     {/* Gold "(N)" total-selected count on the first line (the
                         cell clips the rest). */}
-                    {i === 0 && (
-                      <span className="font-medium text-amber-600">
-                        ({arr.length}){" "}
-                      </span>
+                    {/* The count line carries a ROW-LEVEL share icon covering
+                        entries the height clamp hides; lines below carry their
+                        own. Line 0 deliberately does NOT also show its own, or a
+                        shared first entry would render two identical glyphs.
+                        See countShared() for the full rationale. */}
+                    {i === 0 ? (
+                      <>
+                        <span className="font-medium text-amber-600">
+                          ({arr.length}){" "}
+                        </span>
+                        <SharedItemIcon
+                          sharedWith={countShared(arr)}
+                          title={sharedRowTitle(countShared(arr))}
+                        />
+                      </>
+                    ) : (
+                      <SharedItemIcon sharedWith={t.sharedWith} />
                     )}
-                    <SharedItemIcon sharedWith={t.sharedWith} />
                     {t.value}
                   </button>
                 ))}
@@ -1137,12 +1151,22 @@ export function AllAutomationsTableClient({
                     }}
                     className="block w-full cursor-pointer truncate text-left text-xs text-blue-600 hover:underline disabled:pointer-events-none disabled:cursor-default disabled:no-underline"
                   >
-                    {i === 0 && (
-                      <span className="font-medium text-amber-600">
-                        ({arr.length}){" "}
-                      </span>
+                    {/* Count line carries the ROW-LEVEL share icon (covering
+                        entries the clamp hides), later lines their own. Same
+                        treatment as the GHL Tags cell; see countShared(). */}
+                    {i === 0 ? (
+                      <>
+                        <span className="font-medium text-amber-600">
+                          ({arr.length}){" "}
+                        </span>
+                        <SharedItemIcon
+                          sharedWith={countShared(arr)}
+                          title={sharedRowTitle(countShared(arr))}
+                        />
+                      </>
+                    ) : (
+                      <SharedItemIcon sharedWith={w.sharedWith} />
                     )}
-                    <SharedItemIcon sharedWith={w.sharedWith} />
                     {w.url}
                   </button>
                 ))}

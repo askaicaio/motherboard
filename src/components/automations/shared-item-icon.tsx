@@ -42,15 +42,54 @@ export function sharedItemTitle(value: string, sharedWith?: number): string {
  *  SIZE: 14px, not 12px. Share2 is a 5-element glyph and muddied at 12px. The
  *  line box is 16px, so 14px still never grows the row.
  *
- *  aria-hidden because sharedItemTitle already carries the meaning as text. */
-export function SharedItemIcon({ sharedWith }: { sharedWith?: number }) {
+ *  aria-hidden because sharedItemTitle already carries the meaning as text,
+ *  EXCEPT when a `title` is passed (the row-level use below), where the icon is
+ *  the only thing carrying it. */
+export function SharedItemIcon({
+  sharedWith,
+  title,
+}: {
+  sharedWith?: number;
+  title?: string;
+}) {
   if ((sharedWith ?? 0) <= 0) return null;
-  return (
+  const icon = (
     <Share2
       aria-hidden
       className="mr-1 inline h-3.5 w-3.5 align-[-3px] text-zinc-400"
     />
   );
+  // Lucide's props type has no `title`, so the row-level hover text goes on a
+  // wrapping span. Kept off the plain per-line case so that markup is unchanged.
+  return title ? (
+    <span title={title} className="inline">
+      {icon}
+    </span>
+  ) : (
+    icon
+  );
+}
+
+/** How many entries in a cell are shared with other automations.
+ *
+ *  ⚠️ WHY THIS EXISTS. These cells are HEIGHT-CLAMPED to the row (roughly two
+ *  lines), so a cell holding 30 tags shows only the first two alphabetically.
+ *  If every shared tag sits further down, the cell looked completely unshared
+ *  while the SORT (which ranks on "any entry shared", see sharedSortRank)
+ *  correctly treated the row as shared. The cell and the sort disagreed, and the
+ *  bigger the cell the more often it happened. (User-reported 2026-08-22.)
+ *
+ *  So the count line now carries a ROW-LEVEL icon derived from this, covering
+ *  entries you cannot see. Lines below the first keep their own per-line icon;
+ *  the first line does NOT, because the count immediately before it already
+ *  shows one and two identical glyphs on one line reads as a mistake. */
+export function countShared(list: { sharedWith?: number }[] | undefined): number {
+  return (list ?? []).filter((x) => (x.sharedWith ?? 0) > 0).length;
+}
+
+/** Hover text for the row-level icon on the count line. */
+export function sharedRowTitle(n: number): string {
+  return `${n} of these ${n === 1 ? "is" : "are"} shared with other automations`;
 }
 
 /** Sort rank for a cell holding a list of possibly-shared values:
