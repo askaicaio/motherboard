@@ -562,6 +562,7 @@ export function AutomationsTableClient({
   icon,
   iconColor,
   initialRows,
+  initialQuery = "",
   authorChoices = [],
   triggerEventChoices = [],
   triageChoices = [],
@@ -583,6 +584,10 @@ export function AutomationsTableClient({
    *  full-colour image icons. Mirrors the Main Page card. */
   iconColor?: string;
   initialRows: AutomationRow[];
+  /** Initial value for the search box, from the page's `?q=` param. Lets a link
+   *  land here with the table already filtered (the related-automations lookup
+   *  uses it to jump straight to one row). Defaults to no filter. */
+  initialQuery?: string;
   /** Author options for the single-select Author dropdown (Add/Edit dialog). */
   authorChoices?: ChoiceOption[];
   /** Trigger Event options for its single-select dropdown (Add/Edit dialog). */
@@ -608,7 +613,11 @@ export function AutomationsTableClient({
   autoRefresh?: { enabled: boolean; nextRefreshAt: string | null };
 }) {
   const [rows, setRows] = useState(initialRows);
-  const [query, setQuery] = useState("");
+  // Seeded from ?q= so a link can land on this page with the search already
+  // applied. Used by the related-automations lookup to jump straight to a row.
+  // Deliberately an INITIAL value only: typing does not write back to the URL,
+  // which would fight the back button for no gain.
+  const [query, setQuery] = useState(initialQuery);
   // Filter menu selection (multi-select), PERSISTED PER PAGE in localStorage so
   // it survives reloads / revisits. The key is per-page (the platform slug), so
   // each of the 5 Per Website pages keeps its OWN saved filter. Value is a flat
