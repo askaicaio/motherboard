@@ -362,13 +362,18 @@ export function RelatedAutomationsDialog({
                           {/* Glyph -> the automation on its own website. It used
                               to be decoration inside the row link; now it is the
                               only way out to the source platform, so it gets its
-                              own hover + title. */}
+                              own hover + title.
+                              BLUE, not the muted zinc it started as: blue-600 is
+                              what every other "this opens a URL" affordance in the
+                              Automations tab uses, and the row BODY beside it goes
+                              somewhere else entirely, so the colour is what tells
+                              them apart at a glance. */}
                           <a
                             href={a.externalUrl}
                             target="_blank"
                             rel="noopener noreferrer"
                             title={`Open on ${platformLabel(a.platform)}`}
-                            className="inline-flex rounded p-0.5 text-zinc-400 transition-colors hover:text-zinc-900"
+                            className="inline-flex rounded p-0.5 text-blue-600 transition-colors hover:text-blue-800"
                           >
                             <ExternalLink className="h-3.5 w-3.5" />
                           </a>
