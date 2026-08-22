@@ -260,9 +260,29 @@ export interface GHLAutomation {
   lastEditedAt: string | null;
 }
 
-/** Deep link to a workflow in the GHL app — this is the row's identity. */
+/**
+ * Deep link to a workflow in the GHL app. THIS IS THE ROW'S IDENTITY: the sync
+ * matches existing rows on `automations.external_url` exactly, so changing this
+ * string is NOT cosmetic.
+ *
+ * ⚠️ THE API GIVES US NO LINK. GET /workflows/ returns only id, name, status,
+ * version, createdAt, updatedAt and locationId (checked against the published
+ * schema). So this whole URL is MANUFACTURED here: the only part GHL supplies is
+ * the workflow id. `locationId` comes from our own env var, not the response.
+ *
+ * ⚠️ IF YOU EVER CHANGE THIS FORMAT AGAIN, MIGRATE THE EXISTING ROWS IN THE SAME
+ * BREATH. Because the sync matches on the exact URL and INSERTS when it finds no
+ * match, a format change on one side alone does not merely fail to help: it
+ * creates a DUPLICATE ROW FOR EVERY WORKFLOW (444 of them, at the time of
+ * writing). Keep a manual "Refresh List" from running in between.
+ *
+ * HISTORY: this used to emit `/automation/workflows/builder/<id>`, which was
+ * verified working in June 2026 and had stopped working by 2026-08-22 (GHL
+ * appears to have changed their app routing). Fixed to `/automation/workflow/<id>`
+ * and all 444 existing rows were rewritten to match in the same change.
+ */
 export function ghlWorkflowUrl(locationId: string, workflowId: string): string {
-  return `https://app.gohighlevel.com/v2/location/${locationId}/automation/workflows/builder/${workflowId}`;
+  return `https://app.gohighlevel.com/v2/location/${locationId}/automation/workflow/${workflowId}`;
 }
 
 /**
