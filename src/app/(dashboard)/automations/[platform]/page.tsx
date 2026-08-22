@@ -25,11 +25,19 @@ export const dynamic = "force-dynamic";
 
 export default async function AutomationWebsitePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ platform: string }>;
+  searchParams: Promise<{ q?: string | string[] }>;
 }) {
   await requireAuth();
   const { platform } = await params;
+  // ?q= seeds the table's search box (see initialQuery on the client). Read on
+  // the SERVER and passed as a prop rather than via useSearchParams(), which
+  // would drag a Suspense boundary into the client component for no benefit.
+  // Repeated params come back as an array; take the first.
+  const { q } = await searchParams;
+  const initialQuery = (Array.isArray(q) ? q[0] : q) ?? "";
 
   const site = getAutomationSite(platform);
   if (!site) notFound();
@@ -148,6 +156,7 @@ export default async function AutomationWebsitePage({
         icon={site.icon}
         iconColor={site.iconColor}
         initialRows={rows}
+        initialQuery={initialQuery}
         authorChoices={authorChoices}
         triggerEventChoices={triggerEventChoices}
         triageChoices={triageChoices}

@@ -110,6 +110,18 @@ function platformLabel(slug: string): string {
   return getAutomationSite(slug)?.label ?? slug;
 }
 
+/** Where a related row goes: that automation's Motherboard Per Website page,
+ *  with the search box pre-filled with its NAME so the row is the only thing on
+ *  screen. The page reads `?q=` server-side (see its searchParams handling).
+ *
+ *  WHY NOT the automation's own website: the point of this list is usually "what
+ *  else in OUR records touches this", so landing in the Motherboard keeps you in
+ *  the tool. The source-platform link is still one click away, on the
+ *  ExternalLink glyph at the right of the row. */
+function motherboardHref(a: RelatedAutomation): string {
+  return `/automations/${a.platform}?q=${encodeURIComponent(a.name)}`;
+}
+
 export function RelatedAutomationsDialog({
   target,
   onOpenChange,
@@ -316,20 +328,26 @@ export function RelatedAutomationsDialog({
                 <ul className="space-y-1">
                   {list.map((a) => (
                     <li key={a.id}>
-                      <a
-                        href={a.externalUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center justify-between gap-3 rounded-md border border-zinc-200 px-3 py-2 transition-colors hover:bg-zinc-50"
-                      >
-                        <span className="min-w-0">
+                      {/* TWO links per row, so the row body and the glyph can go
+                          to different places. They must be SIBLINGS: nesting an
+                          <a> inside an <a> is invalid HTML. The row container is
+                          therefore a plain div carrying the border + hover. */}
+                      <div className="flex items-center justify-between gap-3 rounded-md border border-zinc-200 px-3 py-2 transition-colors hover:bg-zinc-50">
+                        {/* Row body -> the Motherboard, search pre-filled. */}
+                        <a
+                          href={motherboardHref(a)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={`Open "${a.name}" in the Motherboard`}
+                          className="min-w-0 flex-1"
+                        >
                           <span className="block truncate text-sm text-zinc-900">
                             {a.name}
                           </span>
                           <span className="text-xs text-zinc-500">
                             {platformLabel(a.platform)}
                           </span>
-                        </span>
+                        </a>
                         <span className="flex shrink-0 items-center gap-2">
                           <span
                             className={cn(
@@ -341,9 +359,21 @@ export function RelatedAutomationsDialog({
                           >
                             {a.status === "active" ? "Active" : "Paused"}
                           </span>
-                          <ExternalLink className="h-3.5 w-3.5 text-zinc-400" />
+                          {/* Glyph -> the automation on its own website. It used
+                              to be decoration inside the row link; now it is the
+                              only way out to the source platform, so it gets its
+                              own hover + title. */}
+                          <a
+                            href={a.externalUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title={`Open on ${platformLabel(a.platform)}`}
+                            className="inline-flex rounded p-0.5 text-zinc-400 transition-colors hover:text-zinc-900"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </a>
                         </span>
-                      </a>
+                      </div>
                     </li>
                   ))}
                 </ul>
