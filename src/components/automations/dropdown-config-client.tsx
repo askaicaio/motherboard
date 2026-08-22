@@ -65,10 +65,12 @@ interface Item {
   notes?: string | null;
   badgeColor?: string | null;
   textColor?: string | null;
-  /** Webhook Links only: count of automations using this webhook. */
+  /** Relationship-bearing tables only (Webhook Links, GHL Tags): count of
+   *  automations using this choice. */
   relationships?: number;
-  /** Webhook Links only: the automations using this webhook (reverse lookup),
-   *  rendered inline in the Relationships cell. */
+  /** Relationship-bearing tables only (Webhook Links, GHL Tags): the automations
+   *  using this choice (reverse lookup), rendered inline in the Relationships
+   *  cell and opening the browse-all lookup. */
   relatedAutomations?: RelatedAutomation[];
 }
 
@@ -170,6 +172,16 @@ export function DropdownConfigClient({
   const itemsByTable = useMemo(() => {
     const m: Record<string, Item[]> = {};
     for (const t of TABLES) m[t.id] = [];
+    // ⚠️ THIS IS AN EXPLICIT FIELD-BY-FIELD COPY, SO IT SILENTLY DROPS ANYTHING
+    // YOU FORGET. Every field on DropdownChoiceRow that a table renders MUST be
+    // listed here. TypeScript will NOT catch an omission, because Item declares
+    // these fields optional, so a short object still type-checks and the cell
+    // just renders its empty state.
+    //
+    // That is exactly what happened when GHL Tags got its Relationships column
+    // (fixed 2026-08-22): the server loaded the relationships correctly, this
+    // copy dropped them, and every row read "None". Same shape as the Refresh
+    // List incident documented in lib/automations/per-website-rows.ts.
     for (const c of choices) {
       (m[c.columnKey] ??= []).push({
         id: c.id,
@@ -178,6 +190,10 @@ export function DropdownConfigClient({
         notes: c.notes,
         badgeColor: c.badgeColor,
         textColor: c.textColor,
+        // Populated for GHL Tags only (see the page loader); undefined elsewhere,
+        // which renders as the "None" empty state on tables that show the column.
+        relationships: c.relatedAutomations?.length ?? 0,
+        relatedAutomations: c.relatedAutomations,
       });
     }
     m.webhooks = webhooks.map((w) => ({
