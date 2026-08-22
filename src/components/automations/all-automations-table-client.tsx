@@ -923,7 +923,7 @@ export function AllAutomationsTableClient({
                 textColor={r.triageTextColor}
               />
             ) : (
-              <span className="text-xs text-zinc-400">-</span>
+              <span className="text-xs font-medium text-red-600">None</span>
             )}
           </td>
         );
@@ -966,7 +966,7 @@ export function AllAutomationsTableClient({
                 </TooltipContent>
               </Tooltip>
             ) : (
-              <span className="text-xs font-medium text-red-600">None</span>
+              <span className="text-xs text-zinc-400">-</span>
             )}
           </td>
         );
@@ -1000,7 +1000,7 @@ export function AllAutomationsTableClient({
                 </TooltipContent>
               </Tooltip>
             ) : (
-              <span className="text-xs font-medium text-red-600">None</span>
+              <span className="text-xs text-zinc-400">-</span>
             )}
           </td>
         );
@@ -1076,7 +1076,7 @@ export function AllAutomationsTableClient({
                 ))}
               </div>
             ) : (
-              <span className="text-xs font-medium text-red-600">None</span>
+              <span className="text-xs text-zinc-400">-</span>
             )}
           </td>
         );
@@ -1109,7 +1109,7 @@ export function AllAutomationsTableClient({
                 ))}
               </div>
             ) : (
-              <span className="text-xs font-medium text-red-600">None</span>
+              <span className="text-xs text-zinc-400">-</span>
             )}
           </td>
         );
@@ -1172,7 +1172,7 @@ export function AllAutomationsTableClient({
                 ))}
               </div>
             ) : (
-              <span className="text-xs font-medium text-red-600">None</span>
+              <span className="text-xs text-zinc-400">-</span>
             )}
           </td>
         );

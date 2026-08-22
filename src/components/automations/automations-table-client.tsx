@@ -1487,7 +1487,7 @@ export function AutomationsTableClient({
               // Untriaged renders a muted "-", NOT the red "None" the other
               // manual columns use: an untriaged automation is a normal starting
               // state, not a missing value someone forgot to fill in.
-              <span className="text-xs text-zinc-400">-</span>
+              <span className="text-xs font-medium text-red-600">None</span>
             )}
           </td>
         );
@@ -1585,7 +1585,7 @@ export function AutomationsTableClient({
                 </TooltipContent>
               </Tooltip>
             ) : (
-              <span className="text-xs font-medium text-red-600">None</span>
+              <span className="text-xs text-zinc-400">-</span>
             )}
           </td>
         );
@@ -1618,7 +1618,7 @@ export function AutomationsTableClient({
                 </TooltipContent>
               </Tooltip>
             ) : (
-              <span className="text-xs font-medium text-red-600">None</span>
+              <span className="text-xs text-zinc-400">-</span>
             )}
           </td>
         );
@@ -1679,7 +1679,7 @@ export function AutomationsTableClient({
                 ))}
               </div>
             ) : (
-              <span className="text-xs font-medium text-red-600">None</span>
+              <span className="text-xs text-zinc-400">-</span>
             )}
           </td>
         );
@@ -1710,7 +1710,7 @@ export function AutomationsTableClient({
                 ))}
               </div>
             ) : (
-              <span className="text-xs font-medium text-red-600">None</span>
+              <span className="text-xs text-zinc-400">-</span>
             )}
           </td>
         );
