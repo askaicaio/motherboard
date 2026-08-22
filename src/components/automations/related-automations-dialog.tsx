@@ -327,58 +327,58 @@ export function RelatedAutomationsDialog({
               ) : list && list.length > 0 ? (
                 <ul className="space-y-1">
                   {list.map((a) => (
-                    <li key={a.id}>
-                      {/* TWO links per row, so the row body and the glyph can go
-                          to different places. They must be SIBLINGS: nesting an
-                          <a> inside an <a> is invalid HTML. The row container is
-                          therefore a plain div carrying the border + hover. */}
-                      <div className="flex items-center justify-between gap-3 rounded-md border border-zinc-200 px-3 py-2 transition-colors hover:bg-zinc-50">
-                        {/* Row body -> the Motherboard, search pre-filled. */}
-                        <a
-                          href={motherboardHref(a)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          title={`Open "${a.name}" in the Motherboard`}
-                          className="min-w-0 flex-1"
-                        >
+                    <li key={a.id} className="flex items-stretch gap-2">
+                      {/* TWO SEPARATE BUTTONS, side by side, because they go to
+                          DIFFERENT places: the wide one into the Motherboard, the
+                          narrow one out to the source platform. They have to be
+                          SIBLINGS anyway (nesting an <a> in an <a> is invalid
+                          HTML), but they are now visually separate too, because
+                          the glyph sitting inside the row's own border did not
+                          read as clickable (user, 2026-08-22).
+
+                          items-stretch on the <li> is what makes the narrow
+                          button match the wide one's height: ONLY the wide one
+                          sets vertical padding and the narrow one stretches to
+                          it. Do not give the narrow one its own py, or the two
+                          drift apart whenever the wide one's content reflows. */}
+                      <a
+                        href={motherboardHref(a)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={`Open "${a.name}" in the Motherboard`}
+                        className="flex min-w-0 flex-1 items-center justify-between gap-3 rounded-md border border-zinc-200 px-3 py-2 transition-colors hover:bg-zinc-50"
+                      >
+                        <span className="min-w-0">
                           <span className="block truncate text-sm text-zinc-900">
                             {a.name}
                           </span>
                           <span className="text-xs text-zinc-500">
                             {platformLabel(a.platform)}
                           </span>
-                        </a>
-                        <span className="flex shrink-0 items-center gap-2">
-                          <span
-                            className={cn(
-                              "inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium",
-                              a.status === "active"
-                                ? "bg-emerald-100 text-emerald-700"
-                                : "bg-zinc-100 text-zinc-700",
-                            )}
-                          >
-                            {a.status === "active" ? "Active" : "Paused"}
-                          </span>
-                          {/* Glyph -> the automation on its own website. It used
-                              to be decoration inside the row link; now it is the
-                              only way out to the source platform, so it gets its
-                              own hover + title.
-                              BLUE, not the muted zinc it started as: blue-600 is
-                              what every other "this opens a URL" affordance in the
-                              Automations tab uses, and the row BODY beside it goes
-                              somewhere else entirely, so the colour is what tells
-                              them apart at a glance. */}
-                          <a
-                            href={a.externalUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            title={`Open on ${platformLabel(a.platform)}`}
-                            className="inline-flex rounded p-0.5 text-blue-600 transition-colors hover:text-blue-800"
-                          >
-                            <ExternalLink className="h-3.5 w-3.5" />
-                          </a>
                         </span>
-                      </div>
+                        <span
+                          className={cn(
+                            "inline-flex shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium",
+                            a.status === "active"
+                              ? "bg-emerald-100 text-emerald-700"
+                              : "bg-zinc-100 text-zinc-700",
+                          )}
+                        >
+                          {a.status === "active" ? "Active" : "Paused"}
+                        </span>
+                      </a>
+                      {/* BLUE because blue-600 is what every other "this opens a
+                          URL" affordance in the Automations tab uses, and this is
+                          the one of the two that leaves the Motherboard. */}
+                      <a
+                        href={a.externalUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={`Open on ${platformLabel(a.platform)}`}
+                        className="flex shrink-0 items-center justify-center rounded-md border border-zinc-200 px-3 text-blue-600 transition-colors hover:bg-zinc-50 hover:text-blue-800"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
                     </li>
                   ))}
                 </ul>
