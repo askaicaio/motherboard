@@ -1053,12 +1053,13 @@ export function AllAutomationsTableClient({
                   >
                     {/* Gold "(N)" total-selected count on the first line (the
                         cell clips the rest). */}
-                    {/* The count line carries a ROW-LEVEL share icon covering
-                        entries the height clamp hides; lines below carry their
-                        own. Line 0 deliberately does NOT also show its own, or a
-                        shared first entry would render two identical glyphs.
-                        See countShared() for the full rationale. */}
-                    {i === 0 ? (
+                    {/* ONE share icon per cell, next to the amber count, meaning
+                        "some entry here is shared". Per-line icons were tried and
+                        removed (user, 2026-08-22): a cell with several shared
+                        entries turned into a column of repeated glyphs. Which
+                        specific entry is shared is still in each line's hover
+                        text. See countShared() for why it must be row-level. */}
+                    {i === 0 && (
                       <>
                         <span className="font-medium text-amber-600">
                           ({arr.length}){" "}
@@ -1068,8 +1069,6 @@ export function AllAutomationsTableClient({
                           title={sharedRowTitle(countShared(arr))}
                         />
                       </>
-                    ) : (
-                      <SharedItemIcon sharedWith={t.sharedWith} />
                     )}
                     {t.value}
                   </button>
@@ -1151,10 +1150,9 @@ export function AllAutomationsTableClient({
                     }}
                     className="block w-full cursor-pointer truncate text-left text-xs text-blue-600 hover:underline disabled:pointer-events-none disabled:cursor-default disabled:no-underline"
                   >
-                    {/* Count line carries the ROW-LEVEL share icon (covering
-                        entries the clamp hides), later lines their own. Same
+                    {/* ONE share icon per cell, next to the amber count. Same
                         treatment as the GHL Tags cell; see countShared(). */}
-                    {i === 0 ? (
+                    {i === 0 && (
                       <>
                         <span className="font-medium text-amber-600">
                           ({arr.length}){" "}
@@ -1164,8 +1162,6 @@ export function AllAutomationsTableClient({
                           title={sharedRowTitle(countShared(arr))}
                         />
                       </>
-                    ) : (
-                      <SharedItemIcon sharedWith={w.sharedWith} />
                     )}
                     {w.url}
                   </button>

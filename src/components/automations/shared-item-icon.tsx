@@ -79,10 +79,15 @@ export function SharedItemIcon({
  *  correctly treated the row as shared. The cell and the sort disagreed, and the
  *  bigger the cell the more often it happened. (User-reported 2026-08-22.)
  *
- *  So the count line now carries a ROW-LEVEL icon derived from this, covering
- *  entries you cannot see. Lines below the first keep their own per-line icon;
- *  the first line does NOT, because the count immediately before it already
- *  shows one and two identical glyphs on one line reads as a mistake. */
+ *  So the cell shows exactly ONE icon, on the count line, derived from this. It
+ *  means "some entry in here is shared", which is precisely what sharedSortRank
+ *  ranks on, so the cell and the sort now say the same thing.
+ *
+ *  ⚠️ PER-LINE ICONS WERE TRIED AND REMOVED (user, 2026-08-22). Marking every
+ *  shared line turned a cell with several into a column of repeated glyphs. WHICH
+ *  entry is shared is still available: each line's hover text says so (see
+ *  sharedItemTitle), and the lookup dialog badges every entry. Do not reinstate
+ *  them without asking. */
 export function countShared(list: { sharedWith?: number }[] | undefined): number {
   return (list ?? []).filter((x) => (x.sharedWith ?? 0) > 0).length;
 }
