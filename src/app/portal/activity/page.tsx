@@ -13,6 +13,9 @@ import { ActivityClient, type ActivityRow } from "./activity-client";
 
 export const dynamic = "force-dynamic";
 
+// Slots into the portal layout's title template ("%s · Affiliate Portal").
+export const metadata = { title: "Activity" };
+
 export default async function ActivityPage() {
   const partner = await requirePartner();
 

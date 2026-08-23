@@ -27,6 +27,9 @@ const CATEGORY_LABELS: Record<string, string> = {
   other: "Other Resources",
 };
 
+// Slots into the portal layout's title template ("%s · Affiliate Portal").
+export const metadata = { title: "Resources" };
+
 export default async function PortalResourcesPage() {
   await requirePartner();
 

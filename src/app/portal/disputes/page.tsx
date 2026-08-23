@@ -33,6 +33,9 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+// Slots into the portal layout's title template ("%s · Affiliate Portal").
+export const metadata = { title: "Disputes" };
+
 export default async function DisputesPage() {
   const partner = await requirePartner();
 

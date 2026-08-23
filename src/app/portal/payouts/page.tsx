@@ -51,6 +51,9 @@ const TAX_LABEL: Record<string, string> = {
 
 const VALID_TAX = ["w9", "w8ben", "w8bene"];
 
+// Slots into the portal layout's title template ("%s · Affiliate Portal").
+export const metadata = { title: "Payouts" };
+
 export default async function PayoutsPage({
   searchParams,
 }: {

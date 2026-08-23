@@ -215,6 +215,9 @@ const TONE = [
 
 // --- Page -------------------------------------------------------------------
 
+// Slots into the portal layout's title template ("%s · Affiliate Portal").
+export const metadata = { title: "Toolkit" };
+
 export default async function PortalToolkitPage() {
   await requirePartner();
 

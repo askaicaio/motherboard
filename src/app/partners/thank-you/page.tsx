@@ -10,6 +10,9 @@ import Link from "next/link";
 // applicant never sees "thank you for your purchase".
 const CONTACT_NAME = "Dani Apgar";
 
+// Explicit title so this page never falls back to the staff dashboard title.
+export const metadata = { title: "Thank you — CAIO Affiliate Program" };
+
 export default async function ThankYouPage({
   searchParams,
 }: {

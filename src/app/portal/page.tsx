@@ -27,6 +27,9 @@ function usd(cents: number): string {
   });
 }
 
+// Slots into the portal layout's title template ("%s · Affiliate Portal").
+export const metadata = { title: "Dashboard" };
+
 export default async function PortalDashboardPage() {
   const partner = await requirePartner();
 
