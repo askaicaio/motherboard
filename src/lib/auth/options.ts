@@ -14,6 +14,12 @@ function isAllowedDomain(email: string): boolean {
   return email.endsWith(`@${ALLOWED_EMAIL_DOMAIN}`);
 }
 
+// ---- Role freshness ----
+// How long the role/department cached in the JWT stays trusted before it is
+// re-read from the DB. Bounds how long a permission change takes to apply
+// (grant OR revoke) without paying a DB hit on every request.
+const ROLE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
     Google({
@@ -166,12 +172,26 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
      * session(). We use it to fetch the user's role/department from the
      * DB once and embed them in the JWT itself. The session() callback
      * then reads from the token, avoiding a DB hit on every request.
+     *
+     * The role is ALSO re-read whenever the cached copy is older than
+     * ROLE_TTL_MS. Without that, a role baked into the JWT at sign-in stayed
+     * authoritative for the whole 30-day token lifetime: promoting someone to
+     * admin appeared to do nothing until they happened to sign out and back in,
+     * and — worse — revoking access or deactivating an account left the old
+     * permissions live. One narrow SELECT per user per TTL bounds both.
      */
     async jwt({ token, user, trigger }) {
       // On initial sign-in, `user` is populated. On subsequent calls
       // it's not — so we only do the DB lookup when needed.
+      const lastChecked =
+        typeof token.roleCheckedAt === "number" ? token.roleCheckedAt : 0;
+      const roleIsStale = Date.now() - lastChecked > ROLE_TTL_MS;
       const shouldRefreshFromDb =
-        !!user || trigger === "signIn" || trigger === "update" || !token.role;
+        !!user ||
+        trigger === "signIn" ||
+        trigger === "update" ||
+        !token.role ||
+        roleIsStale;
 
       if (shouldRefreshFromDb && token.email) {
         // Narrow SELECT — same defensive pattern as signIn callback so
@@ -191,6 +211,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             token.id = adminUser.id;
             token.role = adminUser.role;
             token.department = adminUser.department || "unassigned";
+            // Stamp even when nothing changed, so a steady-state session
+            // re-checks once per TTL rather than on every request.
+            token.roleCheckedAt = Date.now();
           }
         } catch (err) {
           console.error(
