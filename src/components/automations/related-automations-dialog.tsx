@@ -349,7 +349,19 @@ export function RelatedAutomationsDialog({
                         className="flex min-w-0 flex-1 items-center justify-between gap-3 rounded-md border border-zinc-200 px-3 py-2 transition-colors hover:bg-zinc-50"
                       >
                         <span className="min-w-0">
-                          <span className="block truncate text-sm text-zinc-900">
+                          {/* WRAPS, does not truncate: the full name matters more
+                              than a tidy single line here, since this list is how
+                              you identify which automation to open.
+
+                              ⚠️ [overflow-wrap:anywhere], NOT break-words. A name
+                              can be one long unbroken token (a test row named
+                              "testtesttest..." is what surfaced this), and
+                              break-words does not shrink the element's min-content
+                              width, so the button would stretch instead of
+                              wrapping. This is a recurring trap in this codebase.
+                              min-w-0 on this span is the other half: without it
+                              the flex child refuses to shrink at all. */}
+                          <span className="block text-sm text-zinc-900 [overflow-wrap:anywhere]">
                             {a.name}
                           </span>
                           <span className="text-xs text-zinc-500">
