@@ -276,9 +276,13 @@ export function RelatedAutomationsDialog({
                   All {kind.nounPlural.toLowerCase()}
                 </button>
               )}
-              {/* Anchor context on its own line (anchored flow only). */}
+              {/* Anchor context on its own line (anchored flow only).
+                  [overflow-wrap:anywhere] because an automation NAME can be one
+                  long unbroken token, which would otherwise push straight out of
+                  the dialog (it has a max width). Same trap as the result rows
+                  below; see the note there. */}
               {anchor && (
-                <p className="text-sm text-zinc-700">
+                <p className="text-sm text-zinc-700 [overflow-wrap:anywhere]">
                   <span className="font-medium">{anchor.name}</span>
                   <span className="text-zinc-400">
                     {" · "}
@@ -288,7 +292,12 @@ export function RelatedAutomationsDialog({
               )}
               {/* The chosen value. Copyable columns (a webhook URL, which is not
                   navigable) render a click-to-copy button; the rest render plain
-                  text, since a short tag name has nothing worth copying. */}
+                  text, since a short tag name has nothing worth copying.
+                  WRAPPING DIFFERS BY KIND, deliberately: a URL gets break-all,
+                  which is conventional for a long spaceless string and lets it
+                  fill each line. A tag name gets [overflow-wrap:anywhere], which
+                  only breaks a word when it genuinely does not fit; break-all
+                  would chop readable labels mid-word for no reason. */}
               <p className="mt-0.5 text-sm text-zinc-700">
                 {kind.nounLabel}:{" "}
                 {picked &&
@@ -307,7 +316,7 @@ export function RelatedAutomationsDialog({
                   ) : (
                     <span
                       className={cn(
-                        "break-all text-xs text-zinc-900",
+                        "text-xs text-zinc-900 [overflow-wrap:anywhere]",
                         kind.mono && "font-mono",
                       )}
                     >
