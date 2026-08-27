@@ -120,6 +120,10 @@ interface Props {
   placeholder: string;
   isUrl: boolean;
   initialValue: string;
+  /** Built-in options ("No Path", "No Tag", ...) are recognised by their value,
+   *  so the value cannot change without the option ceasing to be one. Renders
+   *  the field read-only and says why. The API blocks the rename regardless. */
+  valueLocked?: boolean;
   submitLabel: string;
   /** Show a Status dropdown (status-bearing columns: GHL Tags, GHL Forms,
    *  Author). Each option carries its own text tone. */
@@ -146,6 +150,7 @@ export function ChoiceDialog({
   placeholder,
   isUrl,
   initialValue,
+  valueLocked = false,
   submitLabel,
   showStatus,
   statusOptions,
@@ -275,11 +280,26 @@ export function ChoiceDialog({
                 setValue(e.target.value);
                 setError(null);
               }}
-              autoFocus
+              // A locked field must not steal focus from the fields that CAN
+              // still be edited (Status, Notes), so autoFocus moves off it.
+              autoFocus={!valueLocked}
+              readOnly={valueLocked}
               maxLength={isUrl ? 1000 : 300}
               placeholder={placeholder}
-              className="border-zinc-300 shadow-sm"
+              className={cn(
+                "border-zinc-300 shadow-sm",
+                // readOnly is a BEHAVIOUR change, not a visual one, so the
+                // muted look and the cursor have to be said out loud.
+                valueLocked &&
+                  "cursor-default bg-zinc-50 text-zinc-500 focus-visible:ring-0",
+              )}
             />
+            {valueLocked && (
+              <p className="text-xs text-zinc-500">
+                Built-in option. The name cannot be changed, and it cannot be
+                removed. Everything else here is still editable.
+              </p>
+            )}
           </div>
           {showStatus && (
             <div className="space-y-1.5">

@@ -23,6 +23,10 @@ import {
   automationDropdownChoices,
   automationWebhookChoices,
 } from "@/lib/db/schema";
+import {
+  WEBHOOK_SCOPE,
+  sortSpecialFirst,
+} from "@/lib/automations/dropdown-config";
 import { alias } from "drizzle-orm/pg-core";
 import { asc, eq } from "drizzle-orm";
 import { requireAuth } from "@/lib/auth/guard";
@@ -200,7 +204,10 @@ export default async function AllAutomationsPage() {
         })
         .from(automationDropdownChoices)
         .where(eq(automationDropdownChoices.columnKey, "ghl_tags"))
-        .orderBy(asc(automationDropdownChoices.value)),
+        .orderBy(asc(automationDropdownChoices.value))
+        // Built-in options ("No Tag") sit at the TOP of the picker; everything
+        // else keeps the alphabetical order above. See SPECIAL_CHOICES.
+        .then((rows) => sortSpecialFirst("ghl_tags", rows)),
       // GHL Forms (multi-select): same treatment as GHL Tags.
       db
         .select({
@@ -211,7 +218,9 @@ export default async function AllAutomationsPage() {
         })
         .from(automationDropdownChoices)
         .where(eq(automationDropdownChoices.columnKey, "ghl_forms"))
-        .orderBy(asc(automationDropdownChoices.value)),
+        .orderBy(asc(automationDropdownChoices.value))
+        // Built-in options ("No Form") sit at the top, as with GHL Tags.
+        .then((rows) => sortSpecialFirst("ghl_forms", rows)),
       // Webhook Links (multi-select): its own choices table, so the URL maps to
       // the picker's `value`. Mirrors the per-website page loader exactly.
       db
@@ -220,7 +229,10 @@ export default async function AllAutomationsPage() {
           value: automationWebhookChoices.url,
         })
         .from(automationWebhookChoices)
-        .orderBy(asc(automationWebhookChoices.url)),
+        .orderBy(asc(automationWebhookChoices.url))
+        // Built-in options ("No Path", "No Webhook") sit at the top, above the
+        // hundreds of real URLs, which is the whole reason they are findable.
+        .then((rows) => sortSpecialFirst(WEBHOOK_SCOPE, rows)),
     ]);
 
   return (
