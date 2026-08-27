@@ -95,12 +95,42 @@ Order of work:
 4. **`MIDDLE_DEFAULT_ORDER`** — insert at the intended default position.
 5. **`COLUMN_WIDTHS`** — give it a width, or the table min-width maths under
    column hide/show goes wrong.
-6. **`ALL_HIDEABLE_COLUMNS`** in `all-automations-table-client.tsx` — only if the
-   column also appears on View All Lists. That table hides by **1-based position**
-   via an `nth-child` style block, so inserting a column shifts every index after
-   it. Update the indexes and the base min-width.
-7. **Add/Edit dialog** (`workflow-dialog.tsx`) and the write routes, if the column
+6. **`AllColumnId` + `ALL_COLUMNS`** in `all-automations-table-client.tsx`, only
+   if the column also appears on View All Lists. That table has its **own query**
+   (in `app/(dashboard)/automations/all/page.tsx`), so **add the field to that
+   select as well**, or the column renders blank there while working on the Per
+   Website pages.
+   > **This step used to say something else and was wrong.** It described hiding
+   > by 1-based `nth-child` position in a scoped `<style>` block, which meant
+   > inserting a column shifted every later index. That was replaced by the
+   > data-driven `ALL_COLUMNS` list in PR #362, so positions no longer exist and
+   > nothing needs renumbering. Corrected 2026-08-23.
+7. **Sorting**, if the column is sortable: add it to the `SortKey` union **in both
+   table files** and give it a branch in the comparator. The four date columns
+   (Last Edited, Last Runtime, Last Error, Row Update) share one branch and are
+   deliberately **inverted** (`-dir`), so the first click shows newest first.
+8. **Add/Edit dialog** (`workflow-dialog.tsx`) and the write routes, if the column
    is user-editable rather than synced.
+9. **`SYNCED_COLUMNS`**, if a sync writes it: that map drives the ↻ marker. Leave
+   the column out entirely if no sync touches it.
+
+The CSV export needs no separate step: it is driven by the same `MIDDLE_COLUMNS`
+descriptors via each column's `exportValue`, so it picks up a new column and its
+position automatically.
+
+### Worked example: "Row Update" (2026-08-23)
+
+A column no sync may ever write, recording when a **person** last created or
+edited the row in the app. Useful as a template because it exercises most of the
+list: migration `0050`, schema field, both loaders, both column models, the shared
+date comparator, both cell renderers, and the two app write routes, while
+deliberately appearing in **none** of the `*-sync.ts` files. That last part is the
+whole feature, and it is verifiable with a single grep:
+
+    grep -rn "rowUpdatedAt" src/lib/integrations/
+
+If that ever returns a hit, the column has silently become another
+`last_edited_at`.
 
 ## The trap that remains
 

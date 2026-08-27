@@ -70,6 +70,9 @@ export async function getPerWebsiteRows(platform: string) {
       notes: automations.notes,
       lastRunAt: automations.lastRunAt,
       lastEditedAt: automations.lastEditedAt,
+      // "Row Update": when a person last touched this row in the app. Never
+      // written by any sync (migration 0050).
+      rowUpdatedAt: automations.rowUpdatedAt,
       // Author: the stored choice id + its resolved display value (left join,
       // so rows with no author come back null), plus the choice's badge + text
       // colours so the cell can render a coloured pill (mirrors Trigger Event).

@@ -172,7 +172,21 @@ export async function PATCH(
     }
   }
 
-  const patch: Record<string, unknown> = { updatedAt: new Date() };
+  // "Row Update" (migration 0050): a person is editing this row in the app, so
+  // stamp it unconditionally alongside updatedAt.
+  //
+  // ⚠️ WHY NOT JUST USE updatedAt: the SYNCS write that too (see
+  // ghl-automations-sync.ts, make-sync.ts, n8n-sync.ts), so a background refresh
+  // moves it and it cannot mean "a person did something". ONLY this route and
+  // POST /api/automations may write rowUpdatedAt.
+  //
+  // Stamped even if the save turns out to change nothing, which is deliberate:
+  // it records that someone opened the row and confirmed it, which is exactly
+  // the signal wanted for reviewing 900+ automations.
+  const patch: Record<string, unknown> = {
+    updatedAt: new Date(),
+    rowUpdatedAt: new Date(),
+  };
   if (body.name !== undefined) patch.name = body.name.trim();
   if (body.externalUrl !== undefined) patch.externalUrl = body.externalUrl.trim();
   if (body.status !== undefined) patch.status = body.status;

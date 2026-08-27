@@ -112,7 +112,8 @@ type SortKey =
   | "author"
   | "webhooks"
   | "ghlTags"
-  | "triage";
+  | "triage"
+  | "rowUpdatedAt";
 
 
 /** MM-DD-YYYY, or "-" when empty/invalid. Same as the per-website table. */
@@ -223,7 +224,8 @@ type AllColumnId =
   | "webhooks"
   | "lastEditedAt"
   | "lastRunAt"
-  | "lastErrorAt";
+  | "lastErrorAt"
+  | "rowUpdatedAt";
 
 interface AllColumnDef {
   id: AllColumnId;
@@ -255,6 +257,8 @@ const ALL_COLUMNS: AllColumnDef[] = [
   { id: "lastEditedAt", title: "Last Edited", sortKey: "lastEditedAt", thClassName: ALL_TH_S_AUTO, width: 136 },
   { id: "lastRunAt", title: "Last Runtime", sortKey: "lastRunAt", thClassName: ALL_TH_S_AUTO, width: 136 },
   { id: "lastErrorAt", title: "Last Error", sortKey: "lastErrorAt", thClassName: ALL_TH_S_AUTO, width: 136 },
+  // "Row Update": placed after Last Error by the user's choice (2026-08-23).
+  { id: "rowUpdatedAt", title: "Row Update", sortKey: "rowUpdatedAt", thClassName: ALL_TH_S_AUTO, width: 136 },
 ];
 
 /** The frozen Name column's fixed width, added on top of the visible middle
@@ -665,7 +669,8 @@ export function AllAutomationsTableClient({
         }
         case "lastEditedAt":
         case "lastRunAt":
-        case "lastErrorAt": {
+        case "lastErrorAt":
+        case "rowUpdatedAt": {
           // Date sort with blanks ("-") ALWAYS last, regardless of direction.
           //
           // ⚠️ NOTE THE `-dir`: these columns are INVERTED on purpose (user
@@ -673,7 +678,8 @@ export function AllAutomationsTableClient({
           // top, not the oldest, because recent activity is what you actually
           // want to see first. The arrow glyphs were deliberately left alone, so
           // ▲ here does NOT mean "smallest first" the way it does on Name.
-          // Applies to Last Edited, Last Runtime AND Last Error, in both tables.
+          // Applies to Last Edited, Last Runtime, Last Error AND Row Update, in
+          // both tables.
           const ta = time(a[sortKey]);
           const tb = time(b[sortKey]);
           if (ta === null && tb === null) return 0;
@@ -1193,6 +1199,22 @@ export function AllAutomationsTableClient({
             {r.lastErrorAt ? (
               <span className="text-xs tabular-nums text-red-600">
                 {formatDateCell(r.lastErrorAt)}
+              </span>
+            ) : (
+              <span className="text-xs text-zinc-400">-</span>
+            )}
+          </td>
+        );
+      case "rowUpdatedAt":
+        return (
+          <td key={id} className="px-3 py-2 align-top text-center">
+            {/* Row Update: when a PERSON last touched this row in the app.
+                Neutral zinc like Last Edited, NOT the red Last Error uses, since
+                this is bookkeeping rather than a problem signal. "-" until
+                someone edits the row (deliberately not backfilled). */}
+            {r.rowUpdatedAt ? (
+              <span className="text-xs tabular-nums text-zinc-700">
+                {formatDateCell(r.rowUpdatedAt)}
               </span>
             ) : (
               <span className="text-xs text-zinc-400">-</span>
