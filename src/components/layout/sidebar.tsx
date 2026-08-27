@@ -17,6 +17,7 @@ import {
   Megaphone,
   BookOpen,
   Workflow,
+  FlaskConical,
   Receipt,
   Handshake,
   Sparkles,
@@ -57,6 +58,7 @@ const ICONS: Record<string, React.ElementType> = {
   "/leads": Sparkles,
   "/campaigns": Megaphone,
   "/automations": Workflow,
+  "/automations-beta": FlaskConical,
   "/docs": BookOpen,
   "/subscriptions": Receipt,
   "/partner-program": Handshake,
@@ -152,10 +154,16 @@ export function Sidebar({ hiddenTabs = [] }: { hiddenTabs?: string[] }) {
 
       <nav className="flex-1 space-y-1 p-3">
         {visibleItems.map((item) => {
+          // Active = this exact route, or one of its CHILD routes. The match
+          // has to stop at a path segment boundary: a plain startsWith would
+          // also light "/automations" up while sitting on "/automations-beta",
+          // since one string is a prefix of the other. Every existing tab is
+          // unaffected (a real child always begins with "<href>/").
           const isActive =
             item.href === "/"
               ? pathname === "/"
-              : pathname.startsWith(item.href);
+              : pathname === item.href ||
+                pathname.startsWith(`${item.href}/`);
 
           return (
             <Link
