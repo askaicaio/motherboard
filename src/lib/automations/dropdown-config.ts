@@ -104,10 +104,37 @@ export function sortSpecialFirst<T extends { value: string }>(
   return [...specials, ...rest];
 }
 
+/** Status reserved for the built-in options (see SPECIAL_CHOICES below). It is
+ *  NOT offered in the Add/Edit dialog: `selectableStatusOptions` strips it out,
+ *  so an ordinary row cannot be moved into this group and a built-in cannot be
+ *  moved out of it. Listed FIRST in every status set that carries it, which is
+ *  what floats the built-ins to the top of a status-grouped table without
+ *  needing a second sort rule. */
+export const ADMIN_STATUS = "Admin";
+
+/** True when this status is the admin-only one. Trimmed + case-insensitive,
+ *  matching how special choices themselves are recognised. */
+export function isAdminStatus(status?: string | null): boolean {
+  return (status ?? "").trim().toLowerCase() === ADMIN_STATUS.toLowerCase();
+}
+
+/** The statuses a PERSON is allowed to pick: everything except the admin-only
+ *  one. Use this for any picker. The raw list stays the one to use for DISPLAY
+ *  and for grouping, which still have to render Admin. */
+export function selectableStatusOptions(
+  options: StatusOption[],
+): StatusOption[] {
+  return options.filter((o) => !isAdminStatus(o.value));
+}
+
 /** Status set for the GHL Tags + GHL Forms columns (user-set 2026-07-24): Keep =
  *  green, To Remove = red, Unknown = black, Removed = yellow. Order here is the
- *  top-to-bottom group order in those tables. */
+ *  top-to-bottom group order in those tables, which is why Admin leads: it puts
+ *  the built-in options above everything else. */
 export const GHL_TAG_STATUS_OPTIONS: StatusOption[] = [
+  // Admin: indigo, deliberately unlike the other four so a built-in row reads
+  // as a different KIND of thing rather than another judgement about a tag.
+  { value: ADMIN_STATUS, badge: "bg-indigo-100 text-indigo-700", text: "text-indigo-700" },
   { value: "Keep", badge: "bg-emerald-100 text-emerald-700", text: "text-emerald-700" },
   { value: "To Remove", badge: "bg-red-100 text-red-700", text: "text-red-700" },
   { value: "Unknown", badge: "bg-zinc-100 text-zinc-900", text: "text-zinc-900" },

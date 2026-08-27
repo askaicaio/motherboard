@@ -9,6 +9,7 @@ import {
   DROPDOWN_COLUMNS,
   CHOICE_COLOR_KEYS,
   isSpecialChoice,
+  selectableStatusOptions,
 } from "@/lib/automations/dropdown-config";
 import { getOptionalAuth } from "@/lib/auth/guard";
 import { and, eq, ne } from "drizzle-orm";
@@ -29,6 +30,8 @@ const SPECIAL_DELETE_ERROR =
   "This is a built-in option and cannot be removed.";
 const SPECIAL_RENAME_ERROR =
   "This is a built-in option and cannot be renamed.";
+const SPECIAL_STATUS_ERROR =
+  "A built-in option keeps the Admin status and cannot be changed.";
 
 function isUniqueViolation(err: unknown): boolean {
   let e: unknown = err;
@@ -73,6 +76,7 @@ export async function PATCH(
     .select({
       columnKey: automationDropdownChoices.columnKey,
       value: automationDropdownChoices.value,
+      status: automationDropdownChoices.status,
     })
     .from(automationDropdownChoices)
     .where(eq(automationDropdownChoices.id, id))
@@ -91,15 +95,30 @@ export async function PATCH(
     return NextResponse.json({ error: SPECIAL_RENAME_ERROR }, { status: 409 });
   }
 
-  // A provided status must belong to THIS row's column set (per-column).
+  // A provided status must belong to THIS row's column set (per-column), and
+  // must be one a PERSON may pick, which excludes the admin-only status. On a
+  // built-in row the status is part of what makes it built-in, so the only
+  // accepted value is the one already there (the dialog sends it back unchanged
+  // on a Notes-only save, so refusing outright would break that).
   if (body.status !== undefined) {
     const column = DROPDOWN_COLUMNS.find((c) => c.key === row.columnKey);
-    const allowed = (column?.statusOptions ?? []).map((o) => o.value);
-    if (!allowed.includes(body.status)) {
-      return NextResponse.json(
-        { error: "Invalid status for this column." },
-        { status: 400 },
+    if (isSpecialChoice(row.columnKey, row.value)) {
+      if (body.status !== (row.status ?? "")) {
+        return NextResponse.json(
+          { error: SPECIAL_STATUS_ERROR },
+          { status: 409 },
+        );
+      }
+    } else {
+      const allowed = selectableStatusOptions(column?.statusOptions ?? []).map(
+        (o) => o.value,
       );
+      if (!allowed.includes(body.status)) {
+        return NextResponse.json(
+          { error: "Invalid status for this column." },
+          { status: 400 },
+        );
+      }
     }
   }
 
