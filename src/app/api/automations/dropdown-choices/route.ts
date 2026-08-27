@@ -10,6 +10,7 @@ import { automationDropdownChoices } from "@/lib/db/schema";
 import {
   DROPDOWN_COLUMNS,
   CHOICE_COLOR_KEYS,
+  selectableStatusOptions,
 } from "@/lib/automations/dropdown-config";
 import { getOptionalAuth } from "@/lib/auth/guard";
 import { and, eq } from "drizzle-orm";
@@ -96,9 +97,13 @@ export async function POST(request: NextRequest) {
   // Author). Status defaults to the column's own default; other columns store null.
   const column = DROPDOWN_COLUMNS.find((c) => c.key === body.columnKey);
 
-  // A provided status must belong to THIS column's set (per-column validation).
+  // A provided status must belong to THIS column's set (per-column validation),
+  // and must be one a PERSON may pick. That excludes the admin-only status, so
+  // a newly added option can never be created into the built-in group.
   if (column?.hasStatus && body.status) {
-    const allowed = (column.statusOptions ?? []).map((o) => o.value);
+    const allowed = selectableStatusOptions(column.statusOptions ?? []).map(
+      (o) => o.value,
+    );
     if (!allowed.includes(body.status)) {
       return NextResponse.json(
         { error: "Invalid status for this column." },

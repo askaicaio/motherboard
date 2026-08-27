@@ -124,6 +124,10 @@ interface Props {
    *  so the value cannot change without the option ceasing to be one. Renders
    *  the field read-only and says why. The API blocks the rename regardless. */
   valueLocked?: boolean;
+  /** Built-in options carry the admin-only status, which is not a choice anyone
+   *  may change. Renders it as a read-only pill instead of a Select. The API
+   *  refuses the change regardless. */
+  statusLocked?: boolean;
   submitLabel: string;
   /** Show a Status dropdown (status-bearing columns: GHL Tags, GHL Forms,
    *  Author). Each option carries its own text tone. */
@@ -151,6 +155,7 @@ export function ChoiceDialog({
   isUrl,
   initialValue,
   valueLocked = false,
+  statusLocked = false,
   submitLabel,
   showStatus,
   statusOptions,
@@ -301,7 +306,31 @@ export function ChoiceDialog({
               </p>
             )}
           </div>
-          {showStatus && (
+          {showStatus && statusLocked && (
+            <div className="space-y-1.5">
+              <Label htmlFor="choice-status">Status</Label>
+              {/* A read-only PILL, not a disabled Select. The status of a
+                  built-in option is not a choice anyone declined to make, so
+                  offering a control at all would misdescribe it. Rendered from
+                  the same StatusOption tones the tables use, so it looks
+                  identical to the badge on the row behind this dialog. */}
+              <div id="choice-status">
+                <span
+                  className={cn(
+                    "inline-flex rounded-full px-2 py-0.5 text-xs font-medium",
+                    (statusOptions ?? []).find((o) => o.value === status)
+                      ?.badge ?? "bg-zinc-100 text-zinc-700",
+                  )}
+                >
+                  {status}
+                </span>
+              </div>
+              <p className="text-xs text-zinc-500">
+                Reserved for built-in options and not selectable elsewhere.
+              </p>
+            </div>
+          )}
+          {showStatus && !statusLocked && (
             <div className="space-y-1.5">
               <Label htmlFor="choice-status">Status</Label>
               <Select

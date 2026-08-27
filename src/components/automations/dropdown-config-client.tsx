@@ -44,6 +44,8 @@ import {
   choiceColorHex,
   choiceColorLabel,
   isSpecialChoice,
+  selectableStatusOptions,
+  sortSpecialFirst,
   type DropdownChoiceRow,
   type DropdownColumnKey,
   type RelatedAutomation,
@@ -417,6 +419,14 @@ export function DropdownConfigClient({
       : activeTable.fieldLabel.toLowerCase()
     : "";
 
+  // Is the open dialog editing one of the built-in options? Those rows have two
+  // fields that ARE their specialness, the name and the Admin status, so both
+  // are locked. Notes stay editable, being the one part meant to be reworded.
+  const editingSpecial =
+    !!activeTable &&
+    !!dialog?.existing &&
+    isSpecialChoice(activeTable.id, dialog.existing.value);
+
   // The table the toolbar is currently showing (falls back to Author).
   const activeDescriptor =
     TABLES.find((t) => t.id === activeTab) ?? TABLES[0];
@@ -531,13 +541,19 @@ export function DropdownConfigClient({
             placeholder={activeTable.placeholder}
             isUrl={activeTable.isUrl}
             initialValue={dialog.existing?.value ?? ""}
-            valueLocked={
-              !!dialog.existing &&
-              isSpecialChoice(activeTable.id, dialog.existing.value)
-            }
+            valueLocked={editingSpecial}
+            statusLocked={editingSpecial}
             submitLabel={dialog.existing ? "Save changes" : "Add option"}
             showStatus={activeTable.hasStatus}
-            statusOptions={activeTable.statusOptions ?? []}
+            statusOptions={
+              // Locked rows get the FULL list, because the dialog renders their
+              // status as a read-only pill and has to find "Admin" in here to
+              // style it. Everyone else gets the pickable list, which is what
+              // keeps "Admin" out of ordinary hands.
+              editingSpecial
+                ? (activeTable.statusOptions ?? [])
+                : selectableStatusOptions(activeTable.statusOptions ?? [])
+            }
             initialStatus={
               dialog.existing?.status ?? activeTable.defaultStatus ?? "Unknown"
             }
@@ -679,14 +695,19 @@ function ChoiceTableSection({
     // then alphabetize within each group. Every other table (incl. Author, which
     // has a Status column but is NOT grouped) keeps the server's plain
     // alphabetical order.
-    if (!table.statusGrouped) return matched;
+    //
+    // Built-in options sit at the top of EVERY table. On the grouped tables that
+    // is already handled, because their "Admin" status leads the status order
+    // below. Webhook Links has no Status column at all, so it needs saying.
+    if (!table.statusGrouped) return sortSpecialFirst(table.id, matched);
     const options = table.statusOptions ?? [];
     return [...matched].sort(
       (a, b) =>
         statusRank(a.status, options) - statusRank(b.status, options) ||
         a.value.localeCompare(b.value),
     );
-  }, [items, query, table.statusGrouped, table.statusOptions]);
+    // table.id is read by sortSpecialFirst (it is the special-choice scope key).
+  }, [items, query, table.id, table.statusGrouped, table.statusOptions]);
 
   // Rich (multi-column) table when a column carries Status, Notes, Colour, or
   // Relationships; otherwise a simple single-column list.
@@ -909,6 +930,13 @@ function ChoiceTableSection({
                               </button>
                             ))}
                           </div>
+                        ) : isSpecialChoice(table.id, item.value) ? (
+                          // Built-in options have no relationships and never
+                          // will, so the red "None" (which means "nothing uses
+                          // this YET", a thing worth noticing) would be a false
+                          // alarm. The common muted dash instead, as used for an
+                          // empty Purpose on the Per Website tables.
+                          <span className="text-xs text-zinc-400">-</span>
                         ) : (
                           <span className="text-xs font-medium text-red-600">
                             None
