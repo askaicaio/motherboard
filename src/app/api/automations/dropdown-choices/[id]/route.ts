@@ -8,6 +8,7 @@ import { automationDropdownChoices } from "@/lib/db/schema";
 import {
   DROPDOWN_COLUMNS,
   CHOICE_COLOR_KEYS,
+  isSpecialChoice,
 } from "@/lib/automations/dropdown-config";
 import { getOptionalAuth } from "@/lib/auth/guard";
 import { and, eq, ne } from "drizzle-orm";
@@ -24,6 +25,10 @@ const patchSchema = z.object({
 });
 
 const DUPLICATE_ERROR = "That option already exists in this column.";
+const SPECIAL_DELETE_ERROR =
+  "This is a built-in option and cannot be removed.";
+const SPECIAL_RENAME_ERROR =
+  "This is a built-in option and cannot be renamed.";
 
 function isUniqueViolation(err: unknown): boolean {
   let e: unknown = err;
@@ -62,13 +67,29 @@ export async function PATCH(
     throw err;
   }
 
-  // Need the row's column to scope the duplicate check to that column.
+  // Need the row's column to scope the duplicate check to that column, and its
+  // current value to spot a built-in option.
   const [row] = await db
-    .select({ columnKey: automationDropdownChoices.columnKey })
+    .select({
+      columnKey: automationDropdownChoices.columnKey,
+      value: automationDropdownChoices.value,
+    })
     .from(automationDropdownChoices)
     .where(eq(automationDropdownChoices.id, id))
     .limit(1);
   if (!row) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  // A built-in option is recognised BY ITS VALUE, so renaming one would leave
+  // the row in place while quietly turning it into an ordinary choice. Blocked
+  // for the same reason deleting it is. Status and Notes stay editable, since
+  // neither carries the identity.
+  if (
+    body.value !== undefined &&
+    isSpecialChoice(row.columnKey, row.value) &&
+    body.value.trim() !== row.value
+  ) {
+    return NextResponse.json({ error: SPECIAL_RENAME_ERROR }, { status: 409 });
+  }
 
   // A provided status must belong to THIS row's column set (per-column).
   if (body.status !== undefined) {
@@ -152,6 +173,23 @@ export async function DELETE(
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
+
+  // Built-in options ("No Tag", "No Form") are permanent. Checked BEFORE the
+  // delete rather than relying on the config page hiding its own bin icon: the
+  // UI is a courtesy, this is the actual rule.
+  const [row] = await db
+    .select({
+      columnKey: automationDropdownChoices.columnKey,
+      value: automationDropdownChoices.value,
+    })
+    .from(automationDropdownChoices)
+    .where(eq(automationDropdownChoices.id, id))
+    .limit(1);
+  if (!row) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (isSpecialChoice(row.columnKey, row.value)) {
+    return NextResponse.json({ error: SPECIAL_DELETE_ERROR }, { status: 409 });
+  }
+
   const [deleted] = await db
     .delete(automationDropdownChoices)
     .where(eq(automationDropdownChoices.id, id))

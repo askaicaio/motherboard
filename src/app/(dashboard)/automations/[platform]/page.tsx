@@ -16,6 +16,10 @@ import { asc, eq } from "drizzle-orm";
 import { requireAuth } from "@/lib/auth/guard";
 import { ArrowLeft } from "lucide-react";
 import { getAutomationSite, isSyncablePlatform } from "@/lib/automations/sites";
+import {
+  WEBHOOK_SCOPE,
+  sortSpecialFirst,
+} from "@/lib/automations/dropdown-config";
 import { platformHasApiKey } from "@/lib/automations/credentials";
 import { getAutoRefreshFor } from "@/lib/automations/autorefresh";
 import { getPerWebsiteRows } from "@/lib/automations/per-website-rows";
@@ -114,7 +118,10 @@ export default async function AutomationWebsitePage({
         })
         .from(automationDropdownChoices)
         .where(eq(automationDropdownChoices.columnKey, "ghl_tags"))
-        .orderBy(asc(automationDropdownChoices.value)),
+        .orderBy(asc(automationDropdownChoices.value))
+        // Built-in options ("No Tag") sit at the TOP of the picker; everything
+        // else keeps the alphabetical order above. See SPECIAL_CHOICES.
+        .then((rows) => sortSpecialFirst("ghl_tags", rows)),
       // GHL Forms (multi-select): options for the dialog's picker.
       db
         .select({
@@ -125,7 +132,9 @@ export default async function AutomationWebsitePage({
         })
         .from(automationDropdownChoices)
         .where(eq(automationDropdownChoices.columnKey, "ghl_forms"))
-        .orderBy(asc(automationDropdownChoices.value)),
+        .orderBy(asc(automationDropdownChoices.value))
+        // Built-in options ("No Form") sit at the top, as with GHL Tags.
+        .then((rows) => sortSpecialFirst("ghl_forms", rows)),
       // Webhook Links (multi-select): options for the dialog's chip picker. Maps
       // the webhook URL to the picker's `value` (its own choices table).
       db
@@ -134,7 +143,10 @@ export default async function AutomationWebsitePage({
           value: automationWebhookChoices.url,
         })
         .from(automationWebhookChoices)
-        .orderBy(asc(automationWebhookChoices.url)),
+        .orderBy(asc(automationWebhookChoices.url))
+        // Built-in options ("No Path", "No Webhook") sit at the top, above the
+        // hundreds of real URLs, which is the whole reason they are findable.
+        .then((rows) => sortSpecialFirst(WEBHOOK_SCOPE, rows)),
     ]);
 
   const autoRefresh = await getAutoRefreshFor(site.slug);

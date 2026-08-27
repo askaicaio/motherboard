@@ -33,6 +33,77 @@ export interface StatusOption {
  *  below includes it. */
 export const DEFAULT_STATUS = "Unknown";
 
+// ---------------------------------------------------------------------------
+// Special (built-in) choices
+// ---------------------------------------------------------------------------
+// A few options are not real tags / forms / webhook URLs at all. They are
+// deliberate "there is nothing to pick here" markers, which is what lets a
+// BLANK cell ("nobody has filled this in yet") be told apart from a positive
+// "this automation genuinely has none". "No Path" on Webhook Links was the
+// first of them, hand-inserted straight into the DB because the config page's
+// Add Option form only accepts real URLs, and that remains true on purpose:
+// these options exist because someone decided they should, not because anyone
+// can type one in.
+//
+// They are identified BY VALUE, which is how "No Path" already worked, so no
+// schema column is involved. That makes the exact strings load-bearing, which
+// is in turn why RENAMING one is blocked server-side alongside deleting it: a
+// rename would leave the row in place while silently making it ordinary.
+//
+// To add another: seed the row in a migration AND list its value here. Both
+// halves are needed, and the seeding half is the one the UI cannot do.
+// ---------------------------------------------------------------------------
+
+/** Stands in for a `column_key` for Webhook Links, which keeps its own table
+ *  and so has no column_key. Matches the id the Dropdown Configuration page
+ *  already uses for that table, so one string works for both. */
+export const WEBHOOK_SCOPE = "webhooks";
+
+/** Scope -> its special values, in the order they should sit at the top of the
+ *  Add/Edit Workflow pickers. "No Path" leads Webhook Links because it is the
+ *  incumbent that is already in daily use. */
+export const SPECIAL_CHOICES: Record<string, readonly string[]> = {
+  ghl_tags: ["No Tag"],
+  ghl_forms: ["No Form"],
+  [WEBHOOK_SCOPE]: ["No Path", "No Webhook"],
+};
+
+/** Where `value` sits among its scope's special options, or -1 when it is an
+ *  ordinary one. Trimmed and case-insensitive, so a stray capital cannot slip a
+ *  second copy past the guards or the sort. */
+export function specialChoiceRank(scope: string, value: string): number {
+  const needle = value.trim().toLowerCase();
+  return (SPECIAL_CHOICES[scope] ?? []).findIndex(
+    (v) => v.toLowerCase() === needle,
+  );
+}
+
+/** True when this value is one of the scope's built-in options. */
+export function isSpecialChoice(scope: string, value: string): boolean {
+  return specialChoiceRank(scope, value) !== -1;
+}
+
+/** The scope's options with its special ones pulled to the top in registry
+ *  order, everything else left exactly as it arrived (alphabetical, from the
+ *  loaders). Returns a new array; the input is never mutated. */
+export function sortSpecialFirst<T extends { value: string }>(
+  scope: string,
+  options: T[],
+): T[] {
+  if (!SPECIAL_CHOICES[scope]?.length) return options;
+  const specials: T[] = [];
+  const rest: T[] = [];
+  for (const option of options) {
+    if (isSpecialChoice(scope, option.value)) specials.push(option);
+    else rest.push(option);
+  }
+  specials.sort(
+    (a, b) =>
+      specialChoiceRank(scope, a.value) - specialChoiceRank(scope, b.value),
+  );
+  return [...specials, ...rest];
+}
+
 /** Status set for the GHL Tags + GHL Forms columns (user-set 2026-07-24): Keep =
  *  green, To Remove = red, Unknown = black, Removed = yellow. Order here is the
  *  top-to-bottom group order in those tables. */

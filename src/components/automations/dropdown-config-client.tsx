@@ -36,13 +36,14 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ListChecks, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { ListChecks, Lock, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
   DROPDOWN_COLUMNS,
   choiceColorHex,
   choiceColorLabel,
+  isSpecialChoice,
   type DropdownChoiceRow,
   type DropdownColumnKey,
   type RelatedAutomation,
@@ -56,6 +57,63 @@ import {
   type RelatedLookupTarget,
 } from "./related-automations-dialog";
 import { confirmDialog } from "@/components/ui/confirm";
+
+/** Per-row remove control, shared by the rich table and the simple list so the
+ *  two can never disagree about what is removable.
+ *
+ *  Built-in options ("No Path", "No Webhook", "No Tag", "No Form") are
+ *  permanent, so they show a padlock rather than a bin. A padlock and not a
+ *  missing control, because an empty cell just reads as a rendering bug; and
+ *  not a disabled bin, because a bin invites the click it then refuses. The API
+ *  enforces this regardless of what gets rendered here. */
+function RowRemoveControl({
+  table,
+  item,
+  editMode,
+  onDelete,
+}: {
+  table: TableDescriptor;
+  item: Item;
+  editMode: boolean;
+  onDelete: (item: Item) => void;
+}) {
+  // table.id is the column_key for the generic tables and "webhooks" for the
+  // webhook one, which is exactly the scope key SPECIAL_CHOICES is keyed by.
+  if (isSpecialChoice(table.id, item.value)) {
+    return (
+      <span
+        title="Built-in option, cannot be removed"
+        aria-label="Built-in option, cannot be removed"
+        className={cn(
+          "inline-flex rounded p-1 text-zinc-300",
+          !editMode && "invisible",
+        )}
+        aria-hidden={!editMode}
+      >
+        <Lock className="h-3.5 w-3.5" />
+      </span>
+    );
+  }
+  return (
+    <button
+      type="button"
+      title="Remove"
+      aria-label="Remove"
+      onClick={(e) => {
+        e.stopPropagation();
+        onDelete(item);
+      }}
+      className={cn(
+        "rounded p-1 text-zinc-400 transition hover:bg-red-50 hover:text-red-600",
+        !editMode && "invisible",
+      )}
+      tabIndex={editMode ? undefined : -1}
+      aria-hidden={!editMode}
+    >
+      <Trash2 className="h-3.5 w-3.5" />
+    </button>
+  );
+}
 
 /** A unified row shown in any of the tables. */
 interface Item {
@@ -454,6 +512,9 @@ export function DropdownConfigClient({
           }
         />
 
+        {/* `valueLocked` below: a built-in option's value IS its identity, so
+            the field is read-only when editing one. Status and Notes stay
+            editable, since neither carries the identity. */}
         {activeTable && dialog && (
           <ChoiceDialog
             open={!!dialog}
@@ -470,6 +531,10 @@ export function DropdownConfigClient({
             placeholder={activeTable.placeholder}
             isUrl={activeTable.isUrl}
             initialValue={dialog.existing?.value ?? ""}
+            valueLocked={
+              !!dialog.existing &&
+              isSpecialChoice(activeTable.id, dialog.existing.value)
+            }
             submitLabel={dialog.existing ? "Save changes" : "Add option"}
             showStatus={activeTable.hasStatus}
             statusOptions={activeTable.statusOptions ?? []}
@@ -887,23 +952,12 @@ function ChoiceTableSection({
                       <td className="px-3 py-2" />
                     )}
                     <td className="px-2 py-2 align-top">
-                      <button
-                        type="button"
-                        title="Remove"
-                        aria-label="Remove"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onDelete(item);
-                        }}
-                        className={cn(
-                          "rounded p-1 text-zinc-400 transition hover:bg-red-50 hover:text-red-600",
-                          !editMode && "invisible",
-                        )}
-                        tabIndex={editMode ? undefined : -1}
-                        aria-hidden={!editMode}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                      <RowRemoveControl
+                        table={table}
+                        item={item}
+                        editMode={editMode}
+                        onDelete={onDelete}
+                      />
                     </td>
                   </tr>
                 ))}
@@ -938,23 +992,12 @@ function ChoiceTableSection({
                   >
                     {item.value}
                   </span>
-                  <button
-                    type="button"
-                    title="Remove"
-                    aria-label="Remove"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDelete(item);
-                    }}
-                    className={cn(
-                      "rounded p-1 text-zinc-400 transition hover:bg-red-50 hover:text-red-600",
-                      !editMode && "invisible",
-                    )}
-                    tabIndex={editMode ? undefined : -1}
-                    aria-hidden={!editMode}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
+                  <RowRemoveControl
+                    table={table}
+                    item={item}
+                    editMode={editMode}
+                    onDelete={onDelete}
+                  />
                 </li>
               ))}
               </ul>
