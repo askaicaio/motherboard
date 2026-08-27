@@ -1202,6 +1202,15 @@ export const automations = pgTable(
      *  formatted MM-DD-YYYY ("-" when null). Unlike last_run_at, GHL DOES expose
      *  this (workflow `updatedAt`), so it is populated for all synced platforms. */
     lastEditedAt: timestamp("last_edited_at", { withTimezone: true }),
+    /** "Row Update": when a PERSON last created or edited this row THROUGH THE
+     *  APP (migration 0050). Distinct from `lastEditedAt`, which is the SOURCE
+     *  PLATFORM's edit date written by the sync, and from `updatedAt`, which the
+     *  syncs also touch.
+     *  ⚠️ ONLY the two app write paths may set this (POST /api/automations and
+     *  PATCH /api/automations/[id]). The *-sync.ts files must never mention it,
+     *  or it silently degenerates into another lastEditedAt. NULL on rows nobody
+     *  has edited in the app yet; deliberately not backfilled. */
+    rowUpdatedAt: timestamp("row_updated_at", { withTimezone: true }),
 
     /** Selected Author option (single-select dropdown column). Nullable FK to
      *  an `automation_dropdown_choices` row with column_key = 'author'. Optional

@@ -221,6 +221,11 @@ export async function POST(request: NextRequest) {
           authorChoiceId: body.authorChoiceId ?? null,
           triggerEventChoiceId: body.triggerEventChoiceId ?? null,
           triageChoiceId: body.triageChoiceId ?? null,
+          // "Row Update" (migration 0050): a person is creating this row in the
+          // app right now, so stamp it. ⚠️ ONLY this route and the PATCH route
+          // may write this column; the *-sync.ts files must never touch it, or
+          // it degenerates into another last_edited_at.
+          rowUpdatedAt: new Date(),
 
           createdBy: user.id,
         })

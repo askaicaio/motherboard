@@ -121,7 +121,8 @@ type SortKey =
   | "author"
   | "webhooks"
   | "ghlTags"
-  | "triage";
+  | "triage"
+  | "rowUpdatedAt";
 
 
 /** Sort indicator next to every sortable column header, always in the SAME
@@ -267,6 +268,11 @@ export interface AutomationRow {
   // (also the case for GHL, which has no error API, and Zapier, out of scope).
   // Rendered in RED (unlike the other date columns).
   lastErrorAt?: string | Date | null;
+  // "Row Update" (migration 0050): when a PERSON last created or edited this row
+  // THROUGH THE APP. Deliberately NOT the same as lastEditedAt, which is the
+  // source platform's own edit date written by the sync. Null on rows nobody has
+  // edited in the app yet (not backfilled), so the cell shows "-".
+  rowUpdatedAt?: string | Date | null;
   // Author (single-select dropdown column). `authorChoiceId` is the stored
   // automation_dropdown_choices id; `author` is its resolved display value
   // (both null when unset). Set via the Add/Edit Workflow dialog only; never
@@ -368,7 +374,8 @@ type MiddleColumnId =
   | "webhooks"
   | "lastEditedAt"
   | "lastRunAt"
-  | "lastErrorAt";
+  | "lastErrorAt"
+  | "rowUpdatedAt";
 
 interface MiddleColumnDef {
   id: MiddleColumnId;
@@ -491,6 +498,16 @@ const MIDDLE_COLUMNS: MiddleColumnDef[] = [
     syncTooltip: "Updated by error tracking.",
     exportValue: (r) => (r.lastErrorAt ? formatDateCell(r.lastErrorAt) : ""),
   },
+  {
+    // "Row Update": when a person last touched this row in the app. Placed after
+    // Last Error by the user's choice (2026-08-23). NOT in SYNCED_COLUMNS on any
+    // platform, deliberately: no sync writes it, so it never gets the ↻ marker.
+    id: "rowUpdatedAt",
+    title: "Row Update",
+    sortKey: "rowUpdatedAt",
+    thClassName: TH_SORTABLE_AUTO,
+    exportValue: (r) => (r.rowUpdatedAt ? formatDateCell(r.rowUpdatedAt) : ""),
+  },
 ];
 
 const MIDDLE_DEFAULT_ORDER: MiddleColumnId[] = MIDDLE_COLUMNS.map((c) => c.id);
@@ -514,6 +531,7 @@ const COLUMN_WIDTHS: Record<MiddleColumnId, number> = {
   lastEditedAt: 136,
   lastRunAt: 136,
   lastErrorAt: 136,
+  rowUpdatedAt: 136,
 };
 const NAME_COLUMN_WIDTH = 400; // The frozen Name column, always shown.
 
@@ -899,7 +917,8 @@ export function AutomationsTableClient({
         }
         case "lastEditedAt":
         case "lastRunAt":
-        case "lastErrorAt": {
+        case "lastErrorAt":
+        case "rowUpdatedAt": {
           // Date sort with blanks ("-") ALWAYS last, regardless of direction.
           //
           // ⚠️ NOTE THE `-dir`: these columns are INVERTED on purpose (user
@@ -907,7 +926,8 @@ export function AutomationsTableClient({
           // top, not the oldest, because recent activity is what you actually
           // want to see first. The arrow glyphs were deliberately left alone, so
           // ▲ here does NOT mean "smallest first" the way it does on Name.
-          // Applies to Last Edited, Last Runtime AND Last Error, in both tables.
+          // Applies to Last Edited, Last Runtime, Last Error AND Row Update, in
+          // both tables.
           const ta = time(a[sortKey]);
           const tb = time(b[sortKey]);
           if (ta === null && tb === null) return 0;
@@ -1803,6 +1823,21 @@ export function AutomationsTableClient({
             {r.lastErrorAt ? (
               <span className="text-xs tabular-nums text-red-600">
                 {formatDateCell(r.lastErrorAt)}
+              </span>
+            ) : (
+              <span className="text-xs text-zinc-400">-</span>
+            )}
+          </td>
+        );
+      case "rowUpdatedAt":
+        // Neutral zinc like Last Edited, NOT the red Last Error uses: this is
+        // ordinary bookkeeping, not a problem signal. "-" until a person edits
+        // the row in the app (the column is deliberately not backfilled).
+        return (
+          <td key={id} className="px-3 py-2 align-top text-center">
+            {r.rowUpdatedAt ? (
+              <span className="text-xs tabular-nums text-zinc-700">
+                {formatDateCell(r.rowUpdatedAt)}
               </span>
             ) : (
               <span className="text-xs text-zinc-400">-</span>

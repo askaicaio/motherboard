@@ -56,6 +56,9 @@ export default async function AllAutomationsPage() {
       notes: automations.notes,
       lastRunAt: automations.lastRunAt,
       lastEditedAt: automations.lastEditedAt,
+      // "Row Update" (migration 0050): when a person last touched this row in
+      // the app. Keep in step with getPerWebsiteRows, which selects it too.
+      rowUpdatedAt: automations.rowUpdatedAt,
       platform: automations.platform,
       // Author: stored id + resolved display value (left join → null when unset),
       // plus its badge + text colours so the cell can render a coloured pill.
