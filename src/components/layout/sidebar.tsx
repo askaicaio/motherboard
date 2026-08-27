@@ -18,6 +18,7 @@ import {
   BookOpen,
   Workflow,
   FlaskConical,
+  Beaker,
   Check,
   ChevronRight,
   Receipt,
@@ -70,20 +71,23 @@ const ICONS: Record<string, React.ElementType> = {
 };
 
 // The Automations tab is the one nav item that opens a MENU instead of
-// navigating: the hub exists in two versions and the tab fans out to both.
-// "Official" is the live page, "Beta" is the redesign preview, which lives at
-// its own top-level route (NOT a child of /automations) so nothing about the
-// live tab can be affected by it. Both routes keep the single Automations tab
+// navigating: the hub exists in several versions and the tab fans out to all
+// of them. "Official" is the live page; each redesign preview lives at its own
+// top-level route (NOT a child of /automations) so nothing about the live tab
+// can be affected by them. Every route here keeps the single Automations tab
 // highlighted, so the sidebar still shows where you are.
+//
+// ADD A FUTURE VERSION HERE AND NOWHERE ELSE: the menu, the highlight rule and
+// the current-version check all read this list.
 const AUTOMATIONS_HREF = "/automations";
-const AUTOMATIONS_BETA_HREF = "/automations-beta";
 const AUTOMATIONS_VERSIONS: {
   href: string;
   label: string;
   icon: React.ElementType;
 }[] = [
   { href: AUTOMATIONS_HREF, label: "Official", icon: Workflow },
-  { href: AUTOMATIONS_BETA_HREF, label: "Beta", icon: FlaskConical },
+  { href: "/automations-beta", label: "Beta", icon: FlaskConical },
+  { href: "/automations-beta2", label: "Beta2", icon: Beaker },
 ];
 
 // Role/department predicates for tabs that gate on more than the
@@ -188,15 +192,19 @@ export function Sidebar({ hiddenTabs = [] }: { hiddenTabs?: string[] }) {
           // Automations: a menu, not a link. Same look as every other tab
           // (plus a chevron), and it stays highlighted on either version.
           if (item.href === AUTOMATIONS_HREF) {
-            const onBeta =
-              pathname === AUTOMATIONS_BETA_HREF ||
-              pathname.startsWith(`${AUTOMATIONS_BETA_HREF}/`);
+            // Highlighted on ANY version, the live page included, so the list
+            // above stays the only place a new version has to be registered.
+            const onAnyVersion = AUTOMATIONS_VERSIONS.some(
+              (version) =>
+                pathname === version.href ||
+                pathname.startsWith(`${version.href}/`),
+            );
             return (
               <DropdownMenu key={item.href}>
                 <DropdownMenuTrigger
                   className={cn(
                     "flex w-full cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-200",
-                    isActive || onBeta
+                    onAnyVersion
                       ? "bg-zinc-100 text-zinc-900"
                       : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900"
                   )}
