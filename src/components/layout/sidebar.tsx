@@ -19,6 +19,7 @@ import {
   Workflow,
   FlaskConical,
   Beaker,
+  TestTube,
   Check,
   ChevronRight,
   Receipt,
@@ -88,6 +89,7 @@ const AUTOMATIONS_VERSIONS: {
   { href: AUTOMATIONS_HREF, label: "Official", icon: Workflow },
   { href: "/automations-beta", label: "Beta", icon: FlaskConical },
   { href: "/automations-beta2", label: "Beta2", icon: Beaker },
+  { href: "/automations-beta3", label: "Beta3", icon: TestTube },
 ];
 
 // Role/department predicates for tabs that gate on more than the
