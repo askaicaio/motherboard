@@ -21,11 +21,11 @@ export const MANAGEABLE_TABS: ManageableTab[] = [
   { href: "/members", label: "Members" },
   { href: "/leads", label: "Leads" },
   { href: "/campaigns", label: "Campaigns" },
+  // Automations is a MENU in the sidebar, not a plain link: it fans out to the
+  // live hub ("Official") and the redesign preview ("Beta", /automations-beta).
+  // Only this one entry is listed, so hiding Automations for a department hides
+  // both destinations, and the visibility editor keeps one row instead of two.
   { href: "/automations", label: "Automations" },
-  // Redesign preview of the Automations hub, parked directly under the live
-  // tab. Its own route (NOT a child of /automations) so nothing about the live
-  // tab can be affected by it.
-  { href: "/automations-beta", label: "Automations Beta" },
   { href: "/docs", label: "Docs" },
   { href: "/subscriptions", label: "Subscriptions" },
   { href: "/partner-program", label: "Affiliates" },

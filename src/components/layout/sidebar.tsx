@@ -18,6 +18,8 @@ import {
   BookOpen,
   Workflow,
   FlaskConical,
+  Check,
+  ChevronRight,
   Receipt,
   Handshake,
   Sparkles,
@@ -58,7 +60,6 @@ const ICONS: Record<string, React.ElementType> = {
   "/leads": Sparkles,
   "/campaigns": Megaphone,
   "/automations": Workflow,
-  "/automations-beta": FlaskConical,
   "/docs": BookOpen,
   "/subscriptions": Receipt,
   "/partner-program": Handshake,
@@ -67,6 +68,23 @@ const ICONS: Record<string, React.ElementType> = {
   "/settings/rules": Shield,
   "/settings": Settings,
 };
+
+// The Automations tab is the one nav item that opens a MENU instead of
+// navigating: the hub exists in two versions and the tab fans out to both.
+// "Official" is the live page, "Beta" is the redesign preview, which lives at
+// its own top-level route (NOT a child of /automations) so nothing about the
+// live tab can be affected by it. Both routes keep the single Automations tab
+// highlighted, so the sidebar still shows where you are.
+const AUTOMATIONS_HREF = "/automations";
+const AUTOMATIONS_BETA_HREF = "/automations-beta";
+const AUTOMATIONS_VERSIONS: {
+  href: string;
+  label: string;
+  icon: React.ElementType;
+}[] = [
+  { href: AUTOMATIONS_HREF, label: "Official", icon: Workflow },
+  { href: AUTOMATIONS_BETA_HREF, label: "Beta", icon: FlaskConical },
+];
 
 // Role/department predicates for tabs that gate on more than the
 // per-department visibility config.
@@ -155,15 +173,68 @@ export function Sidebar({ hiddenTabs = [] }: { hiddenTabs?: string[] }) {
       <nav className="flex-1 space-y-1 p-3">
         {visibleItems.map((item) => {
           // Active = this exact route, or one of its CHILD routes. The match
-          // has to stop at a path segment boundary: a plain startsWith would
-          // also light "/automations" up while sitting on "/automations-beta",
-          // since one string is a prefix of the other. Every existing tab is
-          // unaffected (a real child always begins with "<href>/").
+          // stops at a path segment boundary: a plain startsWith would also
+          // light "/automations" up while sitting on an unrelated route that
+          // merely begins with those characters (e.g. "/automations-beta",
+          // which the Automations tab claims DELIBERATELY, just below, rather
+          // than by accident). Every existing tab is unaffected, since a real
+          // child route always begins with "<href>/".
           const isActive =
             item.href === "/"
               ? pathname === "/"
               : pathname === item.href ||
                 pathname.startsWith(`${item.href}/`);
+
+          // Automations: a menu, not a link. Same look as every other tab
+          // (plus a chevron), and it stays highlighted on either version.
+          if (item.href === AUTOMATIONS_HREF) {
+            const onBeta =
+              pathname === AUTOMATIONS_BETA_HREF ||
+              pathname.startsWith(`${AUTOMATIONS_BETA_HREF}/`);
+            return (
+              <DropdownMenu key={item.href}>
+                <DropdownMenuTrigger
+                  className={cn(
+                    "flex w-full cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-200",
+                    isActive || onBeta
+                      ? "bg-zinc-100 text-zinc-900"
+                      : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900"
+                  )}
+                >
+                  <item.icon className="h-4 w-4" />
+                  {item.label}
+                  <ChevronRight className="ml-auto h-3.5 w-3.5 opacity-50" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  side="right"
+                  align="start"
+                  sideOffset={8}
+                  className="w-44"
+                >
+                  {AUTOMATIONS_VERSIONS.map((version) => {
+                    const current =
+                      pathname === version.href ||
+                      pathname.startsWith(`${version.href}/`);
+                    return (
+                      <DropdownMenuItem
+                        key={version.href}
+                        onClick={() => router.push(version.href)}
+                      >
+                        <version.icon className="mr-2 h-4 w-4" />
+                        {version.label}
+                        {/* Which version you are already on. Both pages carry
+                            the same title, so without this the menu gives no
+                            clue where you are. */}
+                        {current && (
+                          <Check className="ml-auto h-4 w-4 text-zinc-500" />
+                        )}
+                      </DropdownMenuItem>
+                    );
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            );
+          }
 
           return (
             <Link
