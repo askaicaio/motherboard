@@ -22,6 +22,10 @@ export const MANAGEABLE_TABS: ManageableTab[] = [
   { href: "/leads", label: "Leads" },
   { href: "/campaigns", label: "Campaigns" },
   { href: "/automations", label: "Automations" },
+  // Redesign preview of the Automations hub, parked directly under the live
+  // tab. Its own route (NOT a child of /automations) so nothing about the live
+  // tab can be affected by it.
+  { href: "/automations-beta", label: "Automations Beta" },
   { href: "/docs", label: "Docs" },
   { href: "/subscriptions", label: "Subscriptions" },
   { href: "/partner-program", label: "Affiliates" },
