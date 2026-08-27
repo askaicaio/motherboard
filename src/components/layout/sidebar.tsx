@@ -22,6 +22,7 @@ import {
   TestTube,
   Microscope,
   Atom,
+  Dna,
   Check,
   ChevronRight,
   Receipt,
@@ -94,6 +95,7 @@ const AUTOMATIONS_VERSIONS: {
   { href: "/automations-beta3", label: "Beta3", icon: TestTube },
   { href: "/automations-beta4", label: "Beta4", icon: Microscope },
   { href: "/automations-beta5", label: "Beta5", icon: Atom },
+  { href: "/automations-beta6", label: "Beta6", icon: Dna },
 ];
 
 // Role/department predicates for tabs that gate on more than the
