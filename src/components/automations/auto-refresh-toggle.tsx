@@ -18,6 +18,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Switch } from "@/components/ui/switch";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Clock } from "lucide-react";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -179,8 +184,25 @@ export function AutoRefreshToggle({
     // Matches the Per Website Page header toggle exactly: clock + label + a
     // green(ON)/red(OFF) Switch, with a countdown or red error beneath it.
     <div className="relative flex items-center gap-2 text-xs text-zinc-600">
-      <Clock className="h-3.5 w-3.5" />
-      Auto-refresh
+      {/* Tooltip on the LABEL, not the Switch, same as the Main Page's health
+          check toggle. The fact worth surfacing is the second one: this toggle
+          also governs whether THIS website's errors get swept, which is not
+          something the words "Auto-refresh" suggest. */}
+      <Tooltip disableHoverablePopup>
+        <TooltipTrigger
+          render={
+            <span className="inline-flex cursor-help items-center gap-2">
+              <Clock className="h-3.5 w-3.5" />
+              Auto-refresh
+            </span>
+          }
+        />
+        <TooltipContent className="max-w-xs">
+          Re-syncs this website&rsquo;s list every 24 hours. It also controls
+          error checking, so turning it off stops new errors being captured for
+          this website until someone presses Check for New Errors.
+        </TooltipContent>
+      </Tooltip>
       <Switch
         checked={autoEnabled}
         onCheckedChange={handleAutoToggle}

@@ -18,6 +18,12 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Check, X } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { AUTOMATION_SITES } from "@/lib/automations/sites";
 import {
@@ -97,15 +103,29 @@ function CheckboxCell({
 
   // Locked: a static indicator, identical mark but not clickable (no hover
   // affordance, no toggle). Re-enable via TOGGLE_ENABLED.
+  //
+  // The mark still LOOKS like a checkbox, so the tooltip is what tells you it is
+  // read-only. Without it a locked cell is indistinguishable from a broken one:
+  // you click, nothing happens, and nothing explains why.
   if (!interactive) {
     return (
-      <span
-        role="img"
-        aria-label={`${label}: ${checked ? "enabled" : "disabled"}`}
-        className={base}
-      >
-        {glyph}
-      </span>
+      <Tooltip disableHoverablePopup>
+        <TooltipTrigger
+          render={
+            <span
+              role="img"
+              aria-label={`${label}: ${checked ? "enabled" : "disabled"}`}
+              className={base}
+            >
+              {glyph}
+            </span>
+          }
+        />
+        <TooltipContent className="max-w-xs">
+          {label}: {checked ? "supported" : "not supported"}. These marks are
+          read-only for now, so clicking one does nothing.
+        </TooltipContent>
+      </Tooltip>
     );
   }
 
@@ -171,6 +191,9 @@ export function FeatureIntegrationTables({
   };
 
   return (
+    // delay={300} matches the three table clients, so a tooltip anywhere in the
+    // Automations tab waits the same beat before appearing.
+    <TooltipProvider delay={300}>
     <div className="space-y-6">
       {FEATURE_INTEGRATION_TABLES.map((table) => (
         <Card key={table.id}>
@@ -226,5 +249,6 @@ export function FeatureIntegrationTables({
         </Card>
       ))}
     </div>
+    </TooltipProvider>
   );
 }

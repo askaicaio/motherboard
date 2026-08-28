@@ -922,7 +922,21 @@ function ChoiceTableSection({
                                 className="block w-full cursor-pointer truncate text-left text-xs text-blue-600 hover:underline disabled:pointer-events-none disabled:cursor-default disabled:no-underline"
                               >
                                 {i === 0 && (
-                                  <span className="font-medium text-amber-600">
+                                  // A NATIVE title, not a <Tooltip>: this span
+                                  // sits INSIDE the row's button, and a
+                                  // TooltipTrigger there would nest a control in
+                                  // a control (invalid, and it would swallow the
+                                  // click that opens the lookup). Hovering the
+                                  // count explains the number; hovering the URL
+                                  // text still shows the button's own title.
+                                  <span
+                                    title={`${arr.length} ${
+                                      arr.length === 1
+                                        ? "automation uses"
+                                        : "automations use"
+                                    } this. Only the lines that fit are shown, click any of them to see all ${arr.length}.`}
+                                    className="font-medium text-amber-600"
+                                  >
                                     ({arr.length}){" "}
                                   </span>
                                 )}

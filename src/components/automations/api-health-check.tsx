@@ -23,6 +23,11 @@ import {
 } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Activity, Clock, Loader2 } from "lucide-react";
 
 /** A single card's check; resolves with its result so the fan-out can persist
@@ -281,8 +286,25 @@ export function AutoHealthCheckToggle({
 
   return (
     <div className="relative flex items-center gap-2 text-xs text-zinc-600">
-      <Clock className="h-3.5 w-3.5" />
-      Auto-API health check
+      {/* Tooltip on the LABEL, not the Switch: the switch is the control and
+          wrapping it in a trigger risks the one interaction that matters. The
+          two non-obvious facts are that the cadence is 24h and that turning it
+          ON does not check immediately. */}
+      <Tooltip disableHoverablePopup>
+        <TooltipTrigger
+          render={
+            <span className="inline-flex cursor-help items-center gap-2">
+              <Clock className="h-3.5 w-3.5" />
+              Auto-API health check
+            </span>
+          }
+        />
+        <TooltipContent className="max-w-xs">
+          Checks every website&rsquo;s API key once every 24 hours and stores the
+          result on its card. Turning this on starts the 24 hour clock, it does
+          not check straight away. Use the API Health Check button to check now.
+        </TooltipContent>
+      </Tooltip>
       <Switch
         checked={enabled}
         onCheckedChange={toggle}

@@ -10,6 +10,7 @@ import { automations } from "@/lib/db/schema";
 import { sql } from "drizzle-orm";
 import { Card, CardContent } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { Workflow, Plug, List, ListChecks } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AUTOMATION_SITES } from "@/lib/automations/sites";
@@ -86,6 +87,11 @@ export default async function AutomationsPage() {
 
   return (
     <div className="space-y-6 p-6">
+      {/* This page is a server component and had no TooltipProvider, unlike the
+          three table clients which each carry their own. The card tooltips (the
+          API status button, the Auto-API health check label) need one, and
+          delay={300} keeps the timing identical to the rest of the tab. */}
+      <TooltipProvider delay={300}>
       <HealthCheckProvider>
       <div className="flex items-start justify-between gap-4">
         <div>
@@ -282,6 +288,7 @@ export default async function AutomationsPage() {
         })}
       </div>
       </HealthCheckProvider>
+      </TooltipProvider>
     </div>
   );
 }

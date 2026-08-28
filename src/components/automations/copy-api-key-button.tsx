@@ -14,6 +14,11 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Check, Ban, Loader2 } from "lucide-react";
 import { useHealthCheckRegistration } from "./api-health-check";
 
@@ -86,29 +91,52 @@ export function CopyApiKeyButton({
     );
   }
 
+  // The button reads as a status LABEL, so nothing on screen says it is also a
+  // control. The tooltip is what makes the click discoverable, and says what
+  // the current colour is actually based on.
   if (status === "ok") {
     return (
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => check({ persist: true })}
-        className="flex-1 border-green-300 bg-green-50 text-green-700 hover:bg-green-100 hover:text-green-700"
-      >
-        <Check className="mr-2 h-3.5 w-3.5" />
-        API Key Integrated
-      </Button>
+      <Tooltip disableHoverablePopup>
+        <TooltipTrigger
+          render={
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => check({ persist: true })}
+              className="flex-1 border-green-300 bg-green-50 text-green-700 hover:bg-green-100 hover:text-green-700"
+            >
+              <Check className="mr-2 h-3.5 w-3.5" />
+              API Key Integrated
+            </Button>
+          }
+        />
+        <TooltipContent className="max-w-xs">
+          This website&rsquo;s API key worked at the last check. Click to verify
+          it again right now. The key itself never leaves the server.
+        </TooltipContent>
+      </Tooltip>
     );
   }
 
   return (
-    <Button
-      variant="outline"
-      size="sm"
-      onClick={() => check({ persist: true })}
-      className="flex-1 border-red-300 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-600"
-    >
-      <Ban className="mr-2 h-3.5 w-3.5" />
-      No API Integration
-    </Button>
+    <Tooltip disableHoverablePopup>
+      <TooltipTrigger
+        render={
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => check({ persist: true })}
+            className="flex-1 border-red-300 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-600"
+          >
+            <Ban className="mr-2 h-3.5 w-3.5" />
+            No API Integration
+          </Button>
+        }
+      />
+      <TooltipContent className="max-w-xs">
+        No working API key for this website, so its list and errors cannot sync.
+        Click to check again.
+      </TooltipContent>
+    </Tooltip>
   );
 }

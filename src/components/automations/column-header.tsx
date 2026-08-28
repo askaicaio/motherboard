@@ -87,6 +87,7 @@ export function ColumnHeader<K extends string>({
   isDragging,
   dropEdge,
   dragKey,
+  tooltip,
   children,
 }: {
   className: string;
@@ -119,6 +120,19 @@ export function ColumnHeader<K extends string>({
   /** Column id, stamped as `data-mid-col` so the drag can measure the header
    *  rects. Present on the reorderable middle columns only. */
   dragKey?: string;
+  /**
+   * Hover text explaining what the column MEANS, for headers whose label is not
+   * self-explanatory (today: "Last Edited" versus "Row Update", which look
+   * alike and are fed by completely different things).
+   *
+   * ⚠️ A NATIVE `title`, deliberately, NOT the app's <Tooltip>. This cell is
+   * already both a sort target and a drag handle, and the drag hook cancels
+   * pointerdown (see the trap note at the top of this file). Putting another
+   * interactive element inside it, which is what a TooltipTrigger is, risks the
+   * one interaction this component exists to get right. A title attribute adds
+   * no element and no listener.
+   */
+  tooltip?: string;
   children: ReactNode;
 }) {
   const ariaSort = sortKey
@@ -157,6 +171,7 @@ export function ColumnHeader<K extends string>({
       <th
         onClick={sortKey ? () => onCycleSort(sortKey) : undefined}
         aria-sort={ariaSort}
+        title={tooltip}
         className={className}
       >
         {children}
@@ -192,6 +207,9 @@ export function ColumnHeader<K extends string>({
     >
       <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
         <DropdownMenuTrigger
+          // In edit mode the label lives on the button, not the cell, so the
+          // hover text has to move with it.
+          title={tooltip}
           // `uppercase` re-applies the header text-transform that the <button>
           // reset strips (Tailwind preflight sets `text-transform: none` on
           // buttons), so the trigger label stays uppercase like the static <th>.
