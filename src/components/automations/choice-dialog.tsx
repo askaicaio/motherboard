@@ -37,7 +37,13 @@ import {
   NARROW_SIDE_SPACE_SELECT_PX,
 } from "./use-popover-side";
 import { cn } from "@/lib/utils";
-import { Loader2 } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Loader2, Trash2 } from "lucide-react";
 
 export interface ChoiceSubmit {
   value: string;
@@ -143,6 +149,11 @@ interface Props {
   initialTextColor?: string;
   /** Performs the save. Resolves to an error message, or null on success. */
   onSubmit: (payload: ChoiceSubmit) => Promise<string | null>;
+  /** EDIT MODE ONLY. Deletes the option being edited (confirm + DELETE + toast
+   *  live in the caller, which also closes this dialog on success). Omit in add
+   *  mode, and on a BUILT-IN option, and the button is hidden. Mirrors
+   *  WorkflowDialog's onDelete exactly. */
+  onDelete?: () => void;
 }
 
 export function ChoiceDialog({
@@ -166,6 +177,7 @@ export function ChoiceDialog({
   initialBadgeColor,
   initialTextColor,
   onSubmit,
+  onDelete,
 }: Props) {
   const [value, setValue] = useState("");
   const [status, setStatus] = useState("");
@@ -241,6 +253,11 @@ export function ChoiceDialog({
   }
 
   return (
+    // Its own TooltipProvider, for the delete button's tooltip. The Dropdown
+    // Config page has one, but this dialog is a separate mount and owning one
+    // keeps it working regardless of where it is opened from, exactly as
+    // WorkflowDialog does.
+    <TooltipProvider delay={300}>
     <Dialog
       open={open}
       onOpenChange={(isOpen, eventDetails) => {
@@ -454,6 +471,34 @@ export function ChoiceDialog({
           )}
           </div>
           <DialogFooter className="shrink-0">
+            {/* Delete, bottom-left, replacing the per-row bin the config tables
+                used to carry. Copied from WorkflowDialog: same icon, same red,
+                same `sm:mr-auto` to push it away from Cancel / Save, same
+                type="button" so it never submits the form, and the confirm +
+                request live in the caller. It is absent in add mode and on a
+                built-in option, because the caller only passes onDelete when
+                deleting is actually allowed. */}
+            {onDelete && (
+              <Tooltip disableHoverablePopup>
+                <TooltipTrigger
+                  render={
+                    <button
+                      type="button"
+                      onClick={onDelete}
+                      disabled={submitting}
+                      aria-label="Delete this option"
+                      className="inline-flex size-8 shrink-0 items-center justify-center self-center rounded-md text-red-600 transition-colors hover:bg-red-50 hover:text-red-700 disabled:pointer-events-none disabled:opacity-50 sm:mr-auto"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  }
+                />
+                <TooltipContent className="max-w-xs">
+                  Removes this option from the list. Any automation currently
+                  using it loses that value.
+                </TooltipContent>
+              </Tooltip>
+            )}
             <Button
               type="button"
               variant="outline"
@@ -470,5 +515,6 @@ export function ChoiceDialog({
         </form>
       </DialogContent>
     </Dialog>
+    </TooltipProvider>
   );
 }
