@@ -237,6 +237,9 @@ interface AllColumnDef {
   /** Approximate rendered width, summed into the table min-width so the table
    *  shrinks when a column is hidden (the AUTO-width ones are estimates). */
   width: number;
+  /** Hover text on the HEADER, for columns whose label does not explain itself.
+   *  Kept identical to the Per Website table's wording for the same column. */
+  headerTooltip?: string;
 }
 
 const ALL_HIDDEN_KEY = "automations:all:hiddenColumns";
@@ -254,11 +257,15 @@ const ALL_COLUMNS: AllColumnDef[] = [
   { id: "ghlTags", title: "GHL Tags", sortKey: "ghlTags", thClassName: ALL_TH_S_180, width: 180 },
   { id: "ghlForms", title: "GHL Forms", sortKey: null, thClassName: ALL_TH_P_180, width: 180 },
   { id: "webhooks", title: "Webhook Links", sortKey: "webhooks", thClassName: ALL_TH_S_240, width: 240 },
-  { id: "lastEditedAt", title: "Last Edited", sortKey: "lastEditedAt", thClassName: ALL_TH_S_AUTO, width: 136 },
+  { id: "lastEditedAt", title: "Last Edited", sortKey: "lastEditedAt", thClassName: ALL_TH_S_AUTO, width: 136,
+    headerTooltip:
+      "When the source website last changed this automation. Comes from the sync, so it reflects work done in Make / n8n / GHL, not here." },
   { id: "lastRunAt", title: "Last Runtime", sortKey: "lastRunAt", thClassName: ALL_TH_S_AUTO, width: 136 },
   { id: "lastErrorAt", title: "Last Error", sortKey: "lastErrorAt", thClassName: ALL_TH_S_AUTO, width: 136 },
   // "Row Update": placed after Last Error by the user's choice (2026-08-23).
-  { id: "rowUpdatedAt", title: "Row Update", sortKey: "rowUpdatedAt", thClassName: ALL_TH_S_AUTO, width: 136 },
+  { id: "rowUpdatedAt", title: "Row Update", sortKey: "rowUpdatedAt", thClassName: ALL_TH_S_AUTO, width: 136,
+    headerTooltip:
+      "When a person last created or edited this row here in the Motherboard. No sync ever writes it, so it means someone looked at this row and confirmed it." },
 ];
 
 /** The frozen Name column's fixed width, added on top of the visible middle
@@ -796,6 +803,7 @@ export function AllAutomationsTableClient({
         }
         onHide={() => hideColumn(col.id)}
         dragKey={col.id}
+        tooltip={col.headerTooltip}
         makeDragHandlers={(onPlainClick) => headerHandlers(col.id, onPlainClick)}
         isDragging={dragId === col.id}
         dropEdge={dropEdgeFor(vIdx, visibleColumns.length)}

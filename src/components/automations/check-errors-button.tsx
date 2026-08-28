@@ -14,6 +14,11 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -83,18 +88,34 @@ export function CheckErrorsButton({
 
   return (
     <div className="relative">
-      <Button
-        size="sm"
-        onClick={handleClick}
-        disabled={busy}
-        className={cn(
-          error &&
-            "bg-red-600 text-white hover:bg-red-600 focus-visible:ring-red-600/50",
-        )}
-      >
-        <RefreshCw className={cn("mr-2 h-3.5 w-3.5", busy && "animate-spin")} />
-        {busy ? "Checking…" : "Check for New Errors"}
-      </Button>
+      {/* The button QUEUES a sweep rather than running one, so "Checking..."
+          finishing does not mean the results are in. That is the whole point of
+          the tooltip: without it the button looks like it did nothing. */}
+      <Tooltip disableHoverablePopup>
+        <TooltipTrigger
+          render={
+            <Button
+              size="sm"
+              onClick={handleClick}
+              disabled={busy}
+              className={cn(
+                error &&
+                  "bg-red-600 text-white hover:bg-red-600 focus-visible:ring-red-600/50",
+              )}
+            >
+              <RefreshCw
+                className={cn("mr-2 h-3.5 w-3.5", busy && "animate-spin")}
+              />
+              {busy ? "Checking…" : "Check for New Errors"}
+            </Button>
+          }
+        />
+        <TooltipContent className="max-w-xs">
+          Queues an error check for this website. It starts on the next
+          background tick, so allow up to about 5 minutes, then reload to see
+          anything new. Works even when Auto-refresh is off.
+        </TooltipContent>
+      </Tooltip>
       {error && (
         <p
           role="alert"

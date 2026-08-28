@@ -22,6 +22,11 @@
 // column); clicking calls `onDelete(id)`. Delete-only — no add/edit dialogs.
 
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useFitViewportHeight } from "@/lib/automations/use-fit-viewport-height";
 import { ExternalLink, Trash2 } from "lucide-react";
 
@@ -223,15 +228,29 @@ export function ErrorHistoryTable({
                       still in Make's logs — user's choice). */}
                   <td className="px-3 py-2 align-top text-center">
                     {editMode && (
-                      <button
-                        type="button"
-                        onClick={() => onDelete?.(r.id)}
-                        disabled={deletingId === r.id}
-                        aria-label="Delete this error"
-                        className="inline-flex items-center rounded-md p-1 text-zinc-400 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      // Icon-only, so it had an aria-label and nothing a sighted
+                      // user could read. The tooltip also warns that this is a
+                      // hard delete which a later sweep can bring back.
+                      <Tooltip disableHoverablePopup>
+                        <TooltipTrigger
+                          render={
+                            <button
+                              type="button"
+                              onClick={() => onDelete?.(r.id)}
+                              disabled={deletingId === r.id}
+                              aria-label="Delete this error"
+                              className="inline-flex items-center rounded-md p-1 text-zinc-400 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          }
+                        />
+                        <TooltipContent className="max-w-xs">
+                          Delete this error record. It only removes our copy, so
+                          a later check can capture the same error again if the
+                          website still reports it.
+                        </TooltipContent>
+                      </Tooltip>
                     )}
                   </td>
                 </tr>

@@ -33,6 +33,12 @@ import {
 import { Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import type { AutomationRow } from "./automations-table-client";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { SingleChoiceCombobox } from "./single-choice-combobox";
 import { MultiChoiceCombobox } from "./multi-choice-combobox";
 import {
@@ -311,6 +317,11 @@ export function WorkflowDialog({
   }
 
   return (
+    // Its own TooltipProvider: this dialog is opened from BOTH table clients,
+    // and in each one the existing provider wraps only the <Card>, not the
+    // dialog. Owning one keeps the delete button's tooltip working wherever the
+    // dialog is mounted, rather than depending on the caller.
+    <TooltipProvider delay={300}>
     <Dialog
       open={open}
       onOpenChange={(isOpen, eventDetails) => {
@@ -677,15 +688,30 @@ export function WorkflowDialog({
                 never submits the form; the confirm + request live in the caller's
                 handleDelete. */}
             {isEdit && onDelete && (
-              <button
-                type="button"
-                onClick={onDelete}
-                disabled={submitting}
-                aria-label="Delete this automation"
-                className="inline-flex size-8 shrink-0 items-center justify-center self-center rounded-md text-red-600 transition-colors hover:bg-red-50 hover:text-red-700 disabled:pointer-events-none disabled:opacity-50 sm:mr-auto"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
+              // Icon-only, and the most destructive control in the dialog, so it
+              // had nothing a sighted user could read. The tooltip also says the
+              // part that decides whether you press it: a synced website will
+              // put the row back, everything typed here will not come back.
+              <Tooltip disableHoverablePopup>
+                <TooltipTrigger
+                  render={
+                    <button
+                      type="button"
+                      onClick={onDelete}
+                      disabled={submitting}
+                      aria-label="Delete this automation"
+                      className="inline-flex size-8 shrink-0 items-center justify-center self-center rounded-md text-red-600 transition-colors hover:bg-red-50 hover:text-red-700 disabled:pointer-events-none disabled:opacity-50 sm:mr-auto"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  }
+                />
+                <TooltipContent className="max-w-xs">
+                  Removes this row from the Motherboard. It does not touch the
+                  automation on its own website, and a later Refresh List will
+                  add the row back, but without anything typed here.
+                </TooltipContent>
+              </Tooltip>
             )}
             <Button
               type="button"
@@ -703,5 +729,6 @@ export function WorkflowDialog({
         </form>
       </DialogContent>
     </Dialog>
+    </TooltipProvider>
   );
 }

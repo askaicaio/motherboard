@@ -387,6 +387,9 @@ interface MiddleColumnDef {
   thClassName: string;
   /** Custom SyncedColumnMarker tooltip (Last Error); else the marker default. */
   syncTooltip?: string;
+  /** Hover text on the HEADER, for columns whose label does not explain itself.
+   *  Only the two look-alike date columns have one today. */
+  headerTooltip?: string;
   /** Restrict to these platform slugs (GHL Tags / GHL Forms only). */
   platforms?: string[];
   /** CSV cell value. */
@@ -481,6 +484,8 @@ const MIDDLE_COLUMNS: MiddleColumnDef[] = [
     title: "Last Edited",
     sortKey: "lastEditedAt",
     thClassName: TH_SORTABLE_AUTO,
+    headerTooltip:
+      "When the source website last changed this automation. Comes from the sync, so it reflects work done in Make / n8n / GHL, not here.",
     exportValue: (r) => (r.lastEditedAt ? formatDateCell(r.lastEditedAt) : ""),
   },
   {
@@ -506,6 +511,8 @@ const MIDDLE_COLUMNS: MiddleColumnDef[] = [
     title: "Row Update",
     sortKey: "rowUpdatedAt",
     thClassName: TH_SORTABLE_AUTO,
+    headerTooltip:
+      "When a person last created or edited this row here in the Motherboard. No sync ever writes it, so it means someone looked at this row and confirmed it.",
     exportValue: (r) => (r.rowUpdatedAt ? formatDateCell(r.rowUpdatedAt) : ""),
   },
 ];
@@ -1460,6 +1467,7 @@ export function AutomationsTableClient({
         {...headerProps}
         sortKey={col.sortKey}
         className={col.thClassName}
+        tooltip={col.headerTooltip}
         onMoveLeft={vIdx > 0 ? () => moveColumn(col.id, -1) : undefined}
         onMoveRight={
           vIdx < visibleMiddle.length - 1
@@ -1887,14 +1895,35 @@ export function AutomationsTableClient({
           </div>
           <p className="mt-1 text-sm text-zinc-500">{description}</p>
         </div>
+        {/* A SECOND TooltipProvider, for the toolbar. The one further down wraps
+            only the <Card> (the table), so the toolbar sits outside it and its
+            tooltips would otherwise have no delay context. Same delay={300}. */}
+        <TooltipProvider delay={300}>
         <div className="flex items-center gap-3">
           {/* Auto-refresh mode (Option A). Far left of the toolbar, styled
               like the Edit mode toggle but with a clock icon. When ON, a
               countdown to the next scheduled refresh shows under it; turning
               it on without an API integration is blocked with a red error. */}
           <div className="relative flex items-center gap-2 text-xs text-zinc-600">
-            <Clock className="h-3.5 w-3.5" />
-            Auto-refresh
+            {/* Tooltip on the LABEL, not the Switch: the switch is the control.
+                The non-obvious half is that this also gates error capture for
+                this website, which "Auto-refresh" does not imply. */}
+            <Tooltip disableHoverablePopup>
+              <TooltipTrigger
+                render={
+                  <span className="inline-flex cursor-help items-center gap-2">
+                    <Clock className="h-3.5 w-3.5" />
+                    Auto-refresh
+                  </span>
+                }
+              />
+              <TooltipContent className="max-w-xs normal-case">
+                Re-syncs this website&rsquo;s list every 24 hours. It also
+                controls error checking, so turning it off stops new errors being
+                captured for this website until someone presses Check for New
+                Errors.
+              </TooltipContent>
+            </Tooltip>
             {/* ON = green, OFF = red (user 2026-07-01) — green matches the app's
                 other greens (Active status, "API Key Integrated"), red flags that
                 auto-refresh is not running. Scoped to THIS toggle only via
@@ -1927,21 +1956,35 @@ export function AutomationsTableClient({
               placeholder error. Either way, a failure turns the button red with
               the error message below it for 5s. */}
           <div className="relative">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleRefresh()}
-              disabled={refreshing}
-              className={cn(
-                refreshError &&
-                  "bg-red-600 text-white hover:bg-red-600 focus-visible:ring-red-600/50",
-              )}
-            >
-              <RefreshCw
-                className={cn("mr-2 h-3.5 w-3.5", refreshing && "animate-spin")}
+            <Tooltip disableHoverablePopup>
+              <TooltipTrigger
+                render={
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleRefresh()}
+                    disabled={refreshing}
+                    className={cn(
+                      refreshError &&
+                        "bg-red-600 text-white hover:bg-red-600 focus-visible:ring-red-600/50",
+                    )}
+                  >
+                    <RefreshCw
+                      className={cn(
+                        "mr-2 h-3.5 w-3.5",
+                        refreshing && "animate-spin",
+                      )}
+                    />
+                    {refreshing ? "Refreshing…" : "Refresh List"}
+                  </Button>
+                }
               />
-              {refreshing ? "Refreshing…" : "Refresh List"}
-            </Button>
+              <TooltipContent className="max-w-xs normal-case">
+                Pulls this website&rsquo;s automations from its API now, adding
+                new ones and updating the synced columns. It never deletes rows,
+                and it leaves anything typed here alone.
+              </TooltipContent>
+            </Tooltip>
             {refreshError && (
               <p
                 role="alert"
@@ -1955,14 +1998,24 @@ export function AutomationsTableClient({
           {/* Export CSV. A list action (mirror of the import), so it sits with
               Refresh List. Black (default) button, matching Refresh List. Exports
               ALL rows (not the filtered/sorted view); disabled when empty. */}
-          <Button
-            size="sm"
-            onClick={handleExportCsv}
-            disabled={rows.length === 0}
-          >
-            <Download className="mr-2 h-3.5 w-3.5" />
-            Export CSV
-          </Button>
+          <Tooltip disableHoverablePopup>
+            <TooltipTrigger
+              render={
+                <Button
+                  size="sm"
+                  onClick={handleExportCsv}
+                  disabled={rows.length === 0}
+                >
+                  <Download className="mr-2 h-3.5 w-3.5" />
+                  Export CSV
+                </Button>
+              }
+            />
+            <TooltipContent className="max-w-xs normal-case">
+              Downloads every row of this website as a CSV, in the column order
+              shown. Not just the rows currently searched or filtered.
+            </TooltipContent>
+          </Tooltip>
 
           {/* Vertical divider between the list actions (auto-refresh + Refresh
               List) and the editing controls (Edit mode + New Workflow). */}
@@ -1976,6 +2029,7 @@ export function AutomationsTableClient({
             <Switch checked={editMode} onCheckedChange={setEditMode} />
           </div>
         </div>
+        </TooltipProvider>
       </div>
 
       <div className="space-y-3">
