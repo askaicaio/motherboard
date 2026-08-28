@@ -611,9 +611,6 @@ export function WorkflowDialog({
                 emptyLabel="None"
                 noResultsLabel="No GHL tags found."
                 side="right"
-                // Hovering a row reveals the whole tag name (user-asked
-                // 2026-08-28, after the same on Webhook Links).
-                showFullValueOnHover
               />
             </div>
           )}
@@ -632,9 +629,6 @@ export function WorkflowDialog({
                 emptyLabel="None"
                 noResultsLabel="No GHL forms found."
                 side="right"
-                // Hovering a row reveals the whole form name (user-asked
-                // 2026-08-28, alongside GHL Tags).
-                showFullValueOnHover
               />
             </div>
           )}
@@ -659,8 +653,8 @@ export function WorkflowDialog({
               // Webhook URLs truncate (intended: they are far wider than the
               // popover cap), but the truncated head is not enough to tell one
               // link from another, so hovering a row reveals the whole thing.
-              // The first call site to get this; GHL Tags and GHL Forms above
-              // followed. Automation Tags still does not have it.
+              // ONLY here: the tag/form pickers show short values whose visible
+              // text is already the whole meaning.
               showFullValueOnHover
             />
             <p className="text-[10px] text-zinc-500">

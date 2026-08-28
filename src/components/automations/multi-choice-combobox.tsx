@@ -58,13 +58,15 @@ export function MultiChoiceCombobox({
   side?: "left" | "right" | "top" | "bottom";
   /**
    * Reveal the WHOLE value (a native title) when the cursor rests on an option
-   * row.
+   * row. OPT-IN, and off by default, because it is only wanted where the values
+   * are long, opaque strings you cannot recognise from the truncated head:
+   * Webhook Links, and nothing else.
    *
-   * OPT-IN and off by default. It is switched on PER CALL SITE, at the user's
-   * request each time, rather than for every picker: Webhook Links first
-   * (2026-08-28), then GHL Tags and GHL Forms. Automation Tags does NOT have it,
-   * nor does the single-select picker. An earlier attempt to apply it everywhere
-   * at once was rejected, so leave the remaining call sites alone until asked.
+   * TRIED AND REJECTED ELSEWHERE, so do not re-add it without being asked:
+   * applying it to every picker at once was rejected (2026-08-28), and turning
+   * it on for GHL Tags + GHL Forms specifically was then tried at the user's
+   * request and reverted the same day, verdict "it looks terrible". Those values
+   * are short enough that the tooltip mostly repeated visible text.
    */
   showFullValueOnHover?: boolean;
 }) {
