@@ -58,10 +58,13 @@ export function MultiChoiceCombobox({
   side?: "left" | "right" | "top" | "bottom";
   /**
    * Reveal the WHOLE value (a native title) when the cursor rests on an option
-   * row. OPT-IN, and off by default, because it is only wanted where the values
-   * are long, opaque strings you cannot recognise from the truncated head:
-   * Webhook Links, and nothing else today. On the tag/form pickers the visible
-   * text is already the whole meaning, so a tooltip there is noise.
+   * row.
+   *
+   * OPT-IN and off by default. It is switched on PER CALL SITE, at the user's
+   * request each time, rather than for every picker: Webhook Links first
+   * (2026-08-28), then GHL Tags and GHL Forms. Automation Tags does NOT have it,
+   * nor does the single-select picker. An earlier attempt to apply it everywhere
+   * at once was rejected, so leave the remaining call sites alone until asked.
    */
   showFullValueOnHover?: boolean;
 }) {
