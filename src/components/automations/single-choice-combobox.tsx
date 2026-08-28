@@ -153,6 +153,13 @@ export function SingleChoiceCombobox({
                 <CommandItem
                   key={o.id}
                   value={o.value}
+                  // Hovering reveals the WHOLE value. These rows truncate by
+                  // design once the popover hits its width cap (see the comment
+                  // on the cap above, which names webhook URLs), leaving no way
+                  // to read a long option in full. Native title, matching how the
+                  // Dropdown Config Relationships cells already expose a
+                  // truncated URL.
+                  title={o.value}
                   onSelect={() => {
                     onChange(o.id);
                     setOpen(false);

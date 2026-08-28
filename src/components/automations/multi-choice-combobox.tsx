@@ -192,6 +192,13 @@ export function MultiChoiceCombobox({
                   <button
                     key={o.id}
                     type="button"
+                    // Hovering reveals the WHOLE value. The row truncates by
+                    // design (a webhook URL is far wider than the popover cap),
+                    // which left no way to read one in full without selecting it
+                    // and going hunting elsewhere. Native title, matching how the
+                    // Dropdown Config Relationships cells already expose a
+                    // truncated URL, so it costs nothing on a list of 70+ rows.
+                    title={o.value}
                     onClick={() => toggle(o.id)}
                     className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm hover:bg-muted"
                   >
@@ -208,6 +215,9 @@ export function MultiChoiceCombobox({
                     <CommandItem
                       key={o.id}
                       value={o.value}
+                      // Full value on hover, for the same reason as the pinned
+                      // selected rows above.
+                      title={o.value}
                       // Toggle without closing, so several can be picked in one
                       // open (this is the multi-select behaviour).
                       onSelect={() => toggle(o.id)}
