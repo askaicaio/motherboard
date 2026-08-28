@@ -4,8 +4,13 @@
 // time (Author, Automation Tags, GHL Tags, GHL Forms, Trigger Event, Webhook
 // Links) chosen via a tab toolbar; Author is the default. Each table keeps its
 // own search query (preserved when switching tabs). A page-level Edit mode toggle
-// reveals the active table's single "Add Option", row-click editing, and per-row
-// delete.
+// reveals the active table's single "Add Option" and row-click editing.
+//
+// DELETE lives in the Add/Edit dialog (a red bin, bottom-left), NOT in a per-row
+// column. It moved there 2026-08-28 at the user's request, the same move the Per
+// Website table made in Round 58, so the tables no longer reserve a bin column.
+// A built-in option ("No Path", "No Tag", ...) simply gets no bin, because the
+// caller only passes `onDelete` when deleting is allowed.
 //
 // GHL Tags and GHL Forms are richer 3-column tables:
 // <rowLabel> | Status (per-column dropdown, default Unknown) | Notes (free text,
@@ -36,7 +41,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ListChecks, Lock, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { ListChecks, Pencil, Plus, Search } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
@@ -60,62 +65,6 @@ import {
 } from "./related-automations-dialog";
 import { confirmDialog } from "@/components/ui/confirm";
 
-/** Per-row remove control, shared by the rich table and the simple list so the
- *  two can never disagree about what is removable.
- *
- *  Built-in options ("No Path", "No Webhook", "No Tag", "No Form") are
- *  permanent, so they show a padlock rather than a bin. A padlock and not a
- *  missing control, because an empty cell just reads as a rendering bug; and
- *  not a disabled bin, because a bin invites the click it then refuses. The API
- *  enforces this regardless of what gets rendered here. */
-function RowRemoveControl({
-  table,
-  item,
-  editMode,
-  onDelete,
-}: {
-  table: TableDescriptor;
-  item: Item;
-  editMode: boolean;
-  onDelete: (item: Item) => void;
-}) {
-  // table.id is the column_key for the generic tables and "webhooks" for the
-  // webhook one, which is exactly the scope key SPECIAL_CHOICES is keyed by.
-  if (isSpecialChoice(table.id, item.value)) {
-    return (
-      <span
-        title="Built-in option, cannot be removed"
-        aria-label="Built-in option, cannot be removed"
-        className={cn(
-          "inline-flex rounded p-1 text-zinc-300",
-          !editMode && "invisible",
-        )}
-        aria-hidden={!editMode}
-      >
-        <Lock className="h-3.5 w-3.5" />
-      </span>
-    );
-  }
-  return (
-    <button
-      type="button"
-      title="Remove"
-      aria-label="Remove"
-      onClick={(e) => {
-        e.stopPropagation();
-        onDelete(item);
-      }}
-      className={cn(
-        "rounded p-1 text-zinc-400 transition hover:bg-red-50 hover:text-red-600",
-        !editMode && "invisible",
-      )}
-      tabIndex={editMode ? undefined : -1}
-      aria-hidden={!editMode}
-    >
-      <Trash2 className="h-3.5 w-3.5" />
-    </button>
-  );
-}
 
 /** A unified row shown in any of the tables. */
 interface Item {
@@ -409,6 +358,10 @@ export function DropdownConfigClient({
     }
     if (isWebhook) setWebhooks((prev) => prev.filter((w) => w.id !== item.id));
     else setChoices((prev) => prev.filter((c) => c.id !== item.id));
+    // Close the Add/Edit dialog, which is now where delete is triggered from:
+    // the option it was editing no longer exists. (WorkflowDialog's caller does
+    // the same with setEditing(null).)
+    setDialog(null);
     toast.success("Removed");
     router.refresh();
   }
@@ -508,7 +461,6 @@ export function DropdownConfigClient({
           onEdit={(item) =>
             setDialog({ tableId: activeDescriptor.id, existing: item })
           }
-          onDelete={(item) => handleDelete(activeDescriptor, item)}
           onShowNotes={(n) => setShowingNotes(n)}
           onShowRelationships={(item) =>
             setRelatedLookup({
@@ -563,6 +515,16 @@ export function DropdownConfigClient({
             initialBadgeColor={dialog.existing?.badgeColor ?? ""}
             initialTextColor={dialog.existing?.textColor ?? ""}
             onSubmit={submitDialog}
+            // Delete, bottom-left of the dialog. Passed ONLY when there is
+            // something to delete and deleting it is allowed: never in add mode
+            // (no row yet), and never for a built-in option, which the API
+            // refuses anyway. So the bin simply is not there in those cases,
+            // exactly how WorkflowDialog omits it in add mode.
+            onDelete={
+              dialog.existing && !editingSpecial
+                ? () => handleDelete(activeTable, dialog.existing!)
+                : undefined
+            }
           />
         )}
 
@@ -671,7 +633,6 @@ function ChoiceTableSection({
   onQueryChange,
   onAdd,
   onEdit,
-  onDelete,
   onShowNotes,
   onShowRelationships,
 }: {
@@ -682,7 +643,6 @@ function ChoiceTableSection({
   onQueryChange: (q: string) => void;
   onAdd: () => void;
   onEdit: (item: Item) => void;
-  onDelete: (item: Item) => void;
   onShowNotes: (notes: string) => void;
   onShowRelationships: (item: Item) => void;
 }) {
@@ -834,10 +794,10 @@ function ChoiceTableSection({
                   {table.hasColor && !table.hasNotes && (
                     <th className="px-3 py-2" />
                   )}
-                  {/* Delete column: fixed width, pinned right (last column),
-                      always present so toggling Edit mode doesn't reflow the
-                      table; the button hides via `invisible`. */}
-                  <th className="w-10 px-2" />
+                  {/* The delete column USED to be here (fixed width, pinned
+                      right). It moved into the Add/Edit dialog 2026-08-28, the
+                      same move the Per Website table made in Round 58, so the
+                      row no longer reserves a column for it. */}
                 </tr>
               </thead>
               <tbody>
@@ -993,14 +953,6 @@ function ChoiceTableSection({
                     {table.hasColor && !table.hasNotes && (
                       <td className="px-3 py-2" />
                     )}
-                    <td className="px-2 py-2 align-top">
-                      <RowRemoveControl
-                        table={table}
-                        item={item}
-                        editMode={editMode}
-                        onDelete={onDelete}
-                      />
-                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -1034,12 +986,6 @@ function ChoiceTableSection({
                   >
                     {item.value}
                   </span>
-                  <RowRemoveControl
-                    table={table}
-                    item={item}
-                    editMode={editMode}
-                    onDelete={onDelete}
-                  />
                 </li>
               ))}
               </ul>
