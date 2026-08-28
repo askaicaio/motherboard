@@ -650,6 +650,12 @@ export function WorkflowDialog({
               emptyLabel="None"
               noResultsLabel="No webhooks found."
               side="right"
+              // Webhook URLs truncate (intended: they are far wider than the
+              // popover cap), but the truncated head is not enough to tell one
+              // link from another, so hovering a row reveals the whole thing.
+              // ONLY here: the tag/form pickers show short values whose visible
+              // text is already the whole meaning.
+              showFullValueOnHover
             />
             <p className="text-[10px] text-zinc-500">
               These are links used by Webhook nodes in the automation.

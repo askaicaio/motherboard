@@ -42,6 +42,7 @@ export function MultiChoiceCombobox({
   emptyLabel = "None",
   noResultsLabel = "No options found.",
   side = "right",
+  showFullValueOnHover = false,
 }: {
   options: ChoiceOption[];
   /** Selected choice ids (order preserved as given). */
@@ -55,6 +56,14 @@ export function MultiChoiceCombobox({
   /** Which side the popover opens on (default right). Pass "left" for a
    *  left-column field so the menu opens away from the dialog. */
   side?: "left" | "right" | "top" | "bottom";
+  /**
+   * Reveal the WHOLE value (a native title) when the cursor rests on an option
+   * row. OPT-IN, and off by default, because it is only wanted where the values
+   * are long, opaque strings you cannot recognise from the truncated head:
+   * Webhook Links, and nothing else today. On the tag/form pickers the visible
+   * text is already the whole meaning, so a tooltip there is noise.
+   */
+  showFullValueOnHover?: boolean;
 }) {
   // Open state + resolved orientation. `side` (the prop) is the PREFERRED side;
   // the hook opens vertically instead when that side is too narrow, and hands
@@ -192,13 +201,9 @@ export function MultiChoiceCombobox({
                   <button
                     key={o.id}
                     type="button"
-                    // Hovering reveals the WHOLE value. The row truncates by
-                    // design (a webhook URL is far wider than the popover cap),
-                    // which left no way to read one in full without selecting it
-                    // and going hunting elsewhere. Native title, matching how the
-                    // Dropdown Config Relationships cells already expose a
-                    // truncated URL, so it costs nothing on a list of 70+ rows.
-                    title={o.value}
+                    // Full value on hover, only where the caller asked for it.
+                    // undefined (not "") renders no title attribute at all.
+                    title={showFullValueOnHover ? o.value : undefined}
                     onClick={() => toggle(o.id)}
                     className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm hover:bg-muted"
                   >
@@ -215,9 +220,8 @@ export function MultiChoiceCombobox({
                     <CommandItem
                       key={o.id}
                       value={o.value}
-                      // Full value on hover, for the same reason as the pinned
-                      // selected rows above.
-                      title={o.value}
+                      // Full value on hover, same opt-in as the pinned rows.
+                      title={showFullValueOnHover ? o.value : undefined}
                       // Toggle without closing, so several can be picked in one
                       // open (this is the multi-select behaviour).
                       onSelect={() => toggle(o.id)}
