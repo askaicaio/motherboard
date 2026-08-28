@@ -82,7 +82,23 @@ export function ConfirmHost() {
         <DialogHeader>
           <DialogTitle>{opts?.title ?? "Are you sure?"}</DialogTitle>
           {opts?.body != null && (
-            <DialogDescription className="whitespace-pre-line">
+            // ⚠️ `[overflow-wrap:anywhere]` is load-bearing, and it must NOT be
+            // swapped for `break-words`.
+            //
+            // The body routinely holds a name the user typed or a URL, i.e. a
+            // string that can be one unbroken token. DialogContent is a CSS
+            // GRID, and a grid item's default `min-width: auto` refuses to
+            // shrink below its min-content width, so such a token made this
+            // block wider than the dialog and the text spilled out past the
+            // white box, footer buttons included.
+            //
+            // `overflow-wrap: anywhere` is the one value that also SHRINKS
+            // min-content (breaking mid-token when there is no other option),
+            // which is what lets the grid item fit. `break-words`
+            // (`overflow-wrap: break-word`) wraps visually but leaves
+            // min-content unchanged, so it does not fix this. `min-w-0` is
+            // belt-and-braces for the flex column above.
+            <DialogDescription className="min-w-0 whitespace-pre-line [overflow-wrap:anywhere]">
               {opts.body}
             </DialogDescription>
           )}
