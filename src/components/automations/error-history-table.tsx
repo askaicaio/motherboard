@@ -246,9 +246,7 @@ export function ErrorHistoryTable({
                           }
                         />
                         <TooltipContent className="max-w-xs">
-                          Delete this error record. It only removes our copy, so
-                          a later check can capture the same error again if the
-                          website still reports it.
+                          Delete this error record from the Motherboard app.
                         </TooltipContent>
                       </Tooltip>
                     )}

@@ -63,6 +63,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { TOOLTIP_DELAY_MS } from "@/lib/automations/tooltips";
 import { WorkflowDialog } from "./workflow-dialog";
 import { ColorBadge } from "./color-badge";
 import {
@@ -1897,8 +1898,8 @@ export function AutomationsTableClient({
         </div>
         {/* A SECOND TooltipProvider, for the toolbar. The one further down wraps
             only the <Card> (the table), so the toolbar sits outside it and its
-            tooltips would otherwise have no delay context. Same delay={300}. */}
-        <TooltipProvider delay={300}>
+            tooltips would otherwise have no delay context. Same shared delay. */}
+        <TooltipProvider delay={TOOLTIP_DELAY_MS}>
         <div className="flex items-center gap-3">
           {/* Auto-refresh mode (Option A). Far left of the toolbar, styled
               like the Edit mode toggle but with a clock icon. When ON, a
@@ -1981,9 +1982,8 @@ export function AutomationsTableClient({
                 }
               />
               <TooltipContent className="max-w-xs normal-case">
-                Pulls this website&rsquo;s automations from its API now, adding
-                new ones and updating the synced columns. It never deletes rows,
-                and it leaves anything typed here alone.
+                Pulls this website&rsquo;s automations from its API. New items
+                are added and synced columns get updated. Rows are not deleted.
               </TooltipContent>
             </Tooltip>
             {refreshError && (
@@ -2013,8 +2013,7 @@ export function AutomationsTableClient({
               }
             />
             <TooltipContent className="max-w-xs normal-case">
-              Downloads every row of this website as a CSV, in the column order
-              shown. Not just the rows currently searched or filtered.
+              Downloads the whole automation table into a CSV.
             </TooltipContent>
           </Tooltip>
 
@@ -2276,7 +2275,7 @@ export function AutomationsTableClient({
             highest z-index (z-20) so it sits above the header row and the
             frozen column during a diagonal scroll. Layering: corner z-20 >
             header row / frozen column z-10 > body. */}
-        <TooltipProvider delay={300}>
+        <TooltipProvider delay={TOOLTIP_DELAY_MS}>
         <Card>
           <CardContent
             ref={scrollRef}

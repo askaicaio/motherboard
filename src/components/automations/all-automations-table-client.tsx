@@ -42,6 +42,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { TOOLTIP_DELAY_MS } from "@/lib/automations/tooltips";
 import { buttonVariants } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -1430,7 +1431,7 @@ export function AllAutomationsTableClient({
         </div>
       </div>
 
-      <TooltipProvider delay={300}>
+      <TooltipProvider delay={TOOLTIP_DELAY_MS}>
         <Card>
           <CardContent
             ref={scrollRef}
