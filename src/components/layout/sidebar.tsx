@@ -17,6 +17,7 @@ import {
   Megaphone,
   BookOpen,
   Workflow,
+  Blocks,
   FlaskConical,
   Beaker,
   TestTube,
@@ -84,6 +85,12 @@ const ICONS: Record<string, React.ElementType> = {
 //
 // ADD A FUTURE VERSION HERE AND NOWHERE ELSE: the menu, the highlight rule and
 // the current-version check all read this list.
+//
+// ⚠️ ORDER IS THE USER'S, and "Beta" sits at index 1 DELIBERATELY: below Official,
+// above the Alphas. It is not another proposal like the Alphas are. It started
+// (2026-08-29) as an exact working mirror of the live hub and is the bench where
+// elements picked out of the Alphas get assembled, so it belongs next to the page
+// it is being compared against.
 const AUTOMATIONS_HREF = "/automations";
 const AUTOMATIONS_VERSIONS: {
   href: string;
@@ -91,6 +98,7 @@ const AUTOMATIONS_VERSIONS: {
   icon: React.ElementType;
 }[] = [
   { href: AUTOMATIONS_HREF, label: "Official", icon: Workflow },
+  { href: "/automations-beta", label: "Beta", icon: Blocks },
   { href: "/automations-alpha", label: "Alpha", icon: FlaskConical },
   { href: "/automations-alpha2", label: "Alpha2", icon: Beaker },
   { href: "/automations-alpha3", label: "Alpha3", icon: TestTube },
