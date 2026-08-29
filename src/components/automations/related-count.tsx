@@ -50,18 +50,33 @@ export function RelatedCount({
   );
 }
 
+/** Singular form of each column's label, for a count of exactly 1.
+ *
+ *  An EXPLICIT MAP rather than trimming a trailing "s", so a future column that
+ *  does not pluralise that way cannot break quietly. A column missing from here
+ *  simply keeps its plural label, which is the old behaviour and never worse
+ *  than a wrong singular.
+ *
+ *  ⚠️ ADD A ROW HERE whenever a new column starts using cellCountTooltip. */
+const COLUMN_SINGULAR: Record<string, string> = {
+  "Webhook Links": "Webhook Link",
+  "GHL Tags": "GHL Tag",
+  "GHL Forms": "GHL Form",
+};
+
 /** Tooltip text for a per-row cell count (GHL Tags / GHL Forms / Webhook Links
  *  on either table): how many entries this automation has in that column.
  *
- *  ⚠️ `columnName` is the COLUMN'S OWN LABEL, used verbatim and NOT pluralised,
- *  which is why this takes a column name rather than a singular noun. The user
- *  set this wording on 2026-08-28 ("2 Webhook Links on this automation.") and
- *  asked for the same shape on GHL Tags and GHL Forms. Naming the column the
- *  way the header does is the point, so a count of 1 reads "1 Webhook Links".
+ *  ⚠️ `columnName` is the COLUMN'S OWN LABEL, so the tooltip names the column
+ *  exactly as its header does. The user set this wording on 2026-08-28 ("2
+ *  Webhook Links on this automation.") and asked for the same shape on GHL Tags
+ *  and GHL Forms. A count of 1 takes the singular from COLUMN_SINGULAR above,
+ *  also at their request.
  *
- *  The earlier version pluralised a singular noun and added a second sentence
- *  about the cell being clamped; the user replaced it with this. Do not add the
- *  clamp sentence back. */
+ *  The earlier version added a second sentence about the cell being clamped;
+ *  the user cut it. Do not add it back. */
 export function cellCountTooltip(count: number, columnName: string): string {
-  return `${count} ${columnName} on this automation.`;
+  const name =
+    count === 1 ? (COLUMN_SINGULAR[columnName] ?? columnName) : columnName;
+  return `${count} ${name} on this automation.`;
 }
