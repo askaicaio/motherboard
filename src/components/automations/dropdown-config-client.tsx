@@ -142,6 +142,31 @@ const TABLES: TableDescriptor[] = [
   WEBHOOK_TABLE,
 ];
 
+/** What ONE row of a Relationships table is, in the tooltip's own words: "…use
+ *  this link." / "…use this tag." Keyed by table id, and only the two tables
+ *  with `hasRelationships` need an entry. A table missing from here falls back
+ *  to a bare "…use this.", which reads fine and is never wrong.
+ *
+ *  ⚠️ ADD A ROW HERE if a third column ever gains a Relationships table. */
+const RELATIONSHIP_NOUN: Record<string, string> = {
+  webhooks: "link",
+  ghl_tags: "tag",
+};
+
+/** Tooltip for the amber "(N)" in a Relationships cell: how many automations
+ *  use THIS CHOICE. Deliberately different from the per-row cell counts on the
+ *  two automations tables (see cellCountTooltip), which count entries ON an
+ *  automation, the opposite direction.
+ *
+ *  ⚠️ Wording set by the user 2026-08-29 ("N automations use this link."). An
+ *  earlier version ended with "Only the lines that fit are shown."; they cut it.
+ *  Do not add it back. */
+function relationshipCountTooltip(count: number, tableId: string): string {
+  const verb = count === 1 ? "automation uses" : "automations use";
+  const noun = RELATIONSHIP_NOUN[tableId];
+  return `${count} ${verb} this${noun ? ` ${noun}` : ""}.`;
+}
+
 // Sort rank for a status-grouped table. A column's `statusOptions` already list
 // the desired top-to-bottom group order; anything unrecognized (incl. null)
 // sorts last. Null is shown as "Unknown" (see StatusBadge), so treat it as such.
@@ -892,11 +917,10 @@ function ChoiceTableSection({
                                   // an automation.
                                   <RelatedCount
                                     count={arr.length}
-                                    tooltip={`${arr.length} ${
-                                      arr.length === 1
-                                        ? "automation uses"
-                                        : "automations use"
-                                    } this. Only the lines that fit are shown.`}
+                                    tooltip={relationshipCountTooltip(
+                                      arr.length,
+                                      table.id,
+                                    )}
                                   />
                                 )}
                                 {a.externalUrl}

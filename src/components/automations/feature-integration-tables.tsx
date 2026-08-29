@@ -105,9 +105,11 @@ function CheckboxCell({
   // Locked: a static indicator, identical mark but not clickable (no hover
   // affordance, no toggle). Re-enable via TOGGLE_ENABLED.
   //
-  // The mark still LOOKS like a checkbox, so the tooltip is what tells you it is
-  // read-only. Without it a locked cell is indistinguishable from a broken one:
-  // you click, nothing happens, and nothing explains why.
+  // The tooltip just names what the mark means. It used to add a second sentence
+  // ("These marks are read-only for now, so clicking one does nothing.") to
+  // explain why clicking does nothing; the user cut it on 2026-08-29, in the
+  // same pass that shortened every other Automations tooltip. Do not add it
+  // back without asking.
   if (!interactive) {
     return (
       <Tooltip disableHoverablePopup>
@@ -123,8 +125,7 @@ function CheckboxCell({
           }
         />
         <TooltipContent className="max-w-xs">
-          {label}: {checked ? "supported" : "not supported"}. These marks are
-          read-only for now, so clicking one does nothing.
+          {label}: {checked ? "supported" : "not supported"}.
         </TooltipContent>
       </Tooltip>
     );

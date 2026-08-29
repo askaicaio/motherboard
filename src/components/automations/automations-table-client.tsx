@@ -123,6 +123,7 @@ type SortKey =
   | "author"
   | "webhooks"
   | "ghlTags"
+  | "ghlForms"
   | "triage"
   | "rowUpdatedAt";
 
@@ -353,8 +354,8 @@ const TH_SORTABLE_160 =
   "sticky top-0 z-10 w-[160px] min-w-[160px] max-w-[160px] cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700";
 const TH_PLAIN_160 =
   "sticky top-0 z-10 w-[160px] min-w-[160px] max-w-[160px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]";
-const TH_PLAIN_180 =
-  "sticky top-0 z-10 w-[180px] min-w-[180px] max-w-[180px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]";
+// (The plain 180px variant went away 2026-08-29: GHL Forms was its only user and
+// it became sortable. Re-add it if a non-sortable 180px column ever appears.)
 const TH_SORTABLE_180 =
   "sticky top-0 z-10 w-[180px] min-w-[180px] max-w-[180px] cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700";
 const TH_SORTABLE_240 =
@@ -469,8 +470,8 @@ const MIDDLE_COLUMNS: MiddleColumnDef[] = [
   {
     id: "ghlForms",
     title: "GHL Forms",
-    sortKey: null,
-    thClassName: TH_PLAIN_180,
+    sortKey: "ghlForms",
+    thClassName: TH_SORTABLE_180,
     platforms: ["ghl", "ghl-b2b"],
     exportValue: (r) => (r.ghlForms ?? []).map((t) => t.value).join(", "),
   },
@@ -955,6 +956,13 @@ export function AutomationsTableClient({
           // Identical grouping toggle to Webhook Links (see above), on the GHL
           // Tags cell instead. Rows with no tags sink to the bottom either way.
           return compareShared(a.ghlTags, b.ghlTags, dir);
+        case "ghlForms":
+          // Same comparator again (user asked for GHL Forms to sort "the same
+          // way", 2026-08-29). NOTE the cell itself shows no share icon, so the
+          // only VISIBLE effect of the shared/unshared split is the row order;
+          // the loader still has to pass withSharedCounts for it to mean
+          // anything. See getSelectionsByColumn("ghl_forms", ids, true).
+          return compareShared(a.ghlForms, b.ghlForms, dir);
         case "triage":
           // Ordered by the TRIAGE LIFECYCLE, not alphabetically (see TRIAGE_ORDER):
           // To Remove -> To Remove? -> Unknown -> Keep? -> Keep. Untriaged rows
