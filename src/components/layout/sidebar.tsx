@@ -91,13 +91,13 @@ const AUTOMATIONS_VERSIONS: {
   icon: React.ElementType;
 }[] = [
   { href: AUTOMATIONS_HREF, label: "Official", icon: Workflow },
-  { href: "/automations-beta", label: "Beta", icon: FlaskConical },
-  { href: "/automations-beta2", label: "Beta2", icon: Beaker },
-  { href: "/automations-beta3", label: "Beta3", icon: TestTube },
-  { href: "/automations-beta4", label: "Beta4", icon: Microscope },
-  { href: "/automations-beta5", label: "Beta5", icon: Atom },
-  { href: "/automations-beta6", label: "Beta6", icon: Dna },
-  { href: "/automations-beta7", label: "Beta7", icon: Telescope },
+  { href: "/automations-beta", label: "Alpha", icon: FlaskConical },
+  { href: "/automations-beta2", label: "Alpha2", icon: Beaker },
+  { href: "/automations-beta3", label: "Alpha3", icon: TestTube },
+  { href: "/automations-beta4", label: "Alpha4", icon: Microscope },
+  { href: "/automations-beta5", label: "Alpha5", icon: Atom },
+  { href: "/automations-beta6", label: "Alpha6", icon: Dna },
+  { href: "/automations-beta7", label: "Alpha7", icon: Telescope },
 ];
 
 // Role/department predicates for tabs that gate on more than the

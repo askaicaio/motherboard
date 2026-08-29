@@ -1,5 +1,5 @@
 // =============================================================
-// Automations BETA - a redesign proposal for the Automations hub
+// Automations ALPHA - a redesign proposal for the Automations hub
 // =============================================================
 // A parallel, throwaway copy of the Automations Main Page used to try a
 // different PRESENTATION of the same information. The live hub at
@@ -54,7 +54,7 @@ import { cn } from "@/lib/utils";
 export const dynamic = "force-dynamic";
 
 // ---------------------------------------------------------------------------
-// Per-website accent colour. Local to the beta page so sites.ts stays as it
+// Per-website accent colour. Local to the Alpha page so sites.ts stays as it
 // is. `iconColor` there only exists for the sites whose glyph is a monochrome
 // mask, but the redesign tints a logo tile + a mix-bar segment for EVERY site,
 // so all 5 need one. The two GHL subaccounts share the brand green at
@@ -77,7 +77,7 @@ interface PlatformStats {
   paused: number;
 }
 
-export default async function AutomationsBetaPage() {
+export default async function AutomationsAlphaPage() {
   await requireAuth();
 
   const health = await getHealthState();
@@ -205,7 +205,7 @@ export default async function AutomationsBetaPage() {
               Automations
             </h1>
             <span className="rounded-full bg-zinc-900 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
-              Beta
+              Alpha
             </span>
           </div>
           <p className="mt-1 text-sm text-zinc-500">
@@ -556,7 +556,7 @@ export default async function AutomationsBetaPage() {
       </div>
 
       <p className="pt-1 text-center text-xs text-zinc-400">
-        Beta preview. Controls on this page are static, the live hub is at{" "}
+        Alpha preview. Controls on this page are static, the live hub is at{" "}
         <Link href="/automations" className="underline hover:text-zinc-600">
           Automations
         </Link>

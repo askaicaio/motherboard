@@ -1,5 +1,5 @@
 // =============================================================
-// Automations BETA6 - inventory quality
+// Automations ALPHA6 - inventory quality
 // =============================================================
 // The seventh presentation of the Automations hub.
 //
@@ -94,7 +94,7 @@ const FIELDS: {
 
 const HUMAN_FIELDS = FIELDS.filter((f) => !f.synced);
 
-export default async function AutomationsBeta6Page() {
+export default async function AutomationsAlpha6Page() {
   await requireAuth();
 
   // One scan of `automations` for everything that lives on the row itself.
@@ -240,7 +240,7 @@ export default async function AutomationsBeta6Page() {
               Automations
             </h1>
             <span className="rounded-full bg-zinc-900 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
-              Beta6
+              Alpha6
             </span>
           </div>
           <p className="mt-1 text-sm text-zinc-500">
@@ -520,7 +520,7 @@ export default async function AutomationsBeta6Page() {
       </div>
 
       <p className="pt-1 text-center text-xs text-zinc-400">
-        Beta6 preview. Controls on this page are static, the live hub is at{" "}
+        Alpha6 preview. Controls on this page are static, the live hub is at{" "}
         <Link href="/automations" className="underline hover:text-zinc-600">
           Automations
         </Link>

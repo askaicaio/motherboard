@@ -1,5 +1,5 @@
 // =============================================================
-// Automations BETA5 - a work queue
+// Automations ALPHA5 - a work queue
 // =============================================================
 // The sixth presentation of the Automations hub.
 //
@@ -115,7 +115,7 @@ interface PlatformStats {
   paused: number;
 }
 
-export default async function AutomationsBeta5Page() {
+export default async function AutomationsAlpha5Page() {
   await requireAuth();
 
   const autoRefreshMap = await getAutoRefreshMap();
@@ -306,7 +306,7 @@ export default async function AutomationsBeta5Page() {
               Automations
             </h1>
             <span className="rounded-full bg-zinc-900 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
-              Beta5
+              Alpha5
             </span>
           </div>
           <p className="mt-1 text-sm text-zinc-500">
@@ -550,7 +550,7 @@ export default async function AutomationsBeta5Page() {
       )}
 
       <p className="pt-1 text-center text-xs text-zinc-400">
-        Beta5 preview. Controls on this page are static, the live hub is at{" "}
+        Alpha5 preview. Controls on this page are static, the live hub is at{" "}
         <Link href="/automations" className="underline hover:text-zinc-600">
           Automations
         </Link>

@@ -22,7 +22,7 @@ export const MANAGEABLE_TABS: ManageableTab[] = [
   { href: "/leads", label: "Leads" },
   { href: "/campaigns", label: "Campaigns" },
   // Automations is a MENU in the sidebar, not a plain link: it fans out to the
-  // live hub ("Official") and the redesign preview ("Beta", /automations-beta).
+  // live hub ("Official") and the redesign preview ("Alpha", /automations-beta).
   // Only this one entry is listed, so hiding Automations for a department hides
   // both destinations, and the visibility editor keeps one row instead of two.
   { href: "/automations", label: "Automations" },

@@ -1,10 +1,10 @@
 // =============================================================
-// Automations BETA3 - master and detail
+// Automations ALPHA3 - master and detail
 // =============================================================
 // The fourth presentation of the Automations hub, alongside the live page,
-// Beta and Beta2. Real data, static controls, nothing writes.
+// Alpha and Alpha2. Real data, static controls, nothing writes.
 //
-// PREMISE, which is what makes it different: the live page and Beta lay all 5
+// PREMISE, which is what makes it different: the live page and Alpha lay all 5
 // websites out at once and give each one an equal, shallow slice of the screen.
 // That is a summary, and a summary is what you want when everything is fine.
 // This one assumes you arrive because ONE website is on your mind, so it gives
@@ -68,7 +68,7 @@ interface PlatformStats {
   paused: number;
 }
 
-export default async function AutomationsBeta3Page({
+export default async function AutomationsAlpha3Page({
   searchParams,
 }: {
   searchParams: Promise<{ site?: string | string[] }>;
@@ -197,7 +197,7 @@ export default async function AutomationsBeta3Page({
               Automations
             </h1>
             <span className="rounded-full bg-zinc-900 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
-              Beta3
+              Alpha3
             </span>
           </div>
           <p className="mt-1 text-sm text-zinc-500">
@@ -477,7 +477,7 @@ export default async function AutomationsBeta3Page({
       </div>
 
       <p className="pt-1 text-center text-xs text-zinc-400">
-        Beta3 preview. The rail navigates; every other control is static. The
+        Alpha3 preview. The rail navigates; every other control is static. The
         live hub is at{" "}
         <Link href="/automations" className="underline hover:text-zinc-600">
           Automations
