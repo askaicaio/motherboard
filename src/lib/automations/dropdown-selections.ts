@@ -74,7 +74,8 @@ export async function getSelectionsByColumn(
 
   // Opt-in "shared with N others" pass, mirroring getWebhooksByAutomation.
   // OPT-IN rather than always-on because it costs an extra aggregate query and
-  // only the columns that render a sharing indicator need it (GHL Tags today).
+  // only the columns that need the shared/unshared split ask for it: GHL Tags
+  // (share icon + shared-first sort) and GHL Forms (that sort only, no icon).
   // Same reasoning as the webhook version: sharing is CROSS-PLATFORM, so it
   // cannot be derived on the client from the rows a page happens to hold.
   if (withSharedCounts) {

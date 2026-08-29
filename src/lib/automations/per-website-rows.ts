@@ -120,12 +120,18 @@ export async function getPerWebsiteRows(platform: string) {
   // GHL Tags + GHL Forms (multi-select, GHL pages): each row's selected choices.
   // Scoped to this platform's automations; empty maps on non-GHL platforms.
   //
-  // GHL Tags passes withSharedCounts=true so each tag carries how many OTHER
-  // automations use it, feeding the passive share icon + the shared-first sort
-  // (same treatment Webhook Links gets). GHL Forms does NOT, because it has no
-  // sharing indicator, and the flag costs an extra aggregate query.
+  // BOTH pass withSharedCounts=true so each choice carries how many OTHER
+  // automations use it. GHL Tags needs it for the passive share icon AND the
+  // shared-first sort; GHL Forms only for the sort (it renders no share icon),
+  // added 2026-08-29 when the user asked Forms to sort like Tags and Webhook
+  // Links. Without the flag every form would rank "present but unshared" and the
+  // toggle would do nothing. Costs one extra aggregate query per column.
   const ghlTagsByAutomation = await getSelectionsByColumn("ghl_tags", ids, true);
-  const ghlFormsByAutomation = await getSelectionsByColumn("ghl_forms", ids);
+  const ghlFormsByAutomation = await getSelectionsByColumn(
+    "ghl_forms",
+    ids,
+    true,
+  );
   // Webhook Links (multi-select): each row's selected webhooks, via the
   // automation_webhooks junction. Scoped to this platform's automations.
   const webhooksByAutomation = await getWebhooksByAutomation(ids);

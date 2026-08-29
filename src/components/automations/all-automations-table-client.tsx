@@ -114,6 +114,7 @@ type SortKey =
   | "author"
   | "webhooks"
   | "ghlTags"
+  | "ghlForms"
   | "triage"
   | "rowUpdatedAt";
 
@@ -207,8 +208,8 @@ const ALL_TH_P_160 =
   "sticky top-0 z-10 w-[160px] min-w-[160px] max-w-[160px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]";
 const ALL_TH_S_180 =
   "sticky top-0 z-10 w-[180px] min-w-[180px] max-w-[180px] cursor-pointer select-none whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7] transition-colors hover:bg-zinc-200 hover:text-zinc-700";
-const ALL_TH_P_180 =
-  "sticky top-0 z-10 w-[180px] min-w-[180px] max-w-[180px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]";
+// (The plain 180px variant went away 2026-08-29: GHL Forms was its only user and
+// it became sortable. Re-add it if a non-sortable 180px column ever appears.)
 const ALL_TH_P_240 =
   "sticky top-0 z-10 w-[240px] min-w-[240px] max-w-[240px] whitespace-nowrap bg-zinc-50 px-3 py-2 text-center shadow-[inset_0_-1px_0_0_#e4e4e7]";
 
@@ -257,7 +258,7 @@ const ALL_COLUMNS: AllColumnDef[] = [
   { id: "purpose", title: "Purpose", sortKey: null, thClassName: ALL_TH_P_240, width: 240 },
   { id: "notes", title: "Notes", sortKey: null, thClassName: ALL_TH_P_240, width: 240 },
   { id: "ghlTags", title: "GHL Tags", sortKey: "ghlTags", thClassName: ALL_TH_S_180, width: 180 },
-  { id: "ghlForms", title: "GHL Forms", sortKey: null, thClassName: ALL_TH_P_180, width: 180 },
+  { id: "ghlForms", title: "GHL Forms", sortKey: "ghlForms", thClassName: ALL_TH_S_180, width: 180 },
   { id: "webhooks", title: "Webhook Links", sortKey: "webhooks", thClassName: ALL_TH_S_240, width: 240 },
   { id: "lastEditedAt", title: "Last Edited", sortKey: "lastEditedAt", thClassName: ALL_TH_S_AUTO, width: 136,
     headerTooltip:
@@ -707,6 +708,11 @@ export function AllAutomationsTableClient({
           // GHL Tags sink to the bottom in both directions, which on THIS table
           // also means every non-GHL row (they can never have tags).
           return compareShared(a.ghlTags, b.ghlTags, dir);
+        case "ghlForms":
+          // Same comparator again (user asked for GHL Forms to sort "the same
+          // way", 2026-08-29). Non-GHL rows sink with the empty tier, exactly as
+          // they do under GHL Tags. Matches the Per Website table.
+          return compareShared(a.ghlForms, b.ghlForms, dir);
         case "triage":
           // Lifecycle order (see TRIAGE_ORDER), untriaged last in both directions.
           // Same shared comparator the Per Website table uses.
