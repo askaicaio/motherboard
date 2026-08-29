@@ -79,7 +79,8 @@ import {
 } from "./shared-item-icon";
 import { compareTriage } from "@/lib/automations/dropdown-config";
 import { useColumnDrag } from "./use-column-drag";
-import { ColumnHeader, NAME_HEADER_MENU } from "./column-header";
+import { ColumnHeader, HeaderLabel, NAME_HEADER_MENU } from "./column-header";
+import { RelatedCount, cellCountTooltip } from "./related-count";
 import { confirmDialog } from "@/components/ui/confirm";
 import type {
   ChoiceOption,
@@ -1456,11 +1457,13 @@ export function AutomationsTableClient({
             tooltip={col.syncTooltip}
           />
         )}
-        {col.title}
+        {/* ONLY the text is wrapped, never the whole label: the ↻ marker above
+            has its own tooltip, and nesting the two made both misbehave. */}
+        <HeaderLabel title={col.title} tooltip={col.headerTooltip} />
         <SortArrow active={sortKey === col.sortKey} dir={sortDir} />
       </span>
     ) : (
-      col.title
+      <HeaderLabel title={col.title} tooltip={col.headerTooltip} />
     );
     return (
       <ColumnHeader
@@ -1468,7 +1471,6 @@ export function AutomationsTableClient({
         {...headerProps}
         sortKey={col.sortKey}
         className={col.thClassName}
-        tooltip={col.headerTooltip}
         onMoveLeft={vIdx > 0 ? () => moveColumn(col.id, -1) : undefined}
         onMoveRight={
           vIdx < visibleMiddle.length - 1
@@ -1702,9 +1704,10 @@ export function AutomationsTableClient({
                         text. See countShared() for why it must be row-level. */}
                     {i === 0 && (
                       <>
-                        <span className="font-medium text-amber-600">
-                          ({arr.length}){" "}
-                        </span>
+                        <RelatedCount
+                          count={arr.length}
+                          tooltip={cellCountTooltip(arr.length, "GHL tag")}
+                        />
                         <SharedItemIcon
                           sharedWith={countShared(arr)}
                           title={sharedRowTitle(countShared(arr))}
@@ -1738,9 +1741,10 @@ export function AutomationsTableClient({
                     className="truncate text-xs text-zinc-700"
                   >
                     {i === 0 && (
-                      <span className="font-medium text-amber-600">
-                        ({arr.length}){" "}
-                      </span>
+                      <RelatedCount
+                        count={arr.length}
+                        tooltip={cellCountTooltip(arr.length, "GHL form")}
+                      />
                     )}
                     {f.value}
                   </div>
@@ -1782,9 +1786,10 @@ export function AutomationsTableClient({
                         treatment as the GHL Tags cell; see countShared(). */}
                     {i === 0 && (
                       <>
-                        <span className="font-medium text-amber-600">
-                          ({arr.length}){" "}
-                        </span>
+                        <RelatedCount
+                          count={arr.length}
+                          tooltip={cellCountTooltip(arr.length, "webhook link")}
+                        />
                         <SharedItemIcon
                           sharedWith={countShared(arr)}
                           title={sharedRowTitle(countShared(arr))}

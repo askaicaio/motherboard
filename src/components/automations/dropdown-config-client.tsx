@@ -60,6 +60,7 @@ import {
 } from "@/lib/automations/dropdown-config";
 import { useFitViewportHeight } from "@/lib/automations/use-fit-viewport-height";
 import { ChoiceDialog } from "./choice-dialog";
+import { RelatedCount } from "./related-count";
 import {
   RelatedAutomationsDialog,
   type RelatedLookupTarget,
@@ -883,38 +884,20 @@ function ChoiceTableSection({
                                 className="block w-full cursor-pointer truncate text-left text-xs text-blue-600 hover:underline disabled:pointer-events-none disabled:cursor-default disabled:no-underline"
                               >
                                 {i === 0 && (
-                                  // ⚠️ A REAL <Tooltip>, and it HAS to be.
-                                  //
-                                  // This was a native `title` and it never
-                                  // showed: the surrounding button carries its
-                                  // own `title` (the full URL), and hovering the
-                                  // count landed on that instead, on the
-                                  // browser's own ~1s timing. A <Tooltip> is a
-                                  // separate mechanism, so it does not compete,
-                                  // and it obeys TOOLTIP_DELAY_MS like the rest
-                                  // of the tab.
-                                  //
-                                  // The trigger renders a SPAN, not a button, so
-                                  // no interactive element is nested inside the
-                                  // button and the click still reaches it and
-                                  // opens the lookup.
-                                  <Tooltip disableHoverablePopup>
-                                    <TooltipTrigger
-                                      render={
-                                        <span className="font-medium text-amber-600">
-                                          ({arr.length}){" "}
-                                        </span>
-                                      }
-                                    />
-                                    <TooltipContent className="max-w-xs">
-                                      {arr.length}{" "}
-                                      {arr.length === 1
+                                  // Shared with the six identical counts on the
+                                  // two tables. See related-count.tsx for why it
+                                  // must be a <Tooltip> and not a `title`.
+                                  // The wording differs here: this count is
+                                  // automations using the CHOICE, not entries on
+                                  // an automation.
+                                  <RelatedCount
+                                    count={arr.length}
+                                    tooltip={`${arr.length} ${
+                                      arr.length === 1
                                         ? "automation uses"
-                                        : "automations use"}{" "}
-                                      this. Only the lines that fit are shown,
-                                      click any of them to see all {arr.length}.
-                                    </TooltipContent>
-                                  </Tooltip>
+                                        : "automations use"
+                                    } this. Only the lines that fit are shown.`}
+                                  />
                                 )}
                                 {a.externalUrl}
                               </button>
