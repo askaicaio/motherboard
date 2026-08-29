@@ -2,7 +2,7 @@
 // Automations ALPHA2 - a second redesign proposal for the hub
 // =============================================================
 // The third presentation of the same information, alongside the live hub
-// (/automations) and the first proposal (/automations-beta). Nothing here
+// (/automations) and the first proposal (/automations-alpha). Nothing here
 // writes, and every control is a static visual.
 //
 // Alpha 1 and the live page both answer the SAME question, "what do I have",

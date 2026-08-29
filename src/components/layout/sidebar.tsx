@@ -91,13 +91,13 @@ const AUTOMATIONS_VERSIONS: {
   icon: React.ElementType;
 }[] = [
   { href: AUTOMATIONS_HREF, label: "Official", icon: Workflow },
-  { href: "/automations-beta", label: "Alpha", icon: FlaskConical },
-  { href: "/automations-beta2", label: "Alpha2", icon: Beaker },
-  { href: "/automations-beta3", label: "Alpha3", icon: TestTube },
-  { href: "/automations-beta4", label: "Alpha4", icon: Microscope },
-  { href: "/automations-beta5", label: "Alpha5", icon: Atom },
-  { href: "/automations-beta6", label: "Alpha6", icon: Dna },
-  { href: "/automations-beta7", label: "Alpha7", icon: Telescope },
+  { href: "/automations-alpha", label: "Alpha", icon: FlaskConical },
+  { href: "/automations-alpha2", label: "Alpha2", icon: Beaker },
+  { href: "/automations-alpha3", label: "Alpha3", icon: TestTube },
+  { href: "/automations-alpha4", label: "Alpha4", icon: Microscope },
+  { href: "/automations-alpha5", label: "Alpha5", icon: Atom },
+  { href: "/automations-alpha6", label: "Alpha6", icon: Dna },
+  { href: "/automations-alpha7", label: "Alpha7", icon: Telescope },
 ];
 
 // Role/department predicates for tabs that gate on more than the
@@ -189,7 +189,7 @@ export function Sidebar({ hiddenTabs = [] }: { hiddenTabs?: string[] }) {
           // Active = this exact route, or one of its CHILD routes. The match
           // stops at a path segment boundary: a plain startsWith would also
           // light "/automations" up while sitting on an unrelated route that
-          // merely begins with those characters (e.g. "/automations-beta",
+          // merely begins with those characters (e.g. "/automations-alpha",
           // which the Automations tab claims DELIBERATELY, just below, rather
           // than by accident). Every existing tab is unaffected, since a real
           // child route always begins with "<href>/".

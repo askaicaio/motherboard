@@ -197,7 +197,7 @@ export default async function AutomationsAlpha4Page({
           {/* A plain GET form: submitting navigates to ?q=..., which the server
               reads above. No client JS, and the browser's own history and back
               button work on searches for free. */}
-          <form action="/automations-beta4" method="get" className="mt-5">
+          <form action="/automations-alpha4" method="get" className="mt-5">
             {/* Keeps an active website chip applied across a new search. */}
             {siteFilter && (
               <input type="hidden" name="site" value={siteFilter.slug} />
@@ -223,7 +223,7 @@ export default async function AutomationsAlpha4Page({
               which is the part that cannot be done today at all. */}
           <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
             <Chip
-              href={query ? `/automations-beta4?q=${encodeURIComponent(query)}` : "/automations-beta4"}
+              href={query ? `/automations-alpha4?q=${encodeURIComponent(query)}` : "/automations-alpha4"}
               label="All websites"
               count={portfolioTotal}
               active={!siteFilter}
@@ -234,7 +234,7 @@ export default async function AutomationsAlpha4Page({
               return (
                 <Chip
                   key={site.slug}
-                  href={`/automations-beta4?${params.toString()}`}
+                  href={`/automations-alpha4?${params.toString()}`}
                   label={site.label}
                   count={statsByPlatform.get(site.slug)?.total ?? 0}
                   active={siteFilter?.slug === site.slug}
@@ -279,7 +279,7 @@ export default async function AutomationsAlpha4Page({
             </p>
             {siteFilter && (
               <Link
-                href={`/automations-beta4?q=${encodeURIComponent(query)}`}
+                href={`/automations-alpha4?q=${encodeURIComponent(query)}`}
                 className="text-xs font-medium text-blue-600 hover:underline"
               >
                 Search all {AUTOMATION_SITES.length} websites instead
