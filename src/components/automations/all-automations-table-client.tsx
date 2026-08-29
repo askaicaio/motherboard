@@ -259,13 +259,13 @@ const ALL_COLUMNS: AllColumnDef[] = [
   { id: "webhooks", title: "Webhook Links", sortKey: "webhooks", thClassName: ALL_TH_S_240, width: 240 },
   { id: "lastEditedAt", title: "Last Edited", sortKey: "lastEditedAt", thClassName: ALL_TH_S_AUTO, width: 136,
     headerTooltip:
-      "When the source website last changed this automation. Comes from the sync, so it reflects work done in Make / n8n / GHL, not here." },
+      "The latest date when the automation was changed in the source website." },
   { id: "lastRunAt", title: "Last Runtime", sortKey: "lastRunAt", thClassName: ALL_TH_S_AUTO, width: 136 },
   { id: "lastErrorAt", title: "Last Error", sortKey: "lastErrorAt", thClassName: ALL_TH_S_AUTO, width: 136 },
   // "Row Update": placed after Last Error by the user's choice (2026-08-23).
   { id: "rowUpdatedAt", title: "Row Update", sortKey: "rowUpdatedAt", thClassName: ALL_TH_S_AUTO, width: 136,
     headerTooltip:
-      "When a person last created or edited this row here in the Motherboard. No sync ever writes it, so it means someone looked at this row and confirmed it." },
+      "The latest date of this table entry being edited by the user." },
 ];
 
 /** The frozen Name column's fixed width, added on top of the visible middle

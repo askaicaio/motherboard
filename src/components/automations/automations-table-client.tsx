@@ -485,7 +485,7 @@ const MIDDLE_COLUMNS: MiddleColumnDef[] = [
     sortKey: "lastEditedAt",
     thClassName: TH_SORTABLE_AUTO,
     headerTooltip:
-      "When the source website last changed this automation. Comes from the sync, so it reflects work done in Make / n8n / GHL, not here.",
+      "The latest date when the automation was changed in the source website.",
     exportValue: (r) => (r.lastEditedAt ? formatDateCell(r.lastEditedAt) : ""),
   },
   {
@@ -512,7 +512,7 @@ const MIDDLE_COLUMNS: MiddleColumnDef[] = [
     sortKey: "rowUpdatedAt",
     thClassName: TH_SORTABLE_AUTO,
     headerTooltip:
-      "When a person last created or edited this row here in the Motherboard. No sync ever writes it, so it means someone looked at this row and confirmed it.",
+      "The latest date of this table entry being edited by the user.",
     exportValue: (r) => (r.rowUpdatedAt ? formatDateCell(r.rowUpdatedAt) : ""),
   },
 ];
@@ -1917,11 +1917,12 @@ export function AutomationsTableClient({
                   </span>
                 }
               />
+              {/* ⚠️ KEEP IN SYNC with the same tooltip in auto-refresh-toggle.tsx
+                  (the Error History page's copy of this control). The user set
+                  this shortened wording for BOTH, 2026-08-28. */}
               <TooltipContent className="max-w-xs normal-case">
                 Re-syncs this website&rsquo;s list every 24 hours. It also
-                controls error checking, so turning it off stops new errors being
-                captured for this website until someone presses Check for New
-                Errors.
+                controls error checking.
               </TooltipContent>
             </Tooltip>
             {/* ON = green, OFF = red (user 2026-07-01) — green matches the app's
