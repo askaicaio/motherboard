@@ -197,10 +197,12 @@ export function AutoRefreshToggle({
             </span>
           }
         />
+        {/* ⚠️ KEEP IN SYNC with the same tooltip in automations-table-client.tsx
+            (the Per Website toolbar's copy of this control). The user set this
+            shortened wording for BOTH, 2026-08-28. */}
         <TooltipContent className="max-w-xs">
           Re-syncs this website&rsquo;s list every 24 hours. It also controls
-          error checking, so turning it off stops new errors being captured for
-          this website until someone presses Check for New Errors.
+          error checking.
         </TooltipContent>
       </Tooltip>
       <Switch
