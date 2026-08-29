@@ -39,6 +39,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { TOOLTIP_DELAY_MS } from "@/lib/automations/tooltips";
 import { SingleChoiceCombobox } from "./single-choice-combobox";
 import { MultiChoiceCombobox } from "./multi-choice-combobox";
 import {
@@ -321,7 +322,7 @@ export function WorkflowDialog({
     // and in each one the existing provider wraps only the <Card>, not the
     // dialog. Owning one keeps the delete button's tooltip working wherever the
     // dialog is mounted, rather than depending on the caller.
-    <TooltipProvider delay={300}>
+    <TooltipProvider delay={TOOLTIP_DELAY_MS}>
     <Dialog
       open={open}
       onOpenChange={(isOpen, eventDetails) => {
@@ -707,9 +708,8 @@ export function WorkflowDialog({
                   }
                 />
                 <TooltipContent className="max-w-xs">
-                  Removes this row from the Motherboard. It does not touch the
-                  automation on its own website, and a later Refresh List will
-                  add the row back, but without anything typed here.
+                  Removes this row from the Motherboard app. A later Refresh List
+                  can add the row back.
                 </TooltipContent>
               </Tooltip>
             )}

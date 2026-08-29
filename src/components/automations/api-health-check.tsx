@@ -301,8 +301,7 @@ export function AutoHealthCheckToggle({
         />
         <TooltipContent className="max-w-xs">
           Checks every website&rsquo;s API key once every 24 hours and stores the
-          result on its card. Turning this on starts the 24 hour clock, it does
-          not check straight away. Use the API Health Check button to check now.
+          result on its card.
         </TooltipContent>
       </Tooltip>
       <Switch

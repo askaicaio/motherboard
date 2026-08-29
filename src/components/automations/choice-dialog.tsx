@@ -43,6 +43,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { TOOLTIP_DELAY_MS } from "@/lib/automations/tooltips";
 import { Loader2, Trash2 } from "lucide-react";
 
 export interface ChoiceSubmit {
@@ -257,7 +258,7 @@ export function ChoiceDialog({
     // Config page has one, but this dialog is a separate mount and owning one
     // keeps it working regardless of where it is opened from, exactly as
     // WorkflowDialog does.
-    <TooltipProvider delay={300}>
+    <TooltipProvider delay={TOOLTIP_DELAY_MS}>
     <Dialog
       open={open}
       onOpenChange={(isOpen, eventDetails) => {

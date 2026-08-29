@@ -24,6 +24,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { TOOLTIP_DELAY_MS } from "@/lib/automations/tooltips";
 import { cn } from "@/lib/utils";
 import { AUTOMATION_SITES } from "@/lib/automations/sites";
 import {
@@ -191,9 +192,9 @@ export function FeatureIntegrationTables({
   };
 
   return (
-    // delay={300} matches the three table clients, so a tooltip anywhere in the
+    // The shared TOOLTIP_DELAY_MS, so a tooltip anywhere in the
     // Automations tab waits the same beat before appearing.
-    <TooltipProvider delay={300}>
+    <TooltipProvider delay={TOOLTIP_DELAY_MS}>
     <div className="space-y-6">
       {FEATURE_INTEGRATION_TABLES.map((table) => (
         <Card key={table.id}>

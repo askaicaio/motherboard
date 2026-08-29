@@ -41,6 +41,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { TOOLTIP_DELAY_MS } from "@/lib/automations/tooltips";
 import { ListChecks, Pencil, Plus, Search } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -385,7 +386,7 @@ export function DropdownConfigClient({
     TABLES.find((t) => t.id === activeTab) ?? TABLES[0];
 
   return (
-    <TooltipProvider delay={300}>
+    <TooltipProvider delay={TOOLTIP_DELAY_MS}>
       <div className="space-y-6">
         {/* Header: title + subtitle. The Edit mode toggle now lives just below
             the tab toolbar (above the active table's Add Option button). */}
@@ -882,23 +883,38 @@ function ChoiceTableSection({
                                 className="block w-full cursor-pointer truncate text-left text-xs text-blue-600 hover:underline disabled:pointer-events-none disabled:cursor-default disabled:no-underline"
                               >
                                 {i === 0 && (
-                                  // A NATIVE title, not a <Tooltip>: this span
-                                  // sits INSIDE the row's button, and a
-                                  // TooltipTrigger there would nest a control in
-                                  // a control (invalid, and it would swallow the
-                                  // click that opens the lookup). Hovering the
-                                  // count explains the number; hovering the URL
-                                  // text still shows the button's own title.
-                                  <span
-                                    title={`${arr.length} ${
-                                      arr.length === 1
+                                  // ⚠️ A REAL <Tooltip>, and it HAS to be.
+                                  //
+                                  // This was a native `title` and it never
+                                  // showed: the surrounding button carries its
+                                  // own `title` (the full URL), and hovering the
+                                  // count landed on that instead, on the
+                                  // browser's own ~1s timing. A <Tooltip> is a
+                                  // separate mechanism, so it does not compete,
+                                  // and it obeys TOOLTIP_DELAY_MS like the rest
+                                  // of the tab.
+                                  //
+                                  // The trigger renders a SPAN, not a button, so
+                                  // no interactive element is nested inside the
+                                  // button and the click still reaches it and
+                                  // opens the lookup.
+                                  <Tooltip disableHoverablePopup>
+                                    <TooltipTrigger
+                                      render={
+                                        <span className="font-medium text-amber-600">
+                                          ({arr.length}){" "}
+                                        </span>
+                                      }
+                                    />
+                                    <TooltipContent className="max-w-xs">
+                                      {arr.length}{" "}
+                                      {arr.length === 1
                                         ? "automation uses"
-                                        : "automations use"
-                                    } this. Only the lines that fit are shown, click any of them to see all ${arr.length}.`}
-                                    className="font-medium text-amber-600"
-                                  >
-                                    ({arr.length}){" "}
-                                  </span>
+                                        : "automations use"}{" "}
+                                      this. Only the lines that fit are shown,
+                                      click any of them to see all {arr.length}.
+                                    </TooltipContent>
+                                  </Tooltip>
                                 )}
                                 {a.externalUrl}
                               </button>

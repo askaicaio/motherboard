@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { TOOLTIP_DELAY_MS } from "@/lib/automations/tooltips";
 import { Pencil, Search } from "lucide-react";
 import {
   ErrorHistoryTable,
@@ -136,8 +137,8 @@ export function ErrorHistoryTableClient({
   return (
     // This page had no TooltipProvider. Its Auto-refresh toggle, the "Check for
     // New Errors" button and the per-row delete button all have tooltips now,
-    // so one provider wraps the lot at the same delay={300} as everywhere else.
-    <TooltipProvider delay={300}>
+    // so one provider wraps the lot at the same shared delay as everywhere else.
+    <TooltipProvider delay={TOOLTIP_DELAY_MS}>
       {/* Header row: title block on the left; Edit-mode toggle + "Check for New
           Errors" on the right (same spot as the Per Website Page header). */}
       <div className="flex flex-wrap items-start justify-between gap-4">

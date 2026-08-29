@@ -111,9 +111,8 @@ export function CheckErrorsButton({
           }
         />
         <TooltipContent className="max-w-xs">
-          Queues an error check for this website. It starts on the next
-          background tick, so allow up to about 5 minutes, then reload to see
-          anything new. Works even when Auto-refresh is off.
+          Queues an error check for this website. Results will take a few minutes
+          to return.
         </TooltipContent>
       </Tooltip>
       {error && (
