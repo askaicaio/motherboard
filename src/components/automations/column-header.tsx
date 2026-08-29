@@ -64,6 +64,39 @@ export const NAME_HEADER_MENU = false;
 export const HEADER_INTERACTIVE =
   "cursor-pointer select-none transition-colors hover:bg-zinc-200 hover:text-zinc-700";
 
+/** A header's label text, optionally carrying a tooltip explaining what the
+ *  column MEANS (today: "Last Edited" versus "Row Update", which look alike and
+ *  are fed by completely different things).
+ *
+ *  ⚠️ WRAP ONLY THE TEXT, NEVER THE WHOLE HEADER. The first attempt put this
+ *  tooltip around ColumnHeader's entire `children`, which on a synced column
+ *  also swallowed the ↻ SyncedColumnMarker and ITS tooltip. Two nested triggers
+ *  fight: hovering the marker opened the header's tooltip instead of the
+ *  marker's, and moving between them left both stuck shut (user-reported,
+ *  2026-08-28). As siblings they behave.
+ *
+ *  ⚠️ THE TRIGGER RENDERS A SPAN, NOT A BUTTON, and that is load-bearing too.
+ *  This cell is a sort target AND a drag handle whose hook cancels pointerdown
+ *  (see the trap note at the top of this file). A span adds hover and focus
+ *  listeners and no interactive element, so the sort click still reaches the
+ *  <th> (or the menu trigger in edit mode) and the drag is untouched, because
+ *  tooltips never listen for pointerdown. */
+export function HeaderLabel({
+  title,
+  tooltip,
+}: {
+  title: string;
+  tooltip?: string;
+}) {
+  if (!tooltip) return <>{title}</>;
+  return (
+    <Tooltip disableHoverablePopup>
+      <TooltipTrigger render={<span>{title}</span>} />
+      <TooltipContent className="max-w-xs normal-case">{tooltip}</TooltipContent>
+    </Tooltip>
+  );
+}
+
 /** A column header cell.
  *
  *  OFF edit mode: behaves exactly as before. Sortable headers (a non-null
@@ -92,7 +125,6 @@ export function ColumnHeader<K extends string>({
   isDragging,
   dropEdge,
   dragKey,
-  tooltip,
   children,
 }: {
   className: string;
@@ -125,22 +157,6 @@ export function ColumnHeader<K extends string>({
   /** Column id, stamped as `data-mid-col` so the drag can measure the header
    *  rects. Present on the reorderable middle columns only. */
   dragKey?: string;
-  /**
-   * Hover text explaining what the column MEANS, for headers whose label is not
-   * self-explanatory (today: "Last Edited" versus "Row Update", which look
-   * alike and are fed by completely different things).
-   *
-   * ⚠️ THE TRIGGER RENDERS A SPAN, NOT A BUTTON, and that is load-bearing. This
-   * cell is already both a sort target and a drag handle whose hook cancels
-   * pointerdown (see the trap note at the top of this file). A span adds hover
-   * and focus listeners and no interactive element, so the click still reaches
-   * the <th> (off edit mode) or the menu trigger (on), and the drag is
-   * untouched because tooltips do not listen for pointerdown.
-   *
-   * It was a native `title` until 2026-08-28, changed so it obeys the app's
-   * TOOLTIP_DELAY_MS instead of the browser's own uncontrollable ~1s.
-   */
-  tooltip?: string;
   children: ReactNode;
 }) {
   const ariaSort = sortKey
@@ -172,18 +188,6 @@ export function ColumnHeader<K extends string>({
     setMenuOpen(true);
   });
 
-  // The label, wrapped in its tooltip when the column has one. Shared by both
-  // branches below so the two can never disagree about the wording.
-  const labelled = tooltip ? (
-    <Tooltip disableHoverablePopup>
-      <TooltipTrigger render={<span className="cursor-[inherit]" />}>
-        {children}
-      </TooltipTrigger>
-      <TooltipContent className="max-w-xs normal-case">{tooltip}</TooltipContent>
-    </Tooltip>
-  ) : (
-    children
-  );
 
   if (!editMode) {
     // The passed className already carries the interactive classes for sortable
@@ -194,7 +198,7 @@ export function ColumnHeader<K extends string>({
         aria-sort={ariaSort}
         className={className}
       >
-        {labelled}
+        {children}
       </th>
     );
   }
@@ -239,7 +243,7 @@ export function ColumnHeader<K extends string>({
             makeDragHandlers && "touch-none",
           )}
         >
-          {labelled}
+          {children}
         </DropdownMenuTrigger>
         <DropdownMenuContent align="center" className="w-auto min-w-48">
           {/* Cycle Sort, shown ONLY on sortable columns (hidden on the
