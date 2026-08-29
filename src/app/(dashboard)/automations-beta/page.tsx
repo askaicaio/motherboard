@@ -4,8 +4,14 @@
 // 2026-08-29 as a byte-for-byte copy of `src/app/(dashboard)/automations/page.tsx`,
 // so it looks AND behaves identically: same queries, same client components, same
 // working controls, same links out to the real sub-pages. The user asked for "an
-// exact mirror that we can test". Only the header comment and the exported
-// function's name differ from the original.
+// exact mirror that we can test".
+//
+// THE ONLY THINGS THAT DIFFER FROM THE ORIGINAL, as of 2026-08-29: this header
+// comment, the exported function's name, and the black "Beta" pill next to the
+// title. The pill was added the same day, at the user's request, because a page
+// identical to the live hub gave you no way to tell which one you were looking
+// at ("so its at least somewhat distinguishable"). Keep this list current as
+// elements land, so the drift from Official stays readable at a glance.
 //
 // WHAT IT IS FOR: the redesign is NOT going to pick one winning Alpha. The user
 // walks the Alpha versions one at a time and picks individual ELEMENTS out of
@@ -124,6 +130,14 @@ export default async function AutomationsBetaPage() {
           <div className="flex items-center gap-2">
             <Workflow className="h-5 w-5 text-zinc-500" />
             <h1 className="text-2xl font-semibold tracking-tight">Automations</h1>
+            {/* Version badge. Copied EXACTLY from the Alpha pages' own badge
+                (same rounded-full / bg-zinc-900 / 10px uppercase pill) so all
+                nine versions mark themselves the same way. It exists because
+                this page is otherwise indistinguishable from the live hub: the
+                sidebar check mark was the only tell. */}
+            <span className="rounded-full bg-zinc-900 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
+              Beta
+            </span>
           </div>
           <p className="mt-1 text-sm text-zinc-500">
             Tracks workflows from different automation websites all in one place.
