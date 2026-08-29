@@ -235,15 +235,18 @@ export default async function AutomationsBetaPage() {
           // This website's brand colour, for the top edge + the logo tile.
           const accent = ACCENT[site.slug];
           return (
-            // ⚠️ `py-0` overrides the Card component's own `py-4`. The brand
-            // edge below has to sit FLUSH against the card's top, and Card's
-            // vertical padding would otherwise leave a 16px gap above it.
-            // CardContent's `p-5` then supplies all the inset, which keeps the
-            // top and bottom insets equal (they were 16+20 on both sides
-            // before, they are 20 on both sides now).
+            // ⚠️ `gap-0 py-0` both override Card's own defaults, and BOTH are
+            // needed. Card is `flex flex-col gap-4 ... py-4`, so with the brand
+            // edge added as a second child it contributed TWO separate gaps
+            // above the content: `py-4` above the edge, then `gap-4` between the
+            // edge and CardContent. The first pass only killed `py-4`, which
+            // left a 16px white band under the edge that the user flagged on
+            // sight ("The cards have this large empty white space above").
+            // With both at 0, CardContent's `p-5` supplies the entire inset, so
+            // the top and bottom insets are equal at 20px.
             <Card
               key={site.slug}
-              className="h-full py-0 transition-shadow hover:shadow-md"
+              className="h-full gap-0 py-0 transition-shadow hover:shadow-md"
             >
               {/* ⭐ PICKED FROM ALPHA (2026-08-29): the brand edge. A 3px bar in
                   the website's own colour across the top of the card, which the
