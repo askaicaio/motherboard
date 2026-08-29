@@ -1,8 +1,8 @@
 // =============================================================
-// Automations BETA4 - search first
+// Automations ALPHA4 - search first
 // =============================================================
 // The fifth presentation of the Automations hub, alongside the live page,
-// Beta, Beta2 and Beta3.
+// Alpha, Alpha2 and Alpha3.
 //
 // PREMISE: every other layout treats this page as a REPORT. It shows you how
 // the estate is doing and assumes that is why you came. But with 899 rows
@@ -61,7 +61,7 @@ interface PlatformStats {
   paused: number;
 }
 
-export default async function AutomationsBeta4Page({
+export default async function AutomationsAlpha4Page({
   searchParams,
 }: {
   searchParams: Promise<{ q?: string | string[]; site?: string | string[] }>;
@@ -167,7 +167,7 @@ export default async function AutomationsBeta4Page({
               Automations
             </h1>
             <span className="rounded-full bg-zinc-900 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
-              Beta4
+              Alpha4
             </span>
           </div>
           <p className="mt-1 text-sm text-zinc-500">
@@ -425,7 +425,7 @@ export default async function AutomationsBeta4Page({
       </div>
 
       <p className="pt-1 text-center text-xs text-zinc-400">
-        Beta4 preview. The search and the website chips work; every other
+        Alpha4 preview. The search and the website chips work; every other
         control is static. The live hub is at{" "}
         <Link href="/automations" className="underline hover:text-zinc-600">
           Automations

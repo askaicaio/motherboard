@@ -1,11 +1,11 @@
 // =============================================================
-// Automations BETA2 - a second redesign proposal for the hub
+// Automations ALPHA2 - a second redesign proposal for the hub
 // =============================================================
 // The third presentation of the same information, alongside the live hub
 // (/automations) and the first proposal (/automations-beta). Nothing here
 // writes, and every control is a static visual.
 //
-// Beta 1 and the live page both answer the SAME question, "what do I have",
+// Alpha 1 and the live page both answer the SAME question, "what do I have",
 // with 5 cards. This one deliberately answers different questions and uses a
 // different shape to do it:
 //
@@ -13,7 +13,7 @@
 //     stacked error chart across all 5 websites, so the estate is read as a
 //     trend line first and an inventory second.
 //   - "what broke, and when": a live cross-platform error feed down the right
-//     side, newest first. The live page and Beta 1 can both tell you 614
+//     side, newest first. The live page and Alpha 1 can both tell you 614
 //     errors exist; neither can tell you what the last one WAS.
 //   - "how do the websites compare": one dense TABLE instead of 5 cards.
 //     Cards force you to compare numbers that sit in different places on
@@ -50,7 +50,7 @@ import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-// Per-website accent colour, same values Beta 1 uses. Local to the page so
+// Per-website accent colour, same values Alpha 1 uses. Local to the page so
 // sites.ts stays as it is (its `iconColor` only covers the monochrome-mask
 // sites, and every site needs a colour here for the chart and the table).
 const ACCENT: Record<string, string> = {
@@ -72,7 +72,7 @@ interface PlatformStats {
   paused: number;
 }
 
-export default async function AutomationsBeta2Page() {
+export default async function AutomationsAlpha2Page() {
   await requireAuth();
 
   const health = await getHealthState();
@@ -180,7 +180,7 @@ export default async function AutomationsBeta2Page() {
               Automations
             </h1>
             <span className="rounded-full bg-zinc-900 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
-              Beta2
+              Alpha2
             </span>
           </div>
           <p className="mt-1 text-sm text-zinc-500">
@@ -556,7 +556,7 @@ export default async function AutomationsBeta2Page() {
       </div>
 
       <p className="pt-1 text-center text-xs text-zinc-400">
-        Beta2 preview. Controls on this page are static, the live hub is at{" "}
+        Alpha2 preview. Controls on this page are static, the live hub is at{" "}
         <Link href="/automations" className="underline hover:text-zinc-600">
           Automations
         </Link>

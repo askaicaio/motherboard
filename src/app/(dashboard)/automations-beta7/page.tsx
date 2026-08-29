@@ -1,5 +1,5 @@
 // =============================================================
-// Automations BETA7 - a changelog
+// Automations ALPHA7 - a changelog
 // =============================================================
 // The eighth and last presentation of the Automations hub.
 //
@@ -128,7 +128,7 @@ const MONTHS = [
   "Dec",
 ];
 
-export default async function AutomationsBeta7Page({
+export default async function AutomationsAlpha7Page({
   searchParams,
 }: {
   searchParams: Promise<{ type?: string | string[] }>;
@@ -272,7 +272,7 @@ export default async function AutomationsBeta7Page({
               Automations
             </h1>
             <span className="rounded-full bg-zinc-900 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
-              Beta7
+              Alpha7
             </span>
           </div>
           <p className="mt-1 text-sm text-zinc-500">
@@ -457,7 +457,7 @@ export default async function AutomationsBeta7Page({
       </div>
 
       <p className="pt-1 text-center text-xs text-zinc-400">
-        Beta7 preview. The type filters work; every other control is static. The
+        Alpha7 preview. The type filters work; every other control is static. The
         live hub is at{" "}
         <Link href="/automations" className="underline hover:text-zinc-600">
           Automations
