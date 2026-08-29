@@ -242,7 +242,7 @@ export default async function AutomationsAlpha3Page({
               return (
                 <Link
                   key={site.slug}
-                  href={`/automations-beta3?site=${site.slug}`}
+                  href={`/automations-alpha3?site=${site.slug}`}
                   className={cn(
                     "flex items-center gap-2.5 rounded-lg px-2.5 py-2 transition-colors",
                     isCurrent ? "bg-zinc-100" : "hover:bg-zinc-50",

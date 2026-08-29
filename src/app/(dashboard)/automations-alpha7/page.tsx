@@ -292,7 +292,7 @@ export default async function AutomationsAlpha7Page({
       <div className="rounded-xl bg-card p-4 ring-1 ring-foreground/10">
         <div className="flex flex-wrap items-center gap-2">
           <Link
-            href="/automations-beta7"
+            href="/automations-alpha7"
             className={cn(
               "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-colors",
               !activeType
@@ -306,7 +306,7 @@ export default async function AutomationsAlpha7Page({
           {TYPES.map((type) => (
             <Link
               key={type.key}
-              href={`/automations-beta7?type=${type.key}`}
+              href={`/automations-alpha7?type=${type.key}`}
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-colors",
                 activeType === type.key
