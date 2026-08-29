@@ -6,12 +6,27 @@
 // working controls, same links out to the real sub-pages. The user asked for "an
 // exact mirror that we can test".
 //
-// THE ONLY THINGS THAT DIFFER FROM THE ORIGINAL, as of 2026-08-29: this header
-// comment, the exported function's name, and the black "Beta" pill next to the
-// title. The pill was added the same day, at the user's request, because a page
-// identical to the live hub gave you no way to tell which one you were looking
-// at ("so its at least somewhat distinguishable"). Keep this list current as
-// elements land, so the drift from Official stays readable at a glance.
+// ⭐ WHAT HAS BEEN PICKED SO FAR. Every element taken out of an Alpha is marked
+// with a ⭐ comment at its site; this is the index. KEEP IT CURRENT, so the drift
+// from Official stays readable at a glance.
+//
+// Housekeeping (not picked elements):
+//   - this header comment, and the exported function's name.
+//   - the black "Beta" pill next to the title. Added 2026-08-29 at the user's
+//     request, because a page identical to the live hub gave you no way to tell
+//     which one you were looking at ("so its at least somewhat distinguishable").
+//     Markup copied from the Alpha pages, so all nine versions badge alike.
+//
+// Picked from ALPHA (`/automations-alpha`) on 2026-08-29, the user's words:
+// "I like these icon style, text and the funny colored shadow behind the
+// rectangle":
+//   1. the BRAND EDGE, a 3px bar in the website's colour across the card's top
+//      (their "funny colored shadow"). Brought the local ACCENT map with it.
+//   2. the LOGO TILE, a rounded square washed in that colour at 12% alpha,
+//      holding a 24px glyph, in place of the bare 32px icon.
+//   3. the TEXT treatment, name and description stacked BESIDE the tile, the
+//      name at the heading face and text-base, the description truncated at
+//      text-xs in a lighter grey.
 //
 // WHAT IT IS FOR: the redesign is NOT going to pick one winning Alpha. The user
 // walks the Alpha versions one at a time and picks individual ELEMENTS out of
@@ -63,6 +78,27 @@ import {
 } from "@/lib/automations/errors";
 
 export const dynamic = "force-dynamic";
+
+// ---------------------------------------------------------------------------
+// Per-website accent colour. COPIED VERBATIM from the Alpha pages, which each
+// carry their own copy for the same reason: `sites.ts` only has `iconColor` for
+// the sites whose glyph is a monochrome mask, but this treatment tints a logo
+// tile and a brand edge for EVERY site, so all 5 need a colour. The two GHL
+// subaccounts share the brand green at different weights: same family (they are
+// the same product), still separable side by side.
+//
+// ⚠️ KEPT LOCAL ON PURPOSE, same as the Alphas: `sites.ts` is shared with the
+// LIVE hub, and nothing in this experiment is allowed to reach that far. If a
+// picked element ever ships to Official, promoting this map is a deliberate
+// separate step.
+// ---------------------------------------------------------------------------
+const ACCENT: Record<string, string> = {
+  make: "#B02DE9",
+  n8n: "#EA4B71",
+  ghl: "#2FBF71",
+  "ghl-b2b": "#8FDDB4",
+  zapier: "#FF4F00",
+};
 
 interface PlatformStats {
   total: number;
@@ -196,25 +232,56 @@ export default async function AutomationsBetaPage() {
           // Days since this platform's most recent captured error. undefined
           // when the error table is empty for it (keep the red-X placeholder).
           const daysSinceError = daysSinceErrorByPlatform[site.slug];
+          // This website's brand colour, for the top edge + the logo tile.
+          const accent = ACCENT[site.slug];
           return (
+            // ⚠️ `py-0` overrides the Card component's own `py-4`. The brand
+            // edge below has to sit FLUSH against the card's top, and Card's
+            // vertical padding would otherwise leave a 16px gap above it.
+            // CardContent's `p-5` then supplies all the inset, which keeps the
+            // top and bottom insets equal (they were 16+20 on both sides
+            // before, they are 20 on both sides now).
             <Card
               key={site.slug}
-              className="h-full transition-shadow hover:shadow-md"
+              className="h-full py-0 transition-shadow hover:shadow-md"
             >
+              {/* ⭐ PICKED FROM ALPHA (2026-08-29): the brand edge. A 3px bar in
+                  the website's own colour across the top of the card, which the
+                  user called "the funny colored shadow behind the rectangle".
+                  It is the fastest way to tell the five cards apart at a glance.
+                  Card already carries `overflow-hidden`, so the bar takes the
+                  card's rounded top corners for free. */}
+              <div
+                aria-hidden
+                className="h-[3px] w-full shrink-0"
+                style={{ backgroundColor: accent }}
+              />
               <CardContent className="flex h-full flex-col gap-3 p-5">
-                {/* Header: website title + description on the left, "Open"
-                    button on the right. Row is bottom-aligned so "Open" sits
-                    inline with the description line. */}
+                {/* Header: logo tile + website title/description on the left,
+                    "View List" on the right. Still bottom-aligned, so the
+                    button sits inline with the description line, which is now
+                    the bottom line of the tile row rather than a line below it.
+                    ⭐ PICKED FROM ALPHA (2026-08-29): the whole left block. */}
                 <div className="flex items-end justify-between gap-2">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      {/* Per-card website logo. Monochrome SVG glyphs are tinted
-                          to the brand colour via a CSS mask; full-colour icons
-                          (the GHL favicon) render as a plain image. */}
+                  {/* min-w-0 is what lets the description TRUNCATE instead of
+                      widening the row: a flex item defaults to min-width:auto
+                      and refuses to shrink below its content. Needed on this
+                      wrapper AND on the text block inside it. */}
+                  <div className="flex min-w-0 items-center gap-3">
+                    {/* ⭐ The logo TILE: a rounded square washed in the website's
+                        own colour at 12% alpha (the `1F` alpha suffix on the hex),
+                        holding a 24px glyph. Replaces the bare 32px icon that sat
+                        next to the title. Monochrome SVG glyphs are still tinted
+                        via a CSS mask; full-colour icons (the GHL favicon) still
+                        render as a plain image. */}
+                    <span
+                      aria-hidden
+                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
+                      style={{ backgroundColor: `${accent}1F` }}
+                    >
                       {site.iconColor ? (
                         <span
-                          aria-hidden
-                          className="h-8 w-8 shrink-0"
+                          className="h-6 w-6"
                           style={{
                             backgroundColor: site.iconColor,
                             maskImage: `url(${site.icon})`,
@@ -232,15 +299,23 @@ export default async function AutomationsBetaPage() {
                         <img
                           src={site.icon}
                           alt=""
-                          className="h-8 w-8 shrink-0 object-contain"
+                          className="h-6 w-6 object-contain"
                         />
                       )}
-                      <h3 className="text-xl font-medium">{site.label}</h3>
+                    </span>
+                    {/* ⭐ The TEXT treatment: name and description stack BESIDE
+                        the tile instead of under the icon row, the name drops
+                        from text-xl to the heading face at text-base, and the
+                        description drops to a truncated text-xs in a lighter
+                        grey. Quieter, so the numbers below lead the card. */}
+                    <div className="min-w-0">
+                      <h3 className="font-heading text-base font-semibold text-zinc-900">
+                        {site.label}
+                      </h3>
+                      <p className="mt-0.5 truncate text-xs text-zinc-500">
+                        {site.description}
+                      </p>
                     </div>
-                    {/* Description sits directly under the website name. */}
-                    <p className="mt-1 text-sm text-zinc-600">
-                      {site.description}
-                    </p>
                   </div>
                   {/* View List: opens this website's per-website page.
                       Bottom-right, inline with the description line. */}
