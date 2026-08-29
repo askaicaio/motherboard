@@ -51,8 +51,17 @@ export function RelatedCount({
 }
 
 /** Tooltip text for a per-row cell count (GHL Tags / GHL Forms / Webhook Links
- *  on either table): how many entries this automation has in that column, and
- *  the fact that the cell is clamped so not all of them are on screen. */
-export function cellCountTooltip(count: number, noun: string): string {
-  return `${count} ${noun}${count === 1 ? "" : "s"} on this automation. Only the lines that fit are shown.`;
+ *  on either table): how many entries this automation has in that column.
+ *
+ *  ⚠️ `columnName` is the COLUMN'S OWN LABEL, used verbatim and NOT pluralised,
+ *  which is why this takes a column name rather than a singular noun. The user
+ *  set this wording on 2026-08-28 ("2 Webhook Links on this automation.") and
+ *  asked for the same shape on GHL Tags and GHL Forms. Naming the column the
+ *  way the header does is the point, so a count of 1 reads "1 Webhook Links".
+ *
+ *  The earlier version pluralised a singular noun and added a second sentence
+ *  about the cell being clamped; the user replaced it with this. Do not add the
+ *  clamp sentence back. */
+export function cellCountTooltip(count: number, columnName: string): string {
+  return `${count} ${columnName} on this automation.`;
 }

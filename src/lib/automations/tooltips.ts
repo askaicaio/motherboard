@@ -15,6 +15,7 @@
 // is why every provider passes this explicitly rather than relying on it.
 
 /** Milliseconds the cursor must rest on a trigger before its tooltip opens.
- *  User-set: 300 originally, raised to 600 on 2026-08-28 so tooltips stay out
- *  of the way while scanning a table and only appear on a deliberate hover. */
-export const TOOLTIP_DELAY_MS = 600;
+ *  User-set. 300 originally, tried at 600 on 2026-08-28 and put straight back:
+ *  the user felt the longer wait ("too long, so return it to the default
+ *  length"). 300 is the number to keep unless they say otherwise. */
+export const TOOLTIP_DELAY_MS = 300;

@@ -1706,7 +1706,7 @@ export function AutomationsTableClient({
                       <>
                         <RelatedCount
                           count={arr.length}
-                          tooltip={cellCountTooltip(arr.length, "GHL tag")}
+                          tooltip={cellCountTooltip(arr.length, "GHL Tags")}
                         />
                         <SharedItemIcon
                           sharedWith={countShared(arr)}
@@ -1743,7 +1743,7 @@ export function AutomationsTableClient({
                     {i === 0 && (
                       <RelatedCount
                         count={arr.length}
-                        tooltip={cellCountTooltip(arr.length, "GHL form")}
+                        tooltip={cellCountTooltip(arr.length, "GHL Forms")}
                       />
                     )}
                     {f.value}
@@ -1788,7 +1788,7 @@ export function AutomationsTableClient({
                       <>
                         <RelatedCount
                           count={arr.length}
-                          tooltip={cellCountTooltip(arr.length, "webhook link")}
+                          tooltip={cellCountTooltip(arr.length, "Webhook Links")}
                         />
                         <SharedItemIcon
                           sharedWith={countShared(arr)}
