@@ -327,7 +327,20 @@ export default async function AutomationsBetaPage() {
           (left → right): "Feature Integration" (Plug icon → the Feature
           Integration page), "View All Lists" (List icon → the combined
           Everything Table), then "Dropdown Configuration" (ListChecks icon →
-          the Dropdown Config page). All white (outline) with a leading icon. */}
+          the Dropdown Config page). All white (outline) with a leading icon.
+
+          ⚠️ TRIED AND ROLLED BACK, 2026-08-31 (PR #427, reverted same day).
+          Alpha's Tools card replaced this strip: the same three destinations as
+          a dashed-border cell holding icon + label + hint rows, placed FIRST in
+          the grid at the user's direction. It shipped, and they dropped it:
+          "lets roll back the previous change, it doesnt look good right now".
+          WHY IT DID NOT WORK, worth knowing before anyone tries again: a
+          three-row nav cell is far shorter than a website card, so the grid
+          stretched it and left a large empty area under the rows. I offered
+          four fixes (fold the estate totals in, fold the attention line in,
+          `self-start` so it hugs its content, or spread the rows); the user
+          took none of them and reverted instead. **So the shape of the problem
+          is the card's HEIGHT, not its content or its placement.** */}
           <div className="flex items-center gap-3 rounded-xl bg-card px-4 py-2.5 ring-1 ring-foreground/10">
             <Link
               href="/automations/feature-integration"
