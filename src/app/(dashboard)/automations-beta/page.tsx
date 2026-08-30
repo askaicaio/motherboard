@@ -640,9 +640,17 @@ export default async function AutomationsBetaPage() {
                     2026-08-29 ("Remove This Divider Line"): the footer strip
                     directly above already ends the card's body with its own top
                     border and grey ground, so a second rule 12px under it was
-                    drawing the same boundary twice. The spacing (`pt-3` plus
-                    CardContent's `gap-3`) is untouched. */}
-                    <div className="mt-auto flex items-center gap-2 pt-3">
+                    drawing the same boundary twice.
+
+                    ⚠️⚠️ `pt-2` IS LOAD-BEARING, do not round it to pt-3.
+                    The user asked for the white space above this button to match
+                    the space below it. Below is CardContent's `pb-5` = 20px.
+                    Above is CardContent's `gap-3` (12px, between the strip and
+                    this row) PLUS this row's own top padding, so the padding has
+                    to be 8px: 12 + 8 = 20. `pt-3` made it 24px, which is what
+                    they saw and flagged.
+                    If CardContent's `p-5` or `gap-3` ever change, redo the sum. */}
+                    <div className="mt-auto flex items-center gap-2 pt-2">
                       {/* Clickable status button. Seeds from the server-side
                       presence check (green "API Key Integrated" / red "No API
                       Integration"); clicking runs a live verify and re-colors
