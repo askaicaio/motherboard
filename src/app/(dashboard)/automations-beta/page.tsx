@@ -43,6 +43,10 @@
 //        text link. The user promoted it to a button labelled "Error History"
 //        and had the old outlined button removed, so the strip is now the only
 //        route to that page from the card.
+//   6. the COUNTS BLOCK, in place of the Total / Active / Paused column grid:
+//      the total at 3xl with "automations" beside it, the split as two dotted
+//      figures on the right, and a proportion bar under both. The `Stat` helper
+//      went with the grid. User: "Replace the existing statistic with this."
 //
 // ✅ THE DUPLICATES ARE RESOLVED. The card briefly said three things twice while
 // the user compared both treatments on production; they then chose the STRIP's
@@ -341,7 +345,18 @@ export default async function AutomationsBetaPage() {
               // the trend window. An absent platform gets {}, a flat baseline.
               const errors = errorCounts[site.slug] ?? 0;
               const trend = trendByPlatform[site.slug] ?? {};
-              // This website's brand colour, for the top edge + the logo tile.
+              // Active/Paused as percentages of this site's OWN total, for the
+              // proportion bar. Guarded on total: a website with no automations
+              // would otherwise divide by zero and the bar would come out
+              // NaN-wide, which renders as nothing at all.
+              const activePct = stats.total
+                ? (stats.active / stats.total) * 100
+                : 0;
+              const pausedPct = stats.total
+                ? (stats.paused / stats.total) * 100
+                : 0;
+              // This website's brand colour, for the top edge, the logo tile,
+              // the "active" dot and the proportion bar.
               const accent = ACCENT[site.slug];
               return (
                 // ⚠️ `gap-0 py-0` both override Card's own defaults, and BOTH are
@@ -483,18 +498,67 @@ export default async function AutomationsBetaPage() {
                       <Sparkline dayKeys={dayKeys} counts={trend} />
                     </div>
 
-                    {/* ⚠️ THREE columns, not four. The "Errors" stat was REMOVED
-                    2026-08-29 when the panel above landed: it showed the same
-                    `errorCounts` figure, and the panel says it better (coloured
-                    by whether there are any, with the trend under it). */}
-                    <div className="grid grid-cols-3 gap-2 border-t pt-3">
-                      <Stat label="Total" value={stats.total} />
-                      <Stat
-                        label="Active"
-                        value={stats.active}
-                        valueClassName="text-green-600"
-                      />
-                      <Stat label="Paused" value={stats.paused} />
+                    {/* ⭐ PICKED FROM ALPHA (2026-08-29): the counts block, in
+                    place of the Total / Active / Paused column grid that stood
+                    here. User: "Replace the existing statistic with this."
+                    THE POINT OF IT: the total leads at 3xl and the split is a
+                    PROPORTION rather than two more equal-weight numbers, so the
+                    card answers "how big is this website" first and "how much of
+                    it is running" second. The old grid gave all three the same
+                    size, which made the total compete with its own parts.
+                    ⚠️ The `Stat` helper went with the grid; it had no other
+                    caller. And no `border-t` here, matching Alpha: the error
+                    panel above separates itself with its grey ground, and the
+                    strip below brings its own divider. */}
+                    <div>
+                      <div className="flex items-baseline justify-between gap-2">
+                        <div className="flex items-baseline gap-1.5">
+                          <span className="font-heading text-3xl font-semibold leading-none tabular-nums text-zinc-900">
+                            {stats.total}
+                          </span>
+                          <span className="text-xs text-zinc-500">
+                            automations
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3 text-xs text-zinc-600">
+                          <span className="flex items-center gap-1.5">
+                            {/* Active takes the website's own brand colour, so
+                                the dot, the bar below and the card's top edge
+                                are all the same colour on a given card. */}
+                            <span
+                              className="h-2 w-2 rounded-full"
+                              style={{ backgroundColor: accent }}
+                            />
+                            <span className="font-semibold tabular-nums text-zinc-900">
+                              {stats.active}
+                            </span>
+                            active
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <span className="h-2 w-2 rounded-full bg-zinc-300" />
+                            <span className="font-semibold tabular-nums text-zinc-900">
+                              {stats.paused}
+                            </span>
+                            paused
+                          </span>
+                        </div>
+                      </div>
+                      {/* The split as one bar. Widths are percentages of the
+                          site's own total, so the bar always fills; a website
+                          with 0 automations leaves it empty grey, which is the
+                          honest picture. */}
+                      <div className="mt-2.5 flex h-1.5 w-full overflow-hidden rounded-full bg-zinc-100">
+                        <span
+                          style={{
+                            width: `${activePct}%`,
+                            backgroundColor: accent,
+                          }}
+                        />
+                        <span
+                          className="bg-zinc-300"
+                          style={{ width: `${pausedPct}%` }}
+                        />
+                      </div>
                     </div>
 
                     {/* ⭐ PICKED FROM ALPHA (2026-08-29): the footer strip. A muted
@@ -652,23 +716,7 @@ function Sparkline({
   );
 }
 
-function Stat({
-  label,
-  value,
-  valueClassName,
-}: {
-  label: string;
-  value: number;
-  valueClassName?: string;
-}) {
-  return (
-    <div>
-      <div className={cn("text-lg font-semibold tabular-nums", valueClassName)}>
-        {value}
-      </div>
-      <div className="text-[10px] uppercase tracking-wide text-zinc-500">
-        {label}
-      </div>
-    </div>
-  );
-}
+// NOTE: the `Stat` helper (a number over a small uppercase label) used to live
+// here. It powered the Total / Active / Paused column grid, and went with it on
+// 2026-08-29 when the Alpha counts block replaced that grid. It had no other
+// caller. Official still has its own copy; this one is not coming back.
