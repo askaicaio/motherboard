@@ -30,10 +30,9 @@
 //   3. the TEXT treatment, name and description stacked BESIDE the tile, the
 //      name at the heading face and text-base, the description truncated at
 //      text-xs in a lighter grey.
-//   4. the ERROR PANEL, in the space under the Error History button: lifetime
-//      count + "last Nd ago" + a 14-day bar chart, in one grey block. Brought
-//      the per-(platform, day) trend query and the `Sparkline` component with
-//      it. User: "i like this error history graphic."
+//   4. the ERROR PANEL: lifetime count + "last Nd ago" + a 14-day bar chart, in
+//      one grey block. Brought the per-(platform, day) trend query and the
+//      `Sparkline` component with it. User: "i like this error history graphic."
 //   5. the FOOTER STRIP, between the counts row and the API status button:
 //      auto-refresh state + "Last run Nh ago" on the left, Error History +
 //      View list on the right, in one muted band. Brought the max(last_run_at)
@@ -47,6 +46,12 @@
 //      the total at 3xl with "automations" beside it, the split as two dotted
 //      figures on the right, and a proportion bar under both. The `Stat` helper
 //      went with the grid. User: "Replace the existing statistic with this."
+//
+// CARD ORDER, top to bottom, settled 2026-08-29: brand edge, header, COUNTS
+// BLOCK, ERROR PANEL, footer strip, API status button. The counts and the panel
+// landed the other way round and the user swapped them ("switch the position of
+// these two elements"), which also matches Alpha's own order: how big the
+// website is reads first, its error history second.
 //
 // ✅ THE DUPLICATES ARE RESOLVED. The card briefly said three things twice while
 // the user compared both treatments on production; they then chose the STRIP's
@@ -460,56 +465,23 @@ export default async function AutomationsBetaPage() {
                         "Auto-refresh on/off" made it a second copy. That was
                         the last thing in the row, so the row went with it, and
                         `AutoRefreshStat` is no longer imported here at all.
-                    Do not put any of them back. The header now flows straight
-                    into the error panel, which supplies its own separation with
-                    its grey ground, so no divider was added to replace it. */}
-
-                    {/* ⭐ PICKED FROM ALPHA (2026-08-29): the error panel, placed in
-                    the space under the Error History button at the user's
-                    direction. One grey block carrying the whole error story:
-                    the lifetime count, how long ago the last one was, and a
-                    14-day bar chart.
-                    THE POINT OF IT: a big number that stopped growing reads
-                    completely differently from a big number that is still
-                    growing, and the old bare "Errors" stat could not tell the
-                    two apart. n8n's 585 with bars every day and Make's 35 with
-                    a flat month look identical as figures alone. */}
-                    <div className="rounded-lg bg-zinc-50 p-3">
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-baseline gap-1.5">
-                          <span
-                            className={cn(
-                              "text-lg font-semibold leading-none tabular-nums",
-                              errors > 0 ? "text-red-600" : "text-zinc-400",
-                            )}
-                          >
-                            {errors}
-                          </span>
-                          <span className="text-xs text-zinc-500">
-                            {errors === 1 ? "error" : "errors"} captured
-                          </span>
-                        </div>
-                        <span className="text-[11px] text-zinc-500">
-                          {daysSinceError !== undefined
-                            ? `last ${daysSinceError}d ago`
-                            : "not tracked yet"}
-                        </span>
-                      </div>
-                      <Sparkline dayKeys={dayKeys} counts={trend} />
-                    </div>
+                    Do not put any of them back. No divider was added to replace
+                    the row: the header flows straight into the counts block,
+                    and the error panel under that separates itself with its
+                    grey ground. */}
 
                     {/* ⭐ PICKED FROM ALPHA (2026-08-29): the counts block, in
-                    place of the Total / Active / Paused column grid that stood
-                    here. User: "Replace the existing statistic with this."
+                    place of the Total / Active / Paused column grid.
+                    User: "Replace the existing statistic with this."
                     THE POINT OF IT: the total leads at 3xl and the split is a
                     PROPORTION rather than two more equal-weight numbers, so the
                     card answers "how big is this website" first and "how much of
                     it is running" second. The old grid gave all three the same
                     size, which made the total compete with its own parts.
                     ⚠️ The `Stat` helper went with the grid; it had no other
-                    caller. And no `border-t` here, matching Alpha: the error
-                    panel above separates itself with its grey ground, and the
-                    strip below brings its own divider. */}
+                    caller. And no `border-t` on either this or the error panel
+                    below, matching Alpha: the panel separates itself with its
+                    grey ground, and the strip further down brings its own. */}
                     <div>
                       <div className="flex items-baseline justify-between gap-2">
                         <div className="flex items-baseline gap-1.5">
@@ -559,6 +531,43 @@ export default async function AutomationsBetaPage() {
                           style={{ width: `${pausedPct}%` }}
                         />
                       </div>
+                    </div>
+
+                    {/* ⭐ PICKED FROM ALPHA (2026-08-29): the error panel. One
+                    grey block carrying the whole error story: the lifetime
+                    count, how long ago the last one was, and a 14-day bar chart.
+                    THE POINT OF IT: a big number that stopped growing reads
+                    completely differently from a big number that is still
+                    growing, and the old bare "Errors" stat could not tell the
+                    two apart. n8n's 585 with bars every day and Make's 35 with
+                    a flat month look identical as figures alone.
+                    ⚠️ IT LANDED ABOVE THE COUNTS and the user swapped the two
+                    the same day ("switch the position of these two elements"),
+                    which also puts them in Alpha's own order. The size of the
+                    website reads first, its error history second. Do not
+                    reorder them again without asking. */}
+                    <div className="rounded-lg bg-zinc-50 p-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-baseline gap-1.5">
+                          <span
+                            className={cn(
+                              "text-lg font-semibold leading-none tabular-nums",
+                              errors > 0 ? "text-red-600" : "text-zinc-400",
+                            )}
+                          >
+                            {errors}
+                          </span>
+                          <span className="text-xs text-zinc-500">
+                            {errors === 1 ? "error" : "errors"} captured
+                          </span>
+                        </div>
+                        <span className="text-[11px] text-zinc-500">
+                          {daysSinceError !== undefined
+                            ? `last ${daysSinceError}d ago`
+                            : "not tracked yet"}
+                        </span>
+                      </div>
+                      <Sparkline dayKeys={dayKeys} counts={trend} />
                     </div>
 
                     {/* ⭐ PICKED FROM ALPHA (2026-08-29): the footer strip. A muted
