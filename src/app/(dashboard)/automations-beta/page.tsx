@@ -35,9 +35,10 @@
 //   3. the TEXT treatment, name and description stacked BESIDE the tile, the
 //      name at the heading face and text-base, the description truncated at
 //      text-xs in a lighter grey.
-//   4. the ERROR PANEL: lifetime count + "last Nd ago" + a 14-day bar chart, in
-//      one grey block. Brought the per-(platform, day) trend query and the
-//      `Sparkline` component with it. User: "i like this error history graphic."
+//   4. the ERROR PANEL: lifetime count + a "Last Error …" line + a 30-day bar
+//      chart, in one grey block. Brought the per-(platform, day) trend query and
+//      the `Sparkline` component with it.
+//      User: "i like this error history graphic."
 //   5. the FOOTER STRIP, between the counts row and the API status button:
 //      auto-refresh state + "Last run Nh ago" on the left, Error History +
 //      View list on the right, in one muted band. Brought the max(last_run_at)
@@ -160,10 +161,21 @@ const ACCENT: Record<string, string> = {
   zapier: "#FF4F00",
 };
 
-/** How many days of error history the per-card sparkline covers. Alpha's value,
- *  carried over with the element. The label under the bars reads off this, so
- *  changing the number keeps the caption honest by itself. */
-const TREND_DAYS = 14;
+/** How many days of error history the per-card sparkline covers.
+ *
+ *  ⚠️ 30, NOT Alpha's 14. The user widened it on 2026-08-31 ("can you make this
+ *  bar graph reach up to 30 days ago instead of 14?"), so this is one of the
+ *  places Beta has deliberately diverged from the element it was picked from.
+ *
+ *  THIS NUMBER IS THE ONLY PLACE TO CHANGE IT. It drives the SQL window, the
+ *  `dayKeys` axis, and the caption under the bars (which renders
+ *  `dayKeys.length`), so the three cannot fall out of step.
+ *
+ *  ⚠️ It also sets the bar count, and the bars share the panel's width with a
+ *  fixed 3px gap between them. At 30 they are still comfortable on a normal
+ *  window (roughly 15px each); pushing this much higher would start giving more
+ *  width to the gaps than the bars, at which point the gap wants shrinking too. */
+const TREND_DAYS = 30;
 
 interface PlatformStats {
   total: number;
@@ -545,7 +557,7 @@ export default async function AutomationsBetaPage() {
 
                     {/* ⭐ PICKED FROM ALPHA (2026-08-29): the error panel. One
                     grey block carrying the whole error story: the lifetime
-                    count, how long ago the last one was, and a 14-day bar chart.
+                    count, how long ago the last one was, and a 30-day bar chart.
                     THE POINT OF IT: a big number that stopped growing reads
                     completely differently from a big number that is still
                     growing, and the old bare "Errors" stat could not tell the
@@ -739,8 +751,9 @@ function agoLabel(date: Date | null): string {
   return `${Math.floor(hours / 24)}d ago`;
 }
 
-/** ⭐ PICKED FROM ALPHA: the 14-day error bar chart under each card's count.
- *  Copied verbatim from `automations-alpha/page.tsx`.
+/** ⭐ PICKED FROM ALPHA: the error bar chart under each card's count. Copied
+ *  verbatim from `automations-alpha/page.tsx`; only the WINDOW differs, and it
+ *  is not set here (see TREND_DAYS, widened to 30 at the user's request).
  *
  *  `dayKeys` comes in already built for the whole window, so a day with no
  *  errors still gets a bar (a flat 3px grey stub) instead of being skipped.
