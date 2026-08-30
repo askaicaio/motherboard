@@ -571,10 +571,27 @@ export default async function AutomationsBetaPage() {
                             {errors === 1 ? "error" : "errors"} captured
                           </span>
                         </div>
+                        {/* User-set wording, 2026-08-31: "Last Error X days
+                            ago", replacing Alpha's terse "last Xd ago".
+                            ⚠️ TWO CASES THEY DID NOT SPELL OUT, both handled to
+                            keep the sentence grammatical, both easy to overrule:
+                              - 1  -> "1 day ago", not "1 days ago". Same
+                                singular rule they set on the amber cell counts.
+                              - 0  -> "today". `getDaysSinceLastErrorByPlatform`
+                                FLOORS the day count, so an error a few hours old
+                                really does come back as 0, and "0 days ago"
+                                would be on screen the moment Make or n8n errors.
+                            "not tracked yet" is unchanged: absent from the map
+                            means the platform has captured nothing ever, which
+                            is permanent for GHL, GHL b2b and Zapier. */}
                         <span className="text-[11px] text-zinc-500">
-                          {daysSinceError !== undefined
-                            ? `last ${daysSinceError}d ago`
-                            : "not tracked yet"}
+                          {daysSinceError === undefined
+                            ? "not tracked yet"
+                            : daysSinceError === 0
+                              ? "Last Error today"
+                              : `Last Error ${daysSinceError} day${
+                                  daysSinceError === 1 ? "" : "s"
+                                } ago`}
                         </span>
                       </div>
                       <Sparkline dayKeys={dayKeys} counts={trend} />
