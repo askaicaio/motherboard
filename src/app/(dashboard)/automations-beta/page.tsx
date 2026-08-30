@@ -634,9 +634,15 @@ export default async function AutomationsBetaPage() {
                       </div>
                     </div>
 
-                    {/* Status button row. With "Open" moved to the top-right, the
-                    API status button (flex-1) now fills the full card width. */}
-                    <div className="mt-auto flex items-center gap-2 border-t pt-3">
+                    {/* Status button row. The API status button (flex-1) fills
+                    the full card width.
+                    ⚠️ NO `border-t`. It had one, and the user had it removed
+                    2026-08-29 ("Remove This Divider Line"): the footer strip
+                    directly above already ends the card's body with its own top
+                    border and grey ground, so a second rule 12px under it was
+                    drawing the same boundary twice. The spacing (`pt-3` plus
+                    CardContent's `gap-3`) is untouched. */}
+                    <div className="mt-auto flex items-center gap-2 pt-3">
                       {/* Clickable status button. Seeds from the server-side
                       presence check (green "API Key Integrated" / red "No API
                       Integration"); clicking runs a live verify and re-colors
