@@ -388,7 +388,18 @@ export default async function AutomationsBetaPage() {
                     className="h-[3px] w-full shrink-0"
                     style={{ backgroundColor: accent }}
                   />
-                  <CardContent className="flex h-full flex-col gap-3 p-5">
+                  {/* ⚠️ `pb-3` OVERRIDES `p-5` AT THE BOTTOM ONLY, and it is
+                      deliberate. MEASURED IN THE BROWSER 2026-08-31, not
+                      guessed: every gap inside this card is CardContent's
+                      `gap-3` = 12px, but the bottom padding was `p-5` = 20px, so
+                      the card ended on a gap 8px wider than every other one.
+                      That is what the user kept seeing as "the bottom is still
+                      bigger" while I was wrongly adjusting the API row's own
+                      padding, which was never the culprit.
+                      `pb-3` puts the closing gap on the same 12px rhythm.
+                      The TOP stays at 20px on purpose: the brand edge sits above
+                      it, so it is not the same kind of boundary. */}
+                  <CardContent className="flex h-full flex-col gap-3 p-5 pb-3">
                     {/* Header: logo tile + website title/description, full width.
                     ⭐ PICKED FROM ALPHA (2026-08-29): the whole block.
                     ⚠️ A "View List" button used to sit at the right of this row.
