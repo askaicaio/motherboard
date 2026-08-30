@@ -31,6 +31,17 @@
 //      count + "last Nd ago" + a 14-day bar chart, in one grey block. Brought
 //      the per-(platform, day) trend query and the `Sparkline` component with
 //      it. User: "i like this error history graphic."
+//   5. the FOOTER STRIP, between the counts row and the API status button:
+//      auto-refresh state + "Last run Nh ago" on the left, Errors + View list
+//      on the right, in one muted band. Brought the max(last_run_at) query and
+//      `agoLabel` with it. "Last run" is NEW INFORMATION, not a restyle.
+//      User: "i like this lower widget."
+//
+// ⚠️ AFTER PICK 5 THE CARD SAYS THREE THINGS TWICE: auto-refresh state (the
+// row under the header AND the strip), View List (top right AND the strip), and
+// Error History / Errors (top right AND the strip). The user did NOT ask for
+// removals this time, unlike pick 4, so nothing was removed. RAISED WITH THEM
+// rather than decided here, since which copy survives changes the card's shape.
 //
 // REMOVED as redundant once the error panel landed (the user asked for this in
 // the same breath, "Remove redundant features after that"):
@@ -70,7 +81,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { TOOLTIP_DELAY_MS } from "@/lib/automations/tooltips";
-import { Workflow, Plug, List, ListChecks } from "lucide-react";
+import {
+  Workflow,
+  Plug,
+  List,
+  ListChecks,
+  RefreshCw,
+  ChevronRight,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AUTOMATION_SITES } from "@/lib/automations/sites";
 import { platformHasApiKey } from "@/lib/automations/credentials";
@@ -147,6 +165,17 @@ export default async function AutomationsBetaPage() {
   // nothing, and reads "not tracked yet".
   const daysSinceErrorByPlatform = await getDaysSinceLastErrorByPlatform();
 
+  // ⭐ PICKED FROM ALPHA: newest run time per website, for the footer strip's
+  // "Last run" line. NEW DATA, not a restyle: neither the live hub nor Beta
+  // showed anything about how recently a website last did work.
+  const lastRunRows = await db
+    .select({
+      platform: automations.platform,
+      lastRunAt: sql<Date | null>`max(${automations.lastRunAt})`,
+    })
+    .from(automations)
+    .groupBy(automations.platform);
+
   // ⭐ PICKED FROM ALPHA: error counts per (platform, UTC day) over the trend
   // window, for the sparklines. Platforms with no capture come back empty and
   // draw a flat baseline, which is the correct picture for them: GHL, GHL b2b
@@ -186,6 +215,13 @@ export default async function AutomationsBetaPage() {
     s.total += row.count;
     if (row.status === "active") s.active += row.count;
     else if (row.status === "paused") s.paused += row.count;
+  }
+
+  const lastRunByPlatform: Record<string, Date | null> = {};
+  for (const row of lastRunRows) {
+    lastRunByPlatform[row.platform] = row.lastRunAt
+      ? new Date(row.lastRunAt)
+      : null;
   }
 
   // ⭐ PICKED FROM ALPHA: the window's day keys, oldest first, built here rather
@@ -456,6 +492,60 @@ export default async function AutomationsBetaPage() {
                   <Stat label="Paused" value={stats.paused} />
                 </div>
 
+                {/* ⭐ PICKED FROM ALPHA (2026-08-29): the footer strip. A muted
+                    band carrying the two state lines and the two per-website
+                    destinations on ONE row, where each used to take a full
+                    labelled row. Placed between the counts row and the API
+                    status button at the user's direction ("place it above the
+                    API status button and below the statistic i encircled").
+                    "Last run" is NEW INFORMATION: neither Official nor Beta
+                    said anything about how recently a website last did work.
+
+                    ⚠️ TWO DIFFERENCES FROM ALPHA, both because Beta actually
+                    works while Alpha is a static mock-up:
+                      1. "Errors" and "View list" are real <Link>s here, not
+                         decorative spans.
+                      2. `-mx-5` bleeds the band to the card's edges, since it
+                         sits INSIDE CardContent's p-5 rather than being a
+                         sibling of the padded div as it is on Alpha. The
+                         matching `px-5` keeps its text on the same left edge as
+                         everything above it. */}
+                <div className="-mx-5 flex items-center justify-between gap-3 border-t bg-muted/40 px-5 py-2.5">
+                  <div className="flex min-w-0 items-center gap-3 text-[11px] text-zinc-500">
+                    <span className="flex items-center gap-1">
+                      <RefreshCw
+                        className={cn(
+                          "h-3 w-3 shrink-0",
+                          autoRefreshMap[site.slug]?.enabled
+                            ? "text-emerald-600"
+                            : "text-zinc-400",
+                        )}
+                      />
+                      {autoRefreshMap[site.slug]?.enabled
+                        ? "Auto-refresh on"
+                        : "Auto-refresh off"}
+                    </span>
+                    <span className="truncate">
+                      Last run {agoLabel(lastRunByPlatform[site.slug] ?? null)}
+                    </span>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    <Link
+                      href={`/automations/${site.slug}/errors`}
+                      className="rounded-md px-2 py-1 text-xs font-medium text-zinc-500 hover:text-zinc-800"
+                    >
+                      Errors
+                    </Link>
+                    <Link
+                      href={`/automations/${site.slug}`}
+                      className="flex items-center gap-0.5 rounded-md bg-white px-2 py-1 text-xs font-medium text-zinc-800 ring-1 ring-foreground/10 hover:bg-zinc-50"
+                    >
+                      View list
+                      <ChevronRight className="h-3 w-3" />
+                    </Link>
+                  </div>
+                </div>
+
                 {/* Status button row. With "Open" moved to the top-right, the
                     API status button (flex-1) now fills the full card width. */}
                 <div className="mt-auto flex items-center gap-2 border-t pt-3">
@@ -480,6 +570,23 @@ export default async function AutomationsBetaPage() {
       </TooltipProvider>
     </div>
   );
+}
+
+/** ⭐ PICKED FROM ALPHA: "14h ago" / "3d ago" / "never" for the footer strip's
+ *  Last run line. Copied verbatim.
+ *
+ *  ⚠️ Reads `Date.now()` at RENDER time, which is fine only because this page is
+ *  `dynamic = "force-dynamic"`: every request re-renders on the server, so the
+ *  label cannot go stale in a cache. It does NOT tick while the page sits open,
+ *  which is the same behaviour Alpha has. */
+function agoLabel(date: Date | null): string {
+  if (!date) return "never";
+  const mins = Math.floor((Date.now() - date.getTime()) / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
 }
 
 /** ⭐ PICKED FROM ALPHA: the 14-day error bar chart under each card's count.
