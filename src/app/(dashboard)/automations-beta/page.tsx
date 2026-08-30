@@ -23,8 +23,13 @@
 // Picked from ALPHA (`/automations-alpha`) on 2026-08-29, the user's words:
 // "I like these icon style, text and the funny colored shadow behind the
 // rectangle":
-//   1. the BRAND EDGE, a 3px bar in the website's colour across the card's top
-//      (their "funny colored shadow"). Brought the local ACCENT map with it.
+//   1. ❌ the BRAND EDGE, a 3px bar in the website's colour across the card's
+//      top (their "funny colored shadow"). Brought the local ACCENT map with it.
+//      ⚠️ REMOVED 2026-08-31 at the user's request: "Can you remove these
+//      colored shadows on the cards now. I think i doesn't look good now
+//      actually." Kept listed, struck through, because the ACCENT map it
+//      introduced is still load-bearing for picks 2 and 6. Do not put the bar
+//      back; do not delete ACCENT.
 //   2. the LOGO TILE, a rounded square washed in that colour at 12% alpha,
 //      holding a 24px glyph, in place of the bare 32px icon.
 //   3. the TEXT treatment, name and description stacked BESIDE the tile, the
@@ -47,11 +52,11 @@
 //      figures on the right, and a proportion bar under both. The `Stat` helper
 //      went with the grid. User: "Replace the existing statistic with this."
 //
-// CARD ORDER, top to bottom, settled 2026-08-29: brand edge, header, COUNTS
-// BLOCK, ERROR PANEL, footer strip, API status button. The counts and the panel
-// landed the other way round and the user swapped them ("switch the position of
-// these two elements"), which also matches Alpha's own order: how big the
-// website is reads first, its error history second.
+// CARD ORDER, top to bottom: header, COUNTS BLOCK, ERROR PANEL, footer strip,
+// API status button. The counts and the panel landed the other way round and the
+// user swapped them ("switch the position of these two elements"), which also
+// matches Alpha's own order: how big the website is reads first, its error
+// history second. (A brand edge sat above the header until 2026-08-31.)
 //
 // ✅ THE DUPLICATES ARE RESOLVED. The card briefly said three things twice while
 // the user compared both treatments on production; they then chose the STRIP's
@@ -360,34 +365,28 @@ export default async function AutomationsBetaPage() {
               const pausedPct = stats.total
                 ? (stats.paused / stats.total) * 100
                 : 0;
-              // This website's brand colour, for the top edge, the logo tile,
-              // the "active" dot and the proportion bar.
+              // This website's brand colour, for the logo tile, the "active" dot
+              // and the proportion bar. (It also drove a 3px edge across the
+              // card's top until 2026-08-31, when the user had that removed.)
               const accent = ACCENT[site.slug];
               return (
-                // ⚠️ `gap-0 py-0` both override Card's own defaults, and BOTH are
-                // needed. Card is `flex flex-col gap-4 ... py-4`, so with the brand
-                // edge added as a second child it contributed TWO separate gaps
-                // above the content: `py-4` above the edge, then `gap-4` between the
-                // edge and CardContent. The first pass only killed `py-4`, which
-                // left a 16px white band under the edge that the user flagged on
-                // sight ("The cards have this large empty white space above").
-                // With both at 0, CardContent's `p-5` supplies the entire inset, so
-                // the top and bottom insets are equal at 20px.
+                // ⚠️ KEEP `py-0`. Card's own default is `py-4`, which would add
+                // 16px on top of CardContent's `p-5`/`pb-3` at BOTH ends and
+                // undo the measured 12px spacing below. `gap-0` is now a no-op
+                // (CardContent is the only child) but is kept so re-adding a
+                // second child cannot silently reintroduce Card's `gap-4`.
+                //
+                // ⚠️ THE BRAND EDGE USED TO BE THE FIRST CHILD HERE: a 3px bar in
+                // the website's colour across the card's top, picked from Alpha
+                // on 2026-08-29 as the user's "funny colored shadow". They had it
+                // REMOVED on 2026-08-31: "Can you remove these colored shadows on
+                // the cards now. I think i doesn't look good now actually."
+                // Do not put it back. The accent still identifies each card via
+                // the logo tile, the "active" dot and the proportion bar.
                 <Card
                   key={site.slug}
                   className="h-full gap-0 py-0 transition-shadow hover:shadow-md"
                 >
-                  {/* ⭐ PICKED FROM ALPHA (2026-08-29): the brand edge. A 3px bar in
-                  the website's own colour across the top of the card, which the
-                  user called "the funny colored shadow behind the rectangle".
-                  It is the fastest way to tell the five cards apart at a glance.
-                  Card already carries `overflow-hidden`, so the bar takes the
-                  card's rounded top corners for free. */}
-                  <div
-                    aria-hidden
-                    className="h-[3px] w-full shrink-0"
-                    style={{ backgroundColor: accent }}
-                  />
                   {/* ⚠️ `pb-3` OVERRIDES `p-5` AT THE BOTTOM ONLY, and it is
                       deliberate. MEASURED IN THE BROWSER 2026-08-31, not
                       guessed: every gap inside this card is CardContent's
