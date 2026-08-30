@@ -32,16 +32,20 @@
 //      the per-(platform, day) trend query and the `Sparkline` component with
 //      it. User: "i like this error history graphic."
 //   5. the FOOTER STRIP, between the counts row and the API status button:
-//      auto-refresh state + "Last run Nh ago" on the left, Errors + View list
-//      on the right, in one muted band. Brought the max(last_run_at) query and
-//      `agoLabel` with it. "Last run" is NEW INFORMATION, not a restyle.
-//      User: "i like this lower widget."
+//      auto-refresh state + "Last run Nh ago" on the left, Error History +
+//      View list on the right, in one muted band. Brought the max(last_run_at)
+//      query and `agoLabel` with it. "Last run" is NEW INFORMATION, not a
+//      restyle. User: "i like this lower widget."
+//      - The strip's error link arrived from Alpha as a quiet grey "Errors"
+//        text link. The user promoted it to a button labelled "Error History"
+//        and had the old outlined button removed, so the strip is now the only
+//        route to that page from the card.
 //
-// ⚠️ AFTER PICK 5 THE CARD SAYS THREE THINGS TWICE: auto-refresh state (the
-// row under the header AND the strip), View List (top right AND the strip), and
-// Error History / Errors (top right AND the strip). The user did NOT ask for
-// removals this time, unlike pick 4, so nothing was removed. RAISED WITH THEM
-// rather than decided here, since which copy survives changes the card's shape.
+// ⚠️ THE CARD STILL SAYS TWO THINGS TWICE, and the user chose to KEEP it that
+// way for now ("Leave all three, decide later") so both treatments can be
+// compared on production: AUTO-REFRESH STATE (the row under the header AND the
+// strip) and VIEW LIST (top right AND the strip). This is a PENDING DECISION,
+// not an oversight. Do not remove either unprompted.
 //
 // REMOVED as redundant once the error panel landed (the user asked for this in
 // the same breath, "Remove redundant features after that"):
@@ -422,26 +426,26 @@ export default async function AutomationsBetaPage() {
                   </Link>
                 </div>
 
-                {/* Auto-refresh state (left) + Error History button (right).
-                    ⚠️ The "Days since last Error" line used to sit under the
-                    auto-refresh line here. REMOVED 2026-08-29 as redundant: the
-                    error panel below states the same fact as "last Nd ago" /
-                    "not tracked yet", on the same row as the count it belongs
-                    to. Do not put it back alongside the panel. */}
-                <div className="flex items-end justify-between gap-3 border-t pt-3">
+                {/* Auto-refresh state. TWO THINGS HAVE BEEN REMOVED from this
+                    row, both deliberate, neither an oversight:
+                      - the "Days since last Error" line (2026-08-29), redundant
+                        once the error panel below landed: the panel states the
+                        same fact as "last Nd ago" / "not tracked yet", on the
+                        same row as the count it belongs to.
+                      - the outlined "Error History" button (2026-08-29), on the
+                        user's instruction after the footer strip's own Error
+                        History button took over ("afterwards, remove the old
+                        button").
+                    Do not put either back. */}
+                <div className="border-t pt-3">
                   {/* Auto-refresh on/off state (green check / red X). Reads
                       the same stored state the per-website toggle writes;
-                      display-only here. */}
+                      display-only here. ⚠️ The footer strip ALSO reports this,
+                      as "Auto-refresh on/off". The user is keeping both for now
+                      to compare the two treatments; see the header comment. */}
                   <AutoRefreshStat
                     enabled={autoRefreshMap[site.slug]?.enabled ?? false}
                   />
-                  {/* Error History: opens this website's own error history page. */}
-                  <Link
-                    href={`/automations/${site.slug}/errors`}
-                    className="shrink-0 rounded-md border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
-                  >
-                    Error History
-                  </Link>
                 </div>
 
                 {/* ⭐ PICKED FROM ALPHA (2026-08-29): the error panel, placed in
@@ -530,11 +534,20 @@ export default async function AutomationsBetaPage() {
                     </span>
                   </div>
                   <div className="flex shrink-0 items-center gap-1.5">
+                    {/* ⚠️ Alpha had this as a quiet grey text link labelled
+                        "Errors", a weaker sibling of the View list button. The
+                        user promoted it 2026-08-29 ("This should be an 'Error
+                        History' button") when the old outlined button was
+                        removed and this became the ONLY way to that page from
+                        the card. Styling and chevron are mirrored from the View
+                        list button beside it, since both are plain navigation
+                        and a half-matching pair would read as an oversight. */}
                     <Link
                       href={`/automations/${site.slug}/errors`}
-                      className="rounded-md px-2 py-1 text-xs font-medium text-zinc-500 hover:text-zinc-800"
+                      className="flex items-center gap-0.5 rounded-md bg-white px-2 py-1 text-xs font-medium text-zinc-800 ring-1 ring-foreground/10 hover:bg-zinc-50"
                     >
-                      Errors
+                      Error History
+                      <ChevronRight className="h-3 w-3" />
                     </Link>
                     <Link
                       href={`/automations/${site.slug}`}
