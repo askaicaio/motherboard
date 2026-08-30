@@ -52,12 +52,6 @@
 //      the total at 3xl with "automations" beside it, the split as two dotted
 //      figures on the right, and a proportion bar under both. The `Stat` helper
 //      went with the grid. User: "Replace the existing statistic with this."
-//   7. the TOOLS CARD, a dashed-border cell holding Feature Integration, View
-//      All Lists and Dropdown Configuration as icon + label + hint rows.
-//      User: "I like this card". It REPLACED the toolbar strip that used to sit
-//      above the grid (same three destinations), and took `buttonVariants` with
-//      it. ⚠️ PLACED FIRST, not sixth as on Alpha: "Place it where the Make card
-//      currently is and shift everything over."
 //
 // CARD ORDER, top to bottom: header, COUNTS BLOCK, ERROR PANEL, footer strip,
 // API status button. The counts and the panel landed the other way round and the
@@ -110,8 +104,7 @@ import { db } from "@/lib/db";
 import { automations, automationErrors } from "@/lib/db/schema";
 import { sql } from "drizzle-orm";
 import { Card, CardContent } from "@/components/ui/card";
-// NOTE: `buttonVariants` went with the toolbar strip (2026-08-31). Its three
-// outline buttons were the only users; the Tools card styles its own rows.
+import { buttonVariants } from "@/components/ui/button";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { TOOLTIP_DELAY_MS } from "@/lib/automations/tooltips";
 import {
@@ -329,52 +322,37 @@ export default async function AutomationsBetaPage() {
             </div>
           </div>
 
-          {/* ⚠️ THE TOOLBAR STRIP USED TO SIT HERE: one rounded bar holding
-              "Feature Integration", "View All Lists" and "Dropdown
-              Configuration" as three outline buttons. REMOVED 2026-08-31 when
-              the Tools card was picked from Alpha, because that card carries
-              THE SAME THREE DESTINATIONS and keeping both would put the same
-              links on screen twice. Alpha has no toolbar for exactly this
-              reason: there, the tools cell IS the toolbar. Do not put it back
-              alongside the card. */}
+          {/* Toolbar strip above the website cards, holding global Automations
+          actions. Rounded edges to match the website cards below. Buttons
+          (left → right): "Feature Integration" (Plug icon → the Feature
+          Integration page), "View All Lists" (List icon → the combined
+          Everything Table), then "Dropdown Configuration" (ListChecks icon →
+          the Dropdown Config page). All white (outline) with a leading icon. */}
+          <div className="flex items-center gap-3 rounded-xl bg-card px-4 py-2.5 ring-1 ring-foreground/10">
+            <Link
+              href="/automations/feature-integration"
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              <Plug />
+              Feature Integration
+            </Link>
+            <Link
+              href="/automations/all"
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              <List />
+              View All Lists
+            </Link>
+            <Link
+              href="/automations/dropdown-config"
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              <ListChecks />
+              Dropdown Configuration
+            </Link>
+          </div>
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-            {/* ⭐ PICKED FROM ALPHA (2026-08-31): the Tools card, replacing the
-                toolbar strip that used to sit above this grid.
-                ⚠️ PLACED FIRST, NOT LAST. On Alpha it is the SIXTH cell, filling
-                the hole five websites leave in a 3-wide grid. The user moved it
-                to the front: "Place it where the Make card currently is and
-                shift everything over." So the hole is now at the END of the
-                grid, which is where an odd count leaves it anyway.
-                The dashed border and tinted ground are Alpha's, and they earn
-                their place here: they mark this cell as NOT a website, which
-                matters far more now that it leads the grid. */}
-            <div className="flex flex-col rounded-xl border border-dashed border-zinc-300 bg-zinc-50/60 p-4">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
-                Tools
-              </div>
-              <div className="mt-3 flex flex-col gap-2">
-                <Tool
-                  href="/automations/feature-integration"
-                  icon={Plug}
-                  label="Feature Integration"
-                  hint="What each website can and cannot do"
-                />
-                <Tool
-                  href="/automations/all"
-                  icon={List}
-                  label="View All Lists"
-                  hint="Every automation in one table"
-                />
-                <Tool
-                  href="/automations/dropdown-config"
-                  icon={ListChecks}
-                  label="Dropdown Configuration"
-                  hint="Manage the dropdown column choices"
-                />
-              </div>
-            </div>
-
             {AUTOMATION_SITES.map((site) => {
               const stats = statsByPlatform.get(site.slug) ?? {
                 total: 0,
@@ -771,40 +749,6 @@ function agoLabel(date: Date | null): string {
   const hours = Math.floor(mins / 60);
   if (hours < 24) return `${hours}h ago`;
   return `${Math.floor(hours / 24)}d ago`;
-}
-
-/** ⭐ PICKED FROM ALPHA: one row of the Tools card.
- *
- *  ⚠️ A REAL `<Link>`, where Alpha renders a decorative `<span>`. Alpha is a
- *  static mock-up; this page works, and these three rows are now the ONLY route
- *  to those pages from the hub since the toolbar strip they replaced is gone.
- *  Everything else (icon, two-line label, trailing chevron, white-on-tinted
- *  ground) is Alpha's markup unchanged. */
-function Tool({
-  href,
-  icon: Icon,
-  label,
-  hint,
-}: {
-  href: string;
-  icon: React.ElementType;
-  label: string;
-  hint: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className="flex items-center gap-3 rounded-lg bg-white px-3 py-2.5 ring-1 ring-foreground/10 transition-colors hover:bg-zinc-50"
-    >
-      <Icon className="h-4 w-4 shrink-0 text-zinc-500" />
-      {/* min-w-0 so a long hint truncates instead of widening the row. */}
-      <span className="min-w-0 flex-1">
-        <span className="block text-sm font-medium text-zinc-800">{label}</span>
-        <span className="block truncate text-[11px] text-zinc-500">{hint}</span>
-      </span>
-      <ChevronRight className="h-4 w-4 shrink-0 text-zinc-400" />
-    </Link>
-  );
 }
 
 /** ⭐ PICKED FROM ALPHA: the error bar chart under each card's count. Copied
