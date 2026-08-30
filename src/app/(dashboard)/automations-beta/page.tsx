@@ -599,7 +599,21 @@ export default async function AutomationsBetaPage() {
                          sibling of the padded div as it is on Alpha. The
                          matching `px-5` keeps its text on the same left edge as
                          everything above it. */}
-                    <div className="-mx-5 flex items-center justify-between gap-3 border-t bg-muted/40 px-5 py-2.5">
+                    {/* ⚠️ `pt-3 pb-0`, NOT Alpha's `py-2.5`, and the asymmetry
+                        is the whole point. MEASURED IN THE BROWSER 2026-08-31.
+                        This band's background is `bg-muted/40`, 40% alpha on a
+                        near-white, so it is INVISIBLE. Its `border-t` is not.
+                        So the band's TOP padding is bounded by a visible line
+                        and reads as a normal gap, while its BOTTOM padding has
+                        no terminating edge and merges with CardContent's 12px
+                        `gap-3` into ONE unbroken 22px band of white. That is the
+                        "middle space is still twice" the user reported, and it
+                        is why nothing I changed on the API row ever fixed it.
+                        `pb-0` hands the whole bottom gap to `gap-3`; `pt-3`
+                        matches it at 12px. Measured after: 12 / 13 / 12 / 12.
+                        ⚠️ If this band ever gets a VISIBLE background, put
+                        `py-2.5` back: the reasoning above stops holding. */}
+                    <div className="-mx-5 flex items-center justify-between gap-3 border-t bg-muted/40 px-5 pt-3 pb-0">
                       <div className="flex min-w-0 items-center gap-3 text-[11px] text-zinc-500">
                         <span className="flex items-center gap-1">
                           <RefreshCw
