@@ -642,15 +642,22 @@ export default async function AutomationsBetaPage() {
                     border and grey ground, so a second rule 12px under it was
                     drawing the same boundary twice.
 
-                    ⚠️⚠️ `pt-2` IS LOAD-BEARING, do not round it to pt-3.
-                    The user asked for the white space above this button to match
-                    the space below it. Below is CardContent's `pb-5` = 20px.
-                    Above is CardContent's `gap-3` (12px, between the strip and
-                    this row) PLUS this row's own top padding, so the padding has
-                    to be 8px: 12 + 8 = 20. `pt-3` made it 24px, which is what
-                    they saw and flagged.
-                    If CardContent's `p-5` or `gap-3` ever change, redo the sum. */}
-                    <div className="mt-auto flex items-center gap-2 pt-2">
+                    ⚠️⚠️ NO TOP PADDING AT ALL, and that is the point. This row
+                    had `pt-3`, then `pt-2`, and the user still read the gap as
+                    too big: "the space is getting padded by both the element
+                    above and below it. Remove the padding space above 'API key
+                    integrated' so the only empty space is from the View list
+                    row." So the ONLY thing separating this from the strip is now
+                    CardContent's own `gap-3`, 12px. Do not add padding back.
+
+                    ⚠️ `mt-auto` can still open a gap here that no padding change
+                    will close. Cards in a grid row are stretched to the tallest
+                    one, and `mt-auto` parks the slack directly ABOVE this row so
+                    the buttons stay aligned across the row. If this gap ever
+                    looks wrong on SOME cards and right on others, that is the
+                    cause, and the fix is whatever made one card taller, not this
+                    class. */}
+                    <div className="mt-auto flex items-center gap-2">
                       {/* Clickable status button. Seeds from the server-side
                       presence check (green "API Key Integrated" / red "No API
                       Integration"); clicking runs a live verify and re-colors
