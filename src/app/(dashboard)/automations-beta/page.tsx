@@ -1,10 +1,13 @@
 // Automations "Beta" hub, route /automations-beta.
 //
-// ⚠️ RIGHT NOW THIS IS AN EXACT MIRROR OF THE OFFICIAL PAGE, on purpose. Created
-// 2026-08-29 as a byte-for-byte copy of `src/app/(dashboard)/automations/page.tsx`,
-// so it looks AND behaves identically: same queries, same client components, same
-// working controls, same links out to the real sub-pages. The user asked for "an
-// exact mirror that we can test".
+// STARTED 2026-08-29 as a byte-for-byte copy of
+// `src/app/(dashboard)/automations/page.tsx`, at the user's instruction ("an exact
+// mirror that we can test"), so the bench began from something that already looked
+// and behaved exactly like the live hub rather than from an empty page.
+//
+// It is NO LONGER a mirror: the card has been rebuilt element by element out of
+// the Alpha versions, listed below. Everything still WORKS, which is the part that
+// has not changed and the part that separates this page from the Alphas.
 //
 // ⭐ WHAT HAS BEEN PICKED SO FAR. Every element taken out of an Alpha is marked
 // with a ⭐ comment at its site; this is the index. KEEP IT CURRENT, so the drift
@@ -41,11 +44,15 @@
 //        and had the old outlined button removed, so the strip is now the only
 //        route to that page from the card.
 //
-// ⚠️ THE CARD STILL SAYS TWO THINGS TWICE, and the user chose to KEEP it that
-// way for now ("Leave all three, decide later") so both treatments can be
-// compared on production: AUTO-REFRESH STATE (the row under the header AND the
-// strip) and VIEW LIST (top right AND the strip). This is a PENDING DECISION,
-// not an oversight. Do not remove either unprompted.
+// ✅ THE DUPLICATES ARE RESOLVED. The card briefly said three things twice while
+// the user compared both treatments on production; they then chose the STRIP's
+// copy of every one ("alright, remove those two"). So each of these now appears
+// EXACTLY ONCE, in the footer strip:
+//   - auto-refresh state  (the "Auto-refresh: ✓/✗" row is gone, and with it the
+//                          whole row it lived in)
+//   - Error History       (the outlined button under the header is gone)
+//   - View list           (the button at the right of the header row is gone)
+// ⚠️ Do not reintroduce any of them elsewhere on the card.
 //
 // REMOVED as redundant once the error panel landed (the user asked for this in
 // the same breath, "Remove redundant features after that"):
@@ -97,10 +104,13 @@ import { cn } from "@/lib/utils";
 import { AUTOMATION_SITES } from "@/lib/automations/sites";
 import { platformHasApiKey } from "@/lib/automations/credentials";
 import { CopyApiKeyButton } from "@/components/automations/copy-api-key-button";
-import { AutoRefreshStat } from "@/components/automations/auto-refresh-stat";
-// NOTE: StatusMark went with the "Days since last Error" line (2026-08-29). The
-// error panel picked from Alpha carries that same fact as "last Nd ago" /
-// "not tracked yet", so the red-X placeholder had nothing left to say.
+// NOTE: two imports went away as the Alpha elements landed (2026-08-29), and
+// neither is coming back:
+//   - StatusMark, with the "Days since last Error" line. The error panel carries
+//     that fact as "last Nd ago" / "not tracked yet".
+//   - AutoRefreshStat, with the "Auto-refresh: ✓/✗" row. The footer strip
+//     carries that state as "Auto-refresh on/off".
+// `autoRefreshMap` is still read, by the strip.
 import {
   ApiHealthCheckButton,
   AutoHealthCheckToggle,
@@ -251,204 +261,195 @@ export default async function AutomationsBetaPage() {
           API status button, the Auto-API health check label) need one, and
           the shared TOOLTIP_DELAY_MS keeps the timing identical to the rest of the tab. */}
       <TooltipProvider delay={TOOLTIP_DELAY_MS}>
-      <HealthCheckProvider>
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <Workflow className="h-5 w-5 text-zinc-500" />
-            <h1 className="text-2xl font-semibold tracking-tight">Automations</h1>
-            {/* Version badge. Copied EXACTLY from the Alpha pages' own badge
+        <HealthCheckProvider>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <Workflow className="h-5 w-5 text-zinc-500" />
+                <h1 className="text-2xl font-semibold tracking-tight">
+                  Automations
+                </h1>
+                {/* Version badge. Copied EXACTLY from the Alpha pages' own badge
                 (same rounded-full / bg-zinc-900 / 10px uppercase pill) so all
                 nine versions mark themselves the same way. It exists because
                 this page is otherwise indistinguishable from the live hub: the
                 sidebar check mark was the only tell. */}
-            <span className="rounded-full bg-zinc-900 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
-              Beta
-            </span>
-          </div>
-          <p className="mt-1 text-sm text-zinc-500">
-            Tracks workflows from different automation websites all in one place.
-          </p>
-        </div>
-        {/* Top-right toolbar, mirroring the per-website order
+                <span className="rounded-full bg-zinc-900 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
+                  Beta
+                </span>
+              </div>
+              <p className="mt-1 text-sm text-zinc-500">
+                Tracks workflows from different automation websites all in one
+                place.
+              </p>
+            </div>
+            {/* Top-right toolbar, mirroring the per-website order
             [auto toggle] [manual action]: the "Auto-API health check" toggle
             (24h timer, stored results) + the manual "API Health Check" button
             (fans the per-card live check out to all 5 cards at once). */}
-        <div className="flex items-center gap-3">
-          <AutoHealthCheckToggle
-            initialEnabled={health.enabled}
-            initialNextCheckAt={health.nextCheckAt}
-          />
-          <ApiHealthCheckButton />
-        </div>
-      </div>
+            <div className="flex items-center gap-3">
+              <AutoHealthCheckToggle
+                initialEnabled={health.enabled}
+                initialNextCheckAt={health.nextCheckAt}
+              />
+              <ApiHealthCheckButton />
+            </div>
+          </div>
 
-      {/* Toolbar strip above the website cards, holding global Automations
+          {/* Toolbar strip above the website cards, holding global Automations
           actions. Rounded edges to match the website cards below. Buttons
           (left → right): "Feature Integration" (Plug icon → the Feature
           Integration page), "View All Lists" (List icon → the combined
           Everything Table), then "Dropdown Configuration" (ListChecks icon →
           the Dropdown Config page). All white (outline) with a leading icon. */}
-      <div className="flex items-center gap-3 rounded-xl bg-card px-4 py-2.5 ring-1 ring-foreground/10">
-        <Link
-          href="/automations/feature-integration"
-          className={buttonVariants({ variant: "outline", size: "sm" })}
-        >
-          <Plug />
-          Feature Integration
-        </Link>
-        <Link
-          href="/automations/all"
-          className={buttonVariants({ variant: "outline", size: "sm" })}
-        >
-          <List />
-          View All Lists
-        </Link>
-        <Link
-          href="/automations/dropdown-config"
-          className={buttonVariants({ variant: "outline", size: "sm" })}
-        >
-          <ListChecks />
-          Dropdown Configuration
-        </Link>
-      </div>
-
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-        {AUTOMATION_SITES.map((site) => {
-          const stats = statsByPlatform.get(site.slug) ?? {
-            total: 0,
-            active: 0,
-            paused: 0,
-          };
-          // Days since this platform's most recent captured error. undefined
-          // when the error table is empty for it, which the panel reads as
-          // "not tracked yet".
-          const daysSinceError = daysSinceErrorByPlatform[site.slug];
-          // Lifetime captured errors, and this platform's per-day counts over
-          // the trend window. An absent platform gets {}, a flat baseline.
-          const errors = errorCounts[site.slug] ?? 0;
-          const trend = trendByPlatform[site.slug] ?? {};
-          // This website's brand colour, for the top edge + the logo tile.
-          const accent = ACCENT[site.slug];
-          return (
-            // ⚠️ `gap-0 py-0` both override Card's own defaults, and BOTH are
-            // needed. Card is `flex flex-col gap-4 ... py-4`, so with the brand
-            // edge added as a second child it contributed TWO separate gaps
-            // above the content: `py-4` above the edge, then `gap-4` between the
-            // edge and CardContent. The first pass only killed `py-4`, which
-            // left a 16px white band under the edge that the user flagged on
-            // sight ("The cards have this large empty white space above").
-            // With both at 0, CardContent's `p-5` supplies the entire inset, so
-            // the top and bottom insets are equal at 20px.
-            <Card
-              key={site.slug}
-              className="h-full gap-0 py-0 transition-shadow hover:shadow-md"
+          <div className="flex items-center gap-3 rounded-xl bg-card px-4 py-2.5 ring-1 ring-foreground/10">
+            <Link
+              href="/automations/feature-integration"
+              className={buttonVariants({ variant: "outline", size: "sm" })}
             >
-              {/* ⭐ PICKED FROM ALPHA (2026-08-29): the brand edge. A 3px bar in
+              <Plug />
+              Feature Integration
+            </Link>
+            <Link
+              href="/automations/all"
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              <List />
+              View All Lists
+            </Link>
+            <Link
+              href="/automations/dropdown-config"
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              <ListChecks />
+              Dropdown Configuration
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+            {AUTOMATION_SITES.map((site) => {
+              const stats = statsByPlatform.get(site.slug) ?? {
+                total: 0,
+                active: 0,
+                paused: 0,
+              };
+              // Days since this platform's most recent captured error. undefined
+              // when the error table is empty for it, which the panel reads as
+              // "not tracked yet".
+              const daysSinceError = daysSinceErrorByPlatform[site.slug];
+              // Lifetime captured errors, and this platform's per-day counts over
+              // the trend window. An absent platform gets {}, a flat baseline.
+              const errors = errorCounts[site.slug] ?? 0;
+              const trend = trendByPlatform[site.slug] ?? {};
+              // This website's brand colour, for the top edge + the logo tile.
+              const accent = ACCENT[site.slug];
+              return (
+                // ⚠️ `gap-0 py-0` both override Card's own defaults, and BOTH are
+                // needed. Card is `flex flex-col gap-4 ... py-4`, so with the brand
+                // edge added as a second child it contributed TWO separate gaps
+                // above the content: `py-4` above the edge, then `gap-4` between the
+                // edge and CardContent. The first pass only killed `py-4`, which
+                // left a 16px white band under the edge that the user flagged on
+                // sight ("The cards have this large empty white space above").
+                // With both at 0, CardContent's `p-5` supplies the entire inset, so
+                // the top and bottom insets are equal at 20px.
+                <Card
+                  key={site.slug}
+                  className="h-full gap-0 py-0 transition-shadow hover:shadow-md"
+                >
+                  {/* ⭐ PICKED FROM ALPHA (2026-08-29): the brand edge. A 3px bar in
                   the website's own colour across the top of the card, which the
                   user called "the funny colored shadow behind the rectangle".
                   It is the fastest way to tell the five cards apart at a glance.
                   Card already carries `overflow-hidden`, so the bar takes the
                   card's rounded top corners for free. */}
-              <div
-                aria-hidden
-                className="h-[3px] w-full shrink-0"
-                style={{ backgroundColor: accent }}
-              />
-              <CardContent className="flex h-full flex-col gap-3 p-5">
-                {/* Header: logo tile + website title/description on the left,
-                    "View List" on the right. Still bottom-aligned, so the
-                    button sits inline with the description line, which is now
-                    the bottom line of the tile row rather than a line below it.
-                    ⭐ PICKED FROM ALPHA (2026-08-29): the whole left block. */}
-                <div className="flex items-end justify-between gap-2">
-                  {/* min-w-0 is what lets the description TRUNCATE instead of
-                      widening the row: a flex item defaults to min-width:auto
-                      and refuses to shrink below its content. Needed on this
-                      wrapper AND on the text block inside it. */}
-                  <div className="flex min-w-0 items-center gap-3">
-                    {/* ⭐ The logo TILE: a rounded square washed in the website's
+                  <div
+                    aria-hidden
+                    className="h-[3px] w-full shrink-0"
+                    style={{ backgroundColor: accent }}
+                  />
+                  <CardContent className="flex h-full flex-col gap-3 p-5">
+                    {/* Header: logo tile + website title/description, full width.
+                    ⭐ PICKED FROM ALPHA (2026-08-29): the whole block.
+                    ⚠️ A "View List" button used to sit at the right of this row.
+                    REMOVED 2026-08-29 on the user's instruction, once the footer
+                    strip's own "View list ›" made it a second copy of the same
+                    link. Do not put it back. That is also why this is a plain
+                    row now and no longer a `justify-between` flex.
+
+                    min-w-0 is what lets the description TRUNCATE instead of
+                    widening the row: a flex item defaults to min-width:auto and
+                    refuses to shrink below its content. Still needed on BOTH
+                    this wrapper and the text block inside it, even with nothing
+                    to its right, because the card itself is a fixed grid cell. */}
+                    <div className="flex min-w-0 items-center gap-3">
+                      {/* ⭐ The logo TILE: a rounded square washed in the website's
                         own colour at 12% alpha (the `1F` alpha suffix on the hex),
                         holding a 24px glyph. Replaces the bare 32px icon that sat
                         next to the title. Monochrome SVG glyphs are still tinted
                         via a CSS mask; full-colour icons (the GHL favicon) still
                         render as a plain image. */}
-                    <span
-                      aria-hidden
-                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
-                      style={{ backgroundColor: `${accent}1F` }}
-                    >
-                      {site.iconColor ? (
-                        <span
-                          className="h-6 w-6"
-                          style={{
-                            backgroundColor: site.iconColor,
-                            maskImage: `url(${site.icon})`,
-                            WebkitMaskImage: `url(${site.icon})`,
-                            maskRepeat: "no-repeat",
-                            WebkitMaskRepeat: "no-repeat",
-                            maskPosition: "center",
-                            WebkitMaskPosition: "center",
-                            maskSize: "contain",
-                            WebkitMaskSize: "contain",
-                          }}
-                        />
-                      ) : (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={site.icon}
-                          alt=""
-                          className="h-6 w-6 object-contain"
-                        />
-                      )}
-                    </span>
-                    {/* ⭐ The TEXT treatment: name and description stack BESIDE
+                      <span
+                        aria-hidden
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
+                        style={{ backgroundColor: `${accent}1F` }}
+                      >
+                        {site.iconColor ? (
+                          <span
+                            className="h-6 w-6"
+                            style={{
+                              backgroundColor: site.iconColor,
+                              maskImage: `url(${site.icon})`,
+                              WebkitMaskImage: `url(${site.icon})`,
+                              maskRepeat: "no-repeat",
+                              WebkitMaskRepeat: "no-repeat",
+                              maskPosition: "center",
+                              WebkitMaskPosition: "center",
+                              maskSize: "contain",
+                              WebkitMaskSize: "contain",
+                            }}
+                          />
+                        ) : (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={site.icon}
+                            alt=""
+                            className="h-6 w-6 object-contain"
+                          />
+                        )}
+                      </span>
+                      {/* ⭐ The TEXT treatment: name and description stack BESIDE
                         the tile instead of under the icon row, the name drops
                         from text-xl to the heading face at text-base, and the
                         description drops to a truncated text-xs in a lighter
                         grey. Quieter, so the numbers below lead the card. */}
-                    <div className="min-w-0">
-                      <h3 className="font-heading text-base font-semibold text-zinc-900">
-                        {site.label}
-                      </h3>
-                      <p className="mt-0.5 truncate text-xs text-zinc-500">
-                        {site.description}
-                      </p>
+                      <div className="min-w-0">
+                        <h3 className="font-heading text-base font-semibold text-zinc-900">
+                          {site.label}
+                        </h3>
+                        <p className="mt-0.5 truncate text-xs text-zinc-500">
+                          {site.description}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                  {/* View List: opens this website's per-website page.
-                      Bottom-right, inline with the description line. */}
-                  <Link
-                    href={`/automations/${site.slug}`}
-                    className="shrink-0 rounded-md border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
-                  >
-                    View List
-                  </Link>
-                </div>
 
-                {/* Auto-refresh state. TWO THINGS HAVE BEEN REMOVED from this
-                    row, both deliberate, neither an oversight:
-                      - the "Days since last Error" line (2026-08-29), redundant
-                        once the error panel below landed: the panel states the
-                        same fact as "last Nd ago" / "not tracked yet", on the
-                        same row as the count it belongs to.
-                      - the outlined "Error History" button (2026-08-29), on the
-                        user's instruction after the footer strip's own Error
-                        History button took over ("afterwards, remove the old
-                        button").
-                    Do not put either back. */}
-                <div className="border-t pt-3">
-                  {/* Auto-refresh on/off state (green check / red X). Reads
-                      the same stored state the per-website toggle writes;
-                      display-only here. ⚠️ The footer strip ALSO reports this,
-                      as "Auto-refresh on/off". The user is keeping both for now
-                      to compare the two treatments; see the header comment. */}
-                  <AutoRefreshStat
-                    enabled={autoRefreshMap[site.slug]?.enabled ?? false}
-                  />
-                </div>
+                    {/* ⚠️ AN ENTIRE ROW USED TO SIT HERE and it is gone on purpose,
+                    piece by piece, over 2026-08-29:
+                      - the "Days since last Error" line, redundant once the
+                        error panel below landed: the panel states the same fact
+                        as "last Nd ago" / "not tracked yet", on the same row as
+                        the count it belongs to.
+                      - the outlined "Error History" button, once the footer
+                        strip's own Error History button took over.
+                      - the "Auto-refresh: ✓/✗" stat, once the strip's
+                        "Auto-refresh on/off" made it a second copy. That was
+                        the last thing in the row, so the row went with it, and
+                        `AutoRefreshStat` is no longer imported here at all.
+                    Do not put any of them back. The header now flows straight
+                    into the error panel, which supplies its own separation with
+                    its grey ground, so no divider was added to replace it. */}
 
-                {/* ⭐ PICKED FROM ALPHA (2026-08-29): the error panel, placed in
+                    {/* ⭐ PICKED FROM ALPHA (2026-08-29): the error panel, placed in
                     the space under the Error History button at the user's
                     direction. One grey block carrying the whole error story:
                     the lifetime count, how long ago the last one was, and a
@@ -458,45 +459,45 @@ export default async function AutomationsBetaPage() {
                     growing, and the old bare "Errors" stat could not tell the
                     two apart. n8n's 585 with bars every day and Make's 35 with
                     a flat month look identical as figures alone. */}
-                <div className="rounded-lg bg-zinc-50 p-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-baseline gap-1.5">
-                      <span
-                        className={cn(
-                          "text-lg font-semibold leading-none tabular-nums",
-                          errors > 0 ? "text-red-600" : "text-zinc-400",
-                        )}
-                      >
-                        {errors}
-                      </span>
-                      <span className="text-xs text-zinc-500">
-                        {errors === 1 ? "error" : "errors"} captured
-                      </span>
+                    <div className="rounded-lg bg-zinc-50 p-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-baseline gap-1.5">
+                          <span
+                            className={cn(
+                              "text-lg font-semibold leading-none tabular-nums",
+                              errors > 0 ? "text-red-600" : "text-zinc-400",
+                            )}
+                          >
+                            {errors}
+                          </span>
+                          <span className="text-xs text-zinc-500">
+                            {errors === 1 ? "error" : "errors"} captured
+                          </span>
+                        </div>
+                        <span className="text-[11px] text-zinc-500">
+                          {daysSinceError !== undefined
+                            ? `last ${daysSinceError}d ago`
+                            : "not tracked yet"}
+                        </span>
+                      </div>
+                      <Sparkline dayKeys={dayKeys} counts={trend} />
                     </div>
-                    <span className="text-[11px] text-zinc-500">
-                      {daysSinceError !== undefined
-                        ? `last ${daysSinceError}d ago`
-                        : "not tracked yet"}
-                    </span>
-                  </div>
-                  <Sparkline dayKeys={dayKeys} counts={trend} />
-                </div>
 
-                {/* ⚠️ THREE columns, not four. The "Errors" stat was REMOVED
+                    {/* ⚠️ THREE columns, not four. The "Errors" stat was REMOVED
                     2026-08-29 when the panel above landed: it showed the same
                     `errorCounts` figure, and the panel says it better (coloured
                     by whether there are any, with the trend under it). */}
-                <div className="grid grid-cols-3 gap-2 border-t pt-3">
-                  <Stat label="Total" value={stats.total} />
-                  <Stat
-                    label="Active"
-                    value={stats.active}
-                    valueClassName="text-green-600"
-                  />
-                  <Stat label="Paused" value={stats.paused} />
-                </div>
+                    <div className="grid grid-cols-3 gap-2 border-t pt-3">
+                      <Stat label="Total" value={stats.total} />
+                      <Stat
+                        label="Active"
+                        value={stats.active}
+                        valueClassName="text-green-600"
+                      />
+                      <Stat label="Paused" value={stats.paused} />
+                    </div>
 
-                {/* ⭐ PICKED FROM ALPHA (2026-08-29): the footer strip. A muted
+                    {/* ⭐ PICKED FROM ALPHA (2026-08-29): the footer strip. A muted
                     band carrying the two state lines and the two per-website
                     destinations on ONE row, where each used to take a full
                     labelled row. Placed between the counts row and the API
@@ -514,27 +515,28 @@ export default async function AutomationsBetaPage() {
                          sibling of the padded div as it is on Alpha. The
                          matching `px-5` keeps its text on the same left edge as
                          everything above it. */}
-                <div className="-mx-5 flex items-center justify-between gap-3 border-t bg-muted/40 px-5 py-2.5">
-                  <div className="flex min-w-0 items-center gap-3 text-[11px] text-zinc-500">
-                    <span className="flex items-center gap-1">
-                      <RefreshCw
-                        className={cn(
-                          "h-3 w-3 shrink-0",
-                          autoRefreshMap[site.slug]?.enabled
-                            ? "text-emerald-600"
-                            : "text-zinc-400",
-                        )}
-                      />
-                      {autoRefreshMap[site.slug]?.enabled
-                        ? "Auto-refresh on"
-                        : "Auto-refresh off"}
-                    </span>
-                    <span className="truncate">
-                      Last run {agoLabel(lastRunByPlatform[site.slug] ?? null)}
-                    </span>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-1.5">
-                    {/* ⚠️ Alpha had this as a quiet grey text link labelled
+                    <div className="-mx-5 flex items-center justify-between gap-3 border-t bg-muted/40 px-5 py-2.5">
+                      <div className="flex min-w-0 items-center gap-3 text-[11px] text-zinc-500">
+                        <span className="flex items-center gap-1">
+                          <RefreshCw
+                            className={cn(
+                              "h-3 w-3 shrink-0",
+                              autoRefreshMap[site.slug]?.enabled
+                                ? "text-emerald-600"
+                                : "text-zinc-400",
+                            )}
+                          />
+                          {autoRefreshMap[site.slug]?.enabled
+                            ? "Auto-refresh on"
+                            : "Auto-refresh off"}
+                        </span>
+                        <span className="truncate">
+                          Last run{" "}
+                          {agoLabel(lastRunByPlatform[site.slug] ?? null)}
+                        </span>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        {/* ⚠️ Alpha had this as a quiet grey text link labelled
                         "Errors", a weaker sibling of the View list button. The
                         user promoted it 2026-08-29 ("This should be an 'Error
                         History' button") when the old outlined button was
@@ -542,44 +544,44 @@ export default async function AutomationsBetaPage() {
                         the card. Styling and chevron are mirrored from the View
                         list button beside it, since both are plain navigation
                         and a half-matching pair would read as an oversight. */}
-                    <Link
-                      href={`/automations/${site.slug}/errors`}
-                      className="flex items-center gap-0.5 rounded-md bg-white px-2 py-1 text-xs font-medium text-zinc-800 ring-1 ring-foreground/10 hover:bg-zinc-50"
-                    >
-                      Error History
-                      <ChevronRight className="h-3 w-3" />
-                    </Link>
-                    <Link
-                      href={`/automations/${site.slug}`}
-                      className="flex items-center gap-0.5 rounded-md bg-white px-2 py-1 text-xs font-medium text-zinc-800 ring-1 ring-foreground/10 hover:bg-zinc-50"
-                    >
-                      View list
-                      <ChevronRight className="h-3 w-3" />
-                    </Link>
-                  </div>
-                </div>
+                        <Link
+                          href={`/automations/${site.slug}/errors`}
+                          className="flex items-center gap-0.5 rounded-md bg-white px-2 py-1 text-xs font-medium text-zinc-800 ring-1 ring-foreground/10 hover:bg-zinc-50"
+                        >
+                          Error History
+                          <ChevronRight className="h-3 w-3" />
+                        </Link>
+                        <Link
+                          href={`/automations/${site.slug}`}
+                          className="flex items-center gap-0.5 rounded-md bg-white px-2 py-1 text-xs font-medium text-zinc-800 ring-1 ring-foreground/10 hover:bg-zinc-50"
+                        >
+                          View list
+                          <ChevronRight className="h-3 w-3" />
+                        </Link>
+                      </div>
+                    </div>
 
-                {/* Status button row. With "Open" moved to the top-right, the
+                    {/* Status button row. With "Open" moved to the top-right, the
                     API status button (flex-1) now fills the full card width. */}
-                <div className="mt-auto flex items-center gap-2 border-t pt-3">
-                  {/* Clickable status button. Seeds from the server-side
+                    <div className="mt-auto flex items-center gap-2 border-t pt-3">
+                      {/* Clickable status button. Seeds from the server-side
                       presence check (green "API Key Integrated" / red "No API
                       Integration"); clicking runs a live verify and re-colors
                       based on whether the key actually works right now. Only the
                       boolean reaches the client; the secret never does. (Make is
                       wired; the rest stay red until their syncs land.) */}
-                  <CopyApiKeyButton
-                    platform={site.slug}
-                    hasApiKey={platformHasApiKey(site.slug)}
-                    initialOk={health.results[site.slug]?.ok}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-      </HealthCheckProvider>
+                      <CopyApiKeyButton
+                        platform={site.slug}
+                        hasApiKey={platformHasApiKey(site.slug)}
+                        initialOk={health.results[site.slug]?.ok}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </HealthCheckProvider>
       </TooltipProvider>
     </div>
   );
