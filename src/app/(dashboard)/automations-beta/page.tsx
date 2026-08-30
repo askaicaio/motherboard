@@ -27,6 +27,18 @@
 //   3. the TEXT treatment, name and description stacked BESIDE the tile, the
 //      name at the heading face and text-base, the description truncated at
 //      text-xs in a lighter grey.
+//   4. the ERROR PANEL, in the space under the Error History button: lifetime
+//      count + "last Nd ago" + a 14-day bar chart, in one grey block. Brought
+//      the per-(platform, day) trend query and the `Sparkline` component with
+//      it. User: "i like this error history graphic."
+//
+// REMOVED as redundant once the error panel landed (the user asked for this in
+// the same breath, "Remove redundant features after that"):
+//   - the "Days since last Error" line. The panel says it as "last Nd ago" /
+//     "not tracked yet", on the same row as the count it belongs to. Took the
+//     `StatusMark` import with it.
+//   - the "Errors" stat in the counts row, so that row is now THREE columns.
+//     It was the same `errorCounts` figure the panel leads with.
 //
 // WHAT IT IS FOR: the redesign is NOT going to pick one winning Alpha. The user
 // walks the Alpha versions one at a time and picks individual ELEMENTS out of
@@ -52,7 +64,7 @@
 import Link from "next/link";
 import { requireAuth } from "@/lib/auth/guard";
 import { db } from "@/lib/db";
-import { automations } from "@/lib/db/schema";
+import { automations, automationErrors } from "@/lib/db/schema";
 import { sql } from "drizzle-orm";
 import { Card, CardContent } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
@@ -64,7 +76,9 @@ import { AUTOMATION_SITES } from "@/lib/automations/sites";
 import { platformHasApiKey } from "@/lib/automations/credentials";
 import { CopyApiKeyButton } from "@/components/automations/copy-api-key-button";
 import { AutoRefreshStat } from "@/components/automations/auto-refresh-stat";
-import { StatusMark } from "@/components/automations/status-mark";
+// NOTE: StatusMark went with the "Days since last Error" line (2026-08-29). The
+// error panel picked from Alpha carries that same fact as "last Nd ago" /
+// "not tracked yet", so the red-X placeholder had nothing left to say.
 import {
   ApiHealthCheckButton,
   AutoHealthCheckToggle,
@@ -100,6 +114,11 @@ const ACCENT: Record<string, string> = {
   zapier: "#FF4F00",
 };
 
+/** How many days of error history the per-card sparkline covers. Alpha's value,
+ *  carried over with the element. The label under the bars reads off this, so
+ *  changing the number keeps the caption honest by itself. */
+const TREND_DAYS = 14;
+
 interface PlatformStats {
   total: number;
   active: number;
@@ -118,16 +137,32 @@ export default async function AutomationsBetaPage() {
   // app-setting the per-website toggle writes; the card is display-only.
   const autoRefreshMap = await getAutoRefreshMap();
 
-  // Total captured errors per platform, for each card's "# Errors" stat. Only
-  // Make writes error rows today, so the other cards read 0 until their capture
-  // lands (getErrorCountsByPlatform omits platforms with no errors).
+  // Total captured errors per platform. Now the big red figure in the error
+  // panel picked from Alpha, rather than a bare "Errors" stat in the counts row
+  // (getErrorCountsByPlatform omits platforms with no errors, so they read 0).
   const errorCounts = await getErrorCountsByPlatform();
 
-  // Whole days since each platform's most recent captured error, for the "Days
-  // since last Error" stat (computed in SQL). A platform with NO captured errors
-  // is absent here, so its card keeps the red-X placeholder ("not tracked yet");
-  // otherwise we show the day count. Only Make has errors today.
+  // Whole days since each platform's most recent captured error (computed in
+  // SQL). Now the panel's "last Nd ago"; a platform absent here has captured
+  // nothing, and reads "not tracked yet".
   const daysSinceErrorByPlatform = await getDaysSinceLastErrorByPlatform();
+
+  // ⭐ PICKED FROM ALPHA: error counts per (platform, UTC day) over the trend
+  // window, for the sparklines. Platforms with no capture come back empty and
+  // draw a flat baseline, which is the correct picture for them: GHL, GHL b2b
+  // and Zapier cannot capture errors at all.
+  const dayExpr = sql`to_char(${automationErrors.occurredAt} at time zone 'UTC', 'YYYY-MM-DD')`;
+  const trendRows = await db
+    .select({
+      platform: automationErrors.platform,
+      day: sql<string>`${dayExpr}`,
+      count: sql<number>`count(*)::int`,
+    })
+    .from(automationErrors)
+    .where(
+      sql`${automationErrors.occurredAt} >= now() - make_interval(days => ${TREND_DAYS - 1})`,
+    )
+    .groupBy(automationErrors.platform, dayExpr);
 
   // Count automations per platform & status in one grouped query, then fold
   // into per-platform totals for the cards.
@@ -151,6 +186,22 @@ export default async function AutomationsBetaPage() {
     s.total += row.count;
     if (row.status === "active") s.active += row.count;
     else if (row.status === "paused") s.paused += row.count;
+  }
+
+  // ⭐ PICKED FROM ALPHA: the window's day keys, oldest first, built here rather
+  // than from the rows that came back. Every sparkline then shares ONE x-axis,
+  // and a day with no errors still gets a slot instead of collapsing the chart.
+  const now = new Date();
+  const dayKeys: string[] = [];
+  for (let i = TREND_DAYS - 1; i >= 0; i--) {
+    const d = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - i),
+    );
+    dayKeys.push(d.toISOString().slice(0, 10));
+  }
+  const trendByPlatform: Record<string, Record<string, number>> = {};
+  for (const row of trendRows) {
+    (trendByPlatform[row.platform] ??= {})[row.day] = row.count;
   }
 
   return (
@@ -230,8 +281,13 @@ export default async function AutomationsBetaPage() {
             paused: 0,
           };
           // Days since this platform's most recent captured error. undefined
-          // when the error table is empty for it (keep the red-X placeholder).
+          // when the error table is empty for it, which the panel reads as
+          // "not tracked yet".
           const daysSinceError = daysSinceErrorByPlatform[site.slug];
+          // Lifetime captured errors, and this platform's per-day counts over
+          // the trend window. An absent platform gets {}, a flat baseline.
+          const errors = errorCounts[site.slug] ?? 0;
+          const trend = trendByPlatform[site.slug] ?? {};
           // This website's brand colour, for the top edge + the logo tile.
           const accent = ACCENT[site.slug];
           return (
@@ -330,34 +386,19 @@ export default async function AutomationsBetaPage() {
                   </Link>
                 </div>
 
-                {/* Top-of-card status stats (left) + Error History button
-                    (right). Stats: auto-refresh state, then "Days since last
-                    Error", both above the Total/Active/Paused row. */}
+                {/* Auto-refresh state (left) + Error History button (right).
+                    ⚠️ The "Days since last Error" line used to sit under the
+                    auto-refresh line here. REMOVED 2026-08-29 as redundant: the
+                    error panel below states the same fact as "last Nd ago" /
+                    "not tracked yet", on the same row as the count it belongs
+                    to. Do not put it back alongside the panel. */}
                 <div className="flex items-end justify-between gap-3 border-t pt-3">
-                  <div className="flex flex-col gap-2">
-                    {/* Auto-refresh on/off state (green check / red X). Reads
-                        the same stored state the per-website toggle writes;
-                        display-only here. */}
-                    <AutoRefreshStat
-                      enabled={autoRefreshMap[site.slug]?.enabled ?? false}
-                    />
-                    {/* Days since last Error. When this platform has captured
-                        errors, show days since the most recent one (number always
-                        RED, label default colour). When the error table is empty
-                        for it, keep the red-X placeholder ("not tracked yet").
-                        Only Make has errors today; the rest show the X. */}
-                    <div className="flex items-center gap-1.5 text-sm font-medium">
-                      <span>Days since last Error:</span>
-                      {daysSinceError !== undefined ? (
-                        <span>
-                          <span className="text-red-600">{daysSinceError}</span>{" "}
-                          days
-                        </span>
-                      ) : (
-                        <StatusMark ok={false} label="not tracked yet" />
-                      )}
-                    </div>
-                  </div>
+                  {/* Auto-refresh on/off state (green check / red X). Reads
+                      the same stored state the per-website toggle writes;
+                      display-only here. */}
+                  <AutoRefreshStat
+                    enabled={autoRefreshMap[site.slug]?.enabled ?? false}
+                  />
                   {/* Error History: opens this website's own error history page. */}
                   <Link
                     href={`/automations/${site.slug}/errors`}
@@ -367,7 +408,45 @@ export default async function AutomationsBetaPage() {
                   </Link>
                 </div>
 
-                <div className="grid grid-cols-4 gap-2 border-t pt-3">
+                {/* ⭐ PICKED FROM ALPHA (2026-08-29): the error panel, placed in
+                    the space under the Error History button at the user's
+                    direction. One grey block carrying the whole error story:
+                    the lifetime count, how long ago the last one was, and a
+                    14-day bar chart.
+                    THE POINT OF IT: a big number that stopped growing reads
+                    completely differently from a big number that is still
+                    growing, and the old bare "Errors" stat could not tell the
+                    two apart. n8n's 585 with bars every day and Make's 35 with
+                    a flat month look identical as figures alone. */}
+                <div className="rounded-lg bg-zinc-50 p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-baseline gap-1.5">
+                      <span
+                        className={cn(
+                          "text-lg font-semibold leading-none tabular-nums",
+                          errors > 0 ? "text-red-600" : "text-zinc-400",
+                        )}
+                      >
+                        {errors}
+                      </span>
+                      <span className="text-xs text-zinc-500">
+                        {errors === 1 ? "error" : "errors"} captured
+                      </span>
+                    </div>
+                    <span className="text-[11px] text-zinc-500">
+                      {daysSinceError !== undefined
+                        ? `last ${daysSinceError}d ago`
+                        : "not tracked yet"}
+                    </span>
+                  </div>
+                  <Sparkline dayKeys={dayKeys} counts={trend} />
+                </div>
+
+                {/* ⚠️ THREE columns, not four. The "Errors" stat was REMOVED
+                    2026-08-29 when the panel above landed: it showed the same
+                    `errorCounts` figure, and the panel says it better (coloured
+                    by whether there are any, with the trend under it). */}
+                <div className="grid grid-cols-3 gap-2 border-t pt-3">
                   <Stat label="Total" value={stats.total} />
                   <Stat
                     label="Active"
@@ -375,14 +454,6 @@ export default async function AutomationsBetaPage() {
                     valueClassName="text-green-600"
                   />
                   <Stat label="Paused" value={stats.paused} />
-                  {/* Errors count: total captured errors for this platform
-                      (automation_errors rows). Always red. Reads real data for
-                      Make; the other platforms show 0 until their capture lands. */}
-                  <Stat
-                    label="Errors"
-                    value={errorCounts[site.slug] ?? 0}
-                    valueClassName="text-red-600"
-                  />
                 </div>
 
                 {/* Status button row. With "Open" moved to the top-right, the
@@ -407,6 +478,54 @@ export default async function AutomationsBetaPage() {
       </div>
       </HealthCheckProvider>
       </TooltipProvider>
+    </div>
+  );
+}
+
+/** ⭐ PICKED FROM ALPHA: the 14-day error bar chart under each card's count.
+ *  Copied verbatim from `automations-alpha/page.tsx`.
+ *
+ *  `dayKeys` comes in already built for the whole window, so a day with no
+ *  errors still gets a bar (a flat 3px grey stub) instead of being skipped.
+ *  That is what makes the five charts comparable: they share one x-axis, and a
+ *  gap in the data reads as a quiet day rather than as missing time.
+ *
+ *  Heights are relative to THIS card's own max, not a global one. A card with a
+ *  single error still shows a readable bar, at the cost of the five charts not
+ *  being comparable by height. Deliberate: the shape of one website's month is
+ *  the question here, and the raw count sits right above it. */
+function Sparkline({
+  dayKeys,
+  counts,
+}: {
+  dayKeys: string[];
+  counts: Record<string, number>;
+}) {
+  const values = dayKeys.map((k) => counts[k] ?? 0);
+  const max = Math.max(...values, 0);
+  return (
+    <div className="mt-2.5">
+      <div className="flex h-7 items-end gap-[3px]">
+        {values.map((v, i) => (
+          <span
+            key={dayKeys[i]}
+            title={`${dayKeys[i]}: ${v}`}
+            className={cn(
+              "flex-1 rounded-[2px]",
+              v > 0 ? "bg-red-400" : "bg-zinc-200",
+            )}
+            style={{
+              // The 12% floor keeps a 1-error day from rendering as a hairline
+              // next to a 40-error day. Zero days get a flat 3px stub instead.
+              height:
+                max > 0 && v > 0 ? `${Math.max(12, (v / max) * 100)}%` : "3px",
+            }}
+          />
+        ))}
+      </div>
+      <div className="mt-1.5 text-[10px] uppercase tracking-wider text-zinc-400">
+        Last {dayKeys.length} days
+      </div>
     </div>
   );
 }
