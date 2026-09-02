@@ -99,6 +99,17 @@ const ACCENT: Record<string, string> = {
 /** Rows each detail panel list shows before it stops. */
 const PANEL_ROWS = 6;
 
+/** How many days of error history the error panel's bar chart covers.
+ *
+ *  Came back to this page on 2026-09-03 with the live hub's statistics. 30, not
+ *  the 14 the Alphas use: the user widened it on 2026-08-31 ("can you make this
+ *  bar graph reach up to 30 days ago instead of 14?").
+ *
+ *  THIS NUMBER IS THE ONLY PLACE TO CHANGE IT. It drives the SQL window, the
+ *  `dayKeys` axis, and the caption under the bars (which renders
+ *  `dayKeys.length`), so the three cannot fall out of step. */
+const TREND_DAYS = 30;
+
 interface PlatformStats {
   total: number;
   active: number;
@@ -161,6 +172,26 @@ export default async function AutomationsBetaPage({
     .orderBy(desc(automationErrors.occurredAt))
     .limit(PANEL_ROWS);
 
+  // Error counts per (platform, UTC day) over the trend window, for the error
+  // panel's bar chart. Came back with the live hub's statistics on 2026-09-03.
+  // ⚠️ Grouped by platform for ALL sites even though only the selected one is
+  // drawn, because that is the shape `Sparkline` takes and it costs the same
+  // single aggregate either way. Platforms with no capture come back empty and
+  // draw a flat baseline, which is the correct picture: GHL, GHL b2b and Zapier
+  // cannot capture errors at all.
+  const dayExpr = sql`to_char(${automationErrors.occurredAt} at time zone 'UTC', 'YYYY-MM-DD')`;
+  const trendRows = await db
+    .select({
+      platform: automationErrors.platform,
+      day: sql<string>`${dayExpr}`,
+      count: sql<number>`count(*)::int`,
+    })
+    .from(automationErrors)
+    .where(
+      sql`${automationErrors.occurredAt} >= now() - make_interval(days => ${TREND_DAYS - 1})`,
+    )
+    .groupBy(automationErrors.platform, dayExpr);
+
   // What was edited most recently ON THE SOURCE WEBSITE (the synced
   // `last_edited_at`, NOT our own Row Update). No hub surface shows this today,
   // and it is the closest thing to "what is someone actually working on".
@@ -200,6 +231,22 @@ export default async function AutomationsBetaPage({
       : null;
   }
 
+  // The window's day keys, oldest first, built here rather than from the rows
+  // that came back. The chart then has one fixed x-axis, and a day with no
+  // errors still gets a slot instead of collapsing the chart.
+  const now = new Date();
+  const dayKeys: string[] = [];
+  for (let i = TREND_DAYS - 1; i >= 0; i--) {
+    const d = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - i),
+    );
+    dayKeys.push(d.toISOString().slice(0, 10));
+  }
+  const trendByPlatform: Record<string, Record<string, number>> = {};
+  for (const row of trendRows) {
+    (trendByPlatform[row.platform] ??= {})[row.day] = row.count;
+  }
+
   const portfolioTotal = AUTOMATION_SITES.reduce(
     (sum, site) => sum + (statsByPlatform.get(site.slug)?.total ?? 0),
     0,
@@ -218,6 +265,9 @@ export default async function AutomationsBetaPage({
   const hasKey = platformHasApiKey(selected.slug);
   const days = daysSinceErrorByPlatform[selected.slug];
   const errors = errorCounts[selected.slug] ?? 0;
+  // This site's per-day error counts over the window. `{}` for a platform that
+  // has captured nothing, which draws a flat baseline.
+  const trend = trendByPlatform[selected.slug] ?? {};
   const refreshOn = autoRefreshMap[selected.slug]?.enabled ?? false;
   const activePct = stats.total ? (stats.active / stats.total) * 100 : 0;
   const pausedPct = stats.total ? (stats.paused / stats.total) * 100 : 0;
@@ -470,26 +520,60 @@ export default async function AutomationsBetaPage({
               </div>
 
               <div className="space-y-5 p-6">
-                {/* Four figures, then the split as a proportion. */}
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  <Figure label="Tracked" value={stats.total} />
-                  <Figure
-                    label="Active"
-                    value={stats.active}
-                    valueClassName="text-emerald-600"
-                  />
-                  <Figure label="Paused" value={stats.paused} />
-                  <Figure
-                    label="Errors"
-                    value={errors}
-                    valueClassName={
-                      errors > 0 ? "text-red-600" : "text-zinc-400"
-                    }
-                  />
-                </div>
+                {/* ⚠️⚠️ WHAT USED TO BE HERE, and do not bring it back without
+                    asking: Alpha3's FOUR FIGURE CARDS (Tracked / Active /
+                    Paused / Errors in ring-outlined boxes) followed by a
+                    standalone proportion bar with a three-part legend.
+                    The user replaced both on 2026-09-03: "I liked the
+                    statistics in S1. Replace these stuff in S2 with that."
+                    S1 was the LIVE HUB, so the two blocks below are the live
+                    page's own statistics treatment, brought over verbatim.
+                    That also means the `Figure` helper lost its only caller.
 
+                    WHY IT IS BETTER HERE: Alpha3's four boxes gave the total
+                    and its own parts the same visual weight, so "115" competed
+                    with the "16" and "99" that add up to it. Below, the total
+                    leads and the split is a proportion. */}
+
+                {/* ⭐ THE COUNTS BLOCK, from the live hub. The total at 3xl with
+                    "automations" beside it, the split as two dotted figures on
+                    the right, and a proportion bar under both. */}
                 <div>
-                  <div className="flex h-2 w-full overflow-hidden rounded-full bg-zinc-100">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="font-heading text-3xl font-semibold leading-none tabular-nums text-zinc-900">
+                        {stats.total}
+                      </span>
+                      <span className="text-xs text-zinc-500">automations</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-xs text-zinc-600">
+                      <span className="flex items-center gap-1.5">
+                        {/* Active takes the website's own brand colour, so the
+                            dot, the bar below and the rail's accent spine are
+                            all the same colour for a given site. */}
+                        <span
+                          className="h-2 w-2 rounded-full"
+                          style={{ backgroundColor: accent }}
+                        />
+                        <span className="font-semibold tabular-nums text-zinc-900">
+                          {stats.active}
+                        </span>
+                        active
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="h-2 w-2 rounded-full bg-zinc-300" />
+                        <span className="font-semibold tabular-nums text-zinc-900">
+                          {stats.paused}
+                        </span>
+                        paused
+                      </span>
+                    </div>
+                  </div>
+                  {/* The split as one bar. Widths are percentages of the site's
+                      OWN total, so the bar always fills; a website with 0
+                      automations leaves it empty grey, which is the honest
+                      picture. */}
+                  <div className="mt-2.5 flex h-1.5 w-full overflow-hidden rounded-full bg-zinc-100">
                     <span
                       style={{
                         width: `${activePct}%`,
@@ -501,24 +585,49 @@ export default async function AutomationsBetaPage({
                       style={{ width: `${pausedPct}%` }}
                     />
                   </div>
-                  <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-zinc-600">
-                    <span className="flex items-center gap-1.5">
+                </div>
+
+                {/* ⭐ THE ERROR PANEL, from the live hub. One grey block with
+                    the lifetime count, how long ago the last one was, and a
+                    30-day bar chart. It brought the per-(platform, day) trend
+                    query, `TREND_DAYS` and the `Sparkline` component back to
+                    this page; Alpha3's layout had no home for any of them.
+                    THE POINT OF IT: a big number that stopped growing reads
+                    completely differently from one still growing. Make's 35 and
+                    n8n's 599 look like the same kind of fact as bare figures,
+                    which is exactly what the Errors figure card did.
+                    ⚠️ THIS DUPLICATES THE META STRIP'S "LAST ERROR" CELL below,
+                    which says the same "34d ago". The user's instruction covered
+                    the statistics only, so nothing was removed; raised with them
+                    separately. */}
+                <div className="rounded-lg bg-zinc-50 p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-baseline gap-1.5">
                       <span
-                        className="h-2 w-2 rounded-full"
-                        style={{ backgroundColor: accent }}
-                      />
-                      {stats.active} active
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <span className="h-2 w-2 rounded-full bg-zinc-300" />
-                      {stats.paused} paused
-                    </span>
-                    <span className="text-zinc-400">
-                      {stats.total
-                        ? `${Math.round(activePct)}% of this website is running`
-                        : "nothing tracked yet"}
+                        className={cn(
+                          "text-lg font-semibold leading-none tabular-nums",
+                          errors > 0 ? "text-red-600" : "text-zinc-400",
+                        )}
+                      >
+                        {errors}
+                      </span>
+                      <span className="text-xs text-zinc-500">
+                        {errors === 1 ? "error" : "errors"} captured
+                      </span>
+                    </div>
+                    {/* User-set wording. Singular at 1, "today" at 0 because
+                        the day count is FLOORED, and "not tracked yet" when the
+                        platform has captured nothing ever (permanent for GHL,
+                        GHL b2b and Zapier). */}
+                    <span className="text-[11px] text-zinc-500">
+                      {days === undefined
+                        ? "not tracked yet"
+                        : days === 0
+                          ? "Last Error today"
+                          : `Last Error ${days} day${days === 1 ? "" : "s"} ago`}
                     </span>
                   </div>
+                  <Sparkline dayKeys={dayKeys} counts={trend} />
                 </div>
 
                 {/* Meta strip: the facts the card design spends two labelled
@@ -570,33 +679,13 @@ export default async function AutomationsBetaPage({
                 {/* The two lists that only fit because this layout gave one
                     website the whole canvas. */}
                 <div className="grid gap-4 lg:grid-cols-2">
-                  <Panel
-                    title="Latest errors"
-                    hint={`newest ${PANEL_ROWS}`}
-                    empty={siteErrors.length === 0}
-                    emptyLabel={
-                      hasKey
-                        ? "No errors captured for this website."
-                        : "Error capture is not available for this website."
-                    }
-                  >
-                    {siteErrors.map((row) => (
-                      <li key={row.id} className="px-3.5 py-2.5">
-                        <div className="flex items-baseline justify-between gap-2">
-                          <span className="truncate text-sm font-medium text-zinc-900">
-                            {row.name}
-                          </span>
-                          <span className="shrink-0 text-[11px] tabular-nums text-zinc-400">
-                            {agoLabel(new Date(row.occurredAt))}
-                          </span>
-                        </div>
-                        <p className="mt-0.5 truncate text-xs text-zinc-500">
-                          {row.message ?? "No message recorded"}
-                        </p>
-                      </li>
-                    ))}
-                  </Panel>
-
+                  {/* ⚠️ RECENTLY EDITED IS DELIBERATELY FIRST. Alpha3 had
+                    Latest errors on the left; the user swapped them on
+                    2026-09-03 ("switch the position of the 'recently edited'
+                    and 'last errors' cards"). Do not reorder back to match
+                    Alpha3.
+                    Both are PANEL_ROWS long and only fit at all because this
+                    layout gives one website the whole canvas. */}
                   <Panel
                     title="Recently edited"
                     hint="on the website"
@@ -621,6 +710,33 @@ export default async function AutomationsBetaPage({
                           <PencilLine className="h-3 w-3 shrink-0" />
                           {row.status === "active" ? "Active" : "Paused"}
                         </span>
+                      </li>
+                    ))}
+                  </Panel>
+
+                  <Panel
+                    title="Latest errors"
+                    hint={`newest ${PANEL_ROWS}`}
+                    empty={siteErrors.length === 0}
+                    emptyLabel={
+                      hasKey
+                        ? "No errors captured for this website."
+                        : "Error capture is not available for this website."
+                    }
+                  >
+                    {siteErrors.map((row) => (
+                      <li key={row.id} className="px-3.5 py-2.5">
+                        <div className="flex items-baseline justify-between gap-2">
+                          <span className="truncate text-sm font-medium text-zinc-900">
+                            {row.name}
+                          </span>
+                          <span className="shrink-0 text-[11px] tabular-nums text-zinc-400">
+                            {agoLabel(new Date(row.occurredAt))}
+                          </span>
+                        </div>
+                        <p className="mt-0.5 truncate text-xs text-zinc-500">
+                          {row.message ?? "No message recorded"}
+                        </p>
                       </li>
                     ))}
                   </Panel>
@@ -711,27 +827,52 @@ function SiteGlyph({
   );
 }
 
-function Figure({
-  label,
-  value,
-  valueClassName,
+// NOTE: Alpha3's `Figure` helper (a big number over a small uppercase label, in
+// a ring-outlined box) used to live here. It powered the four Tracked / Active /
+// Paused / Errors cards, and went with them on 2026-09-03 when the live hub's
+// statistics replaced that grid. It had no other caller.
+
+/** ⭐ The error bar chart under the panel's count, from the live hub.
+ *
+ *  `dayKeys` comes in already built for the whole window, so a day with no
+ *  errors still gets a bar (a flat 3px grey stub) instead of being skipped. A
+ *  gap in the data then reads as a quiet day rather than as missing time.
+ *
+ *  ⚠️ Heights are relative to THIS site's own max, not a global one. A site with
+ *  a single error still shows a readable bar, at the cost of the sites not being
+ *  comparable by height. Deliberate: only one site is on screen here, which
+ *  makes it even less of a trade-off than it was on the card grid. */
+function Sparkline({
+  dayKeys,
+  counts,
 }: {
-  label: string;
-  value: number;
-  valueClassName?: string;
+  dayKeys: string[];
+  counts: Record<string, number>;
 }) {
+  const values = dayKeys.map((k) => counts[k] ?? 0);
+  const max = Math.max(...values, 0);
   return (
-    <div className="rounded-lg px-3 py-2.5 ring-1 ring-foreground/10">
-      <div
-        className={cn(
-          "font-heading text-2xl font-semibold leading-none tabular-nums text-zinc-900",
-          valueClassName,
-        )}
-      >
-        {value}
+    <div className="mt-2.5">
+      <div className="flex h-7 items-end gap-[3px]">
+        {values.map((v, i) => (
+          <span
+            key={dayKeys[i]}
+            title={`${dayKeys[i]}: ${v}`}
+            className={cn(
+              "flex-1 rounded-[2px]",
+              v > 0 ? "bg-red-400" : "bg-zinc-200",
+            )}
+            style={{
+              // The 12% floor keeps a 1-error day from rendering as a hairline
+              // next to a 40-error day. Zero days get a flat 3px stub instead.
+              height:
+                max > 0 && v > 0 ? `${Math.max(12, (v / max) * 100)}%` : "3px",
+            }}
+          />
+        ))}
       </div>
-      <div className="mt-1.5 text-[11px] uppercase tracking-wider text-zinc-500">
-        {label}
+      <div className="mt-1.5 text-[10px] uppercase tracking-wider text-zinc-400">
+        Last {dayKeys.length} days
       </div>
     </div>
   );
