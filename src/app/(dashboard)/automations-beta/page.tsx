@@ -533,24 +533,39 @@ export default async function AutomationsBetaPage({
                           detail panel, and widening the rail does not fix it
                           because the overflow scales too. A fixed width is the
                           only reliable way to size these. */}
-                      <span className="flex shrink-0 items-stretch gap-1">
-                        <Link
-                          href={`/automations/${site.slug}/errors`}
-                          aria-label={`${site.label} error history`}
-                          title="Error History"
-                          className="inline-flex w-8 items-center justify-center rounded-md border bg-white text-zinc-600 ring-1 ring-foreground/10 transition-colors hover:bg-zinc-50 hover:text-zinc-900"
-                        >
-                          <AlertTriangle className="h-3.5 w-3.5" />
-                        </Link>
-                        <Link
-                          href={`/automations/${site.slug}`}
-                          aria-label={`${site.label} automation list`}
-                          title="View list"
-                          className="inline-flex w-8 items-center justify-center rounded-md bg-zinc-900 text-white transition-colors hover:bg-zinc-800"
-                        >
-                          <List className="h-3.5 w-3.5" />
-                        </Link>
-                      </span>
+                      {/* ⚠️⚠️ HIDDEN ON THE SELECTED ROW, and the card then
+                          fills the width on its own because it is `flex-1`.
+                          User, 2026-09-03: "make them disappear and make the
+                          website card fill their space when that specific
+                          website is currently selected and being displayed on
+                          the right side."
+                          WHY IT IS RIGHT rather than just tidier: the detail
+                          panel on the right ALREADY shows Error History and
+                          View list for whichever site is selected. So for that
+                          one row the pair is a duplicate of what is on screen a
+                          few hundred pixels away, and every OTHER row is the
+                          only place to reach those two pages without switching
+                          selection first. */}
+                      {!isCurrent && (
+                        <span className="flex shrink-0 items-stretch gap-1">
+                          <Link
+                            href={`/automations/${site.slug}/errors`}
+                            aria-label={`${site.label} error history`}
+                            title="Error History"
+                            className="inline-flex w-8 items-center justify-center rounded-md border bg-white text-zinc-600 ring-1 ring-foreground/10 transition-colors hover:bg-zinc-50 hover:text-zinc-900"
+                          >
+                            <AlertTriangle className="h-3.5 w-3.5" />
+                          </Link>
+                          <Link
+                            href={`/automations/${site.slug}`}
+                            aria-label={`${site.label} automation list`}
+                            title="View list"
+                            className="inline-flex w-8 items-center justify-center rounded-md bg-zinc-900 text-white transition-colors hover:bg-zinc-800"
+                          >
+                            <List className="h-3.5 w-3.5" />
+                          </Link>
+                        </span>
+                      )}
                     </div>
                   );
                 })}
