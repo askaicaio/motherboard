@@ -323,12 +323,14 @@ export default async function AutomationsBetaPage({
                     click and you never lose your bearings. ---- */}
             {/* ⚠️ w-80, WIDENED FROM Alpha3's w-64 on 2026-09-03, costing the
                     detail panel about 64px.
-                    ⚠️ THE REASON IT WAS WIDENED IS GONE: it was widened purely
-                    so the action buttons could be square at the card's height,
-                    and the user narrowed those buttons back to 32px later the
-                    same day. The extra width now just gives the cards more
-                    room. RAISED WITH THEM; they can have w-64 back and hand the
-                    64px to the detail panel whenever they want. */}
+                    ⚠️ THE REASON IT WAS WIDENED IS GONE, AND THE WIDTH IS KEPT
+                    ANYWAY, DELIBERATELY. It was widened purely so the action
+                    buttons could be square at the card's height, and the user
+                    narrowed those buttons back to 32px later the same day. I
+                    put the choice to them (keep the roomier cards, or return
+                    w-64 and hand the 64px back to the detail panel) and they
+                    chose to KEEP w-80. So this is a settled decision, not a
+                    leftover: do not "restore" w-64 as a tidy-up. */}
             <div className="flex w-80 shrink-0 flex-col border-r">
               <div className="border-b px-4 py-3">
                 <div className="font-heading text-sm font-semibold text-zinc-900">
