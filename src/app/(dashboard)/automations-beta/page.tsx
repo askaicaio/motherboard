@@ -648,18 +648,34 @@ export default async function AutomationsBetaPage({
                       </p>
                     </div>
                   </div>
-                  {/* ⚠️ REAL LINKS, where Alpha3 renders spans. */}
+                  {/* ⚠️ REAL LINKS, where Alpha3 renders spans.
+                      ⚠️ THE LEADING ICONS MATCH THE RAIL'S PER-ROW BUTTONS, and
+                      that is the whole point of them: user, 2026-09-03, "Add
+                      the icons of the 2 new buttons to their marked counterpart
+                      in S1 respectively." The same AlertTriangle and List
+                      appear on every rail row, so a glance ties the two
+                      together and the rail's icon-only buttons become readable
+                      without their tooltips.
+                      ⚠️ KEEP THEM IN STEP: change an icon here and change the
+                      matching rail button too, or the pairing that justifies
+                      dropping the rail's labels stops holding.
+                      View list keeps its TRAILING chevron as well, so it reads
+                      icon + label + direction. Two glyphs on one small button is
+                      deliberate: the List says what, the chevron says it
+                      navigates away. */}
                   <div className="flex shrink-0 items-center gap-2">
                     <Link
                       href={`/automations/${selected.slug}/errors`}
-                      className="inline-flex h-8 items-center rounded-lg px-2.5 text-xs font-medium text-zinc-600 ring-1 ring-foreground/10 transition-colors hover:bg-zinc-50"
+                      className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-zinc-600 ring-1 ring-foreground/10 transition-colors hover:bg-zinc-50"
                     >
+                      <AlertTriangle className="h-3.5 w-3.5" />
                       Error History
                     </Link>
                     <Link
                       href={`/automations/${selected.slug}`}
-                      className="inline-flex h-8 items-center gap-1 rounded-lg bg-zinc-900 px-2.5 text-xs font-medium text-white transition-colors hover:bg-zinc-800"
+                      className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-zinc-900 px-2.5 text-xs font-medium text-white transition-colors hover:bg-zinc-800"
                     >
+                      <List className="h-3.5 w-3.5" />
                       View list
                       <ChevronRight className="h-3.5 w-3.5" />
                     </Link>
