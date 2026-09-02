@@ -321,11 +321,14 @@ export default async function AutomationsBetaPage({
           <div className="flex min-h-[640px] overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10">
             {/* ---- Rail. Every website, always visible, so switching costs one
                     click and you never lose your bearings. ---- */}
-            {/* ⚠️ w-80, WIDENED FROM Alpha3's w-64 on 2026-09-03. The user
-                    chose to widen the rail rather than accept non-square action
-                    buttons, so this costs the detail panel about 64px. The rail
-                    width, the row height and the button width are a SET: see
-                    the note on the row below before changing any of them. */}
+            {/* ⚠️ w-80, WIDENED FROM Alpha3's w-64 on 2026-09-03, costing the
+                    detail panel about 64px.
+                    ⚠️ THE REASON IT WAS WIDENED IS GONE: it was widened purely
+                    so the action buttons could be square at the card's height,
+                    and the user narrowed those buttons back to 32px later the
+                    same day. The extra width now just gives the cards more
+                    room. RAISED WITH THEM; they can have w-64 back and hand the
+                    64px to the detail panel whenever they want. */}
             <div className="flex w-80 shrink-0 flex-col border-r">
               <div className="border-b px-4 py-3">
                 <div className="font-heading text-sm font-semibold text-zinc-900">
@@ -510,31 +513,30 @@ export default async function AutomationsBetaPage({
                           the status dot beside the name already signals trouble
                           by recency, and the count is in the detail panel.
 
-                          ⚠️⚠️ THESE ARE SQUARE VIA A FIXED SIZE, AND THAT IS
-                          DELIBERATE: `h-14` on the row, `w-14` here, so both
-                          axes are 56px and the buttons match the card's height
-                          exactly.
-                          DO NOT "SIMPLIFY" THIS TO `aspect-square`. It looks
-                          like the obvious tool and it is broken here. MEASURED
-                          IN THE BROWSER 2026-09-03: flex sizes these items from
-                          their CONTENT (a ~14px icon), `shrink-0` stops them
-                          shrinking, and only THEN does `aspect-ratio` paint them
-                          at the stretched height. The layout never accounts for
-                          that painted width, so the row overflowed the rail by
-                          71px with the buttons spilling over the detail panel.
-                          Widening the rail does not fix it; the overflow scales
-                          with it.
-                          ⚠️ RAIL WIDTH, ROW HEIGHT AND BUTTON WIDTH ARE A SET.
-                          w-80 rail leaves 304px of nav content: 56 + 4 + 56 for
-                          the buttons, 8 for the gap, 180 for the card, of which
-                          about 137 reaches the text. "GHL b2b" needs about 87.
-                          Change one and re-check the other two. */}
+                          ⚠️ SIZING: `w-8` (32px) wide, FULL CARD HEIGHT via the
+                          row's `h-14` + `items-stretch`. So 32 x 56, tall
+                          rectangles rather than squares.
+                          ⚠️ THEY WERE BRIEFLY SQUARE (`w-14`, 56 x 56) and the
+                          user narrowed them the same day: "make these buttons
+                          narrower, about as narrow as it was before." Square is
+                          NOT the target; do not restore `w-14`.
+                          ⚠️⚠️ AND DO NOT REACH FOR `aspect-square` EITHER. It
+                          looks like the obvious tool and it is broken here.
+                          MEASURED IN THE BROWSER 2026-09-03: flex sizes these
+                          items from their CONTENT (a ~14px icon), `shrink-0`
+                          stops them shrinking, and only THEN does `aspect-ratio`
+                          paint them at the stretched height. The layout never
+                          accounts for that painted width, so the row overflowed
+                          the rail by 71px with the buttons spilling over the
+                          detail panel, and widening the rail does not fix it
+                          because the overflow scales too. A fixed width is the
+                          only reliable way to size these. */}
                       <span className="flex shrink-0 items-stretch gap-1">
                         <Link
                           href={`/automations/${site.slug}/errors`}
                           aria-label={`${site.label} error history`}
                           title="Error History"
-                          className="inline-flex w-14 items-center justify-center rounded-md border bg-white text-zinc-600 ring-1 ring-foreground/10 transition-colors hover:bg-zinc-50 hover:text-zinc-900"
+                          className="inline-flex w-8 items-center justify-center rounded-md border bg-white text-zinc-600 ring-1 ring-foreground/10 transition-colors hover:bg-zinc-50 hover:text-zinc-900"
                         >
                           <AlertTriangle className="h-3.5 w-3.5" />
                         </Link>
@@ -542,7 +544,7 @@ export default async function AutomationsBetaPage({
                           href={`/automations/${site.slug}`}
                           aria-label={`${site.label} automation list`}
                           title="View list"
-                          className="inline-flex w-14 items-center justify-center rounded-md bg-zinc-900 text-white transition-colors hover:bg-zinc-800"
+                          className="inline-flex w-8 items-center justify-center rounded-md bg-zinc-900 text-white transition-colors hover:bg-zinc-800"
                         >
                           <List className="h-3.5 w-3.5" />
                         </Link>
