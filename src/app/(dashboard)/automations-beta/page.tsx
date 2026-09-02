@@ -383,10 +383,13 @@ export default async function AutomationsBetaPage({
                       />
                       <SiteGlyph site={site} className="h-5 w-5" />
                       <span className="min-w-0 flex-1">
-                        {/* ⭐ THE TITLE LINE now reads: (dot) Name (refresh
-                            icon). The user's own sketch, 2026-09-03: "Right now
-                            it is just: Make. But i want it to look like
-                            (.) Make (Green Refresh Icon)".
+                        {/* ⭐ THE TITLE LINE reads: Name (dot) (refresh icon).
+                            The user sketched it as "(.) Make (Green Refresh
+                            Icon)" on 2026-09-03 and then moved the dot the same
+                            day: "Put the dot after the website title instead,
+                            but before the refresh icon." So the ORDER IS
+                            DELIBERATE and is not the sketch; do not restore the
+                            leading dot.
                             Both indicators are LABEL-LESS here on purpose:
                             "remove the text on the colored dot so the pill only
                             has the colored dot", and the refresh was asked for
@@ -402,14 +405,6 @@ export default async function AutomationsBetaPage({
                             indicators are `shrink-0` so the name yields first. */}
                         <span className="flex items-center gap-1.5">
                           <span
-                            aria-label={siteStat.label}
-                            title={siteStat.label}
-                            className={cn(
-                              "h-1.5 w-1.5 shrink-0 rounded-full",
-                              TONE_DOTS[siteStat.tone],
-                            )}
-                          />
-                          <span
                             className={cn(
                               "min-w-0 truncate text-sm",
                               isCurrent
@@ -419,6 +414,14 @@ export default async function AutomationsBetaPage({
                           >
                             {site.label}
                           </span>
+                          <span
+                            aria-label={siteStat.label}
+                            title={siteStat.label}
+                            className={cn(
+                              "h-1.5 w-1.5 shrink-0 rounded-full",
+                              TONE_DOTS[siteStat.tone],
+                            )}
+                          />
                           <span
                             aria-label={
                               siteRefreshOn
