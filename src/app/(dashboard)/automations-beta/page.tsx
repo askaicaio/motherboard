@@ -494,6 +494,28 @@ export default async function AutomationsBetaPage({
                           {selected.label}
                         </h2>
                         <StatusPill tone={status.tone} label={status.label} />
+                        {/* ⭐ THE AUTO-REFRESH INDICATOR, copied from the live
+                            hub's footer strip and placed here by the user on
+                            2026-09-03 ("copy the feature in S1 and put it in
+                            the location on S2"). Icon goes emerald when on,
+                            zinc when off, and the label says which, so it reads
+                            without relying on colour alone.
+                            Display-only, same as on the live hub: the real
+                            toggle lives on each per-website page. `refreshOn`
+                            is the same stored app-setting that toggle writes.
+                            ⚠️ THIS DUPLICATES THE META STRIP'S "AUTO-REFRESH"
+                            CELL below. The instruction was to place this one,
+                            not to remove that one, so nothing was removed;
+                            raised with the user separately. */}
+                        <span className="flex shrink-0 items-center gap-1 text-[11px] text-zinc-500">
+                          <RefreshCw
+                            className={cn(
+                              "h-3 w-3 shrink-0",
+                              refreshOn ? "text-emerald-600" : "text-zinc-400",
+                            )}
+                          />
+                          {refreshOn ? "Auto-refresh on" : "Auto-refresh off"}
+                        </span>
                       </div>
                       <p className="mt-0.5 text-sm text-zinc-600">
                         {selected.description}
