@@ -334,7 +334,8 @@ export default async function AutomationsBetaPage({
                     paused: 0,
                   };
                   const isCurrent = site.slug === selected.slug;
-                  const siteErrorCount = errorCounts[site.slug] ?? 0;
+                  // NOTE: `siteErrorCount` was read here for the red badge on
+                  // the right of each row. Both went on 2026-09-03.
                   // Same two indicators the detail header carries, per rail
                   // row. Both come from the SAME rules as the header's pill:
                   // `siteStatus()` for the dot, the stored auto-refresh setting
@@ -377,9 +378,11 @@ export default async function AutomationsBetaPage({
                             Both indicators are LABEL-LESS here on purpose:
                             "remove the text on the colored dot so the pill only
                             has the colored dot", and the refresh was asked for
-                            as an icon. The rail is only w-64 and already carries
-                            "N tracked" plus the error badge, so labels would not
-                            fit anyway.
+                            as an icon. The rail is only w-64, and the user has
+                            since stripped it further still (the word "tracked"
+                            and the red error badge both went on 2026-09-03), so
+                            the direction of travel here is FEWER words, not
+                            more. Do not add labels to these.
                             ⚠️ THE LOST LABELS ARE RESTORED ON HOVER via `title`,
                             or the dot's colour would be the only clue to a
                             four-state value. The row is a <Link> with no title
@@ -429,15 +432,26 @@ export default async function AutomationsBetaPage({
                             />
                           </span>
                         </span>
+                        {/* ⚠️ THE BARE NUMBER IS DELIBERATE. This read
+                            "{n} tracked" until 2026-09-03, when the user cut
+                            the word: "Remove the 'Tracked' text here, leaving
+                            the number alone beside it." Do not put a label
+                            back; the "Sources" heading and the site name above
+                            already say what the number counts. */}
                         <span className="block text-[11px] tabular-nums text-zinc-500">
-                          {s.total} tracked
+                          {s.total}
                         </span>
                       </span>
-                      {siteErrorCount > 0 && (
-                        <span className="shrink-0 rounded-full bg-red-50 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-red-600">
-                          {siteErrorCount}
-                        </span>
-                      )}
+                      {/* ⚠️ A RED ERROR-COUNT BADGE USED TO SIT HERE, on the far
+                          right of the row: a rounded red pill with the site's
+                          lifetime error total, shown only when above zero.
+                          REMOVED 2026-09-03 ("Remove the red text i marked as
+                          well"). Do not put it back.
+                          The row still signals trouble: the STATUS DOT beside
+                          the name goes red for "Erroring" and amber for
+                          "Recent errors", which is recency rather than a
+                          lifetime tally, and the count itself is one click away
+                          in the detail panel's error block. */}
                     </Link>
                   );
                 })}
