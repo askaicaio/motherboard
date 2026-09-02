@@ -221,6 +221,48 @@ export default async function AutomationsBetaPage({
   const refreshOn = autoRefreshMap[selected.slug]?.enabled ?? false;
   const activePct = stats.total ? (stats.active / stats.total) * 100 : 0;
   const pausedPct = stats.total ? (stats.paused / stats.total) * 100 : 0;
+  // -------------------------------------------------------------------------
+  // THE STATUS PILL beside the website's name. Picked from Alpha3 with the rest
+  // of this design; reviewed and accepted by the user on 2026-09-03 ("the
+  // feature seems fine"). It is the one per-site element the card design on
+  // /automations does not have.
+  //
+  // A FOUR-RUNG LADDER, FIRST MATCH WINS, from exactly two inputs:
+  //
+  //   1. no API key                      -> "Not connected"   (grey)
+  //   2. last error 0 or 1 days ago      -> "Erroring"        (red)
+  //   3. last error 2 to 7 days ago      -> "Recent errors"   (amber)
+  //   4. anything else                   -> "Healthy"         (green)
+  //
+  // THE TWO INPUTS, and the second one is the subtle one:
+  //   - `hasKey` = `platformHasApiKey()`, which checks the env vars are
+  //     PRESENT. Make wants a token; n8n wants a key AND a base URL; each GHL
+  //     wants a token AND a location id; Zapier always returns false.
+  //   - `days` = whole days since the most recent CAPTURED error, floored.
+  //     ⚠️ It is `undefined`, not 0, when the platform has never captured one.
+  //     That is why rungs 2 and 3 both re-test `days !== undefined`: without
+  //     it, `undefined <= 1` would be false anyway, but the intent would be
+  //     unreadable.
+  //
+  // ⚠️⚠️ TWO ACCEPTED WEAKNESSES. Both are inherited from Alpha3, where this
+  // pill was a static visual and nothing depended on it. The user was shown
+  // both and judged the feature fine as-is, so DO NOT "fix" them unprompted.
+  //
+  //   (a) "Healthy" is ALSO what "cannot report otherwise" looks like. GHL and
+  //       GHL b2b have keys, and GHL error tracking is confirmed impossible via
+  //       their API ([[automations-ghl-error-api]]), so their `days` is
+  //       permanently undefined and they fall through to rung 4 forever. Same
+  //       for any platform that simply has not errored yet. The pill cannot
+  //       distinguish "verified fine" from "no evidence either way".
+  //       If this ever needs closing, the shape is a fifth rung: `days`
+  //       undefined AND the platform cannot capture -> "Not tracked".
+  //
+  //   (b) It reads key PRESENCE, never key VALIDITY. This page already loads
+  //       `health.results[slug].ok` (the last stored Auto-API health check) and
+  //       hands it to the CopyApiKeyButton below, but the pill does not look at
+  //       it. So a platform whose key is present but FAILING its last health
+  //       check still shows "Healthy" or "Erroring", never "Not connected".
+  // -------------------------------------------------------------------------
   const status: { tone: Tone; label: string } = !hasKey
     ? { tone: "off", label: "Not connected" }
     : days !== undefined && days <= 1
@@ -612,6 +654,10 @@ const TONE_DOTS: Record<Tone, string> = {
   off: "bg-zinc-400",
 };
 
+/** The pill beside the selected website's name. PRESENTATION ONLY: it renders
+ *  whatever tone and label it is handed. **The rules that choose them live at
+ *  the `status` derivation in the page body, documented there.** Change the
+ *  logic there, not here. */
 function StatusPill({ tone, label }: { tone: Tone; label: string }) {
   return (
     <span
