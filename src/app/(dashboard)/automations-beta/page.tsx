@@ -19,24 +19,29 @@
 //   - "Run health check" (one static pill on Alpha3) is the REAL pair: the
 //     Auto-API health check toggle + the API Health Check button, inside their
 //     HealthCheckProvider and a TooltipProvider.
-//   - Error History, View list and the three rail Tools are real <Link>s.
+//   - Error History, View list, the three rail Tools and the two per-row rail
+//     buttons are all real <Link>s.
 //   - the API status button is the real CopyApiKeyButton, which runs a LIVE
 //     verify on click.
 //
-// ⚠️ THE ONE THING THIS PAGE HAS THAT ALPHA3 DOES NOT: a CopyApiKeyButton row
-// under the meta strip. Alpha3 folded the API-key FACT into that strip and
-// dropped the CONTROL, because it has no working controls at all. Beta needs the
-// control, and directly under the fact it re-verifies is the least surprising
-// home for it. It is the only addition; everything else is Alpha3's markup.
+// ⚠️ WHAT THIS PAGE HAS THAT ALPHA3 DOES NOT, all at the user's direction:
+//   - the CopyApiKeyButton. Alpha3 kept the API-key FACT in a status strip and
+//     dropped the CONTROL, having no working controls at all. Beta kept the
+//     control; the strip itself was removed on 2026-09-03, so this button is
+//     now the only place the API key is reported.
+//   - two square icon buttons on every rail row (Error History, View list),
+//     mirroring the detail header's pair per site.
 //
 // ⚠️ WHAT ALPHA3'S PREMISE IS, so a future edit does not flatten it back out:
 // the live page gives all 5 websites an equal, shallow slice of the screen,
 // which is a summary, and a summary is what you want when everything is fine.
 // This assumes you arrive because ONE website is on your mind, so it gives that
 // website the whole canvas and demotes the other four to a rail. The depth that
-// buys: the site's own latest errors WITH the message text, what was edited on
-// the source website most recently (which no hub surface shows), and its
-// connection / refresh / error-recency facts in one meta strip.
+// buys: the site's own latest errors WITH the message text, and what was edited
+// on the source website most recently, which no hub surface shows.
+// (Alpha3 also folded connection / refresh / error-recency into a four-column
+// status strip. That strip was removed on 2026-09-03 once three of its four
+// cells duplicated something else on the page.)
 //
 // Selection is a real URL query (?site=<slug>), read on the SERVER, so the rail
 // is plain links and needs no client JS.
@@ -50,7 +55,10 @@
 import Link from "next/link";
 // NOTE: Activity, Clock and KeyRound went with the status strip on
 // 2026-09-03; it was the only place any of them was used.
+// AlertTriangle is this app's established error icon (six other call sites), so
+// the rail's Error History button uses it rather than introducing a second one.
 import {
+  AlertTriangle,
   ChevronRight,
   Inbox,
   List,
@@ -347,28 +355,41 @@ export default async function AutomationsBetaPage({
                   const siteRefreshOn =
                     autoRefreshMap[site.slug]?.enabled ?? false;
                   return (
-                    <Link
+                    // ⚠️⚠️ THE ROW IS A <div>, NOT A <Link>, AND IT HAS TO BE.
+                    // It used to be one Link wrapping everything. The two action
+                    // buttons added on 2026-09-03 are themselves links, and
+                    // NESTING AN <a> INSIDE AN <a> IS INVALID HTML: the browser
+                    // silently un-nests it and the row's click target breaks.
+                    // So the row is a plain div; the site-select Link now covers
+                    // the spine, glyph and text (flex-1, so still nearly the
+                    // whole row), and the buttons sit OUTSIDE it as siblings.
+                    // The hover tint moved up here so hovering anywhere in the
+                    // row, buttons included, still highlights it.
+                    <div
                       key={site.slug}
-                      href={`/automations-beta?site=${site.slug}`}
                       className={cn(
-                        "flex items-center gap-2.5 rounded-lg px-2.5 py-2 transition-colors",
+                        "flex items-center gap-2 rounded-lg px-2.5 py-2 transition-colors",
                         isCurrent ? "bg-zinc-100" : "hover:bg-zinc-50",
                       )}
                     >
-                      {/* Accent spine, full opacity on the selected row and
+                      <Link
+                        href={`/automations-beta?site=${site.slug}`}
+                        className="flex min-w-0 flex-1 items-center gap-2.5"
+                      >
+                        {/* Accent spine, full opacity on the selected row and
                           faint on the rest, so the current website is obvious
                           without a second indicator. */}
-                      <span
-                        aria-hidden
-                        className="h-7 w-[3px] shrink-0 rounded-full"
-                        style={{
-                          backgroundColor: ACCENT[site.slug],
-                          opacity: isCurrent ? 1 : 0.35,
-                        }}
-                      />
-                      <SiteGlyph site={site} className="h-5 w-5" />
-                      <span className="min-w-0 flex-1">
-                        {/* ⭐ THE TITLE LINE reads: Name (dot) (refresh icon).
+                        <span
+                          aria-hidden
+                          className="h-7 w-[3px] shrink-0 rounded-full"
+                          style={{
+                            backgroundColor: ACCENT[site.slug],
+                            opacity: isCurrent ? 1 : 0.35,
+                          }}
+                        />
+                        <SiteGlyph site={site} className="h-5 w-5" />
+                        <span className="min-w-0 flex-1">
+                          {/* ⭐ THE TITLE LINE reads: Name (dot) (refresh icon).
                             The user sketched it as "(.) Make (Green Refresh
                             Icon)" on 2026-09-03 and then moved the dot the same
                             day: "Put the dot after the website title instead,
@@ -385,74 +406,102 @@ export default async function AutomationsBetaPage({
                             more. Do not add labels to these.
                             ⚠️ THE LOST LABELS ARE RESTORED ON HOVER via `title`,
                             or the dot's colour would be the only clue to a
-                            four-state value. The row is a <Link> with no title
-                            of its own, so these win rather than being swallowed.
+                            four-state value. These sit inside the site-select
+                            <Link>, which carries no `title` of its own, so they
+                            win rather than being swallowed by an ancestor's.
                             ⚠️ This is a FLEX row now, so the name keeps
                             `truncate` and needs `min-w-0` to shrink; the two
                             indicators are `shrink-0` so the name yields first. */}
-                        <span className="flex items-center gap-1.5">
-                          <span
-                            className={cn(
-                              "min-w-0 truncate text-sm",
-                              isCurrent
-                                ? "font-semibold text-zinc-900"
-                                : "font-medium text-zinc-700",
-                            )}
-                          >
-                            {site.label}
-                          </span>
-                          <span
-                            aria-label={siteStat.label}
-                            title={siteStat.label}
-                            className={cn(
-                              "h-1.5 w-1.5 shrink-0 rounded-full",
-                              TONE_DOTS[siteStat.tone],
-                            )}
-                          />
-                          <span
-                            aria-label={
-                              siteRefreshOn
-                                ? "Auto-refresh on"
-                                : "Auto-refresh off"
-                            }
-                            title={
-                              siteRefreshOn
-                                ? "Auto-refresh on"
-                                : "Auto-refresh off"
-                            }
-                            className="shrink-0"
-                          >
-                            <RefreshCw
+                          <span className="flex items-center gap-1.5">
+                            <span
                               className={cn(
-                                "h-3 w-3",
-                                siteRefreshOn
-                                  ? "text-emerald-600"
-                                  : "text-zinc-400",
+                                "min-w-0 truncate text-sm",
+                                isCurrent
+                                  ? "font-semibold text-zinc-900"
+                                  : "font-medium text-zinc-700",
+                              )}
+                            >
+                              {site.label}
+                            </span>
+                            <span
+                              aria-label={siteStat.label}
+                              title={siteStat.label}
+                              className={cn(
+                                "h-1.5 w-1.5 shrink-0 rounded-full",
+                                TONE_DOTS[siteStat.tone],
                               )}
                             />
+                            <span
+                              aria-label={
+                                siteRefreshOn
+                                  ? "Auto-refresh on"
+                                  : "Auto-refresh off"
+                              }
+                              title={
+                                siteRefreshOn
+                                  ? "Auto-refresh on"
+                                  : "Auto-refresh off"
+                              }
+                              className="shrink-0"
+                            >
+                              <RefreshCw
+                                className={cn(
+                                  "h-3 w-3",
+                                  siteRefreshOn
+                                    ? "text-emerald-600"
+                                    : "text-zinc-400",
+                                )}
+                              />
+                            </span>
+                          </span>
+                          {/* ⚠️ "tracked" WAS CUT AND THEN RESTORED, both on
+                            2026-09-03: "Remove the 'Tracked' text here" then
+                            "Return the 'tracked' text we removed just now". It
+                            stays. */}
+                          <span className="block text-[11px] tabular-nums text-zinc-500">
+                            {s.total} tracked
                           </span>
                         </span>
-                        {/* ⚠️ THE BARE NUMBER IS DELIBERATE. This read
-                            "{n} tracked" until 2026-09-03, when the user cut
-                            the word: "Remove the 'Tracked' text here, leaving
-                            the number alone beside it." Do not put a label
-                            back; the "Sources" heading and the site name above
-                            already say what the number counts. */}
-                        <span className="block text-[11px] tabular-nums text-zinc-500">
-                          {s.total}
-                        </span>
+                      </Link>
+
+                      {/* ⭐ PER-ROW ACTIONS, added 2026-09-03: "Put a white
+                          button and a black button on the space i marked for
+                          each website. Their function mirrors the function of
+                          the two buttons i marked in S1."
+                          S1 was this page's own detail header, so these are its
+                          Error History and View list buttons, per site, square
+                          and icon-only to fit a w-64 rail. Same colours as the
+                          header pair: outline-white for Error History, solid
+                          black for View list, so the primary action reads as
+                          primary in both places.
+                          The white/black pairing carries the hierarchy, and the
+                          `title` carries the meaning that dropping the labels
+                          costs. Icons: AlertTriangle, which is what this app
+                          already uses for errors in six other places, and List,
+                          the same icon the Tools section uses for a list view.
+                          ⚠️ These replaced a red lifetime-error COUNT badge that
+                          sat here until earlier the same day. Do not re-add it;
+                          the status dot beside the name already signals trouble
+                          by recency, and the count is in the detail panel. */}
+                      <span className="flex shrink-0 items-center gap-1">
+                        <Link
+                          href={`/automations/${site.slug}/errors`}
+                          aria-label={`${site.label} error history`}
+                          title="Error History"
+                          className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-white text-zinc-600 ring-1 ring-foreground/10 transition-colors hover:bg-zinc-50 hover:text-zinc-900"
+                        >
+                          <AlertTriangle className="h-3 w-3" />
+                        </Link>
+                        <Link
+                          href={`/automations/${site.slug}`}
+                          aria-label={`${site.label} automation list`}
+                          title="View list"
+                          className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-zinc-900 text-white transition-colors hover:bg-zinc-800"
+                        >
+                          <List className="h-3 w-3" />
+                        </Link>
                       </span>
-                      {/* ⚠️ A RED ERROR-COUNT BADGE USED TO SIT HERE, on the far
-                          right of the row: a rounded red pill with the site's
-                          lifetime error total, shown only when above zero.
-                          REMOVED 2026-09-03 ("Remove the red text i marked as
-                          well"). Do not put it back.
-                          The row still signals trouble: the STATUS DOT beside
-                          the name goes red for "Erroring" and amber for
-                          "Recent errors", which is recency rather than a
-                          lifetime tally, and the count itself is one click away
-                          in the detail panel's error block. */}
-                    </Link>
+                    </div>
                   );
                 })}
               </nav>
