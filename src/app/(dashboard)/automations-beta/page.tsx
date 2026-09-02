@@ -237,7 +237,19 @@ export default async function AutomationsBetaPage({
           button drive the CopyApiKeyButton below it. */}
       <TooltipProvider delay={TOOLTIP_DELAY_MS}>
         <HealthCheckProvider>
-          <div className="flex flex-wrap items-end justify-between gap-4">
+          {/* ⚠️ `items-start`, NOT Alpha3's `items-end`. This is a real bug
+              inherited by copying Alpha3 wholesale, spotted by the user on
+              2026-09-03 ("These elements are misplaced").
+              WHY IT ONLY BREAKS HERE: Alpha3's right-hand side is a SINGLE-LINE
+              static "Run health check" pill, so bottom-aligning it looked fine.
+              This page has the REAL control cluster, which is TWO lines (the
+              toggle row, then "Next check in ..."), and `items-end` dropped the
+              whole cluster down to align its bottom with the SUBTITLE's bottom
+              instead of its top with the heading. The live hub has always used
+              `items-start` here; match it.
+              ⚠️ The DETAIL PANEL's own header row further down is a different
+              row and is correctly `items-start` already. Do not conflate them. */}
+          <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="font-heading text-2xl font-semibold tracking-tight">
