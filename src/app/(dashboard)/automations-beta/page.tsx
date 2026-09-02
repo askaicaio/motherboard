@@ -334,7 +334,10 @@ export default async function AutomationsBetaPage({
                 </div>
               </div>
 
-              <nav className="flex-1 p-2">
+              {/* space-y-1.5: each row is a bordered card as of 2026-09-03,
+                  so they need air between them. Flush cards would butt their
+                  borders into a doubled seam. */}
+              <nav className="flex-1 space-y-1.5 p-2">
                 {AUTOMATION_SITES.map((site) => {
                   const s = statsByPlatform.get(site.slug) ?? {
                     total: 0,
@@ -365,16 +368,31 @@ export default async function AutomationsBetaPage({
                     // whole row), and the buttons sit OUTSIDE it as siblings.
                     // The hover tint moved up here so hovering anywhere in the
                     // row, buttons included, still highlights it.
-                    <div
-                      key={site.slug}
-                      className={cn(
-                        "flex items-center gap-2 rounded-lg px-2.5 py-2 transition-colors",
-                        isCurrent ? "bg-zinc-100" : "hover:bg-zinc-50",
-                      )}
-                    >
+                    // ⚠️ `items-stretch` is what lets the two buttons match the
+                    // card's height. The card sizes itself from its two lines of
+                    // text; the buttons inherit that height rather than
+                    // hard-coding one, so they stay level if the text changes.
+                    // The row itself now carries NO padding or background: the
+                    // card below owns both.
+                    <div key={site.slug} className="flex items-stretch gap-2">
+                      {/* ⭐ THE CARD, 2026-09-03: "Place each of these in its own
+                          card with visible borders." A real `border`, not the
+                          faint `ring-1 ring-foreground/10` used elsewhere on this
+                          page, because "visible" was the ask. Selected rows keep
+                          the zinc-100 fill; the rest are card-white and tint on
+                          hover.
+                          ⚠️ The two action buttons are deliberately OUTSIDE this
+                          card ("The two buttons on the right side should be
+                          outside the card in the same spot"), which is also what
+                          the invalid-nested-anchor rule requires anyway. */}
                       <Link
                         href={`/automations-beta?site=${site.slug}`}
-                        className="flex min-w-0 flex-1 items-center gap-2.5"
+                        className={cn(
+                          "flex min-w-0 flex-1 items-center gap-2.5 rounded-lg border px-2.5 py-2 transition-colors",
+                          isCurrent
+                            ? "bg-zinc-100"
+                            : "bg-card hover:bg-zinc-50",
+                        )}
                       >
                         {/* Accent spine, full opacity on the selected row and
                           faint on the rest, so the current website is obvious
@@ -469,8 +487,8 @@ export default async function AutomationsBetaPage({
                           each website. Their function mirrors the function of
                           the two buttons i marked in S1."
                           S1 was this page's own detail header, so these are its
-                          Error History and View list buttons, per site, square
-                          and icon-only to fit a w-64 rail. Same colours as the
+                          Error History and View list buttons, per site, and
+                          icon-only to fit a w-64 rail. Same colours as the
                           header pair: outline-white for Error History, solid
                           black for View list, so the primary action reads as
                           primary in both places.
@@ -482,23 +500,39 @@ export default async function AutomationsBetaPage({
                           ⚠️ These replaced a red lifetime-error COUNT badge that
                           sat here until earlier the same day. Do not re-add it;
                           the status dot beside the name already signals trouble
-                          by recency, and the count is in the detail panel. */}
-                      <span className="flex shrink-0 items-center gap-1">
+                          by recency, and the count is in the detail panel.
+
+                          ⚠️⚠️ WHY `w-8` AND NOT `aspect-square`. The user asked
+                          for square buttons, then later for buttons "just as
+                          tall as the card". BOTH AT ONCE DOES NOT FIT A w-64
+                          RAIL, and `aspect-square` fails in a way that is not
+                          visible in the markup: MEASURED IN THE BROWSER
+                          2026-09-03, flex sizes these items from their CONTENT
+                          (a ~14px icon) and `shrink-0` stops them shrinking,
+                          then `aspect-ratio` paints them at the stretched
+                          height of 54.5px. The row then OVERFLOWED THE RAIL BY
+                          71px, buttons spilling out over the detail panel.
+                          `w-8` (32px) fits with 8px to spare, at 32 x 54.5, and
+                          nothing truncates, "GHL b2b" included.
+                          If true squares are ever wanted, the rail has to get
+                          wider (w-64 -> about w-80); do not reach for
+                          `aspect-square` again at this width. */}
+                      <span className="flex shrink-0 items-stretch gap-1">
                         <Link
                           href={`/automations/${site.slug}/errors`}
                           aria-label={`${site.label} error history`}
                           title="Error History"
-                          className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-white text-zinc-600 ring-1 ring-foreground/10 transition-colors hover:bg-zinc-50 hover:text-zinc-900"
+                          className="inline-flex w-8 items-center justify-center rounded-md border bg-white text-zinc-600 ring-1 ring-foreground/10 transition-colors hover:bg-zinc-50 hover:text-zinc-900"
                         >
-                          <AlertTriangle className="h-3 w-3" />
+                          <AlertTriangle className="h-3.5 w-3.5" />
                         </Link>
                         <Link
                           href={`/automations/${site.slug}`}
                           aria-label={`${site.label} automation list`}
                           title="View list"
-                          className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-zinc-900 text-white transition-colors hover:bg-zinc-800"
+                          className="inline-flex w-8 items-center justify-center rounded-md bg-zinc-900 text-white transition-colors hover:bg-zinc-800"
                         >
-                          <List className="h-3 w-3" />
+                          <List className="h-3.5 w-3.5" />
                         </Link>
                       </span>
                     </div>
