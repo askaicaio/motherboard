@@ -48,12 +48,11 @@
 // =============================================================
 
 import Link from "next/link";
+// NOTE: Activity, Clock and KeyRound went with the status strip on
+// 2026-09-03; it was the only place any of them was used.
 import {
-  Activity,
   ChevronRight,
-  Clock,
   Inbox,
-  KeyRound,
   List,
   ListChecks,
   PencilLine,
@@ -148,14 +147,6 @@ export default async function AutomationsBetaPage({
     .from(automations)
     .groupBy(automations.platform, automations.status);
 
-  const lastRunRows = await db
-    .select({
-      platform: automations.platform,
-      lastRunAt: sql<Date | null>`max(${automations.lastRunAt})`,
-    })
-    .from(automations)
-    .groupBy(automations.platform);
-
   // The selected website's newest errors, WITH the message text. The card
   // layouts have room for a count and nothing else, which is the whole reason
   // this design exists.
@@ -222,13 +213,6 @@ export default async function AutomationsBetaPage({
     s.total += row.count;
     if (row.status === "active") s.active += row.count;
     else if (row.status === "paused") s.paused += row.count;
-  }
-
-  const lastRunByPlatform: Record<string, Date | null> = {};
-  for (const row of lastRunRows) {
-    lastRunByPlatform[row.platform] = row.lastRunAt
-      ? new Date(row.lastRunAt)
-      : null;
   }
 
   // The window's day keys, oldest first, built here rather than from the rows
@@ -666,43 +650,34 @@ export default async function AutomationsBetaPage({
                   <Sparkline dayKeys={dayKeys} counts={trend} />
                 </div>
 
-                {/* Meta strip: the facts the card design spends two labelled
-                    rows and a full-width button on, folded into one line of
-                    four. */}
-                <div className="grid grid-cols-2 gap-3 rounded-lg bg-zinc-50 p-3 sm:grid-cols-4">
-                  <Meta
-                    icon={KeyRound}
-                    label="API key"
-                    value={hasKey ? "Integrated" : "Missing"}
-                    tone={hasKey ? "ok" : "bad"}
-                  />
-                  <Meta
-                    icon={RefreshCw}
-                    label="Auto-refresh"
-                    value={refreshOn ? "On" : "Off"}
-                    tone={refreshOn ? "ok" : "muted"}
-                  />
-                  <Meta
-                    icon={Clock}
-                    label="Last run"
-                    value={agoLabel(lastRunByPlatform[selected.slug] ?? null)}
-                    tone="muted"
-                  />
-                  <Meta
-                    icon={Activity}
-                    label="Last error"
-                    value={days !== undefined ? `${days}d ago` : "Not tracked"}
-                    tone={days !== undefined && days <= 7 ? "bad" : "muted"}
-                  />
-                </div>
+                {/* ⚠️⚠️ THE META STRIP WAS REMOVED HERE ON 2026-09-03, at the
+                    user's instruction: "Remove all these status indicators."
+                    It was a four-column band on a grey ground: API KEY /
+                    AUTO-REFRESH / LAST RUN / LAST ERROR.
+                    WHY IT WENT: three of its four cells had come to repeat
+                    something already on screen. API key = the "API Key
+                    Integrated" button just below; Auto-refresh = the indicator
+                    beside the status pill in the header; Last error = the error
+                    panel's "Last Error N days ago". I raised that as a whole and
+                    the user removed the band rather than the duplicates.
+                    ⚠️ "LAST RUN" WENT WITH IT AND IS NOW NOWHERE ON THIS PAGE.
+                    It was the one fact the strip uniquely carried. Flagged to
+                    the user at removal; they can have it back beside the
+                    auto-refresh indicator in one line if they want it.
+                    That also retired the `max(last_run_at)` query, the
+                    `lastRunByPlatform` map and the `Meta` component, so this is
+                    ONE FEWER DATABASE ROUND TRIP per page load. Do not re-add
+                    the query without a consumer for it. */}
 
-                {/* ⚠️ THE ONE THING ALPHA3 DOES NOT HAVE. Its meta strip above
-                    carries the API-key FACT and drops the CONTROL, because
-                    Alpha3 has no working controls at all. This page must keep
-                    the control: clicking it runs a LIVE verify and re-colours
-                    on the result, and it is what the "API Health Check" button
-                    at the top drives. Directly under the fact it re-verifies is
-                    the least surprising home for it.
+                {/* ⚠️ THE ONE THING ALPHA3 DOES NOT HAVE, and now the ONLY place
+                    the API key is reported on this page: Alpha3 kept the
+                    API-key FACT in its status strip and dropped the CONTROL,
+                    because it has no working controls at all. This page kept
+                    the control, and the strip that held the fact is gone
+                    (removed 2026-09-03), so this button carries both.
+                    Clicking it runs a LIVE verify and re-colours on the result,
+                    and it is what the "API Health Check" button at the top of
+                    the page drives.
                     Only the boolean reaches the client; the secret never does. */}
                 <div className="flex items-center gap-2">
                   <CopyApiKeyButton
@@ -975,38 +950,9 @@ function Sparkline({
   );
 }
 
-function Meta({
-  icon: Icon,
-  label,
-  value,
-  tone,
-}: {
-  icon: React.ElementType;
-  label: string;
-  value: string;
-  tone: "ok" | "bad" | "muted";
-}) {
-  return (
-    <div className="min-w-0">
-      <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-zinc-500">
-        <Icon className="h-3 w-3 shrink-0" />
-        {label}
-      </div>
-      <div
-        className={cn(
-          "mt-1 truncate text-sm font-medium",
-          tone === "ok"
-            ? "text-emerald-700"
-            : tone === "bad"
-              ? "text-red-600"
-              : "text-zinc-700",
-        )}
-      >
-        {value}
-      </div>
-    </div>
-  );
-}
+// NOTE: the `Meta` helper (an icon + uppercase label over a toned value)
+// used to live here. It rendered the four-column status strip and went with it
+// on 2026-09-03. No other caller.
 
 function Panel({
   title,
