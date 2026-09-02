@@ -271,55 +271,7 @@ export default async function AutomationsBetaPage({
   const refreshOn = autoRefreshMap[selected.slug]?.enabled ?? false;
   const activePct = stats.total ? (stats.active / stats.total) * 100 : 0;
   const pausedPct = stats.total ? (stats.paused / stats.total) * 100 : 0;
-  // -------------------------------------------------------------------------
-  // THE STATUS PILL beside the website's name. Picked from Alpha3 with the rest
-  // of this design; reviewed and accepted by the user on 2026-09-03 ("the
-  // feature seems fine"). It is the one per-site element the card design on
-  // /automations does not have.
-  //
-  // A FOUR-RUNG LADDER, FIRST MATCH WINS, from exactly two inputs:
-  //
-  //   1. no API key                      -> "Not connected"   (grey)
-  //   2. last error 0 or 1 days ago      -> "Erroring"        (red)
-  //   3. last error 2 to 7 days ago      -> "Recent errors"   (amber)
-  //   4. anything else                   -> "Healthy"         (green)
-  //
-  // THE TWO INPUTS, and the second one is the subtle one:
-  //   - `hasKey` = `platformHasApiKey()`, which checks the env vars are
-  //     PRESENT. Make wants a token; n8n wants a key AND a base URL; each GHL
-  //     wants a token AND a location id; Zapier always returns false.
-  //   - `days` = whole days since the most recent CAPTURED error, floored.
-  //     ⚠️ It is `undefined`, not 0, when the platform has never captured one.
-  //     That is why rungs 2 and 3 both re-test `days !== undefined`: without
-  //     it, `undefined <= 1` would be false anyway, but the intent would be
-  //     unreadable.
-  //
-  // ⚠️⚠️ TWO ACCEPTED WEAKNESSES. Both are inherited from Alpha3, where this
-  // pill was a static visual and nothing depended on it. The user was shown
-  // both and judged the feature fine as-is, so DO NOT "fix" them unprompted.
-  //
-  //   (a) "Healthy" is ALSO what "cannot report otherwise" looks like. GHL and
-  //       GHL b2b have keys, and GHL error tracking is confirmed impossible via
-  //       their API ([[automations-ghl-error-api]]), so their `days` is
-  //       permanently undefined and they fall through to rung 4 forever. Same
-  //       for any platform that simply has not errored yet. The pill cannot
-  //       distinguish "verified fine" from "no evidence either way".
-  //       If this ever needs closing, the shape is a fifth rung: `days`
-  //       undefined AND the platform cannot capture -> "Not tracked".
-  //
-  //   (b) It reads key PRESENCE, never key VALIDITY. This page already loads
-  //       `health.results[slug].ok` (the last stored Auto-API health check) and
-  //       hands it to the CopyApiKeyButton below, but the pill does not look at
-  //       it. So a platform whose key is present but FAILING its last health
-  //       check still shows "Healthy" or "Erroring", never "Not connected".
-  // -------------------------------------------------------------------------
-  const status: { tone: Tone; label: string } = !hasKey
-    ? { tone: "off", label: "Not connected" }
-    : days !== undefined && days <= 1
-      ? { tone: "bad", label: "Erroring" }
-      : days !== undefined && days <= 7
-        ? { tone: "warn", label: "Recent errors" }
-        : { tone: "ok", label: "Healthy" };
+  const status = siteStatus(hasKey, days);
 
   return (
     <div className="space-y-5 p-6">
@@ -399,6 +351,16 @@ export default async function AutomationsBetaPage({
                   };
                   const isCurrent = site.slug === selected.slug;
                   const siteErrorCount = errorCounts[site.slug] ?? 0;
+                  // Same two indicators the detail header carries, per rail
+                  // row. Both come from the SAME rules as the header's pill:
+                  // `siteStatus()` for the dot, the stored auto-refresh setting
+                  // for the icon. Added 2026-09-03 at the user's request.
+                  const siteStat = siteStatus(
+                    platformHasApiKey(site.slug),
+                    daysSinceErrorByPlatform[site.slug],
+                  );
+                  const siteRefreshOn =
+                    autoRefreshMap[site.slug]?.enabled ?? false;
                   return (
                     <Link
                       key={site.slug}
@@ -421,15 +383,64 @@ export default async function AutomationsBetaPage({
                       />
                       <SiteGlyph site={site} className="h-5 w-5" />
                       <span className="min-w-0 flex-1">
-                        <span
-                          className={cn(
-                            "block truncate text-sm",
-                            isCurrent
-                              ? "font-semibold text-zinc-900"
-                              : "font-medium text-zinc-700",
-                          )}
-                        >
-                          {site.label}
+                        {/* ⭐ THE TITLE LINE now reads: (dot) Name (refresh
+                            icon). The user's own sketch, 2026-09-03: "Right now
+                            it is just: Make. But i want it to look like
+                            (.) Make (Green Refresh Icon)".
+                            Both indicators are LABEL-LESS here on purpose:
+                            "remove the text on the colored dot so the pill only
+                            has the colored dot", and the refresh was asked for
+                            as an icon. The rail is only w-64 and already carries
+                            "N tracked" plus the error badge, so labels would not
+                            fit anyway.
+                            ⚠️ THE LOST LABELS ARE RESTORED ON HOVER via `title`,
+                            or the dot's colour would be the only clue to a
+                            four-state value. The row is a <Link> with no title
+                            of its own, so these win rather than being swallowed.
+                            ⚠️ This is a FLEX row now, so the name keeps
+                            `truncate` and needs `min-w-0` to shrink; the two
+                            indicators are `shrink-0` so the name yields first. */}
+                        <span className="flex items-center gap-1.5">
+                          <span
+                            aria-label={siteStat.label}
+                            title={siteStat.label}
+                            className={cn(
+                              "h-1.5 w-1.5 shrink-0 rounded-full",
+                              TONE_DOTS[siteStat.tone],
+                            )}
+                          />
+                          <span
+                            className={cn(
+                              "min-w-0 truncate text-sm",
+                              isCurrent
+                                ? "font-semibold text-zinc-900"
+                                : "font-medium text-zinc-700",
+                            )}
+                          >
+                            {site.label}
+                          </span>
+                          <span
+                            aria-label={
+                              siteRefreshOn
+                                ? "Auto-refresh on"
+                                : "Auto-refresh off"
+                            }
+                            title={
+                              siteRefreshOn
+                                ? "Auto-refresh on"
+                                : "Auto-refresh off"
+                            }
+                            className="shrink-0"
+                          >
+                            <RefreshCw
+                              className={cn(
+                                "h-3 w-3",
+                                siteRefreshOn
+                                  ? "text-emerald-600"
+                                  : "text-zinc-400",
+                              )}
+                            />
+                          </span>
                         </span>
                         <span className="block text-[11px] tabular-nums text-zinc-500">
                           {s.total} tracked
@@ -792,10 +803,71 @@ const TONE_DOTS: Record<Tone, string> = {
   off: "bg-zinc-400",
 };
 
+// -------------------------------------------------------------------------
+// SITE STATUS: the tone + label behind the pill in the detail header AND the
+// bare coloured dot on every rail row. Picked from Alpha3 with the rest
+// of this design; reviewed and accepted by the user on 2026-09-03 ("the
+// feature seems fine"). It is the one per-site element the card design on
+// /automations does not have.
+//
+// A FOUR-RUNG LADDER, FIRST MATCH WINS, from exactly two inputs:
+//
+//   1. no API key                      -> "Not connected"   (grey)
+//   2. last error 0 or 1 days ago      -> "Erroring"        (red)
+//   3. last error 2 to 7 days ago      -> "Recent errors"   (amber)
+//   4. anything else                   -> "Healthy"         (green)
+//
+// THE TWO INPUTS, and the second one is the subtle one:
+//   - `hasKey` = `platformHasApiKey()`, which checks the env vars are
+//     PRESENT. Make wants a token; n8n wants a key AND a base URL; each GHL
+//     wants a token AND a location id; Zapier always returns false.
+//   - `days` = whole days since the most recent CAPTURED error, floored.
+//     ⚠️ It is `undefined`, not 0, when the platform has never captured one.
+//     That is why rungs 2 and 3 both re-test `days !== undefined`: without
+//     it, `undefined <= 1` would be false anyway, but the intent would be
+//     unreadable.
+//
+// ⚠️⚠️ TWO ACCEPTED WEAKNESSES. Both are inherited from Alpha3, where this
+// pill was a static visual and nothing depended on it. The user was shown
+// both and judged the feature fine as-is, so DO NOT "fix" them unprompted.
+//
+//   (a) "Healthy" is ALSO what "cannot report otherwise" looks like. GHL and
+//       GHL b2b have keys, and GHL error tracking is confirmed impossible via
+//       their API ([[automations-ghl-error-api]]), so their `days` is
+//       permanently undefined and they fall through to rung 4 forever. Same
+//       for any platform that simply has not errored yet. The pill cannot
+//       distinguish "verified fine" from "no evidence either way".
+//       If this ever needs closing, the shape is a fifth rung: `days`
+//       undefined AND the platform cannot capture -> "Not tracked".
+//
+//   (b) It reads key PRESENCE, never key VALIDITY. This page already loads
+//       `health.results[slug].ok` (the last stored Auto-API health check) and
+//       hands it to the CopyApiKeyButton below, but the pill does not look at
+//       it. So a platform whose key is present but FAILING its last health
+//       check still shows "Healthy" or "Erroring", never "Not connected".
+// -------------------------------------------------------------------------
+function siteStatus(
+  hasKey: boolean,
+  days: number | undefined,
+): { tone: Tone; label: string } {
+  return !hasKey
+    ? { tone: "off", label: "Not connected" }
+    : days !== undefined && days <= 1
+      ? { tone: "bad", label: "Erroring" }
+      : days !== undefined && days <= 7
+        ? { tone: "warn", label: "Recent errors" }
+        : { tone: "ok", label: "Healthy" };
+}
+
 /** The pill beside the selected website's name. PRESENTATION ONLY: it renders
- *  whatever tone and label it is handed. **The rules that choose them live at
- *  the `status` derivation in the page body, documented there.** Change the
- *  logic there, not here. */
+ *  whatever tone and label it is handed. **The rules that choose them live in
+ *  `siteStatus()` directly above, documented there.** Change the logic there,
+ *  not here.
+ *
+ *  ⚠️ The RAIL does not use this component. It shows the same status as a bare
+ *  coloured dot with no label, so it reads `TONE_DOTS` directly. Both get their
+ *  tone from `siteStatus()`, which is why that ladder was lifted out of the
+ *  component body: two callers, one set of rules. */
 function StatusPill({ tone, label }: { tone: Tone; label: string }) {
   return (
     <span
