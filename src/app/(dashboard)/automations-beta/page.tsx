@@ -40,8 +40,9 @@
 //      the `Sparkline` component with it.
 //      User: "i like this error history graphic."
 //   5. the FOOTER STRIP, between the counts row and the API status button:
-//      auto-refresh state + "Last run Nh ago" on the left, Error History +
-//      View list on the right, in one muted band. Brought the max(last_run_at)
+//      auto-refresh state + "Last run Nh ago" on the left, Error History on the
+//      right, in one muted band. (It carried View list too until 2026-08-31,
+//      when the user moved that button up into the card header.) Brought the max(last_run_at)
 //      query and `agoLabel` with it. "Last run" is NEW INFORMATION, not a
 //      restyle. User: "i like this lower widget."
 //      - The strip's error link arrived from Alpha as a quiet grey "Errors"
@@ -66,8 +67,12 @@
 //   - auto-refresh state  (the "Auto-refresh: ✓/✗" row is gone, and with it the
 //                          whole row it lived in)
 //   - Error History       (the outlined button under the header is gone)
-//   - View list           (the button at the right of the header row is gone)
-// ⚠️ Do not reintroduce any of them elsewhere on the card.
+// ⚠️ Do not reintroduce either of them elsewhere on the card.
+//
+// ⚠️ "View list" WAS on that list and came back off it. The user moved the
+// button into the CARD HEADER on 2026-08-31 and the strip gave up its copy, so
+// the destination still appears exactly once. The rule is one copy each, not a
+// fixed home.
 //
 // REMOVED as redundant once the error panel landed (the user asked for this in
 // the same breath, "Remove redundant features after that"):
@@ -424,68 +429,89 @@ export default async function AutomationsBetaPage() {
                       The TOP stays at 20px on purpose: the brand edge sits above
                       it, so it is not the same kind of boundary. */}
                   <CardContent className="flex h-full flex-col gap-3 p-5 pb-3">
-                    {/* Header: logo tile + website title/description, full width.
-                    ⭐ PICKED FROM ALPHA (2026-08-29): the whole block.
-                    ⚠️ A "View List" button used to sit at the right of this row.
-                    REMOVED 2026-08-29 on the user's instruction, once the footer
-                    strip's own "View list ›" made it a second copy of the same
-                    link. Do not put it back. That is also why this is a plain
-                    row now and no longer a `justify-between` flex.
+                    {/* Header: logo tile + website title/description on the
+                    left, the "View list" button on the right.
+                    ⭐ PICKED FROM ALPHA (2026-08-29): the tile + text block.
+
+                    ⚠️ THE "View list" BUTTON HAS MOVED TWICE. It began at the
+                    right of this row, was removed 2026-08-29 as a duplicate of
+                    the footer strip's copy, and the user moved it BACK here on
+                    2026-08-31 ("Move the View list button to the empty space i
+                    just marked") at DOUBLE the text size. It is not a duplicate
+                    now: the strip kept Error History and gave this one up, so
+                    each destination still appears exactly once on the card.
 
                     min-w-0 is what lets the description TRUNCATE instead of
                     widening the row: a flex item defaults to min-width:auto and
-                    refuses to shrink below its content. Still needed on BOTH
-                    this wrapper and the text block inside it, even with nothing
-                    to its right, because the card itself is a fixed grid cell. */}
-                    <div className="flex min-w-0 items-center gap-3">
-                      {/* ⭐ The logo TILE: a rounded square washed in the website's
+                    refuses to shrink below its content. Needed on BOTH the
+                    wrapper below and the text block inside it, and it matters
+                    more now that something sits to their right again. */}
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-3">
+                        {/* ⭐ The logo TILE: a rounded square washed in the website's
                         own colour at 12% alpha (the `1F` alpha suffix on the hex),
                         holding a 24px glyph. Replaces the bare 32px icon that sat
                         next to the title. Monochrome SVG glyphs are still tinted
                         via a CSS mask; full-colour icons (the GHL favicon) still
                         render as a plain image. */}
-                      <span
-                        aria-hidden
-                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
-                        style={{ backgroundColor: `${accent}1F` }}
-                      >
-                        {site.iconColor ? (
-                          <span
-                            className="h-6 w-6"
-                            style={{
-                              backgroundColor: site.iconColor,
-                              maskImage: `url(${site.icon})`,
-                              WebkitMaskImage: `url(${site.icon})`,
-                              maskRepeat: "no-repeat",
-                              WebkitMaskRepeat: "no-repeat",
-                              maskPosition: "center",
-                              WebkitMaskPosition: "center",
-                              maskSize: "contain",
-                              WebkitMaskSize: "contain",
-                            }}
-                          />
-                        ) : (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={site.icon}
-                            alt=""
-                            className="h-6 w-6 object-contain"
-                          />
-                        )}
-                      </span>
-                      {/* ⭐ The TEXT treatment: name and description stack BESIDE
+                        <span
+                          aria-hidden
+                          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
+                          style={{ backgroundColor: `${accent}1F` }}
+                        >
+                          {site.iconColor ? (
+                            <span
+                              className="h-6 w-6"
+                              style={{
+                                backgroundColor: site.iconColor,
+                                maskImage: `url(${site.icon})`,
+                                WebkitMaskImage: `url(${site.icon})`,
+                                maskRepeat: "no-repeat",
+                                WebkitMaskRepeat: "no-repeat",
+                                maskPosition: "center",
+                                WebkitMaskPosition: "center",
+                                maskSize: "contain",
+                                WebkitMaskSize: "contain",
+                              }}
+                            />
+                          ) : (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={site.icon}
+                              alt=""
+                              className="h-6 w-6 object-contain"
+                            />
+                          )}
+                        </span>
+                        {/* ⭐ The TEXT treatment: name and description stack BESIDE
                         the tile instead of under the icon row, the name drops
                         from text-xl to the heading face at text-base, and the
                         description drops to a truncated text-xs in a lighter
                         grey. Quieter, so the numbers below lead the card. */}
-                      <div className="min-w-0">
-                        <h3 className="font-heading text-base font-semibold text-zinc-900">
-                          {site.label}
-                        </h3>
-                        <p className="mt-0.5 truncate text-xs text-zinc-500">
-                          {site.description}
-                        </p>
+                        <div className="min-w-0">
+                          <h3 className="font-heading text-base font-semibold text-zinc-900">
+                            {site.label}
+                          </h3>
+                          <p className="mt-0.5 truncate text-xs text-zinc-500">
+                            {site.description}
+                          </p>
+                        </div>
                       </div>
+                      {/* ⚠️ `text-2xl` is DOUBLE the `text-xs` this button wore
+                          in the footer strip: 12px -> 24px, the user's explicit
+                          ask. The chevron doubles with it (h-3 -> h-6) and the
+                          padding grows, or a 12px glyph in 4px padding would
+                          hang off 24px text and read as a bug. That makes this
+                          the largest text on the card, above the site name at
+                          16px and level with the page title. Deliberate: it is
+                          the card's primary action. */}
+                      <Link
+                        href={`/automations/${site.slug}`}
+                        className="flex shrink-0 items-center gap-1 rounded-md bg-white px-3 py-1.5 text-2xl font-medium text-zinc-800 ring-1 ring-foreground/10 hover:bg-zinc-50"
+                      >
+                        View list
+                        <ChevronRight className="h-6 w-6" />
+                      </Link>
                     </div>
 
                     {/* ⚠️ AN ENTIRE ROW USED TO SIT HERE and it is gone on purpose,
@@ -690,13 +716,10 @@ export default async function AutomationsBetaPage() {
                           Error History
                           <ChevronRight className="h-3 w-3" />
                         </Link>
-                        <Link
-                          href={`/automations/${site.slug}`}
-                          className="flex items-center gap-0.5 rounded-md bg-white px-2 py-1 text-xs font-medium text-zinc-800 ring-1 ring-foreground/10 hover:bg-zinc-50"
-                        >
-                          View list
-                          <ChevronRight className="h-3 w-3" />
-                        </Link>
+                        {/* ⚠️ "View list" USED TO SIT HERE, beside Error History.
+                        It moved into the card header on 2026-08-31 at the user's
+                        request, so this side of the strip holds one button now.
+                        Do not add a second copy back. */}
                       </div>
                     </div>
 
