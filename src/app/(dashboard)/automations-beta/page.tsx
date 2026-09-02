@@ -321,7 +321,12 @@ export default async function AutomationsBetaPage({
           <div className="flex min-h-[640px] overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10">
             {/* ---- Rail. Every website, always visible, so switching costs one
                     click and you never lose your bearings. ---- */}
-            <div className="flex w-64 shrink-0 flex-col border-r">
+            {/* ⚠️ w-80, WIDENED FROM Alpha3's w-64 on 2026-09-03. The user
+                    chose to widen the rail rather than accept non-square action
+                    buttons, so this costs the detail panel about 64px. The rail
+                    width, the row height and the button width are a SET: see
+                    the note on the row below before changing any of them. */}
+            <div className="flex w-80 shrink-0 flex-col border-r">
               <div className="border-b px-4 py-3">
                 <div className="font-heading text-sm font-semibold text-zinc-900">
                   Sources
@@ -374,7 +379,10 @@ export default async function AutomationsBetaPage({
                     // hard-coding one, so they stay level if the text changes.
                     // The row itself now carries NO padding or background: the
                     // card below owns both.
-                    <div key={site.slug} className="flex items-stretch gap-2">
+                    <div
+                      key={site.slug}
+                      className="flex h-14 items-stretch gap-2"
+                    >
                       {/* ⭐ THE CARD, 2026-09-03: "Place each of these in its own
                           card with visible borders." A real `border`, not the
                           faint `ring-1 ring-foreground/10` used elsewhere on this
@@ -502,27 +510,31 @@ export default async function AutomationsBetaPage({
                           the status dot beside the name already signals trouble
                           by recency, and the count is in the detail panel.
 
-                          ⚠️⚠️ WHY `w-8` AND NOT `aspect-square`. The user asked
-                          for square buttons, then later for buttons "just as
-                          tall as the card". BOTH AT ONCE DOES NOT FIT A w-64
-                          RAIL, and `aspect-square` fails in a way that is not
-                          visible in the markup: MEASURED IN THE BROWSER
-                          2026-09-03, flex sizes these items from their CONTENT
-                          (a ~14px icon) and `shrink-0` stops them shrinking,
-                          then `aspect-ratio` paints them at the stretched
-                          height of 54.5px. The row then OVERFLOWED THE RAIL BY
-                          71px, buttons spilling out over the detail panel.
-                          `w-8` (32px) fits with 8px to spare, at 32 x 54.5, and
-                          nothing truncates, "GHL b2b" included.
-                          If true squares are ever wanted, the rail has to get
-                          wider (w-64 -> about w-80); do not reach for
-                          `aspect-square` again at this width. */}
+                          ⚠️⚠️ THESE ARE SQUARE VIA A FIXED SIZE, AND THAT IS
+                          DELIBERATE: `h-14` on the row, `w-14` here, so both
+                          axes are 56px and the buttons match the card's height
+                          exactly.
+                          DO NOT "SIMPLIFY" THIS TO `aspect-square`. It looks
+                          like the obvious tool and it is broken here. MEASURED
+                          IN THE BROWSER 2026-09-03: flex sizes these items from
+                          their CONTENT (a ~14px icon), `shrink-0` stops them
+                          shrinking, and only THEN does `aspect-ratio` paint them
+                          at the stretched height. The layout never accounts for
+                          that painted width, so the row overflowed the rail by
+                          71px with the buttons spilling over the detail panel.
+                          Widening the rail does not fix it; the overflow scales
+                          with it.
+                          ⚠️ RAIL WIDTH, ROW HEIGHT AND BUTTON WIDTH ARE A SET.
+                          w-80 rail leaves 304px of nav content: 56 + 4 + 56 for
+                          the buttons, 8 for the gap, 180 for the card, of which
+                          about 137 reaches the text. "GHL b2b" needs about 87.
+                          Change one and re-check the other two. */}
                       <span className="flex shrink-0 items-stretch gap-1">
                         <Link
                           href={`/automations/${site.slug}/errors`}
                           aria-label={`${site.label} error history`}
                           title="Error History"
-                          className="inline-flex w-8 items-center justify-center rounded-md border bg-white text-zinc-600 ring-1 ring-foreground/10 transition-colors hover:bg-zinc-50 hover:text-zinc-900"
+                          className="inline-flex w-14 items-center justify-center rounded-md border bg-white text-zinc-600 ring-1 ring-foreground/10 transition-colors hover:bg-zinc-50 hover:text-zinc-900"
                         >
                           <AlertTriangle className="h-3.5 w-3.5" />
                         </Link>
@@ -530,7 +542,7 @@ export default async function AutomationsBetaPage({
                           href={`/automations/${site.slug}`}
                           aria-label={`${site.label} automation list`}
                           title="View list"
-                          className="inline-flex w-8 items-center justify-center rounded-md bg-zinc-900 text-white transition-colors hover:bg-zinc-800"
+                          className="inline-flex w-14 items-center justify-center rounded-md bg-zinc-900 text-white transition-colors hover:bg-zinc-800"
                         >
                           <List className="h-3.5 w-3.5" />
                         </Link>
