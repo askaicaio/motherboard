@@ -446,7 +446,13 @@ export default async function AutomationsBetaPage() {
                     refuses to shrink below its content. Needed on BOTH the
                     wrapper below and the text block inside it, and it matters
                     more now that something sits to their right again. */}
-                    <div className="flex items-center justify-between gap-3">
+                    {/* ⚠️ `items-start`, NOT `items-center`. The user asked for
+                    the View list button to be top aligned (2026-08-31), so it
+                    pins to the top of this row instead of centring against the
+                    44px logo tile. The INNER wrapper below keeps its own
+                    `items-center`, which is what keeps the tile and the two
+                    lines of text centred on each other. */}
+                    <div className="flex items-start justify-between gap-3">
                       <div className="flex min-w-0 items-center gap-3">
                         {/* ⭐ The logo TILE: a rounded square washed in the website's
                         own colour at 12% alpha (the `1F` alpha suffix on the hex),
@@ -497,24 +503,24 @@ export default async function AutomationsBetaPage() {
                           </p>
                         </div>
                       </div>
-                      {/* ⚠️ THE SIZE CAME FULL CIRCLE ON 2026-08-31. It went
-                          `text-xs` -> `text-2xl` ("Double the text size") ->
-                          `text-xl` ("a bit too large now") -> back to
-                          `text-xs` ("try returning the size to the original").
-                          It is 12px again, byte-for-byte the styling the button
-                          wore in the footer strip, chevron and padding included.
-                          WHAT DID CHANGE AND STUCK is the POSITION: this button
-                          lives in the card header now, not the strip.
-                          ⚠️ Do not re-enlarge it "to match its prominence". The
-                          user tried 24px and 20px on production and came back to
-                          12px both times; the enlargement is the part that was
-                          rejected, not the move. */}
+                      {/* ⚠️ THE SIZE WAS SETTLED BY TRIAL ON PRODUCTION, all on
+                          2026-08-31: `text-xs` (12px, its size in the footer
+                          strip) -> `text-2xl` (24px, "Double the text size") ->
+                          `text-xl` (20px, "a bit too large now") -> `text-xs`
+                          again ("try returning the size to the original") ->
+                          `text-base` (16px, where it stands).
+                          16px is now the ONLY thing about this button that is
+                          not its original strip styling; the padding is
+                          untouched and the chevron tracks the text at h-4.
+                          The user saw 24px and 20px live and came back to
+                          12px both times, so the LARGE sizes are what was
+                          rejected, not the move. 16px is the settled middle. */}
                       <Link
                         href={`/automations/${site.slug}`}
-                        className="flex shrink-0 items-center gap-0.5 rounded-md bg-white px-2 py-1 text-xs font-medium text-zinc-800 ring-1 ring-foreground/10 hover:bg-zinc-50"
+                        className="flex shrink-0 items-center gap-0.5 rounded-md bg-white px-2 py-1 text-base font-medium text-zinc-800 ring-1 ring-foreground/10 hover:bg-zinc-50"
                       >
                         View list
-                        <ChevronRight className="h-3 w-3" />
+                        <ChevronRight className="h-4 w-4" />
                       </Link>
                     </div>
 
