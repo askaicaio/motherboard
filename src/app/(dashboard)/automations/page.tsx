@@ -498,24 +498,24 @@ export default async function AutomationsPage() {
                           </p>
                         </div>
                       </div>
-                      {/* ⚠️ `text-xl` (20px) IS A SETTLED SIZE, arrived at in two
-                          steps. The user asked for double the `text-xs` this
-                          button wore in the footer strip, which gave 24px
-                          (`text-2xl`); at that size it read "a bit too large"
-                          because 24px is EXACTLY the "Automations" page title,
-                          so a button inside a card was competing with the page
-                          heading. 20px sits clearly under the title and clearly
-                          over the site name (16px), which keeps it the card's
-                          primary action without shouting.
-                          The chevron tracks the text (h-5 = 20px); a smaller
-                          glyph beside larger text reads as a bug, not a choice.
-                          Keep it on Tailwind's scale, not an arbitrary px. */}
+                      {/* ⚠️ THE SIZE CAME FULL CIRCLE ON 2026-08-31. It went
+                          `text-xs` -> `text-2xl` ("Double the text size") ->
+                          `text-xl` ("a bit too large now") -> back to
+                          `text-xs` ("try returning the size to the original").
+                          It is 12px again, byte-for-byte the styling the button
+                          wore in the footer strip, chevron and padding included.
+                          WHAT DID CHANGE AND STUCK is the POSITION: this button
+                          lives in the card header now, not the strip.
+                          ⚠️ Do not re-enlarge it "to match its prominence". The
+                          user tried 24px and 20px on production and came back to
+                          12px both times; the enlargement is the part that was
+                          rejected, not the move. */}
                       <Link
                         href={`/automations/${site.slug}`}
-                        className="flex shrink-0 items-center gap-1 rounded-md bg-white px-3 py-1.5 text-xl font-medium text-zinc-800 ring-1 ring-foreground/10 hover:bg-zinc-50"
+                        className="flex shrink-0 items-center gap-0.5 rounded-md bg-white px-2 py-1 text-xs font-medium text-zinc-800 ring-1 ring-foreground/10 hover:bg-zinc-50"
                       >
                         View list
-                        <ChevronRight className="h-5 w-5" />
+                        <ChevronRight className="h-3 w-3" />
                       </Link>
                     </div>
 
