@@ -497,20 +497,24 @@ export default async function AutomationsBetaPage() {
                           </p>
                         </div>
                       </div>
-                      {/* ⚠️ `text-2xl` is DOUBLE the `text-xs` this button wore
-                          in the footer strip: 12px -> 24px, the user's explicit
-                          ask. The chevron doubles with it (h-3 -> h-6) and the
-                          padding grows, or a 12px glyph in 4px padding would
-                          hang off 24px text and read as a bug. That makes this
-                          the largest text on the card, above the site name at
-                          16px and level with the page title. Deliberate: it is
-                          the card's primary action. */}
+                      {/* ⚠️ `text-xl` (20px) IS A SETTLED SIZE, arrived at in two
+                          steps. The user asked for double the `text-xs` this
+                          button wore in the footer strip, which gave 24px
+                          (`text-2xl`); at that size it read "a bit too large"
+                          because 24px is EXACTLY the "Automations" page title,
+                          so a button inside a card was competing with the page
+                          heading. 20px sits clearly under the title and clearly
+                          over the site name (16px), which keeps it the card's
+                          primary action without shouting.
+                          The chevron tracks the text (h-5 = 20px); a smaller
+                          glyph beside larger text reads as a bug, not a choice.
+                          Keep it on Tailwind's scale, not an arbitrary px. */}
                       <Link
                         href={`/automations/${site.slug}`}
-                        className="flex shrink-0 items-center gap-1 rounded-md bg-white px-3 py-1.5 text-2xl font-medium text-zinc-800 ring-1 ring-foreground/10 hover:bg-zinc-50"
+                        className="flex shrink-0 items-center gap-1 rounded-md bg-white px-3 py-1.5 text-xl font-medium text-zinc-800 ring-1 ring-foreground/10 hover:bg-zinc-50"
                       >
                         View list
-                        <ChevronRight className="h-6 w-6" />
+                        <ChevronRight className="h-5 w-5" />
                       </Link>
                     </div>
 
