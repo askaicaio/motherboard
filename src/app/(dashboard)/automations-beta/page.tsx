@@ -321,17 +321,29 @@ export default async function AutomationsBetaPage({
           <div className="flex min-h-[640px] overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10">
             {/* ---- Rail. Every website, always visible, so switching costs one
                     click and you never lose your bearings. ---- */}
-            {/* ⚠️ w-80, WIDENED FROM Alpha3's w-64 on 2026-09-03, costing the
-                    detail panel about 64px.
-                    ⚠️ THE REASON IT WAS WIDENED IS GONE, AND THE WIDTH IS KEPT
-                    ANYWAY, DELIBERATELY. It was widened purely so the action
-                    buttons could be square at the card's height, and the user
-                    narrowed those buttons back to 32px later the same day. I
-                    put the choice to them (keep the roomier cards, or return
-                    w-64 and hand the 64px back to the detail panel) and they
-                    chose to KEEP w-80. So this is a settled decision, not a
-                    leftover: do not "restore" w-64 as a tidy-up. */}
-            <div className="flex w-80 shrink-0 flex-col border-r">
+            {/* ⚠️ w-[26rem] (416px), WIDENED TWICE FROM Alpha3's w-64, both
+                    steps on 2026-09-03: first to w-80, then to 416px. Costs the
+                    detail panel about 160px in total.
+                    ⚠️ THE CURRENT WIDTH IS LOAD-BEARING, unlike the w-80 step.
+                    The rail cards now carry the whole counts statistic (total +
+                    active/paused legend on one line, proportion bar under it),
+                    and the user authorised the width for exactly that: "You can
+                    widen the cards on the left to accomodate it."
+                    ⚠️ MEASURED IN THE BROWSER at a 1900px viewport, rather
+                    than reasoned about: at 416px an unselected card is 323px
+                    and its text column 258px, and the worst realistic row
+                    ("344 automations" against "144 active / 200 paused", three
+                    digits everywhere) needs 235px. So the slack is 23px. w-96
+                    (384px) would overflow it by about 9px, and because the
+                    legend is `shrink-0` the overflow lands on "automations".
+                    Narrow this and that word is what clips first.
+                    ⚠️ HISTORY, so the earlier reason does not read as stale:
+                    the w-80 step existed only so the action buttons could be
+                    square at the card's height, and the user narrowed those
+                    buttons back to 32px the same day. I offered to hand that
+                    64px back and they chose to keep the roomier cards. So
+                    neither step is a leftover; do not "restore" w-64. */}
+            <div className="flex w-[26rem] shrink-0 flex-col border-r">
               <div className="border-b px-4 py-3">
                 <div className="font-heading text-sm font-semibold text-zinc-900">
                   Sources
@@ -367,6 +379,12 @@ export default async function AutomationsBetaPage({
                   );
                   const siteRefreshOn =
                     autoRefreshMap[site.slug]?.enabled ?? false;
+                  // For the row's own proportion bar. Same formula as the
+                  // detail panel's `activePct`/`pausedPct`, over THIS row's
+                  // total, so a website with 0 automations leaves the bar empty
+                  // grey instead of dividing by zero.
+                  const sActivePct = s.total ? (s.active / s.total) * 100 : 0;
+                  const sPausedPct = s.total ? (s.paused / s.total) * 100 : 0;
                   return (
                     // ⚠️⚠️ THE ROW IS A <div>, NOT A <Link>, AND IT HAS TO BE.
                     // It used to be one Link wrapping everything. The two action
@@ -386,7 +404,7 @@ export default async function AutomationsBetaPage({
                     // card below owns both.
                     <div
                       key={site.slug}
-                      className="flex h-14 items-stretch gap-2"
+                      className="flex h-[76px] items-stretch gap-2"
                     >
                       {/* ⭐ THE CARD, 2026-09-03: "Place each of these in its own
                           card with visible borders." A real `border`, not the
@@ -409,17 +427,26 @@ export default async function AutomationsBetaPage({
                       >
                         {/* Accent spine, full opacity on the selected row and
                           faint on the rest, so the current website is obvious
-                          without a second indicator. */}
+                          without a second indicator.
+                          ⚠️ `self-stretch` RATHER THAN THE OLD FIXED `h-7`. The
+                          card grew from 56px to 76px when the counts statistic
+                          landed in it on 2026-09-03, and a centred 28px dash in
+                          a 76px card reads as a leftover rather than an edge.
+                          This was my call, not the user's ask; `h-7` is a
+                          one-word revert if they prefer the shorter dash. */}
                         <span
                           aria-hidden
-                          className="h-7 w-[3px] shrink-0 rounded-full"
+                          className="w-[3px] shrink-0 self-stretch rounded-full"
                           style={{
                             backgroundColor: ACCENT[site.slug],
                             opacity: isCurrent ? 1 : 0.35,
                           }}
                         />
                         <SiteGlyph site={site} className="h-5 w-5" />
-                        <span className="min-w-0 flex-1">
+                        {/* `flex-col` with a real gap, because this column
+                          holds TWO blocks now (the title line, then the counts
+                          statistic) rather than two lines of text. */}
+                        <span className="flex min-w-0 flex-1 flex-col justify-center gap-1.5">
                           {/* ⭐ THE TITLE LINE reads: Name (dot) (refresh icon).
                             The user sketched it as "(.) Make (Green Refresh
                             Icon)" on 2026-09-03 and then moved the dot the same
@@ -485,12 +512,82 @@ export default async function AutomationsBetaPage({
                               />
                             </span>
                           </span>
-                          {/* ⚠️ "tracked" WAS CUT AND THEN RESTORED, both on
-                            2026-09-03: "Remove the 'Tracked' text here" then
-                            "Return the 'tracked' text we removed just now". It
-                            stays. */}
-                          <span className="block text-[11px] tabular-nums text-zinc-500">
-                            {s.total} tracked
+                          {/* ⭐ THE COUNTS STATISTIC, per row, 2026-09-03: "Pls
+                            replace the 'X Tracked' info under the website name
+                            with the whole statistic i marked."
+                            It is the DETAIL PANEL'S OWN counts block scaled to
+                            the rail: the total leads, "automations" sits beside
+                            it, the active/paused split is two dotted figures on
+                            the right, and the proportion bar runs under both.
+                            ⚠️ KEEP IT IN STEP WITH THE DETAIL PANEL'S BLOCK.
+                            They are one statistic at two sizes, and the
+                            selected row sits a few hundred pixels from its own
+                            larger copy, so any divergence in wording, order or
+                            colour shows up side by side. Sizes differ on
+                            purpose: 3xl / text-xs / h-1.5 there, lg / 10px /
+                            h-1 here.
+                            ⚠️⚠️ THIS IS WHERE "{s.total} tracked" USED TO BE,
+                            and that line had already been cut and restored
+                            earlier the same day ("Remove the 'Tracked' text
+                            here", then "Return the 'tracked' text we removed
+                            just now"). The restore is SUPERSEDED, not reversed:
+                            the number is still here, it just leads a bigger
+                            block now. Do not re-add a separate "tracked" line.
+                            ⚠️ WIDTH IS THE FRAGILE PART. The legend is
+                            `shrink-0` so it never wraps, and "automations"
+                            carries `truncate` so it is what clips first if a
+                            later change squeezes the rail. Read the rail width
+                            note further up before narrowing anything. */}
+                          <span className="block">
+                            <span className="flex items-baseline justify-between gap-2">
+                              <span className="flex min-w-0 items-baseline gap-1">
+                                <span className="font-heading text-lg font-semibold leading-none tabular-nums text-zinc-900">
+                                  {s.total}
+                                </span>
+                                <span className="truncate text-[10px] text-zinc-500">
+                                  automations
+                                </span>
+                              </span>
+                              <span className="flex shrink-0 items-center gap-2 text-[10px] text-zinc-600">
+                                <span className="flex items-center gap-1">
+                                  {/* Active wears the website's own brand
+                                    colour, so this dot, the bar below it and
+                                    the accent spine to its left are all the
+                                    same colour for a given site. */}
+                                  <span
+                                    className="h-1.5 w-1.5 rounded-full"
+                                    style={{
+                                      backgroundColor: ACCENT[site.slug],
+                                    }}
+                                  />
+                                  <span className="font-semibold tabular-nums text-zinc-900">
+                                    {s.active}
+                                  </span>
+                                  active
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-zinc-300" />
+                                  <span className="font-semibold tabular-nums text-zinc-900">
+                                    {s.paused}
+                                  </span>
+                                  paused
+                                </span>
+                              </span>
+                            </span>
+                            {/* The split as one bar. Widths are percentages of
+                              the row's OWN total, so the bar always fills. */}
+                            <span className="mt-1.5 flex h-1 w-full overflow-hidden rounded-full bg-zinc-100">
+                              <span
+                                style={{
+                                  width: `${sActivePct}%`,
+                                  backgroundColor: ACCENT[site.slug],
+                                }}
+                              />
+                              <span
+                                className="bg-zinc-300"
+                                style={{ width: `${sPausedPct}%` }}
+                              />
+                            </span>
                           </span>
                         </span>
                       </Link>
@@ -516,8 +613,11 @@ export default async function AutomationsBetaPage({
                           by recency, and the count is in the detail panel.
 
                           ⚠️ SIZING: `w-8` (32px) wide, FULL CARD HEIGHT via the
-                          row's `h-14` + `items-stretch`. So 32 x 56, tall
-                          rectangles rather than squares.
+                          row's `h-[76px]` + `items-stretch`. So 32 x 76, tall
+                          rectangles rather than squares. They followed the card
+                          up from 56px on their own when the counts statistic
+                          landed in it; sizing them by `items-stretch` instead
+                          of a hard-coded height is exactly what that buys.
                           ⚠️ THEY WERE BRIEFLY SQUARE (`w-14`, 56 x 56) and the
                           user narrowed them the same day: "make these buttons
                           narrower, about as narrow as it was before." Square is
@@ -701,7 +801,11 @@ export default async function AutomationsBetaPage({
 
                 {/* ⭐ THE COUNTS BLOCK, from the live hub. The total at 3xl with
                     "automations" beside it, the split as two dotted figures on
-                    the right, and a proportion bar under both. */}
+                    the right, and a proportion bar under both.
+                    ⚠️ THE RAIL CARDS NOW CARRY THIS SAME BLOCK, smaller, one
+                    per website (2026-09-03). Change one and change the other,
+                    or the selected row and this panel disagree while both are
+                    on screen. */}
                 <div>
                   <div className="flex items-baseline justify-between gap-2">
                     <div className="flex items-baseline gap-1.5">
