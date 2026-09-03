@@ -59,6 +59,27 @@ export const DEFAULT_STATUS = "Unknown";
  *  already uses for that table, so one string works for both. */
 export const WEBHOOK_SCOPE = "webhooks";
 
+/** Webhook Links' own copy of the per-table facts `DROPDOWN_COLUMNS` carries for
+ *  every other choice table. It CANNOT live in that list: Webhook Links is not a
+ *  `DropdownColumnKey` column, it has its own table and its own API route.
+ *
+ *  ⚠️ THIS EXISTS SO THERE IS ONE COPY, NOT TWO. Two places describe this table
+ *  to a user now: the Dropdown Configuration page's `WEBHOOK_TABLE` descriptor
+ *  and the Add/Edit Workflow dialog's add-an-option button. Both read these
+ *  fields from here. Change the wording here and both follow; add a field here
+ *  before hard-coding one at either call site.
+ *  (The config page's descriptor still owns the fields only IT needs, e.g.
+ *  `rowLabel` and `hasRelationships`, which are about its table view.) */
+export const WEBHOOK_CHOICE_META = {
+  title: "Webhook Links",
+  /** Reads as "Add a new webhook link" in a sentence. */
+  singular: "webhook link",
+  fieldLabel: "Webhook URL",
+  placeholder: "https://…",
+  isUrl: true,
+  hasNotes: true,
+} as const;
+
 /** Scope -> its special values, in the order they should sit at the top of the
  *  Add/Edit Workflow pickers. "No Path" leads Webhook Links because it is the
  *  incumbent that is already in daily use. */

@@ -47,6 +47,8 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
   DROPDOWN_COLUMNS,
+  WEBHOOK_CHOICE_META,
+  WEBHOOK_SCOPE,
   choiceColorHex,
   choiceColorLabel,
   isSpecialChoice,
@@ -110,16 +112,21 @@ interface TableDescriptor {
   rowLabel?: string;
 }
 
+// ⚠️ THE USER-FACING FIELDS COME FROM `WEBHOOK_CHOICE_META` in the lib, not
+// from literals here. The Add/Edit Workflow dialog's "New link" button describes
+// this same table, and one copy is what keeps the two dialogs' wording
+// identical. Only the fields THIS table view needs (`rowLabel`,
+// `hasRelationships`) are local.
 const WEBHOOK_TABLE: TableDescriptor = {
-  id: "webhooks",
-  title: "Webhook Links",
-  fieldLabel: "Webhook URL",
-  placeholder: "https://…",
-  isUrl: true,
+  id: WEBHOOK_SCOPE,
+  title: WEBHOOK_CHOICE_META.title,
+  fieldLabel: WEBHOOK_CHOICE_META.fieldLabel,
+  placeholder: WEBHOOK_CHOICE_META.placeholder,
+  isUrl: WEBHOOK_CHOICE_META.isUrl,
+  hasNotes: WEBHOOK_CHOICE_META.hasNotes,
   // Rich 3-column table: Webhook Link | Relationships | Notes.
   rowLabel: "Webhook Link",
   hasRelationships: true,
-  hasNotes: true,
 };
 
 const TABLES: TableDescriptor[] = [
