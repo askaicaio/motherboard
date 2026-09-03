@@ -484,8 +484,18 @@ export function WorkflowDialog({
         // GHL Tags + GHL Forms: resolve the selected ids to their choices so the
         // row's plain-text cells render immediately (no colours here). Alphabetical
         // by value to match the loader. Empty on non-GHL platforms.
+        // ⚠️⚠️ THESE THREE RESOLVE AGAINST THE **MERGED** LISTS
+        // (ghlTagOptions / ghlFormOptions / webhookOptions), NOT the raw props.
+        // An option created by this dialog's own "New option" button exists ONLY
+        // in `extraOptions` until `router.refresh()` lands, and the
+        // `.filter(c => !!c)` below SILENTLY DROPS anything it cannot resolve.
+        // Against the raw props a just-created option would therefore save
+        // correctly to the database and then be MISSING from the table cell
+        // until a reload, and only SOMETIMES, depending on whether the refresh
+        // beat the save. (Automation Tags keeps the raw prop: it has no add
+        // button, so it can never have extras.)
         ghlTags: ghlTagChoiceIds
-          .map((tid) => ghlTagChoices.find((c) => c.id === tid))
+          .map((tid) => ghlTagOptions.find((c) => c.id === tid))
           .filter((c): c is ChoiceOption => !!c)
           .map((c) => ({
             id: c.id,
@@ -495,7 +505,7 @@ export function WorkflowDialog({
           }))
           .sort((a, b) => a.value.localeCompare(b.value)),
         ghlForms: ghlFormChoiceIds
-          .map((fid) => ghlFormChoices.find((c) => c.id === fid))
+          .map((fid) => ghlFormOptions.find((c) => c.id === fid))
           .filter((c): c is ChoiceOption => !!c)
           .map((c) => ({
             id: c.id,
@@ -508,7 +518,7 @@ export function WorkflowDialog({
         // loaded webhook choices, so the cell renders immediately. Alphabetical
         // by url to match the loader's ordering.
         webhooks: webhookChoiceIds
-          .map((wid) => webhookChoices.find((c) => c.id === wid))
+          .map((wid) => webhookOptions.find((c) => c.id === wid))
           .filter((c): c is ChoiceOption => !!c)
           .map((c) => ({ id: c.id, url: c.value }))
           .sort((a, b) => a.url.localeCompare(b.url)),
