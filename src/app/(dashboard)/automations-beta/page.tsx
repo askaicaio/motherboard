@@ -248,11 +248,11 @@ export default async function AutomationsBetaPage({
   ).length;
 
   // Everything the detail panel needs about the selected website.
-  const stats = statsByPlatform.get(selected.slug) ?? {
-    total: 0,
-    active: 0,
-    paused: 0,
-  };
+  // NOTE: `stats` (this site's total/active/paused) and the `activePct` /
+  // `pausedPct` pair were read here for the panel's counts block. All three
+  // went with it on 2026-09-03; see the note at the top of the panel body.
+  // `statsByPlatform` itself stays, because the rail rows and
+  // `portfolioTotal` both read it.
   const accent = ACCENT[selected.slug];
   const hasKey = platformHasApiKey(selected.slug);
   const days = daysSinceErrorByPlatform[selected.slug];
@@ -261,8 +261,6 @@ export default async function AutomationsBetaPage({
   // has captured nothing, which draws a flat baseline.
   const trend = trendByPlatform[selected.slug] ?? {};
   const refreshOn = autoRefreshMap[selected.slug]?.enabled ?? false;
-  const activePct = stats.total ? (stats.active / stats.total) * 100 : 0;
-  const pausedPct = stats.total ? (stats.paused / stats.total) * 100 : 0;
   const status = siteStatus(hasKey, days);
 
   return (
@@ -381,10 +379,11 @@ export default async function AutomationsBetaPage({
                   );
                   const siteRefreshOn =
                     autoRefreshMap[site.slug]?.enabled ?? false;
-                  // For the row's own proportion bar. Same formula as the
-                  // detail panel's `activePct`/`pausedPct`, over THIS row's
-                  // total, so a website with 0 automations leaves the bar empty
-                  // grey instead of dividing by zero.
+                  // For the row's own proportion bar, over THIS row's total, so
+                  // a website with 0 automations leaves the bar empty grey
+                  // instead of dividing by zero. These were the detail panel's
+                  // `activePct`/`pausedPct` too until its counts block was
+                  // removed on 2026-09-03; the rail is now the only caller.
                   const sActivePct = s.total ? (s.active / s.total) * 100 : 0;
                   const sPausedPct = s.total ? (s.paused / s.total) * 100 : 0;
                   return (
@@ -517,17 +516,20 @@ export default async function AutomationsBetaPage({
                           {/* ⭐ THE COUNTS STATISTIC, per row, 2026-09-03: "Pls
                             replace the 'X Tracked' info under the website name
                             with the whole statistic i marked."
-                            It is the DETAIL PANEL'S OWN counts block scaled to
-                            the rail: the total leads, "automations" sits beside
-                            it, the active/paused split is two dotted figures on
-                            the right, and the proportion bar runs under both.
-                            ⚠️ KEEP IT IN STEP WITH THE DETAIL PANEL'S BLOCK.
-                            They are one statistic at two sizes, and the
-                            selected row sits a few hundred pixels from its own
-                            larger copy, so any divergence in wording, order or
-                            colour shows up side by side. Sizes differ on
-                            purpose: 3xl / text-xs / h-1.5 there, lg / 10px /
-                            h-1 here.
+                            It began as the DETAIL PANEL'S counts block scaled
+                            to the rail: the total leads, "automations" sits
+                            beside it, the active/paused split is two dotted
+                            figures on the right, and the proportion bar runs
+                            under both.
+                            ⚠️⚠️ AND IT IS NOW THE ONLY COPY. The panel's
+                            larger version was removed hours later the same day
+                            ("Remove this statistic") precisely BECAUSE the rail
+                            had it: the selected row was showing the same figures
+                            a few hundred pixels away. So this is not a smaller
+                            echo of something else any more, it is where the
+                            active/paused split lives. Treat it as load-bearing,
+                            and see the note at the top of the panel body before
+                            putting a headline count back over there.
                             ⚠️⚠️ THIS IS WHERE "{s.total} tracked" USED TO BE,
                             and that line had already been cut and restored
                             earlier the same day ("Remove the 'Tracked' text
@@ -811,76 +813,36 @@ export default async function AutomationsBetaPage({
               </div>
 
               <div className="space-y-5 p-6">
-                {/* ⚠️⚠️ WHAT USED TO BE HERE, and do not bring it back without
-                    asking: Alpha3's FOUR FIGURE CARDS (Tracked / Active /
-                    Paused / Errors in ring-outlined boxes) followed by a
-                    standalone proportion bar with a three-part legend.
-                    The user replaced both on 2026-09-03: "I liked the
-                    statistics in S1. Replace these stuff in S2 with that."
-                    S1 was the LIVE HUB, so the two blocks below are the live
-                    page's own statistics treatment, brought over verbatim.
-                    That also means the `Figure` helper lost its only caller.
-
-                    WHY IT IS BETTER HERE: Alpha3's four boxes gave the total
-                    and its own parts the same visual weight, so "115" competed
-                    with the "16" and "99" that add up to it. Below, the total
-                    leads and the split is a proportion. */}
-
-                {/* ⭐ THE COUNTS BLOCK, from the live hub. The total at 3xl with
-                    "automations" beside it, the split as two dotted figures on
-                    the right, and a proportion bar under both.
-                    ⚠️ THE RAIL CARDS NOW CARRY THIS SAME BLOCK, smaller, one
-                    per website (2026-09-03). Change one and change the other,
-                    or the selected row and this panel disagree while both are
-                    on screen. */}
-                <div>
-                  <div className="flex items-baseline justify-between gap-2">
-                    <div className="flex items-baseline gap-1.5">
-                      <span className="font-heading text-3xl font-semibold leading-none tabular-nums text-zinc-900">
-                        {stats.total}
-                      </span>
-                      <span className="text-xs text-zinc-500">automations</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-xs text-zinc-600">
-                      <span className="flex items-center gap-1.5">
-                        {/* Active takes the website's own brand colour, so the
-                            dot, the bar below and the rail's accent spine are
-                            all the same colour for a given site. */}
-                        <span
-                          className="h-2 w-2 rounded-full"
-                          style={{ backgroundColor: accent }}
-                        />
-                        <span className="font-semibold tabular-nums text-zinc-900">
-                          {stats.active}
-                        </span>
-                        active
-                      </span>
-                      <span className="flex items-center gap-1.5">
-                        <span className="h-2 w-2 rounded-full bg-zinc-300" />
-                        <span className="font-semibold tabular-nums text-zinc-900">
-                          {stats.paused}
-                        </span>
-                        paused
-                      </span>
-                    </div>
-                  </div>
-                  {/* The split as one bar. Widths are percentages of the site's
-                      OWN total, so the bar always fills; a website with 0
-                      automations leaves it empty grey, which is the honest
-                      picture. */}
-                  <div className="mt-2.5 flex h-1.5 w-full overflow-hidden rounded-full bg-zinc-100">
-                    <span
-                      style={{
-                        width: `${activePct}%`,
-                        backgroundColor: accent,
-                      }}
-                    />
-                    <span
-                      className="bg-zinc-300"
-                      style={{ width: `${pausedPct}%` }}
-                    />
-                  </div>
-                </div>
+                {/* ⚠️⚠️ THE PANEL DELIBERATELY OPENS ON THE ERROR PANEL, WITH
+                    NO HEADLINE COUNT ABOVE IT. Two rounds of removals sit here,
+                    both 2026-09-03, and NEITHER should be undone without
+                    asking:
+                    1. Alpha3's FOUR FIGURE CARDS (Tracked / Active / Paused /
+                       Errors in ring-outlined boxes) plus a standalone
+                       proportion bar with a three-part legend. The user
+                       replaced them with the live hub's own treatment: "I liked
+                       the statistics in S1. Replace these stuff in S2 with
+                       that." That is what left the `Figure` helper with no
+                       caller.
+                       WHY THAT WAS RIGHT: Alpha3's four boxes gave the total
+                       and its own parts the same visual weight, so "115"
+                       competed with the "16" and "99" that add up to it.
+                    2. Then THE COUNTS BLOCK that replaced them, which is what
+                       stood here until "Remove this statistic": the total at
+                       3xl with "automations" beside it, the active/paused split
+                       as two dotted figures on the right, and a proportion bar
+                       under both. It took `stats`, `activePct` and `pausedPct`
+                       with it.
+                    ⚠️ #2 IS NOT A REVERSAL OF #1, AND THE STATISTIC IS NOT
+                    LOST. The same block had moved INTO THE RAIL CARDS earlier
+                    the same day, one per website, so the selected row was
+                    showing it a few hundred pixels from this panel's larger
+                    copy. THIS copy was the duplicate that went. The statistic
+                    is now on screen five times over instead of once, which is
+                    more information, not less.
+                    ⚠️ SO IF A HEADLINE NUMBER IS EVER WANTED HERE AGAIN, ask
+                    first, and scale the RAIL's treatment up rather than
+                    reviving either version above. */}
 
                 {/* ⭐ THE ERROR PANEL, from the live hub. One grey block with
                     the lifetime count, how long ago the last one was, and a
@@ -891,10 +853,10 @@ export default async function AutomationsBetaPage({
                     completely differently from one still growing. Make's 35 and
                     n8n's 599 look like the same kind of fact as bare figures,
                     which is exactly what the Errors figure card did.
-                    ⚠️ THIS DUPLICATES THE META STRIP'S "LAST ERROR" CELL below,
-                    which says the same "34d ago". The user's instruction covered
-                    the statistics only, so nothing was removed; raised with them
-                    separately. */}
+                    ⚠️ IT USED TO DUPLICATE THE FOUR-COLUMN META STRIP'S "LAST
+                    ERROR" CELL, which said the same "34d ago". That strip is
+                    gone ("Remove all these status indicators"), so this is now
+                    the only place the days-since figure appears. */}
                 <div className="rounded-lg bg-zinc-50 p-3">
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-baseline gap-1.5">
