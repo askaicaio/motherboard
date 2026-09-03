@@ -28,7 +28,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { Check, ChevronDown } from "lucide-react";
+import { Check, ChevronDown, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { choiceColorHex, type ChoiceOption } from "@/lib/automations/dropdown-config";
 import { ColorBadge } from "./color-badge";
@@ -43,6 +43,8 @@ export function MultiChoiceCombobox({
   noResultsLabel = "No options found.",
   side = "right",
   showFullValueOnHover = false,
+  onAddOption,
+  addOptionLabel = "New option",
 }: {
   options: ChoiceOption[];
   /** Selected choice ids (order preserved as given). */
@@ -69,6 +71,21 @@ export function MultiChoiceCombobox({
    * are short enough that the tooltip mostly repeated visible text.
    */
   showFullValueOnHover?: boolean;
+  /**
+   * Renders an "add a new option" button in the search row, to the RIGHT of the
+   * search input, and calls this when it is clicked. The caller owns everything
+   * that happens next (the dialog, the POST, whether the new option gets
+   * selected); this component only draws the button.
+   *
+   * ⚠️ OPT-IN, AND IT HAS TO STAY OPT-IN. This picker is shared by every
+   * multi-select column (Automation Tags included) and by the table filters. It
+   * was added 2026-09-03 for the three columns the user named in the Add/Edit
+   * Workflow dialog (GHL Tags, GHL Forms, Webhook Links); anything else that
+   * gains it should be because someone asked, not because it defaulted on.
+   */
+  onAddOption?: () => void;
+  /** Button label. Kept short: it shares a capped-width row with the search box. */
+  addOptionLabel?: string;
 }) {
   // Open state + resolved orientation. `side` (the prop) is the PREFERRED side;
   // the hook opens vertically instead when that side is too narrow, and hands
@@ -186,7 +203,46 @@ export function MultiChoiceCombobox({
             itemValue.toLowerCase().includes(search.toLowerCase()) ? 1 : 0
           }
         >
-          <CommandInput placeholder={searchPlaceholder} />
+          {/* THE SEARCH ROW. Without `onAddOption` it is exactly the shared
+              CommandInput, untouched. With it, the input and the button share
+              one flex row.
+              ⚠️ THE ROW'S HEIGHT MUST NOT CHANGE, because CommandList below
+              reserves a FIXED 3rem for this row out of --available-height. The
+              button is therefore `h-8`, the same height as CommandInput's own
+              InputGroup, so the row stays 36px either way. If a redesign makes
+              this row taller, that 3rem has to move with it or the popup grows
+              past the viewport. See [[dropdown-menu-standard]].
+              ⚠️ CommandInput's `className` lands on the INPUT, not on its
+              wrapper (which owns the `p-1 pb-0`), so the layout has to be done
+              from outside: the wrapper goes in a `min-w-0 flex-1` cell and the
+              button in a cell that repeats the same top/right padding.
+              `min-w-0` is what lets the input yield instead of pushing the
+              button out of the capped-width popover. */}
+          {onAddOption ? (
+            <div className="flex items-start">
+              <div className="min-w-0 flex-1">
+                <CommandInput placeholder={searchPlaceholder} />
+              </div>
+              {/* `p-1 pb-0 pl-0` REPEATS CommandInput's wrapper padding
+                  exactly, minus the left side (its right padding is the gap).
+                  MEASURED 2026-09-03: with a plain `p-1` here the cell was 4px
+                  taller than the input's wrapper and the whole search row grew
+                  from 34px to 38px, which is the height this row is not allowed
+                  to change. */}
+              <div className="p-1 pb-0 pl-0">
+                <button
+                  type="button"
+                  onClick={onAddOption}
+                  className="inline-flex h-8 shrink-0 items-center gap-1 rounded-lg border border-input/30 bg-input/30 px-2 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-200 hover:text-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                >
+                  <Plus className="h-3.5 w-3.5 shrink-0" />
+                  {addOptionLabel}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <CommandInput placeholder={searchPlaceholder} />
+          )}
           {/* Grow the option list to the space between the trigger and the
               window edge (Base UI's --available-height, set on the Positioner),
               scrolling only past that — instead of the shared list's fixed

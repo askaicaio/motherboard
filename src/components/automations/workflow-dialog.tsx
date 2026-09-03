@@ -9,6 +9,21 @@
 // a form field — they are carried through unchanged in the save payload below so
 // editing other fields doesn't blank them.
 // Modeled on the Subscriptions tab's Add/Edit subscription dialog.
+//
+// THREE of the pickers here can CREATE their own options without leaving this
+// dialog (GHL Tags, GHL Forms, Webhook Links), added 2026-09-03. See the
+// "New option" block below the status constants for the scope rule, the
+// per-table differences and why the second dialog is a sibling rather than a
+// child of the picker's popover.
+//
+// ⚠️ BOTH CALLERS GET THAT BUTTON, and that was the explicit decision, not an
+// oversight: this component is rendered by the Per Website table
+// (`automations-table-client.tsx`) AND by View All Lists
+// (`all-automations-table-client.tsx`). The user was asked under the
+// ASK-BEFORE-SYNC rule and chose both pages, so the button is unconditional
+// here rather than gated on a caller prop. Note View All Lists deliberately
+// cannot create AUTOMATIONS; creating a dropdown OPTION there is a different
+// thing and is allowed.
 
 import { useState, useEffect } from "react";
 import {
@@ -46,8 +61,20 @@ import {
   usePopoverSide,
   NARROW_SIDE_SPACE_SELECT_PX,
 } from "./use-popover-side";
-import { columnVisibleOnPlatform } from "@/lib/automations/dropdown-config";
-import type { ChoiceOption } from "@/lib/automations/dropdown-config";
+import {
+  columnVisibleOnPlatform,
+  DEFAULT_STATUS,
+  DROPDOWN_COLUMNS,
+  WEBHOOK_CHOICE_META,
+  WEBHOOK_SCOPE,
+  selectableStatusOptions,
+} from "@/lib/automations/dropdown-config";
+import type {
+  ChoiceOption,
+  StatusOption,
+} from "@/lib/automations/dropdown-config";
+import { ChoiceDialog, type ChoiceSubmit } from "./choice-dialog";
+import { useRouter } from "next/navigation";
 
 /** Status options rendered as COLOURED TEXT in the Status dropdown, mirroring
  *  the GHL Forms Status dropdown (green Active, neutral-gray Paused). Replaces
@@ -56,6 +83,93 @@ const WF_STATUS_OPTIONS = [
   { value: "active", label: "Active", text: "text-emerald-700" },
   { value: "paused", label: "Paused", text: "text-zinc-700" },
 ];
+
+// ---------------------------------------------------------------------------
+// "New option" from inside the dropdowns
+// ---------------------------------------------------------------------------
+// User, 2026-09-03: a button in the GHL Tags, GHL Forms and Webhook Links
+// pickers, to the right of their search bar, so an admin can add a missing
+// Dropdown Config option WITHOUT abandoning the workflow they are part-way
+// through filling in. The picker draws the button (MultiChoiceCombobox's
+// `onAddOption`); everything below is what happens when it is pressed.
+//
+// ⚠️ SCOPE IS THESE THREE, because these three were asked for. Author, Trigger
+// Event, Evaluation and Automation Tags use the same pickers and deliberately do
+// NOT get the button. Do not fan it out without being asked. (The ask itself
+// grew from two to three mid-session, so a fourth would arrive the same way.)
+//
+// ⚠️ THE THREE TARGETS ARE NOT THE SAME KIND OF TABLE. GHL Tags and GHL Forms
+// are ordinary `DropdownColumnKey` columns: one shared `automation_dropdown_choices`
+// table, POST /api/automations/dropdown-choices with a `columnKey`. Webhook
+// Links has its OWN table and its OWN route, POST
+// /api/automations/webhook-choices, and takes `url` rather than `value`. The
+// AddTarget shape below flattens that so the dialog and the request do not each
+// need a special case.
+type AddKind = "ghl_tags" | "ghl_forms" | typeof WEBHOOK_SCOPE;
+
+interface AddTarget {
+  /** Table name, for the dialog's heading and description. */
+  title: string;
+  /** Reads inside a sentence: "Add a new GHL tag". */
+  singular: string;
+  fieldLabel: string;
+  placeholder: string;
+  isUrl: boolean;
+  hasStatus: boolean;
+  statusOptions: StatusOption[];
+  defaultStatus: string;
+  hasNotes: boolean;
+}
+
+/** An AddTarget for one of the two ordinary choice columns, read from
+ *  DROPDOWN_COLUMNS so the wording matches the Dropdown Config page's own
+ *  dialog exactly. Falls back rather than asserting: a missing key would be a
+ *  programming error, and a dialog labelled "option" beats a crash. */
+function choiceColumnTarget(key: "ghl_tags" | "ghl_forms"): AddTarget {
+  const col = DROPDOWN_COLUMNS.find((c) => c.key === key);
+  return {
+    title: col?.title ?? "Options",
+    singular: col?.singular ?? "option",
+    fieldLabel: col?.fieldLabel ?? "Value",
+    placeholder: col?.placeholder ?? "",
+    isUrl: false,
+    hasStatus: !!col?.hasStatus,
+    // The admin-only status is stripped, exactly as the Dropdown Config page
+    // strips it: this dialog only ever ADDS an ordinary option.
+    statusOptions: selectableStatusOptions(col?.statusOptions ?? []),
+    defaultStatus: col?.defaultStatus ?? DEFAULT_STATUS,
+    hasNotes: !!col?.hasNotes,
+  };
+}
+
+const ADD_TARGETS: Record<AddKind, AddTarget> = {
+  ghl_tags: choiceColumnTarget("ghl_tags"),
+  ghl_forms: choiceColumnTarget("ghl_forms"),
+  // Webhook Links' facts come from the lib too (WEBHOOK_CHOICE_META), for the
+  // same reason: one copy, shared with the Dropdown Config page. It carries no
+  // Status column.
+  [WEBHOOK_SCOPE]: {
+    ...WEBHOOK_CHOICE_META,
+    hasStatus: false,
+    statusOptions: [],
+    defaultStatus: "",
+  },
+};
+
+/** The caller's options plus any created in this dialog that the server has not
+ *  sent back yet, deduplicated by id.
+ *  ⚠️ IT APPENDS, IT DOES NOT RE-SORT. The incoming order is the server's
+ *  (alphabetical, built-in options floated to the top by `sortSpecialFirst`),
+ *  and re-sorting client-side would visibly reshuffle the whole list around one
+ *  new row. A new option is auto-selected anyway, so it shows in the picker's
+ *  pinned selected block at the top regardless of where it sits in the list
+ *  below; `router.refresh()` then puts it in its proper place. */
+function mergeExtras(base: ChoiceOption[], extra?: ChoiceOption[]): ChoiceOption[] {
+  if (!extra || extra.length === 0) return base;
+  const known = new Set(base.map((o) => o.id));
+  const missing = extra.filter((o) => !known.has(o.id));
+  return missing.length === 0 ? base : [...base, ...missing];
+}
 
 interface Props {
   open: boolean;
@@ -131,10 +245,111 @@ export function WorkflowDialog({
   const [webhookChoiceIds, setWebhookChoiceIds] = useState<string[]>([]);
   // Inline error shown as red text inside the dialog (e.g. duplicate link).
   const [error, setError] = useState<string | null>(null);
+  // Which picker's "New option" button was pressed, i.e. which table the
+  // stacked ChoiceDialog is adding to. null = that dialog is closed.
+  const [addKind, setAddKind] = useState<AddKind | null>(null);
+  // Options created from inside this dialog, per table, so they appear in the
+  // picker IMMEDIATELY. `router.refresh()` also runs, and once its new props
+  // arrive `mergeExtras` drops these as duplicates by id.
+  // ⚠️ DELIBERATELY NOT RESET when the dialog reopens, unlike every field
+  // below. If it were, closing and reopening the workflow before the refresh
+  // landed would make a just-created option VANISH from the picker until a full
+  // page load. Costs nothing to keep: they are deduplicated on every render.
+  const [extraOptions, setExtraOptions] = useState<
+    Partial<Record<AddKind, ChoiceOption[]>>
+  >({});
+  const router = useRouter();
   // GHL Tags + GHL Forms are GHL-only fields, shown only when this automation's
   // platform is a GoHighLevel page (same gate as the table columns).
   const showGhlTags = columnVisibleOnPlatform("ghl_tags", platform);
   const showGhlForms = columnVisibleOnPlatform("ghl_forms", platform);
+  // What the three pickers actually render: the caller's server-loaded options
+  // plus anything created here that the server has not sent back yet.
+  const ghlTagOptions = mergeExtras(ghlTagChoices, extraOptions.ghl_tags);
+  const ghlFormOptions = mergeExtras(ghlFormChoices, extraOptions.ghl_forms);
+  const webhookOptions = mergeExtras(
+    webhookChoices,
+    extraOptions[WEBHOOK_SCOPE],
+  );
+
+  /** Creates one Dropdown Config option from inside this dialog, then SELECTS
+   *  it on the workflow being edited. Returns null on success, or the message
+   *  ChoiceDialog should show. (ChoiceDialog closes itself on null.)
+   *
+   *  AUTO-SELECT IS THE USER'S CHOICE, 2026-09-03: they are creating the option
+   *  because this workflow needs it, so ticking it for them saves a click and
+   *  removes the chance of creating it and forgetting to apply it. */
+  async function createOption(
+    kind: AddKind,
+    payload: ChoiceSubmit,
+  ): Promise<string | null> {
+    const target = ADD_TARGETS[kind];
+    const isWebhook = kind === WEBHOOK_SCOPE;
+    // Webhook Links takes `url` on its own route; the two choice columns take
+    // `value` + `columnKey` on the shared one. Status / Notes are sent only
+    // where the table has them, matching the Dropdown Config page's own body.
+    const res = await fetch(
+      isWebhook
+        ? "/api/automations/webhook-choices"
+        : "/api/automations/dropdown-choices",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          isWebhook
+            ? {
+                url: payload.value,
+                ...(target.hasNotes ? { notes: payload.notes ?? "" } : {}),
+              }
+            : {
+                columnKey: kind,
+                value: payload.value,
+                ...(target.hasStatus ? { status: payload.status } : {}),
+                ...(target.hasNotes ? { notes: payload.notes ?? "" } : {}),
+              },
+        ),
+      },
+    );
+    let data: {
+      error?: string;
+      choice?: { id: string };
+      webhook?: { id: string };
+    } = {};
+    try {
+      data = await res.json();
+    } catch {
+      data = {};
+    }
+    // The duplicate-value message comes back from the API, so "that option
+    // already exists" reads the same here as on the Dropdown Config page.
+    if (!res.ok) return data.error || `Save failed (${res.status})`;
+    const saved = isWebhook ? data.webhook : data.choice;
+    if (!saved) return "Save failed";
+
+    // Colours are null because neither of these three tables carries any
+    // (hasColor is Trigger Event / Author only), which is also why the dialog
+    // above shows no swatch pickers.
+    const option: ChoiceOption = {
+      id: saved.id,
+      value: payload.value,
+      badgeColor: null,
+      textColor: null,
+    };
+    setExtraOptions((prev) => ({
+      ...prev,
+      [kind]: [...(prev[kind] ?? []), option],
+    }));
+    if (kind === "ghl_tags") setGhlTagChoiceIds((v) => [...v, option.id]);
+    else if (kind === "ghl_forms") setGhlFormChoiceIds((v) => [...v, option.id]);
+    else setWebhookChoiceIds((v) => [...v, option.id]);
+    // Clear any stale form error: the dialog is usable again.
+    setError(null);
+    toast.success(`Added to ${target.title}`);
+    // So the rest of the page agrees: the table's own cells, its filters, and
+    // the Dropdown Config page all read these options from the server.
+    router.refresh();
+    return null;
+  }
   // Status dropdown orientation (standard dropdown behaviour): Status is a
   // LEFT-column field, so it opens LEFT pinned, or vertically when that side is
   // too narrow. Small fixed-width menu → the smaller Select threshold.
@@ -613,7 +828,7 @@ export function WorkflowDialog({
               <Label htmlFor="wf-ghl-tags">GHL Tags</Label>
               <MultiChoiceCombobox
                 id="wf-ghl-tags"
-                options={ghlTagChoices}
+                options={ghlTagOptions}
                 values={ghlTagChoiceIds}
                 onChange={(v) => {
                   setGhlTagChoiceIds(v);
@@ -623,6 +838,12 @@ export function WorkflowDialog({
                 emptyLabel="None"
                 noResultsLabel="No GHL tags found."
                 side="right"
+                // One of the THREE pickers that can create their own options
+                // (see the AddKind block at the top of this file). The label is
+                // deliberately short: it shares a width-capped row with the
+                // search box.
+                onAddOption={() => setAddKind("ghl_tags")}
+                addOptionLabel="New tag"
               />
             </div>
           )}
@@ -631,7 +852,7 @@ export function WorkflowDialog({
               <Label htmlFor="wf-ghl-forms">GHL Forms</Label>
               <MultiChoiceCombobox
                 id="wf-ghl-forms"
-                options={ghlFormChoices}
+                options={ghlFormOptions}
                 values={ghlFormChoiceIds}
                 onChange={(v) => {
                   setGhlFormChoiceIds(v);
@@ -641,6 +862,8 @@ export function WorkflowDialog({
                 emptyLabel="None"
                 noResultsLabel="No GHL forms found."
                 side="right"
+                onAddOption={() => setAddKind("ghl_forms")}
+                addOptionLabel="New form"
               />
             </div>
           )}
@@ -652,7 +875,7 @@ export function WorkflowDialog({
                 Sits after Notes, matching the table column order. */}
             <MultiChoiceCombobox
               id="wf-webhook-links"
-              options={webhookChoices}
+              options={webhookOptions}
               values={webhookChoiceIds}
               onChange={(v) => {
                 setWebhookChoiceIds(v);
@@ -662,6 +885,8 @@ export function WorkflowDialog({
               emptyLabel="None"
               noResultsLabel="No webhooks found."
               side="right"
+              onAddOption={() => setAddKind(WEBHOOK_SCOPE)}
+              addOptionLabel="New link"
               // Webhook URLs truncate (intended: they are far wider than the
               // popover cap), but the truncated head is not enough to tell one
               // link from another, so hovering a row reveals the whole thing.
@@ -729,6 +954,44 @@ export function WorkflowDialog({
         </form>
       </DialogContent>
     </Dialog>
+    {/* ⭐ THE "New option" DIALOG, stacked ON TOP of this one, 2026-09-03.
+        Reuses the Dropdown Configuration page's own ChoiceDialog in its ADD
+        mode (`initialValue=""`, no `onDelete`), so the fields, the validation
+        and the wording are the page's, not a second implementation.
+
+        ⚠️ IT IS A SIBLING OF <Dialog>, NOT A CHILD OF THE PICKER'S POPOVER.
+        Nesting it inside the popover would tie its lifetime to a popover that
+        closes the moment focus moves into the new dialog. As a sibling it
+        portals to the body and stacks above, which is the same shape
+        `confirmDialog` already uses over this dialog's Delete button, so
+        dialog-over-dialog is a proven pattern here rather than a new one.
+
+        ⚠️ RENDERED ONLY WHILE `addKind` IS SET, and keyed by it. ChoiceDialog
+        seeds its fields from props in an `open`-gated effect, so a fresh mount
+        per table is what guarantees no value, status or note leaks from the
+        last table's add into the next one's. */}
+    {addKind && (
+      <ChoiceDialog
+        key={addKind}
+        open
+        onOpenChange={(o) => {
+          if (!o) setAddKind(null);
+        }}
+        heading={`Add ${ADD_TARGETS[addKind].singular}`}
+        description={`Add a new option to ${ADD_TARGETS[addKind].title}. It will be selected on this workflow.`}
+        fieldLabel={ADD_TARGETS[addKind].fieldLabel}
+        placeholder={ADD_TARGETS[addKind].placeholder}
+        isUrl={ADD_TARGETS[addKind].isUrl}
+        initialValue=""
+        submitLabel="Add option"
+        showStatus={ADD_TARGETS[addKind].hasStatus}
+        statusOptions={ADD_TARGETS[addKind].statusOptions}
+        initialStatus={ADD_TARGETS[addKind].defaultStatus}
+        showNotes={ADD_TARGETS[addKind].hasNotes}
+        initialNotes=""
+        onSubmit={(payload) => createOption(addKind, payload)}
+      />
+    )}
     </TooltipProvider>
   );
 }
