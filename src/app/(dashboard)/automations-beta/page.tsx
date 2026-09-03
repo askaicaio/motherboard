@@ -330,8 +330,10 @@ export default async function AutomationsBetaPage({
                     and the user authorised the width for exactly that: "You can
                     widen the cards on the left to accomodate it."
                     ⚠️ MEASURED IN THE BROWSER at a 1900px viewport, rather
-                    than reasoned about: at 416px an unselected card is 323px
-                    and its text column 258px, and the worst realistic row
+                    than reasoned about: at 416px every card is 323px wide
+                    (selected or not, because the row reserves the action
+                    buttons' width either way) with a 258px text column, and
+                    the worst realistic row
                     ("344 automations" against "144 active / 200 paused", three
                     digits everywhere) needs 235px. So the slack is 23px. w-96
                     (384px) would overflow it by about 9px, and because the
@@ -633,20 +635,45 @@ export default async function AutomationsBetaPage({
                           detail panel, and widening the rail does not fix it
                           because the overflow scales too. A fixed width is the
                           only reliable way to size these. */}
-                      {/* ⚠️⚠️ HIDDEN ON THE SELECTED ROW, and the card then
-                          fills the width on its own because it is `flex-1`.
-                          User, 2026-09-03: "make them disappear and make the
-                          website card fill their space when that specific
-                          website is currently selected and being displayed on
-                          the right side."
-                          WHY IT IS RIGHT rather than just tidier: the detail
-                          panel on the right ALREADY shows Error History and
-                          View list for whichever site is selected. So for that
-                          one row the pair is a duplicate of what is on screen a
-                          few hundred pixels away, and every OTHER row is the
-                          only place to reach those two pages without switching
-                          selection first. */}
-                      {!isCurrent && (
+                      {/* ⚠️⚠️ HIDDEN ON THE SELECTED ROW, BUT THE ROW STILL
+                          RESERVES THEIR WIDTH. User, 2026-09-03: "make them
+                          disappear and make the website card fill their space
+                          when that specific website is currently selected",
+                          then, having seen it: "When a website is selected,
+                          make it so the card does not expand anymore. Leave the
+                          empty space empty pretty much."
+                          SO THE SECOND ASK REVERSES THE FIRST HALF OF THE
+                          FIRST. The buttons still go; the card no longer grows
+                          into the gap. Every card is now the same width in both
+                          states, which is the point: a card that widened by
+                          76px on selection made the whole rail jump.
+                          ⚠️ THE SPACER IS THE BUTTON GROUP'S OWN CLASSES with
+                          empty spans inside (`gap-1` + two `w-8`), NOT a single
+                          hard-coded `w-[68px]`. Same literal tokens as the real
+                          buttons a few lines down, so changing the button width
+                          means changing `w-8` in all four places and a grep
+                          finds them. Do not "simplify" it to one fixed width.
+                          ⚠️ IT IS EMPTY SPANS, NOT `invisible` LINKS. Keeping
+                          the real links and hiding them would auto-match the
+                          width, but they would stay focusable and in the a11y
+                          tree, and `aria-hidden` on a focusable element is an
+                          a11y violation.
+                          WHY THE BUTTONS GO AT ALL, rather than just tidier:
+                          the detail panel on the right ALREADY shows Error
+                          History and View list for whichever site is selected.
+                          So for that one row the pair is a duplicate of what is
+                          on screen a few hundred pixels away, and every OTHER
+                          row is the only place to reach those two pages without
+                          switching selection first. */}
+                      {isCurrent ? (
+                        <span
+                          aria-hidden
+                          className="flex shrink-0 items-stretch gap-1"
+                        >
+                          <span className="w-8" />
+                          <span className="w-8" />
+                        </span>
+                      ) : (
                         <span className="flex shrink-0 items-stretch gap-1">
                           <Link
                             href={`/automations/${site.slug}/errors`}
