@@ -248,6 +248,14 @@ export function WorkflowDialog({
   // Which picker's "New option" button was pressed, i.e. which table the
   // stacked ChoiceDialog is adding to. null = that dialog is closed.
   const [addKind, setAddKind] = useState<AddKind | null>(null);
+  // ⭐ WHAT THE USER HAD TYPED IN THAT PICKER'S SEARCH BOX, used to pre-fill the
+  // add dialog's value field. User, 2026-09-03: "When the user types a value on
+  // the search bar ... Carry over the value ... This feature is so the user does
+  // not need to retype the thing they wanted."
+  // The realistic path to this button is: search for a tag, see "No GHL tags
+  // found", press New tag. Making them retype what is still on screen is the
+  // thing being fixed.
+  const [addSeed, setAddSeed] = useState("");
   // Options created from inside this dialog, per table, so they appear in the
   // picker IMMEDIATELY. `router.refresh()` also runs, and once its new props
   // arrive `mergeExtras` drops these as duplicates by id.
@@ -271,6 +279,14 @@ export function WorkflowDialog({
     webhookChoices,
     extraOptions[WEBHOOK_SCOPE],
   );
+
+  /** Opens the stacked add dialog for one picker, carrying that picker's search
+   *  text into it. Both bits of state are set together so the dialog mounts with
+   *  the seed already in place, rather than mounting empty and filling in. */
+  function openAdd(kind: AddKind, searchText: string) {
+    setAddSeed(searchText);
+    setAddKind(kind);
+  }
 
   /** Creates one Dropdown Config option from inside this dialog, then SELECTS
    *  it on the workflow being edited. Returns null on success, or the message
@@ -852,7 +868,7 @@ export function WorkflowDialog({
                 // (see the AddKind block at the top of this file). The label is
                 // deliberately short: it shares a width-capped row with the
                 // search box.
-                onAddOption={() => setAddKind("ghl_tags")}
+                onAddOption={(seed) => openAdd("ghl_tags", seed)}
                 addOptionLabel="New tag"
               />
             </div>
@@ -872,7 +888,7 @@ export function WorkflowDialog({
                 emptyLabel="None"
                 noResultsLabel="No GHL forms found."
                 side="right"
-                onAddOption={() => setAddKind("ghl_forms")}
+                onAddOption={(seed) => openAdd("ghl_forms", seed)}
                 addOptionLabel="New form"
               />
             </div>
@@ -895,7 +911,7 @@ export function WorkflowDialog({
               emptyLabel="None"
               noResultsLabel="No webhooks found."
               side="right"
-              onAddOption={() => setAddKind(WEBHOOK_SCOPE)}
+              onAddOption={(seed) => openAdd(WEBHOOK_SCOPE, seed)}
               addOptionLabel="New link"
               // Webhook URLs truncate (intended: they are far wider than the
               // popover cap), but the truncated head is not enough to tell one
@@ -992,7 +1008,11 @@ export function WorkflowDialog({
         fieldLabel={ADD_TARGETS[addKind].fieldLabel}
         placeholder={ADD_TARGETS[addKind].placeholder}
         isUrl={ADD_TARGETS[addKind].isUrl}
-        initialValue=""
+        // Pre-filled with the picker's search text, empty when there was none.
+        // ⚠️ A NON-EMPTY `initialValue` DOES NOT MEAN EDIT MODE. What makes
+        // ChoiceDialog an editor is `onDelete` and `valueLocked`, neither of
+        // which is passed here, so this stays a create.
+        initialValue={addSeed}
         submitLabel="Add option"
         showStatus={ADD_TARGETS[addKind].hasStatus}
         statusOptions={ADD_TARGETS[addKind].statusOptions}
