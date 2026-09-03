@@ -1,8 +1,15 @@
 "use client";
 
 // Add / Edit dialog for a Dropdown Configuration choice. One component, two
-// modes (add when initialValue is ""). Presentational: the parent's onSubmit
-// performs the create/update and returns an error message (or null on success).
+// modes. Presentational: the parent's onSubmit performs the create/update and
+// returns an error message (or null on success).
+//
+// ⚠️ WHAT MAKES IT AN EDITOR IS `onDelete` AND `valueLocked`, NOT a non-empty
+// `initialValue`. It used to be true that add mode always passed
+// `initialValue=""`, and that is no longer the convention: since 2026-09-03 the
+// Add/Edit Workflow dialog opens this in ADD mode pre-filled with whatever the
+// picker's search box contained, so the admin does not retype the value they
+// just searched for. Do not reintroduce a branch on `initialValue === ""`.
 // The GHL Tags table passes showStatus + showNotes to render a Status dropdown
 // and a Purpose-style Notes textarea alongside the value field. Modeled on the
 // Automations "Add/Edit Workflow" dialog.

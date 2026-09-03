@@ -14,6 +14,7 @@
 //
 // `values` is the selected choice ids; `onChange` hands back the next id array.
 
+import { useState } from "react";
 import {
   Popover,
   PopoverContent,
@@ -82,8 +83,14 @@ export function MultiChoiceCombobox({
    * was added 2026-09-03 for the three columns the user named in the Add/Edit
    * Workflow dialog (GHL Tags, GHL Forms, Webhook Links); anything else that
    * gains it should be because someone asked, not because it defaulted on.
+   *
+   * ⭐ THE ARGUMENT IS THE CURRENT SEARCH TEXT, trimmed. The whole point of
+   * passing it (user, 2026-09-03) is that you reach this button by searching
+   * for something, failing to find it, and deciding to create it, so **the
+   * thing you just typed must not have to be typed again.** The caller seeds
+   * its add dialog with it. Empty string when the box is empty.
    */
-  onAddOption?: () => void;
+  onAddOption?: (searchText: string) => void;
   /** Button label. Kept short: it shares a capped-width row with the search box. */
   addOptionLabel?: string;
 }) {
@@ -92,6 +99,14 @@ export function MultiChoiceCombobox({
   // back the collisionAvoidance to match (pinned when horizontal).
   const { triggerRef, open, setOpen, side: resolvedSide, collisionAvoidance } =
     usePopoverSide(side);
+  // The search box's text, held here ONLY so the "New option" button can hand it
+  // to the caller (see `onAddOption`). cmdk manages this itself otherwise.
+  // ⚠️ IT MUST BE CLEARED WHEN THE POPOVER CLOSES. Base UI unmounts the popup on
+  // close (no `keepMounted`), so an UNCONTROLLED input has always come back
+  // empty; this state lives on the trigger's side of that boundary and would
+  // survive, reopening the picker with a stale filter and a list that looks
+  // half-empty for no visible reason.
+  const [search, setSearch] = useState("");
   const selectedSet = new Set(values);
   // Split into selected (pinned at the top of the list) and unselected (the
   // normal, searchable list below). Both keep the configured (alphabetical) order.
@@ -136,7 +151,13 @@ export function MultiChoiceCombobox({
   }
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (!next) setSearch("");
+      }}
+    >
       <PopoverTrigger
         ref={triggerRef}
         id={id}
@@ -218,10 +239,20 @@ export function MultiChoiceCombobox({
               button in a cell that repeats the same top/right padding.
               `min-w-0` is what lets the input yield instead of pushing the
               button out of the capped-width popover. */}
+          {/* ⚠️ THE INPUT IS CONTROLLED ONLY IN THIS BRANCH, on purpose. The
+              button has to read what you typed; the pickers WITHOUT a button
+              (Automation Tags, the table's column filters) never asked for any
+              of this, so their input stays uncontrolled and byte-for-byte as it
+              was. Do not "tidy" the two branches into one controlled input
+              without a reason to touch those pickers. */}
           {onAddOption ? (
             <div className="flex items-start">
               <div className="min-w-0 flex-1">
-                <CommandInput placeholder={searchPlaceholder} />
+                <CommandInput
+                  placeholder={searchPlaceholder}
+                  value={search}
+                  onValueChange={setSearch}
+                />
               </div>
               {/* `p-1 pb-0 pl-0` REPEATS CommandInput's wrapper padding
                   exactly, minus the left side (its right padding is the gap).
@@ -232,7 +263,7 @@ export function MultiChoiceCombobox({
               <div className="p-1 pb-0 pl-0">
                 <button
                   type="button"
-                  onClick={onAddOption}
+                  onClick={() => onAddOption(search.trim())}
                   className="inline-flex h-8 shrink-0 items-center gap-1 rounded-lg border border-input/30 bg-input/30 px-2 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-200 hover:text-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
                 >
                   <Plus className="h-3.5 w-3.5 shrink-0" />
