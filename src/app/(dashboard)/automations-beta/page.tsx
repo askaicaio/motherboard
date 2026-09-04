@@ -28,17 +28,21 @@
 //     dropped the CONTROL, having no working controls at all. Beta kept the
 //     control; the strip itself was removed on 2026-09-03, so this button is
 //     now the only place the API key is reported.
-//   - ❌ two icon buttons on every rail row (Error History, View list),
-//     mirroring the detail header's pair per site. **REMOVED 2026-09-04 at the
-//     user's request ("Remove these buttons").** Kept listed, struck through,
-//     because they are why the rail row was wrapped in a flex div and why the
-//     detail header's buttons carry leading icons at all: both of those notes
-//     now read as answers to a question nobody can see. Do not put the buttons
-//     back to "explain" them.
-//     ⚠️ WHAT THEIR REMOVAL COSTS: reaching a website's Error History or list
-//     now takes TWO steps from this page (select it in the rail, then use the
-//     detail header) where it used to take one from any row. That is the
-//     accepted trade, not an oversight.
+//   - THE ERROR HISTORY / VIEW LIST PAIR ON EVERY RAIL CARD, labelled, always
+//     visible, where Alpha3 has nothing per row at all.
+//     ⚠️⚠️ THESE BUTTONS HAVE BEEN THROUGH THREE ARRANGEMENTS IN TWO DAYS, and
+//     the middle one was REMOVED, so read the sequence before "restoring"
+//     anything:
+//       1. ICON-ONLY, 32px, hidden on the selected row, beside each card
+//          (#443-#447). Removed 2026-09-04, "Remove these buttons" (#463).
+//       2. the LABELLED pair in the DETAIL HEADER only, which is where they
+//          lived while the rail had none.
+//       3. NOW: the labelled pair per card, ALWAYS VISIBLE, and the detail
+//          header gives them up entirely ("Move these buttons to each website
+//          card. They are always visible", #464).
+//     So #463 removed the ICON-ONLY treatment, not the idea of per-card
+//     buttons. **Do not re-add the hide-on-selected gate**: it existed because
+//     the detail header showed the same pair, and the header no longer does.
 //
 // ⚠️ WHAT ALPHA3'S PREMISE IS, so a future edit does not flatten it back out:
 // the live page gives all 5 websites an equal, shallow slice of the screen,
@@ -64,9 +68,7 @@ import Link from "next/link";
 // NOTE: Activity, Clock and KeyRound went with the status strip on
 // 2026-09-03; it was the only place any of them was used.
 // AlertTriangle is this app's established error icon (six other call sites), so
-// the detail header's Error History button uses it rather than introducing a
-// second one. (It came in for the RAIL's per-row buttons, which went on
-// 2026-09-04; the header kept the icon, so the import is still live.)
+// the cards' Error History button uses it rather than introducing a second one.
 import {
   AlertTriangle,
   ChevronRight,
@@ -514,7 +516,10 @@ export default async function AutomationsBetaPage({
                           for why the button cannot be in the anchor).
                           `justify-center` is gone with the fixed height: the
                           content sets the height, so there is nothing to
-                          centre against. */}
+                          centre against.
+                          ⚠️ THE ERROR HISTORY / VIEW LIST PAIR IS NOT IN HERE,
+                          it is a sibling of this whole column at the card's
+                          right edge. See its own note below for why. */}
                       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
                         <Link
                           href={`/automations-beta?site=${site.slug}`}
@@ -706,6 +711,61 @@ export default async function AutomationsBetaPage({
                           />
                         </span>
                       </div>
+
+                      {/* ⭐⭐ ERROR HISTORY + VIEW LIST, PER CARD, 2026-09-04:
+                          "Move these buttons to each website card. They are
+                          always visible." Moved out of the detail header, which
+                          now has no buttons at all. The LABELLED pair, in the
+                          same styling both this page's header and the live hub
+                          use, so all three surfaces read alike.
+
+                          ⚠️⚠️ "ALWAYS VISIBLE" IS THE INSTRUCTION AND IT MATTERS:
+                          there is NO `!isCurrent` gate here. The selected card
+                          shows them exactly like the other four. **Do not
+                          re-add the hide-on-selected behaviour** the old
+                          icon-only buttons had; the reason it existed (the
+                          detail header showed the same pair a few hundred
+                          pixels away) is gone, because the header no longer has
+                          them.
+
+                          ⚠️ THIS IS THE THIRD ARRANGEMENT OF THESE BUTTONS IN
+                          THE CARDS, and the previous removal was of a DIFFERENT
+                          thing, so do not read #463 as "the user does not want
+                          buttons on the cards":
+                            1. icon-only, 32px wide, hidden on the selected row
+                               (#443 to #447). REMOVED (#463, "Remove these
+                               buttons").
+                            2. the labelled pair in the DETAIL HEADER only.
+                            3. this: the labelled pair per card, always visible,
+                               and the header gives them up.
+
+                          ⚠️ IT IS A SIBLING OF THE CONTENT COLUMN, NOT INSIDE
+                          THE TITLE LINE where the user marked it. The title
+                          line lives inside the site-select <Link>, and these
+                          are <Link>s: AN <a> INSIDE AN <a> IS INVALID HTML and
+                          gets silently un-nested, which is the trap that has
+                          already reshaped this row twice. Sitting at the card's
+                          right edge with `self-start` puts them level with the
+                          title line anyway, which is what was asked for.
+                          ⚠️ `shrink-0` + the column's `min-w-0` means the NAME
+                          yields first if the card is ever narrowed, not these. */}
+                      <span className="flex shrink-0 items-center gap-2 self-start">
+                        <Link
+                          href={`/automations/${site.slug}/errors`}
+                          className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-card px-2.5 text-xs font-medium text-zinc-600 ring-1 ring-foreground/10 transition-colors hover:bg-zinc-50 hover:text-zinc-900"
+                        >
+                          <AlertTriangle className="h-3.5 w-3.5" />
+                          Error History
+                        </Link>
+                        <Link
+                          href={`/automations/${site.slug}`}
+                          className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-zinc-900 px-2.5 text-xs font-medium text-white transition-colors hover:bg-zinc-800"
+                        >
+                          <List className="h-3.5 w-3.5" />
+                          View list
+                          <ChevronRight className="h-3.5 w-3.5" />
+                        </Link>
+                      </span>
                     </div>
                   );
                 })}
@@ -755,6 +815,20 @@ export default async function AutomationsBetaPage({
                   background: `linear-gradient(to bottom, ${accent}0F, transparent)`,
                 }}
               >
+                {/* ⚠️⚠️ THIS HEADER HAS NO CONTROLS LEFT AT ALL, and that is the
+                    finished state. It has been emptied twice in one day: the
+                    status pill + auto-refresh indicator on 2026-09-04 ("Remove
+                    this status indicators", #456), then the Error History /
+                    View list pair the same day ("Move these buttons to each
+                    website card. They are always visible", #464). Both moved to
+                    the RAIL CARDS, one copy per website, so nothing was lost.
+                    It is now a logo, a name and a description: an ANSWER TO
+                    "which site am I looking at", nothing more.
+                    ⚠️ `justify-between` and `flex-wrap` are kept on one child
+                    deliberately. They cost nothing and they are exactly what
+                    this row needs the moment anything is put back on the right;
+                    `flex-wrap` in particular is why the old pair never crushed
+                    the name. */}
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="flex min-w-0 items-center gap-3">
                     <span
@@ -794,40 +868,6 @@ export default async function AutomationsBetaPage({
                         {selected.description}
                       </p>
                     </div>
-                  </div>
-                  {/* ⚠️ REAL LINKS, where Alpha3 renders spans.
-                      ⚠️ THE LEADING ICONS ARRIVED TO MATCH SOMETHING THAT NO
-                      LONGER EXISTS, and they stay anyway. User, 2026-09-03:
-                      "Add the icons of the 2 new buttons to their marked
-                      counterpart in S1 respectively." The 2 new buttons were
-                      the RAIL's icon-only per-row pair, and the icons here were
-                      what made those readable without their tooltips. **The
-                      user removed the rail's pair on 2026-09-04 ("Remove these
-                      buttons"), so there is nothing left to be in step with.**
-                      The icons are kept because this page is now the only place
-                      either destination appears, and because the same pair was
-                      promoted to the LIVE hub in that styling (#461/#462) and
-                      the two pages should still read alike.
-                      View list keeps its TRAILING chevron as well, so it reads
-                      icon + label + direction. Two glyphs on one small button is
-                      deliberate: the List says what, the chevron says it
-                      navigates away. */}
-                  <div className="flex shrink-0 items-center gap-2">
-                    <Link
-                      href={`/automations/${selected.slug}/errors`}
-                      className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-zinc-600 ring-1 ring-foreground/10 transition-colors hover:bg-zinc-50"
-                    >
-                      <AlertTriangle className="h-3.5 w-3.5" />
-                      Error History
-                    </Link>
-                    <Link
-                      href={`/automations/${selected.slug}`}
-                      className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-zinc-900 px-2.5 text-xs font-medium text-white transition-colors hover:bg-zinc-800"
-                    >
-                      <List className="h-3.5 w-3.5" />
-                      View list
-                      <ChevronRight className="h-3.5 w-3.5" />
-                    </Link>
                   </div>
                 </div>
               </div>
