@@ -260,8 +260,14 @@ export default async function AutomationsBetaPage({
   // This site's per-day error counts over the window. `{}` for a platform that
   // has captured nothing, which draws a flat baseline.
   const trend = trendByPlatform[selected.slug] ?? {};
-  const refreshOn = autoRefreshMap[selected.slug]?.enabled ?? false;
-  const status = siteStatus(hasKey, days);
+  // NOTE: `refreshOn` (this site's stored auto-refresh setting) and `status`
+  // (`siteStatus(hasKey, days)`) were read here for the detail header's pill and
+  // auto-refresh indicator. Both went with those on 2026-09-04; see the note in
+  // the header. `autoRefreshMap` and `siteStatus()` are still read PER RAIL ROW,
+  // so neither the query nor the ladder was lost.
+  // `hasKey` and `days` survive on their own account: `hasKey` feeds the
+  // CopyApiKeyButton and the Latest errors empty-state, `days` the error panel's
+  // "Last Error N days ago".
 
   return (
     <div className="space-y-5 p-6">
@@ -749,35 +755,33 @@ export default async function AutomationsBetaPage({
                     >
                       <SiteGlyph site={selected} className="h-7 w-7" />
                     </span>
+                    {/* ⚠️⚠️ THE STATUS PILL AND THE AUTO-REFRESH INDICATOR WERE
+                        REMOVED FROM HERE on 2026-09-04 ("Remove this status
+                        indicators"), and this is the SECOND time this page has
+                        shed a duplicate the same way. Do not put them back
+                        without asking.
+                        WHY IT IS NOT A REVERSAL of the two instructions that
+                        put them here ("copy the feature in S1 and put it in the
+                        location on S2" for the auto-refresh, and the pill which
+                        came with Alpha3): both indicators moved INTO THE RAIL
+                        CARDS a day earlier, one per website, in the header's own
+                        components at the header's own sizes (#455). So the
+                        selected row was showing this exact pair a few hundred
+                        pixels to the left, and THIS was the copy that had become
+                        redundant. Five of them replaced one.
+                        📌 SAME SHAPE AS THE COUNTS BLOCK, which went from this
+                        panel for the same reason on 2026-09-03: the user places
+                        an element in the rail, sees the duplication, then clears
+                        the panel's copy. Expect that rhythm, and read a removal
+                        here as "the rail has it now", not as "we decided against
+                        it".
+                        WENT WITH THEM: the `status` and `refreshOn` locals. The
+                        `siteStatus()` ladder and `StatusPill` both STAY, because
+                        the rail rows are now their only callers. */}
                     <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h2 className="font-heading text-xl font-semibold text-zinc-900">
-                          {selected.label}
-                        </h2>
-                        <StatusPill tone={status.tone} label={status.label} />
-                        {/* ⭐ THE AUTO-REFRESH INDICATOR, copied from the live
-                            hub's footer strip and placed here by the user on
-                            2026-09-03 ("copy the feature in S1 and put it in
-                            the location on S2"). Icon goes emerald when on,
-                            zinc when off, and the label says which, so it reads
-                            without relying on colour alone.
-                            Display-only, same as on the live hub: the real
-                            toggle lives on each per-website page. `refreshOn`
-                            is the same stored app-setting that toggle writes.
-                            ⚠️ THIS DUPLICATES THE META STRIP'S "AUTO-REFRESH"
-                            CELL below. The instruction was to place this one,
-                            not to remove that one, so nothing was removed;
-                            raised with the user separately. */}
-                        <span className="flex shrink-0 items-center gap-1 text-[11px] text-zinc-500">
-                          <RefreshCw
-                            className={cn(
-                              "h-3 w-3 shrink-0",
-                              refreshOn ? "text-emerald-600" : "text-zinc-400",
-                            )}
-                          />
-                          {refreshOn ? "Auto-refresh on" : "Auto-refresh off"}
-                        </span>
-                      </div>
+                      <h2 className="font-heading text-xl font-semibold text-zinc-900">
+                        {selected.label}
+                      </h2>
                       <p className="mt-0.5 text-sm text-zinc-600">
                         {selected.description}
                       </p>
@@ -1025,9 +1029,10 @@ const TONE_DOTS: Record<Tone, string> = {
 };
 
 // -------------------------------------------------------------------------
-// SITE STATUS: the tone + label behind the pill in the detail header AND the
-// identical pill on every rail row (the rail showed a bare dot until
-// 2026-09-04). Picked from Alpha3 with the rest
+// SITE STATUS: the tone + label behind the pill on every rail row. It used to
+// feed the detail header's pill as well; the rail took the same pill on
+// 2026-09-04 and the header's copy was removed as the duplicate.
+// Picked from Alpha3 with the rest
 // of this design; reviewed and accepted by the user on 2026-09-03 ("the
 // feature seems fine"). It is the one per-site element the card design on
 // /automations does not have.
@@ -1086,12 +1091,14 @@ function siteStatus(
  *  `siteStatus()` directly above, documented there.** Change the logic there,
  *  not here.
  *
- *  ⚠️ THE RAIL USES THIS COMPONENT TOO, as of 2026-09-04. It used to render the
- *  same status as a bare coloured dot off `TONE_DOTS`, and the user replaced
- *  that with the full pill so the two places read identically. **So a change
- *  here now shows up in six places at once**: the detail header and all five
- *  rail rows. Both callers still take their tone and label from `siteStatus()`,
- *  which is why that ladder was lifted out of this component body. */
+ *  ⚠️ THE RAIL ROWS ARE ITS ONLY CALLER NOW, five at a time, so a change here
+ *  changes every row of the rail. Two moves on consecutive days got it there:
+ *  the rail swapped its bare `TONE_DOTS` dot for this pill on 2026-09-04 so the
+ *  two places would read identically, and the detail header's copy was then
+ *  removed as the duplicate. The tone and label still come from `siteStatus()`,
+ *  which is why that ladder sits outside this component body even now that only
+ *  one caller is left: it is the RULES, and they are worth reading separately
+ *  from the markup. */
 function StatusPill({ tone, label }: { tone: Tone; label: string }) {
   return (
     <span
