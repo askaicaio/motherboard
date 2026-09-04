@@ -46,17 +46,19 @@
 //      chart, in one grey block. Brought the per-(platform, day) trend query and
 //      the `Sparkline` component with it.
 //      User: "i like this error history graphic."
-//   5. the FOOTER STRIP, between the counts row and the API status button. It
-//      arrived carrying auto-refresh state + "Last run Nh ago" on the left and
-//      the card's TWO DESTINATIONS on the right, in one muted band. **Both
-//      destinations have since moved into the card header** (View list
-//      2026-08-31, Error History 2026-09-04), so the band is now purely STATE
-//      and its right-hand side is deliberately empty. Brought the
-//      max(last_run_at) query and `agoLabel` with it. "Last run" is NEW
-//      INFORMATION, not a restyle. User: "i like this lower widget."
+//   5. the FOOTER STRIP, between the counts row and the API status button:
+//      auto-refresh state + "Last run Nh ago" on the left, Error History on the
+//      right, in one muted band. Brought the max(last_run_at) query and
+//      `agoLabel` with it. "Last run" is NEW INFORMATION, not a restyle. User:
+//      "i like this lower widget."
 //      - The strip's error link arrived from Alpha as a quiet grey "Errors"
 //        text link, and the user promoted it to a button labelled "Error
-//        History" on 2026-08-29. That button is what moved to the header.
+//        History" on 2026-08-29.
+//      - ⚠️ IT CARRIED "View list" TOO until 2026-08-31, when the user moved
+//        that one up into the card header. And Error History itself made a ROUND
+//        TRIP on 2026-09-04: up to the header as half of the promoted pair
+//        (#461), then straight back down here (#462). It wears the BENCH's
+//        styling now, not the styling it left with.
 //   6. the COUNTS BLOCK, in place of the Total / Active / Paused column grid:
 //      the total at 3xl with "automations" beside it, the split as two dotted
 //      figures on the right, and a proportion bar under both. The `Stat` helper
@@ -79,25 +81,29 @@
 //   - View list           -> moved to the CARD HEADER on 2026-08-31 ("Move the
 //                            View list button to the empty space i just
 //                            marked"); the strip gave up its copy.
-//   - Error History       -> moved to the CARD HEADER on 2026-09-04, joining
-//                            View list as a matched pair; the strip gave up
-//                            this copy too. (The outlined button that once sat
-//                            under the header went in 2026-08-29 and has
-//                            nothing to do with this move.)
+//   - Error History       -> still in the FOOTER STRIP, after a round trip to
+//                            the header and back on 2026-09-04 (#461 then
+//                            #462). (The outlined button that once sat under
+//                            the header went in 2026-08-29 and has nothing to
+//                            do with that.)
 // ⚠️ Do not reintroduce any of them elsewhere on the card.
 //
-// ⚠️⚠️ THE HEADER PAIR WAS PROMOTED FROM THE BETA BENCH ON 2026-09-04: "I like
-// the way these buttons (S1) are rendered in the beta. So put them in the
-// official page over at the marked S2 area, and remove the existing buttons that
-// have the same function." Outlined Error History + solid-black View list, both
-// with icons, COPIED CLASS FOR CLASS from `automations-beta/page.tsx` and NOT
+// ⚠️⚠️ BOTH BUTTONS NOW WEAR THE BETA BENCH'S STYLING, promoted on 2026-09-04:
+// "I like the way these buttons (S1) are rendered in the beta." Solid-black View
+// list with a List icon and a chevron, outlined Error History with an
+// AlertTriangle. COPIED CLASS FOR CLASS from `automations-beta/page.tsx` and NOT
 // imported from it. **This is the SECOND deliberate promotion into this file**
 // (the first was the whole card design on 2026-08-31), and it does not change
-// the independence rule below: if the bench's pair changes again, this is a
-// manual re-copy.
-// ⚠️ IT COST THE 16px "View list" SIZE the user had settled by trial on
-// production. The pair is 12px. See the button's own note for that trial, which
-// is superseded, not forgotten.
+// the independence rule above: if the bench changes them again, this is a manual
+// re-copy.
+//   - ⚠️ THEY WERE BRIEFLY A PAIR IN THE HEADER (#461) and the user split them
+//     back up the same day (#462): the pair was 225px where View list alone is
+//     ~112px, and it crowded the website description enough to wrap the row on
+//     the card with the longest one. **One button per location is the settled
+//     arrangement, and it is what makes both fit.**
+//   - ⚠️ THE PROMOTION COST THE 16px "View list" SIZE the user had settled by
+//     trial on production. It is 12px now. See the button's own note for that
+//     trial, which is superseded, not forgotten.
 //
 // REMOVED as redundant once the error panel landed (the user asked for this in
 // the same breath, "Remove redundant features after that"):
@@ -479,25 +485,24 @@ export default async function AutomationsPage() {
                     `items-center`, which is what keeps the tile and the two
                     lines of text centred on each other.
 
-                    ⚠️⚠️ `flex-wrap` IS LOAD-BEARING, added 2026-09-04 with the
-                    button pair, and removing it breaks the card on a narrow
-                    window. MEASURED: the pair is 225px and the logo tile 44px,
-                    so on a 1280px viewport (still three columns, card 323px,
-                    content 283px) they leave nothing, and WITHOUT wrapping the
-                    text block collapsed to **0px, taking the website NAME with
-                    it**: a logo, two buttons, no title. With `flex-wrap` the
-                    pair drops to its own line instead and everything stays
-                    readable.
-                    ⚠️ THE COST, so it does not read as a bug: flexbox WRAPS
-                    BEFORE IT SHRINKS, so any card whose description is long
-                    enough to crowd the pair wraps rather than truncating. At
-                    1920 that is GHL b2b alone, whose header is then 88px
-                    against its peers' 44px, and since grid rows stretch to
-                    their tallest card that makes the second row taller than the
-                    first. The alternative was truncating that description
-                    instead; the collapse at 1280 is what ruled out having
-                    neither. */}
-                    <div className="flex flex-wrap items-start justify-between gap-3">
+                    ⚠️ NO `flex-wrap` HERE, AND THAT IS DELIBERATE. It was added
+                    on 2026-09-04 when a 225px BUTTON PAIR sat in this row: at
+                    that width, on a 1280px viewport (three columns, 323px
+                    cards, 283px of content), the pair plus the 44px logo tile
+                    left nothing and the text block collapsed to **0px, taking
+                    the website NAME with it**. Wrapping was the fix.
+                    **Moving Error History back to the footer strip the same day
+                    removed the cause, so the wrap came out with it**: the lone
+                    View list button is ~112px, close to the ~97px that stood
+                    here before the promotion, and the description simply
+                    TRUNCATES again as it always did.
+                    📌 SO THE RULE FOR THIS ROW: one button is fine, two is not.
+                    If a second one is ever put back here, put `flex-wrap` back
+                    with it, and expect the taller-header side effect (flexbox
+                    wraps before it shrinks, so the card with the longest
+                    description gets a two-line header and its whole grid row
+                    stretches to match). */}
+                    <div className="flex items-start justify-between gap-3">
                       <div className="flex min-w-0 items-center gap-3">
                         {/* ⭐ The logo TILE: a rounded square washed in the website's
                         own colour at 12% alpha (the `1F` alpha suffix on the hex),
@@ -548,64 +553,41 @@ export default async function AutomationsPage() {
                           </p>
                         </div>
                       </div>
-                      {/* ⭐⭐ THE BOTH-DESTINATIONS PAIR, PROMOTED FROM THE BETA
-                          BENCH ON 2026-09-04: "I like the way these buttons
-                          (S1) are rendered in the beta. So put them in the
-                          official page over at the marked S2 area, and remove
-                          the existing buttons that have the same function."
-                          Outlined Error History, then solid-black View list
-                          with a leading List icon and a trailing chevron, so it
-                          reads icon + label + direction. Copied CLASS FOR CLASS
-                          from `automations-beta/page.tsx`'s detail header.
-                          ⚠️⚠️ COPIED, NOT SHARED, and it must stay that way.
-                          The two files are deliberately independent so a bench
-                          experiment cannot break this hub; see this file's
-                          header. **If the bench's pair changes again, this is a
-                          MANUAL re-copy, not an import.**
+                      {/* ⭐ VIEW LIST, in the BENCH'S styling as of 2026-09-04:
+                          solid black, `h-8`, a leading List icon and a trailing
+                          chevron, so it reads icon + label + direction. Copied
+                          class for class from `automations-beta/page.tsx`.
+                          ⚠️ COPIED, NOT SHARED. The two files are deliberately
+                          independent so a bench experiment cannot break this
+                          hub; see this file's header. A change on the bench is
+                          a MANUAL re-copy here, never an import.
 
-                          ⚠️ THIS REPLACED TWO SEPARATE BUTTONS, and their whole
-                          history is worth keeping because both were placed by
-                          hand and either could look like a regression now:
-                            - a 16px "View list" that stood right here. Its size
-                              was settled by trial ON PRODUCTION over 2026-08-31:
-                              12px -> 24px ("Double the text size") -> 20px ("a
-                              bit too large now") -> 12px ("try returning the
-                              size to the original") -> 16px. **That trial is now
-                              superseded: the pair is 12px, which is where the
-                              user landed twice before picking 16px, and it is
-                              here as part of a matched pair rather than a lone
-                              button.** Do not "restore" 16px.
-                            - an "Error History" button in the footer strip
-                              below, which the user promoted from Alpha's quiet
-                              grey text link on 2026-08-29. It is gone from
-                              there; see that strip's note.
-                          ⚠️ THE PAIR IS ABOUT 232px WIDE against the old
-                          button's ~90px, all taken from the text block to its
-                          left, so the website DESCRIPTION truncates earlier
-                          than it used to. That is the cost of the change, not a
-                          bug: `min-w-0` on both wrappers is what keeps it a
-                          truncation instead of a widened row. */}
-                      {/* `ml-auto` matters only in the WRAPPED case: on its own
-                          line `justify-between` would send the pair to the
-                          left, and it should stay anchored to the same edge it
-                          sits on when it fits alongside the title. */}
-                      <div className="ml-auto flex shrink-0 items-center gap-2">
-                        <Link
-                          href={`/automations/${site.slug}/errors`}
-                          className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-zinc-600 ring-1 ring-foreground/10 transition-colors hover:bg-zinc-50"
-                        >
-                          <AlertTriangle className="h-3.5 w-3.5" />
-                          Error History
-                        </Link>
-                        <Link
-                          href={`/automations/${site.slug}`}
-                          className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-zinc-900 px-2.5 text-xs font-medium text-white transition-colors hover:bg-zinc-800"
-                        >
-                          <List className="h-3.5 w-3.5" />
-                          View list
-                          <ChevronRight className="h-3.5 w-3.5" />
-                        </Link>
-                      </div>
+                          ⚠️ IT ARRIVED AS HALF OF A PAIR AND IS ALONE AGAIN.
+                          Error History came here with it (#461) and the user
+                          moved that one down to the footer strip the same day
+                          (#462, "Move the error history button to the other
+                          marked spot in the SS"). **That was the right call for
+                          a measurable reason**: the pair was 225px against this
+                          button's ~112px, all of it taken from the website
+                          description beside it, and on the card with the
+                          longest description it forced the row to wrap.
+
+                          ⚠️ THE SIZE TRIAL THIS SUPERSEDED, kept because the
+                          user ran it ON PRODUCTION and 16px could otherwise
+                          look like the settled answer: 12px -> 24px ("Double
+                          the text size") -> 20px ("a bit too large now") ->
+                          12px ("try returning the size to the original") ->
+                          16px. This button is now 12px as part of the promoted
+                          styling, which is where they landed twice before
+                          picking 16. **Do not "restore" 16px.** */}
+                      <Link
+                        href={`/automations/${site.slug}`}
+                        className="ml-auto inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-zinc-900 px-2.5 text-xs font-medium text-white transition-colors hover:bg-zinc-800"
+                      >
+                        <List className="h-3.5 w-3.5" />
+                        View list
+                        <ChevronRight className="h-3.5 w-3.5" />
+                      </Link>
                     </div>
 
                     {/* ⚠️ AN ENTIRE ROW USED TO SIT HERE and it is gone on purpose,
@@ -794,22 +776,39 @@ export default async function AutomationsPage() {
                           {agoLabel(lastRunByPlatform[site.slug] ?? null)}
                         </span>
                       </div>
-                      {/* ⚠️⚠️ THIS STRIP HAS NO BUTTONS LEFT, and that is the
-                      finished state, not a half-done edit. Both of the card's
-                      destinations lived on this side of the band and both have
-                      moved into the CARD HEADER, where they now sit as one
-                      matched pair:
-                        - "View list" went first, 2026-08-31 ("Move the View
-                          list button to the empty space i just marked").
-                        - "Error History" followed on 2026-09-04, when the user
-                          promoted the bench's pair into the header and asked to
-                          "remove the existing buttons that have the same
-                          function". This one WAS that function.
-                      So the band is now purely STATE: auto-refresh and last
-                      run, on the left, with nothing on the right.
-                      ⚠️ `justify-between` is kept deliberately even with one
-                      child. It costs nothing, and it is what the band needs the
-                      moment anything is ever put back on the right. */}
+                      {/* ⭐ ERROR HISTORY, back on this side of the band since
+                      2026-09-04: "Move the error history button to the other
+                      marked spot in the SS."
+                      ⚠️ ITS STYLING IS THE BENCH'S, NOT THE ONE THIS STRIP USED
+                      TO HAVE. The old strip button was a white `text-xs`
+                      chip with a trailing chevron; this is the bench's outlined
+                      `h-8` treatment with a LEADING AlertTriangle and no
+                      chevron. The user promoted the look and then moved the
+                      button, so the look is the part to preserve.
+                      ⚠️ ONE DELIBERATE DEVIATION FROM THE BENCH: `bg-white`.
+                      The bench's button has no background because it sits on a
+                      white panel; this band is `bg-muted/40`, so a transparent
+                      button would let the grey through and stop reading as a
+                      button at all. Everything else is identical.
+                      ⚠️ THE ROUND TRIP, in one place, because this button has
+                      moved three times and any one of them could look like a
+                      mistake: Alpha's grey "Errors" text link -> promoted to a
+                      strip BUTTON 2026-08-29 ("This should be an 'Error
+                      History' button") -> into the CARD HEADER 2026-09-04 as
+                      half of the promoted pair (#461) -> back here the same day
+                      (#462), because in the header the pair was 225px and
+                      crowded the website description badly enough to wrap on
+                      the card with the longest one.
+                      📌 SO THE HEADER HOLDS ONE BUTTON AND THE STRIP HOLDS THE
+                      OTHER, which is also what makes both fit: View list alone
+                      is about 112px where the pair was 225px. */}
+                      <Link
+                        href={`/automations/${site.slug}/errors`}
+                        className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-white px-2.5 text-xs font-medium text-zinc-600 ring-1 ring-foreground/10 transition-colors hover:bg-zinc-50 hover:text-zinc-900"
+                      >
+                        <AlertTriangle className="h-3.5 w-3.5" />
+                        Error History
+                      </Link>
                     </div>
 
                     {/* Status button row. The API status button (flex-1) fills
