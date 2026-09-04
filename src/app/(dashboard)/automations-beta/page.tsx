@@ -319,31 +319,37 @@ export default async function AutomationsBetaPage({
           <div className="flex min-h-[640px] overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10">
             {/* ---- Rail. Every website, always visible, so switching costs one
                     click and you never lose your bearings. ---- */}
-            {/* ⚠️ w-[26rem] (416px), WIDENED TWICE FROM Alpha3's w-64, both
-                    steps on 2026-09-03: first to w-80, then to 416px. Costs the
-                    detail panel about 160px in total.
+            {/* ⚠️ w-[28rem] (448px), WIDENED THREE TIMES FROM Alpha3's w-64:
+                    w-80 then 416px on 2026-09-03, then 448px on 2026-09-04.
+                    Costs the detail panel about 192px in total.
                     ⚠️ THE CURRENT WIDTH IS LOAD-BEARING, unlike the w-80 step.
-                    The rail cards now carry the whole counts statistic (total +
-                    active/paused legend on one line, proportion bar under it),
-                    and the user authorised the width for exactly that: "You can
-                    widen the cards on the left to accomodate it."
-                    ⚠️ MEASURED IN THE BROWSER at a 1900px viewport, rather
-                    than reasoned about: at 416px every card is 323px wide
-                    (selected or not, because the row reserves the action
-                    buttons' width either way) with a 258px text column, and
-                    the worst realistic row
-                    ("344 automations" against "144 active / 200 paused", three
-                    digits everywhere) needs 235px. So the slack is 23px. w-96
-                    (384px) would overflow it by about 9px, and because the
-                    legend is `shrink-0` the overflow lands on "automations".
-                    Narrow this and that word is what clips first.
+                    Two things in the card need it, and BOTH were authorised by
+                    the user for exactly that: the whole counts statistic ("You
+                    can widen the cards on the left to accomodate it") and then
+                    the full status indicators ("Resize it as needed").
+                    ⚠️ MEASURED IN THE BROWSER at a 1900px viewport, rather than
+                    reasoned about, at both widths. At 448px an unselected card
+                    is 355px wide (selected or not, because the row reserves the
+                    action buttons' width either way) with a 290px text column,
+                    and the two lines need:
+                      TITLE LINE, worst case "GHL b2b" + the longest status
+                      label ("Recent errors") + "Auto-refresh on" = 264px,
+                      so 26px slack.
+                      STAT LINE, worst case "344 automations" against "144
+                      active / 200 paused" = 235px, so 55px slack.
+                    ⚠️ SO THE TITLE LINE IS NOW THE BINDING CONSTRAINT, not the
+                    statistic. At the previous 416px the title line needed 264
+                    against a 258px column and **"GHL b2b" truncated to
+                    "GHL b2..."**, which is what bought the extra 32px. If you
+                    narrow this, the site NAME is what clips first, because both
+                    indicators are `shrink-0`.
                     ⚠️ HISTORY, so the earlier reason does not read as stale:
                     the w-80 step existed only so the action buttons could be
                     square at the card's height, and the user narrowed those
                     buttons back to 32px the same day. I offered to hand that
                     64px back and they chose to keep the roomier cards. So
                     neither step is a leftover; do not "restore" w-64. */}
-            <div className="flex w-[26rem] shrink-0 flex-col border-r">
+            <div className="flex w-[28rem] shrink-0 flex-col border-r">
               <div className="border-b px-4 py-3">
                 <div className="font-heading text-sm font-semibold text-zinc-900">
                   Sources
@@ -455,22 +461,28 @@ export default async function AutomationsBetaPage({
                             but before the refresh icon." So the ORDER IS
                             DELIBERATE and is not the sketch; do not restore the
                             leading dot.
-                            Both indicators are LABEL-LESS here on purpose:
-                            "remove the text on the colored dot so the pill only
-                            has the colored dot", and the refresh was asked for
-                            as an icon. The rail is only w-64, and the user has
-                            since stripped it further still (the word "tracked"
-                            and the red error badge both went on 2026-09-03), so
-                            the direction of travel here is FEWER words, not
-                            more. Do not add labels to these.
-                            ⚠️ THE LOST LABELS ARE RESTORED ON HOVER via `title`,
-                            or the dot's colour would be the only clue to a
-                            four-state value. These sit inside the site-select
-                            <Link>, which carries no `title` of its own, so they
-                            win rather than being swallowed by an ancestor's.
-                            ⚠️ This is a FLEX row now, so the name keeps
-                            `truncate` and needs `min-w-0` to shrink; the two
-                            indicators are `shrink-0` so the name yields first. */}
+                            ⚠️⚠️ BOTH INDICATORS WERE LABEL-LESS UNTIL 2026-09-04,
+                            AND THE LABELS ARE NOW BACK. Do not restore the bare
+                            versions from the history below.
+                            The sequence, so neither instruction reads as lost:
+                            the user first stripped them ("remove the text on
+                            the colored dot so the pill only has the colored
+                            dot") when the rail was `w-64` and everything in it
+                            was being cut for width, then asked for the full
+                            ones back once the rail was roomier: "I like the
+                            complete status indicators marked in S1. Pls replace
+                            the shortened indicators marked in S2 with the ones
+                            in S1." S1 was this page's own detail header.
+                            ⚠️ SO THESE ARE THE HEADER'S ACTUAL COMPONENTS, not
+                            lookalikes: the same `StatusPill` and the same
+                            icon-plus-label auto-refresh markup, at the same
+                            sizes. Keep them in step with the header; the point
+                            of the change was that the two places match.
+                            `title` is kept on the auto-refresh indicator only
+                            as a courtesy now that both read in words.
+                            ⚠️ This is a FLEX row, so the name keeps `truncate`
+                            and needs `min-w-0` to shrink; both indicators are
+                            `shrink-0` so the name yields first. */}
                           <span className="flex items-center gap-1.5">
                             <span
                               className={cn(
@@ -482,35 +494,29 @@ export default async function AutomationsBetaPage({
                             >
                               {site.label}
                             </span>
-                            <span
-                              aria-label={siteStat.label}
-                              title={siteStat.label}
-                              className={cn(
-                                "h-1.5 w-1.5 shrink-0 rounded-full",
-                                TONE_DOTS[siteStat.tone],
-                              )}
+                            <StatusPill
+                              tone={siteStat.tone}
+                              label={siteStat.label}
                             />
                             <span
-                              aria-label={
-                                siteRefreshOn
-                                  ? "Auto-refresh on"
-                                  : "Auto-refresh off"
-                              }
                               title={
                                 siteRefreshOn
                                   ? "Auto-refresh on"
                                   : "Auto-refresh off"
                               }
-                              className="shrink-0"
+                              className="flex shrink-0 items-center gap-1 whitespace-nowrap text-[11px] text-zinc-500"
                             >
                               <RefreshCw
                                 className={cn(
-                                  "h-3 w-3",
+                                  "h-3 w-3 shrink-0",
                                   siteRefreshOn
                                     ? "text-emerald-600"
                                     : "text-zinc-400",
                                 )}
                               />
+                              {siteRefreshOn
+                                ? "Auto-refresh on"
+                                : "Auto-refresh off"}
                             </span>
                           </span>
                           {/* ⭐ THE COUNTS STATISTIC, per row, 2026-09-03: "Pls
@@ -1020,7 +1026,8 @@ const TONE_DOTS: Record<Tone, string> = {
 
 // -------------------------------------------------------------------------
 // SITE STATUS: the tone + label behind the pill in the detail header AND the
-// bare coloured dot on every rail row. Picked from Alpha3 with the rest
+// identical pill on every rail row (the rail showed a bare dot until
+// 2026-09-04). Picked from Alpha3 with the rest
 // of this design; reviewed and accepted by the user on 2026-09-03 ("the
 // feature seems fine"). It is the one per-site element the card design on
 // /automations does not have.
@@ -1079,10 +1086,12 @@ function siteStatus(
  *  `siteStatus()` directly above, documented there.** Change the logic there,
  *  not here.
  *
- *  ⚠️ The RAIL does not use this component. It shows the same status as a bare
- *  coloured dot with no label, so it reads `TONE_DOTS` directly. Both get their
- *  tone from `siteStatus()`, which is why that ladder was lifted out of the
- *  component body: two callers, one set of rules. */
+ *  ⚠️ THE RAIL USES THIS COMPONENT TOO, as of 2026-09-04. It used to render the
+ *  same status as a bare coloured dot off `TONE_DOTS`, and the user replaced
+ *  that with the full pill so the two places read identically. **So a change
+ *  here now shows up in six places at once**: the detail header and all five
+ *  rail rows. Both callers still take their tone and label from `siteStatus()`,
+ *  which is why that ladder was lifted out of this component body. */
 function StatusPill({ tone, label }: { tone: Tone; label: string }) {
   return (
     <span
