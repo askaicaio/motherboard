@@ -325,16 +325,29 @@ export default async function AutomationsBetaPage({
           <div className="flex min-h-[640px] overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10">
             {/* ---- Rail. Every website, always visible, so switching costs one
                     click and you never lose your bearings. ---- */}
-            {/* ⚠️ w-[28rem] (448px), WIDENED THREE TIMES FROM Alpha3's w-64:
-                    w-80 then 416px on 2026-09-03, then 448px on 2026-09-04.
-                    Costs the detail panel about 192px in total.
-                    ⚠️ THE CURRENT WIDTH IS LOAD-BEARING, unlike the w-80 step.
-                    Two things in the card need it, and BOTH were authorised by
-                    the user for exactly that: the whole counts statistic ("You
-                    can widen the cards on the left to accomodate it") and then
-                    the full status indicators ("Resize it as needed").
+            {/* ⚠️ w-[42rem] (672px). WIDENED FOUR TIMES FROM Alpha3's w-64:
+                    w-80 then 416px on 2026-09-03, 448px then 672px on
+                    2026-09-04. It is now more than half the pane on a 1440px
+                    screen, a deliberate rebalancing of the layout rather than
+                    a nudge.
+                    ⚠️⚠️ THE LAST STEP IS THE ONLY ONE NOT DRIVEN BY CONTENT.
+                    Every earlier widening was the minimum some element needed.
+                    This one is a proportion the user asked for outright: "Make
+                    this section wider, you can decrease the width of the stuff
+                    on the right side to accomodate it. Make the left side
+                    roughly x1.5 times as wide." 448 x 1.5 = 672 exactly.
+                    So the cards now have far MORE room than their content
+                    needs (the title line's worst case is 264px against a 514px
+                    text column). THE SLACK IS THE POINT. Do not "reclaim" it,
+                    and do not read the empty right-hand side of a card as a
+                    layout bug.
+                    ⚠️ 448px REMAINS THE CONTENT FLOOR, and that is what the
+                    measurements below are about: the whole counts statistic
+                    ("You can widen the cards on the left to accomodate it") and
+                    the full status indicators ("Resize it as needed") need it
+                    between them. Below 448 the site name truncates.
                     ⚠️ MEASURED IN THE BROWSER at a 1900px viewport, rather than
-                    reasoned about, at both widths. At 448px an unselected card
+                    reasoned about, at 416 and 448. At 448px an unselected card
                     is 355px wide (selected or not, because the row reserves the
                     action buttons' width either way) with a 290px text column,
                     and the two lines need:
@@ -355,7 +368,7 @@ export default async function AutomationsBetaPage({
                     buttons back to 32px the same day. I offered to hand that
                     64px back and they chose to keep the roomier cards. So
                     neither step is a leftover; do not "restore" w-64. */}
-            <div className="flex w-[28rem] shrink-0 flex-col border-r">
+            <div className="flex w-[42rem] shrink-0 flex-col border-r">
               <div className="border-b px-4 py-3">
                 <div className="font-heading text-sm font-semibold text-zinc-900">
                   Sources
@@ -738,7 +751,16 @@ export default async function AutomationsBetaPage({
             </div>
 
             {/* ---- Detail panel for the selected website. ---- */}
-            <div className="min-w-0 flex-1">
+            {/* ⚠️ `@container` IS LOAD-BEARING, added 2026-09-04 with the rail's
+                jump to 672px. The Recently edited / Latest errors pair below
+                used to split into two columns on a `lg:` VIEWPORT breakpoint,
+                which cannot see that the rail has taken 672px out of this
+                panel. That was already tight and the widening broke it: on a
+                1440px screen the pair would have had about 184px per column
+                while `lg:` still said "plenty of room". Making this an
+                explicit container lets the pair respond to ITS OWN width
+                instead. See the grid further down. */}
+            <div className="@container min-w-0 flex-1">
               {/* Header, tinted with the website's own colour so the panel
                   changes character as you move down the rail. */}
               <div
@@ -935,8 +957,19 @@ export default async function AutomationsBetaPage({
                 </div>
 
                 {/* The two lists that only fit because this layout gave one
-                    website the whole canvas. */}
-                <div className="grid gap-4 lg:grid-cols-2">
+                    website the whole canvas.
+                    ⚠️ A CONTAINER QUERY, NOT A VIEWPORT ONE, since 2026-09-04.
+                    It was `lg:grid-cols-2`, which asks the WINDOW whether there
+                    is room for two columns; the answer is useless here because
+                    the rail decides how much of the window this panel actually
+                    gets, and the rail is 672px. `@min-[640px]` asks the PANEL
+                    instead (its parent carries `@container`), so the pair
+                    stacks whenever the panel itself is narrow, at any window
+                    size and at any future rail width.
+                    WHY 640px: each column wants ~280px to hold an error message
+                    without shredding it. 2 x 288 + the 16px gap + this section's
+                    48px of padding lands just under 640. */}
+                <div className="grid gap-4 @min-[640px]:grid-cols-2">
                   {/* ⚠️ RECENTLY EDITED IS DELIBERATELY FIRST. Alpha3 had
                     Latest errors on the left; the user swapped them on
                     2026-09-03 ("switch the position of the 'recently edited'
