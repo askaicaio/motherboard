@@ -19,8 +19,7 @@
 //   - "Run health check" (one static pill on Alpha3) is the REAL pair: the
 //     Auto-API health check toggle + the API Health Check button, inside their
 //     HealthCheckProvider and a TooltipProvider.
-//   - Error History, View list, the three rail Tools and the two per-row rail
-//     buttons are all real <Link>s.
+//   - Error History, View list and the three rail Tools are all real <Link>s.
 //   - the API status button is the real CopyApiKeyButton, which runs a LIVE
 //     verify on click.
 //
@@ -29,8 +28,17 @@
 //     dropped the CONTROL, having no working controls at all. Beta kept the
 //     control; the strip itself was removed on 2026-09-03, so this button is
 //     now the only place the API key is reported.
-//   - two square icon buttons on every rail row (Error History, View list),
-//     mirroring the detail header's pair per site.
+//   - ❌ two icon buttons on every rail row (Error History, View list),
+//     mirroring the detail header's pair per site. **REMOVED 2026-09-04 at the
+//     user's request ("Remove these buttons").** Kept listed, struck through,
+//     because they are why the rail row was wrapped in a flex div and why the
+//     detail header's buttons carry leading icons at all: both of those notes
+//     now read as answers to a question nobody can see. Do not put the buttons
+//     back to "explain" them.
+//     ⚠️ WHAT THEIR REMOVAL COSTS: reaching a website's Error History or list
+//     now takes TWO steps from this page (select it in the rail, then use the
+//     detail header) where it used to take one from any row. That is the
+//     accepted trade, not an oversight.
 //
 // ⚠️ WHAT ALPHA3'S PREMISE IS, so a future edit does not flatten it back out:
 // the live page gives all 5 websites an equal, shallow slice of the screen,
@@ -56,7 +64,9 @@ import Link from "next/link";
 // NOTE: Activity, Clock and KeyRound went with the status strip on
 // 2026-09-03; it was the only place any of them was used.
 // AlertTriangle is this app's established error icon (six other call sites), so
-// the rail's Error History button uses it rather than introducing a second one.
+// the detail header's Error History button uses it rather than introducing a
+// second one. (It came in for the RAIL's per-row buttons, which went on
+// 2026-09-04; the header kept the icon, so the import is still live.)
 import {
   AlertTriangle,
   ChevronRight,
@@ -421,72 +431,60 @@ export default async function AutomationsBetaPage({
                   const sActivePct = s.total ? (s.active / s.total) * 100 : 0;
                   const sPausedPct = s.total ? (s.paused / s.total) * 100 : 0;
                   return (
-                    // ⚠️⚠️ THE ROW IS A <div>, NOT A <Link>, AND IT HAS TO BE.
-                    // It used to be one Link wrapping everything. The two action
-                    // buttons added on 2026-09-03 are themselves links, and
-                    // NESTING AN <a> INSIDE AN <a> IS INVALID HTML: the browser
-                    // silently un-nests it and the row's click target breaks.
-                    // So the row is a plain div; the site-select Link now covers
-                    // the spine, glyph and text (flex-1, so still nearly the
-                    // whole row), and the buttons sit OUTSIDE it as siblings.
-                    // The hover tint moved up here so hovering anywhere in the
-                    // row, buttons included, still highlights it.
-                    // ⚠️ `items-stretch` is what lets the two buttons match the
-                    // card's height. The card sizes itself from its two lines of
-                    // text; the buttons inherit that height rather than
-                    // hard-coding one, so they stay level if the text changes.
-                    // The row itself now carries NO padding or background: the
-                    // card below owns both.
+                    // ⭐ THE CARD, 2026-09-03: "Place each of these in its own
+                    // card with visible borders." A real `border`, not the faint
+                    // `ring-1 ring-foreground/10` used elsewhere on this page,
+                    // because "visible" was the ask. Selected rows keep the
+                    // zinc-100 fill; the rest are card-white and tint on hover.
+                    //
+                    // ⚠️ THE CARD IS THE WHOLE ROW AGAIN as of 2026-09-04. For a
+                    // day it sat inside a wrapper `<div className="flex
+                    // items-stretch gap-2">`, because two icon buttons lived
+                    // beside it and needed a flex row to stretch to the card's
+                    // height. The user removed those buttons ("Remove these
+                    // buttons"), so the wrapper had one child and nothing left
+                    // to align. It went with them, and the card dropped the
+                    // `min-w-0 flex-1` that only mattered inside it.
+                    //
                     // ⚠️ HEIGHT IS CONTENT-DRIVEN. It was a fixed `h-[76px]`
-                    // until the API-key button landed in the card on
-                    // 2026-09-04; every row has the same three blocks so they
-                    // all come out the same height anyway, and a hard-coded
-                    // number would just be one more thing to keep in step.
-                    <div key={site.slug} className="flex items-stretch gap-2">
-                      {/* ⭐ THE CARD, 2026-09-03: "Place each of these in its own
-                          card with visible borders." A real `border`, not the
-                          faint `ring-1 ring-foreground/10` used elsewhere on this
-                          page, because "visible" was the ask. Selected rows keep
-                          the zinc-100 fill; the rest are card-white and tint on
-                          hover.
-                          ⚠️ The two action buttons are deliberately OUTSIDE this
-                          card ("The two buttons on the right side should be
-                          outside the card in the same spot"), which is also what
-                          the invalid-nested-anchor rule requires anyway.
-
-                          ⚠️⚠️ THE CARD IS A <div>, NOT THE SITE-SELECT <Link>,
-                          AND IT HAS TO BE. The API-key button lives in the card
-                          and it is a real <button>; an interactive element
-                          inside an <a> is the same invalid-nesting trap that
-                          already forced the ROW to be a div. So the Link covers
-                          the text column only and the button sits under it as a
-                          sibling.
-                          ⚠️ WHAT THAT COSTS: the accent spine and the logo are
-                          outside the Link, so clicking them no longer selects
-                          the site. The Link still covers the name and the
-                          statistic. If the logo must be clickable again, the
-                          fix is an `absolute inset-0` overlay Link with the
-                          button lifted above it, NEVER putting the button back
-                          inside an anchor.
-                          📌📌 THE CARD HOLDS THREE BLOCKS AND THAT IS A CEILING
-                          FOUND THE HARD WAY. On 2026-09-04 the error block came
-                          here too (PR #458) and the card went 76px -> 218px,
-                          the rail to 1339px; the user sent BOTH back ("it
-                          doesn't look good here", #459) and then asked for the
-                          API-key button alone ("This should still result in a
-                          decently short card unlike the tall one before",
-                          #460). **The API bar is 28px and the error block was
-                          98px: that difference is the whole story.** Before
-                          moving anything else in here, measure its height. */}
-                      <div
-                        className={cn(
-                          "flex min-w-0 flex-1 items-stretch gap-2.5 rounded-lg border px-2.5 py-2 transition-colors",
-                          isCurrent
-                            ? "bg-zinc-100"
-                            : "bg-card hover:bg-zinc-50",
-                        )}
-                      >
-                        {/* Accent spine, full opacity on the selected row and
+                    // until the API-key button landed in the card on 2026-09-04;
+                    // every card has the same three blocks so they all come out
+                    // the same height anyway, and a hard-coded number would just
+                    // be one more thing to keep in step.
+                    //
+                    // ⚠️⚠️ THE CARD IS A <div>, NOT THE SITE-SELECT <Link>, AND
+                    // IT HAS TO BE. The API-key button lives in the card and it
+                    // is a real <button>; AN INTERACTIVE ELEMENT INSIDE AN <a>
+                    // IS INVALID HTML, which the browser silently un-nests,
+                    // breaking both. So the Link covers the text column only and
+                    // the button sits under it as a sibling. (The same trap
+                    // applied to the old row wrapper while the icon buttons
+                    // existed, which is why that was a div too.)
+                    // ⚠️ WHAT THAT COSTS: the accent spine and the logo are
+                    // outside the Link, so clicking them no longer selects the
+                    // site. The Link still covers the name and the statistic. If
+                    // the logo must be clickable again, the fix is an `absolute
+                    // inset-0` overlay Link with the button lifted above it,
+                    // NEVER putting the button back inside an anchor.
+                    //
+                    // 📌📌 THE CARD HOLDS THREE BLOCKS AND THAT IS A CEILING
+                    // FOUND THE HARD WAY. On 2026-09-04 the error block came
+                    // here too (PR #458) and the card went 76px -> 218px, the
+                    // rail to 1339px; the user sent BOTH back ("it doesn't look
+                    // good here", #459) and then asked for the API-key button
+                    // alone ("This should still result in a decently short card
+                    // unlike the tall one before", #460). **The API bar is 28px
+                    // and the error block was 98px: that difference is the whole
+                    // story.** Before moving anything else in here, measure its
+                    // height.
+                    <div
+                      key={site.slug}
+                      className={cn(
+                        "flex items-stretch gap-2.5 rounded-lg border px-2.5 py-2 transition-colors",
+                        isCurrent ? "bg-zinc-100" : "bg-card hover:bg-zinc-50",
+                      )}
+                    >
+                      {/* Accent spine, full opacity on the selected row and
                           faint on the rest, so the current website is obvious
                           without a second indicator.
                           ⚠️ `self-stretch` RATHER THAN THE OLD FIXED `h-7`. The
@@ -495,34 +493,34 @@ export default async function AutomationsBetaPage({
                           a 76px card reads as a leftover rather than an edge.
                           This was my call, not the user's ask; `h-7` is a
                           one-word revert if they prefer the shorter dash. */}
-                        <span
-                          aria-hidden
-                          className="w-[3px] shrink-0 self-stretch rounded-full"
-                          style={{
-                            backgroundColor: ACCENT[site.slug],
-                            opacity: isCurrent ? 1 : 0.35,
-                          }}
-                        />
-                        {/* ⚠️ `self-start`: the card is three blocks tall now,
+                      <span
+                        aria-hidden
+                        className="w-[3px] shrink-0 self-stretch rounded-full"
+                        style={{
+                          backgroundColor: ACCENT[site.slug],
+                          opacity: isCurrent ? 1 : 0.35,
+                        }}
+                      />
+                      {/* ⚠️ `self-start`: the card is three blocks tall now,
                           and a vertically centred logo floated beside the
                           statistic instead of sitting level with the name. */}
-                        <SiteGlyph
-                          site={site}
-                          className="h-5 w-5 shrink-0 self-start"
-                        />
-                        {/* The card's content column: the title line and the
+                      <SiteGlyph
+                        site={site}
+                        className="h-5 w-5 shrink-0 self-start"
+                      />
+                      {/* The card's content column: the title line and the
                           counts statistic inside the site-select Link, then the
                           API-key button OUTSIDE it (see the card's note above
                           for why the button cannot be in the anchor).
                           `justify-center` is gone with the fixed height: the
                           content sets the height, so there is nothing to
                           centre against. */}
-                        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                          <Link
-                            href={`/automations-beta?site=${site.slug}`}
-                            className="flex min-w-0 flex-col gap-1.5"
-                          >
-                            {/* ⭐ THE TITLE LINE reads: Name (dot) (refresh icon).
+                      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                        <Link
+                          href={`/automations-beta?site=${site.slug}`}
+                          className="flex min-w-0 flex-col gap-1.5"
+                        >
+                          {/* ⭐ THE TITLE LINE reads: Name (dot) (refresh icon).
                             The user sketched it as "(.) Make (Green Refresh
                             Icon)" on 2026-09-03 and then moved the dot the same
                             day: "Put the dot after the website title instead,
@@ -551,43 +549,43 @@ export default async function AutomationsBetaPage({
                             ⚠️ This is a FLEX row, so the name keeps `truncate`
                             and needs `min-w-0` to shrink; both indicators are
                             `shrink-0` so the name yields first. */}
-                            <span className="flex items-center gap-1.5">
-                              <span
-                                className={cn(
-                                  "min-w-0 truncate text-sm",
-                                  isCurrent
-                                    ? "font-semibold text-zinc-900"
-                                    : "font-medium text-zinc-700",
-                                )}
-                              >
-                                {site.label}
-                              </span>
-                              <StatusPill
-                                tone={siteStat.tone}
-                                label={siteStat.label}
-                              />
-                              <span
-                                title={
-                                  siteRefreshOn
-                                    ? "Auto-refresh on"
-                                    : "Auto-refresh off"
-                                }
-                                className="flex shrink-0 items-center gap-1 whitespace-nowrap text-[11px] text-zinc-500"
-                              >
-                                <RefreshCw
-                                  className={cn(
-                                    "h-3 w-3 shrink-0",
-                                    siteRefreshOn
-                                      ? "text-emerald-600"
-                                      : "text-zinc-400",
-                                  )}
-                                />
-                                {siteRefreshOn
-                                  ? "Auto-refresh on"
-                                  : "Auto-refresh off"}
-                              </span>
+                          <span className="flex items-center gap-1.5">
+                            <span
+                              className={cn(
+                                "min-w-0 truncate text-sm",
+                                isCurrent
+                                  ? "font-semibold text-zinc-900"
+                                  : "font-medium text-zinc-700",
+                              )}
+                            >
+                              {site.label}
                             </span>
-                            {/* ⭐ THE COUNTS STATISTIC, per row, 2026-09-03: "Pls
+                            <StatusPill
+                              tone={siteStat.tone}
+                              label={siteStat.label}
+                            />
+                            <span
+                              title={
+                                siteRefreshOn
+                                  ? "Auto-refresh on"
+                                  : "Auto-refresh off"
+                              }
+                              className="flex shrink-0 items-center gap-1 whitespace-nowrap text-[11px] text-zinc-500"
+                            >
+                              <RefreshCw
+                                className={cn(
+                                  "h-3 w-3 shrink-0",
+                                  siteRefreshOn
+                                    ? "text-emerald-600"
+                                    : "text-zinc-400",
+                                )}
+                              />
+                              {siteRefreshOn
+                                ? "Auto-refresh on"
+                                : "Auto-refresh off"}
+                            </span>
+                          </span>
+                          {/* ⭐ THE COUNTS STATISTIC, per row, 2026-09-03: "Pls
                             replace the 'X Tracked' info under the website name
                             with the whole statistic i marked."
                             It began as the DETAIL PANEL'S counts block scaled
@@ -616,60 +614,60 @@ export default async function AutomationsBetaPage({
                             carries `truncate` so it is what clips first if a
                             later change squeezes the rail. Read the rail width
                             note further up before narrowing anything. */}
-                            <span className="block">
-                              <span className="flex items-baseline justify-between gap-2">
-                                <span className="flex min-w-0 items-baseline gap-1">
-                                  <span className="font-heading text-lg font-semibold leading-none tabular-nums text-zinc-900">
-                                    {s.total}
-                                  </span>
-                                  <span className="truncate text-[10px] text-zinc-500">
-                                    automations
-                                  </span>
+                          <span className="block">
+                            <span className="flex items-baseline justify-between gap-2">
+                              <span className="flex min-w-0 items-baseline gap-1">
+                                <span className="font-heading text-lg font-semibold leading-none tabular-nums text-zinc-900">
+                                  {s.total}
                                 </span>
-                                <span className="flex shrink-0 items-center gap-2 text-[10px] text-zinc-600">
-                                  <span className="flex items-center gap-1">
-                                    {/* Active wears the website's own brand
+                                <span className="truncate text-[10px] text-zinc-500">
+                                  automations
+                                </span>
+                              </span>
+                              <span className="flex shrink-0 items-center gap-2 text-[10px] text-zinc-600">
+                                <span className="flex items-center gap-1">
+                                  {/* Active wears the website's own brand
                                     colour, so this dot, the bar below it and
                                     the accent spine to its left are all the
                                     same colour for a given site. */}
-                                    <span
-                                      className="h-1.5 w-1.5 rounded-full"
-                                      style={{
-                                        backgroundColor: ACCENT[site.slug],
-                                      }}
-                                    />
-                                    <span className="font-semibold tabular-nums text-zinc-900">
-                                      {s.active}
-                                    </span>
-                                    active
+                                  <span
+                                    className="h-1.5 w-1.5 rounded-full"
+                                    style={{
+                                      backgroundColor: ACCENT[site.slug],
+                                    }}
+                                  />
+                                  <span className="font-semibold tabular-nums text-zinc-900">
+                                    {s.active}
                                   </span>
-                                  <span className="flex items-center gap-1">
-                                    <span className="h-1.5 w-1.5 rounded-full bg-zinc-300" />
-                                    <span className="font-semibold tabular-nums text-zinc-900">
-                                      {s.paused}
-                                    </span>
-                                    paused
+                                  active
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-zinc-300" />
+                                  <span className="font-semibold tabular-nums text-zinc-900">
+                                    {s.paused}
                                   </span>
+                                  paused
                                 </span>
                               </span>
-                              {/* The split as one bar. Widths are percentages of
-                              the row's OWN total, so the bar always fills. */}
-                              <span className="mt-1.5 flex h-1 w-full overflow-hidden rounded-full bg-zinc-100">
-                                <span
-                                  style={{
-                                    width: `${sActivePct}%`,
-                                    backgroundColor: ACCENT[site.slug],
-                                  }}
-                                />
-                                <span
-                                  className="bg-zinc-300"
-                                  style={{ width: `${sPausedPct}%` }}
-                                />
-                              </span>
                             </span>
-                          </Link>
+                            {/* The split as one bar. Widths are percentages of
+                              the row's OWN total, so the bar always fills. */}
+                            <span className="mt-1.5 flex h-1 w-full overflow-hidden rounded-full bg-zinc-100">
+                              <span
+                                style={{
+                                  width: `${sActivePct}%`,
+                                  backgroundColor: ACCENT[site.slug],
+                                }}
+                              />
+                              <span
+                                className="bg-zinc-300"
+                                style={{ width: `${sPausedPct}%` }}
+                              />
+                            </span>
+                          </span>
+                        </Link>
 
-                          {/* ⭐ THE API-KEY CONTROL, per row, 2026-09-04: "put
+                        {/* ⭐ THE API-KEY CONTROL, per row, 2026-09-04: "put
                             that 'API Key Integrated' inside their respective
                             website card". One per website, where the panel used
                             to show only the selected site's.
@@ -700,115 +698,14 @@ export default async function AutomationsBetaPage({
                             Clicking one runs a LIVE verify of that platform and
                             re-colours on the result. Only the boolean reaches
                             the client; the secret never does. */}
-                          <span className="flex items-center gap-2">
-                            <CopyApiKeyButton
-                              platform={site.slug}
-                              hasApiKey={siteHasKey}
-                              initialOk={health.results[site.slug]?.ok}
-                            />
-                          </span>
-                        </div>
+                        <span className="flex items-center gap-2">
+                          <CopyApiKeyButton
+                            platform={site.slug}
+                            hasApiKey={siteHasKey}
+                            initialOk={health.results[site.slug]?.ok}
+                          />
+                        </span>
                       </div>
-
-                      {/* ⭐ PER-ROW ACTIONS, added 2026-09-03: "Put a white
-                          button and a black button on the space i marked for
-                          each website. Their function mirrors the function of
-                          the two buttons i marked in S1."
-                          S1 was this page's own detail header, so these are its
-                          Error History and View list buttons, per site, and
-                          icon-only to fit a w-64 rail. Same colours as the
-                          header pair: outline-white for Error History, solid
-                          black for View list, so the primary action reads as
-                          primary in both places.
-                          The white/black pairing carries the hierarchy, and the
-                          `title` carries the meaning that dropping the labels
-                          costs. Icons: AlertTriangle, which is what this app
-                          already uses for errors in six other places, and List,
-                          the same icon the Tools section uses for a list view.
-                          ⚠️ These replaced a red lifetime-error COUNT badge that
-                          sat here until earlier the same day. Do not re-add it;
-                          the status dot beside the name already signals trouble
-                          by recency, and the count is in the detail panel.
-
-                          ⚠️ SIZING: `w-8` (32px) wide, FULL CARD HEIGHT via the
-                          row's `h-[76px]` + `items-stretch`. So 32 x 76, tall
-                          rectangles rather than squares. They followed the card
-                          up from 56px on their own when the counts statistic
-                          landed in it; sizing them by `items-stretch` instead
-                          of a hard-coded height is exactly what that buys.
-                          ⚠️ THEY WERE BRIEFLY SQUARE (`w-14`, 56 x 56) and the
-                          user narrowed them the same day: "make these buttons
-                          narrower, about as narrow as it was before." Square is
-                          NOT the target; do not restore `w-14`.
-                          ⚠️⚠️ AND DO NOT REACH FOR `aspect-square` EITHER. It
-                          looks like the obvious tool and it is broken here.
-                          MEASURED IN THE BROWSER 2026-09-03: flex sizes these
-                          items from their CONTENT (a ~14px icon), `shrink-0`
-                          stops them shrinking, and only THEN does `aspect-ratio`
-                          paint them at the stretched height. The layout never
-                          accounts for that painted width, so the row overflowed
-                          the rail by 71px with the buttons spilling over the
-                          detail panel, and widening the rail does not fix it
-                          because the overflow scales too. A fixed width is the
-                          only reliable way to size these. */}
-                      {/* ⚠️⚠️ HIDDEN ON THE SELECTED ROW, BUT THE ROW STILL
-                          RESERVES THEIR WIDTH. User, 2026-09-03: "make them
-                          disappear and make the website card fill their space
-                          when that specific website is currently selected",
-                          then, having seen it: "When a website is selected,
-                          make it so the card does not expand anymore. Leave the
-                          empty space empty pretty much."
-                          SO THE SECOND ASK REVERSES THE FIRST HALF OF THE
-                          FIRST. The buttons still go; the card no longer grows
-                          into the gap. Every card is now the same width in both
-                          states, which is the point: a card that widened by
-                          76px on selection made the whole rail jump.
-                          ⚠️ THE SPACER IS THE BUTTON GROUP'S OWN CLASSES with
-                          empty spans inside (`gap-1` + two `w-8`), NOT a single
-                          hard-coded `w-[68px]`. Same literal tokens as the real
-                          buttons a few lines down, so changing the button width
-                          means changing `w-8` in all four places and a grep
-                          finds them. Do not "simplify" it to one fixed width.
-                          ⚠️ IT IS EMPTY SPANS, NOT `invisible` LINKS. Keeping
-                          the real links and hiding them would auto-match the
-                          width, but they would stay focusable and in the a11y
-                          tree, and `aria-hidden` on a focusable element is an
-                          a11y violation.
-                          WHY THE BUTTONS GO AT ALL, rather than just tidier:
-                          the detail panel on the right ALREADY shows Error
-                          History and View list for whichever site is selected.
-                          So for that one row the pair is a duplicate of what is
-                          on screen a few hundred pixels away, and every OTHER
-                          row is the only place to reach those two pages without
-                          switching selection first. */}
-                      {isCurrent ? (
-                        <span
-                          aria-hidden
-                          className="flex shrink-0 items-stretch gap-1"
-                        >
-                          <span className="w-8" />
-                          <span className="w-8" />
-                        </span>
-                      ) : (
-                        <span className="flex shrink-0 items-stretch gap-1">
-                          <Link
-                            href={`/automations/${site.slug}/errors`}
-                            aria-label={`${site.label} error history`}
-                            title="Error History"
-                            className="inline-flex w-8 items-center justify-center rounded-md border bg-white text-zinc-600 ring-1 ring-foreground/10 transition-colors hover:bg-zinc-50 hover:text-zinc-900"
-                          >
-                            <AlertTriangle className="h-3.5 w-3.5" />
-                          </Link>
-                          <Link
-                            href={`/automations/${site.slug}`}
-                            aria-label={`${site.label} automation list`}
-                            title="View list"
-                            className="inline-flex w-8 items-center justify-center rounded-md bg-zinc-900 text-white transition-colors hover:bg-zinc-800"
-                          >
-                            <List className="h-3.5 w-3.5" />
-                          </Link>
-                        </span>
-                      )}
                     </div>
                   );
                 })}
@@ -899,16 +796,18 @@ export default async function AutomationsBetaPage({
                     </div>
                   </div>
                   {/* ⚠️ REAL LINKS, where Alpha3 renders spans.
-                      ⚠️ THE LEADING ICONS MATCH THE RAIL'S PER-ROW BUTTONS, and
-                      that is the whole point of them: user, 2026-09-03, "Add
-                      the icons of the 2 new buttons to their marked counterpart
-                      in S1 respectively." The same AlertTriangle and List
-                      appear on every rail row, so a glance ties the two
-                      together and the rail's icon-only buttons become readable
-                      without their tooltips.
-                      ⚠️ KEEP THEM IN STEP: change an icon here and change the
-                      matching rail button too, or the pairing that justifies
-                      dropping the rail's labels stops holding.
+                      ⚠️ THE LEADING ICONS ARRIVED TO MATCH SOMETHING THAT NO
+                      LONGER EXISTS, and they stay anyway. User, 2026-09-03:
+                      "Add the icons of the 2 new buttons to their marked
+                      counterpart in S1 respectively." The 2 new buttons were
+                      the RAIL's icon-only per-row pair, and the icons here were
+                      what made those readable without their tooltips. **The
+                      user removed the rail's pair on 2026-09-04 ("Remove these
+                      buttons"), so there is nothing left to be in step with.**
+                      The icons are kept because this page is now the only place
+                      either destination appears, and because the same pair was
+                      promoted to the LIVE hub in that styling (#461/#462) and
+                      the two pages should still read alike.
                       View list keeps its TRAILING chevron as well, so it reads
                       icon + label + direction. Two glyphs on one small button is
                       deliberate: the List says what, the chevron says it
