@@ -265,9 +265,10 @@ export default async function AutomationsBetaPage({
   // auto-refresh indicator. Both went with those on 2026-09-04; see the note in
   // the header. `autoRefreshMap` and `siteStatus()` are still read PER RAIL ROW,
   // so neither the query nor the ladder was lost.
-  // `hasKey` and `days` survive on their own account: `hasKey` feeds the
-  // CopyApiKeyButton and the Latest errors empty-state, `days` the error panel's
-  // "Last Error N days ago".
+  // `hasKey` and `days` survive on their own account: `hasKey` now feeds ONLY
+  // the Latest errors empty-state (the CopyApiKeyButton it used to feed moved
+  // to the rail cards on 2026-09-04 and reads its own `siteHasKey` per row),
+  // and `days` the error panel's "Last Error N days ago".
 
   return (
     <div className="space-y-5 p-6">
@@ -407,6 +408,11 @@ export default async function AutomationsBetaPage({
                   );
                   const siteRefreshOn =
                     autoRefreshMap[site.slug]?.enabled ?? false;
+                  // For this row's API-key button. `platformHasApiKey` only
+                  // checks that the env vars are PRESENT; the button's green /
+                  // red state is seeded from the last stored health-check
+                  // result where there is one, and a click re-verifies live.
+                  const siteHasKey = platformHasApiKey(site.slug);
                   // For the row's own proportion bar, over THIS row's total, so
                   // a website with 0 automations leaves the bar empty grey
                   // instead of dividing by zero. These were the detail panel's
@@ -431,10 +437,12 @@ export default async function AutomationsBetaPage({
                     // hard-coding one, so they stay level if the text changes.
                     // The row itself now carries NO padding or background: the
                     // card below owns both.
-                    <div
-                      key={site.slug}
-                      className="flex h-[76px] items-stretch gap-2"
-                    >
+                    // ⚠️ HEIGHT IS CONTENT-DRIVEN. It was a fixed `h-[76px]`
+                    // until the API-key button landed in the card on
+                    // 2026-09-04; every row has the same three blocks so they
+                    // all come out the same height anyway, and a hard-coded
+                    // number would just be one more thing to keep in step.
+                    <div key={site.slug} className="flex items-stretch gap-2">
                       {/* ⭐ THE CARD, 2026-09-03: "Place each of these in its own
                           card with visible borders." A real `border`, not the
                           faint `ring-1 ring-foreground/10` used elsewhere on this
@@ -446,25 +454,33 @@ export default async function AutomationsBetaPage({
                           outside the card in the same spot"), which is also what
                           the invalid-nested-anchor rule requires anyway.
 
-                          ⚠️⚠️ THE CARD IS A <Link> AGAIN, AND THAT IS THE STATE
-                          TO KEEP. It was briefly a <div> on 2026-09-04 so the
-                          API-key button could live inside it (PR #458): a real
-                          <button> cannot sit inside an <a>. The user reverted
-                          that move ("return these elements to their last
-                          location, it doesn't look good here"), so the card has
-                          no interactive children again and can be the Link
-                          itself.
-                          📌 SO THE CARD HOLDS THREE BLOCKS, NOT FIVE. The
-                          error block and the API-key button were tried here and
-                          sent back; the note above the error panel in the
-                          detail panel records why (the card went 76px -> 218px
-                          and the rail to 1339px). **Anything with a real button
-                          in it cannot come here without making the card a div
-                          again, and anything tall should not.** */}
-                      <Link
-                        href={`/automations-beta?site=${site.slug}`}
+                          ⚠️⚠️ THE CARD IS A <div>, NOT THE SITE-SELECT <Link>,
+                          AND IT HAS TO BE. The API-key button lives in the card
+                          and it is a real <button>; an interactive element
+                          inside an <a> is the same invalid-nesting trap that
+                          already forced the ROW to be a div. So the Link covers
+                          the text column only and the button sits under it as a
+                          sibling.
+                          ⚠️ WHAT THAT COSTS: the accent spine and the logo are
+                          outside the Link, so clicking them no longer selects
+                          the site. The Link still covers the name and the
+                          statistic. If the logo must be clickable again, the
+                          fix is an `absolute inset-0` overlay Link with the
+                          button lifted above it, NEVER putting the button back
+                          inside an anchor.
+                          📌📌 THE CARD HOLDS THREE BLOCKS AND THAT IS A CEILING
+                          FOUND THE HARD WAY. On 2026-09-04 the error block came
+                          here too (PR #458) and the card went 76px -> 218px,
+                          the rail to 1339px; the user sent BOTH back ("it
+                          doesn't look good here", #459) and then asked for the
+                          API-key button alone ("This should still result in a
+                          decently short card unlike the tall one before",
+                          #460). **The API bar is 28px and the error block was
+                          98px: that difference is the whole story.** Before
+                          moving anything else in here, measure its height. */}
+                      <div
                         className={cn(
-                          "flex min-w-0 flex-1 items-center gap-2.5 rounded-lg border px-2.5 py-2 transition-colors",
+                          "flex min-w-0 flex-1 items-stretch gap-2.5 rounded-lg border px-2.5 py-2 transition-colors",
                           isCurrent
                             ? "bg-zinc-100"
                             : "bg-card hover:bg-zinc-50",
@@ -487,12 +503,26 @@ export default async function AutomationsBetaPage({
                             opacity: isCurrent ? 1 : 0.35,
                           }}
                         />
-                        <SiteGlyph site={site} className="h-5 w-5" />
-                        {/* `flex-col` with a real gap, because this column
-                          holds TWO blocks now (the title line, then the counts
-                          statistic) rather than two lines of text. */}
-                        <span className="flex min-w-0 flex-1 flex-col justify-center gap-1.5">
-                          {/* ⭐ THE TITLE LINE reads: Name (dot) (refresh icon).
+                        {/* ⚠️ `self-start`: the card is three blocks tall now,
+                          and a vertically centred logo floated beside the
+                          statistic instead of sitting level with the name. */}
+                        <SiteGlyph
+                          site={site}
+                          className="h-5 w-5 shrink-0 self-start"
+                        />
+                        {/* The card's content column: the title line and the
+                          counts statistic inside the site-select Link, then the
+                          API-key button OUTSIDE it (see the card's note above
+                          for why the button cannot be in the anchor).
+                          `justify-center` is gone with the fixed height: the
+                          content sets the height, so there is nothing to
+                          centre against. */}
+                        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                          <Link
+                            href={`/automations-beta?site=${site.slug}`}
+                            className="flex min-w-0 flex-col gap-1.5"
+                          >
+                            {/* ⭐ THE TITLE LINE reads: Name (dot) (refresh icon).
                             The user sketched it as "(.) Make (Green Refresh
                             Icon)" on 2026-09-03 and then moved the dot the same
                             day: "Put the dot after the website title instead,
@@ -521,43 +551,43 @@ export default async function AutomationsBetaPage({
                             ⚠️ This is a FLEX row, so the name keeps `truncate`
                             and needs `min-w-0` to shrink; both indicators are
                             `shrink-0` so the name yields first. */}
-                          <span className="flex items-center gap-1.5">
-                            <span
-                              className={cn(
-                                "min-w-0 truncate text-sm",
-                                isCurrent
-                                  ? "font-semibold text-zinc-900"
-                                  : "font-medium text-zinc-700",
-                              )}
-                            >
-                              {site.label}
-                            </span>
-                            <StatusPill
-                              tone={siteStat.tone}
-                              label={siteStat.label}
-                            />
-                            <span
-                              title={
-                                siteRefreshOn
-                                  ? "Auto-refresh on"
-                                  : "Auto-refresh off"
-                              }
-                              className="flex shrink-0 items-center gap-1 whitespace-nowrap text-[11px] text-zinc-500"
-                            >
-                              <RefreshCw
+                            <span className="flex items-center gap-1.5">
+                              <span
                                 className={cn(
-                                  "h-3 w-3 shrink-0",
-                                  siteRefreshOn
-                                    ? "text-emerald-600"
-                                    : "text-zinc-400",
+                                  "min-w-0 truncate text-sm",
+                                  isCurrent
+                                    ? "font-semibold text-zinc-900"
+                                    : "font-medium text-zinc-700",
                                 )}
+                              >
+                                {site.label}
+                              </span>
+                              <StatusPill
+                                tone={siteStat.tone}
+                                label={siteStat.label}
                               />
-                              {siteRefreshOn
-                                ? "Auto-refresh on"
-                                : "Auto-refresh off"}
+                              <span
+                                title={
+                                  siteRefreshOn
+                                    ? "Auto-refresh on"
+                                    : "Auto-refresh off"
+                                }
+                                className="flex shrink-0 items-center gap-1 whitespace-nowrap text-[11px] text-zinc-500"
+                              >
+                                <RefreshCw
+                                  className={cn(
+                                    "h-3 w-3 shrink-0",
+                                    siteRefreshOn
+                                      ? "text-emerald-600"
+                                      : "text-zinc-400",
+                                  )}
+                                />
+                                {siteRefreshOn
+                                  ? "Auto-refresh on"
+                                  : "Auto-refresh off"}
+                              </span>
                             </span>
-                          </span>
-                          {/* ⭐ THE COUNTS STATISTIC, per row, 2026-09-03: "Pls
+                            {/* ⭐ THE COUNTS STATISTIC, per row, 2026-09-03: "Pls
                             replace the 'X Tracked' info under the website name
                             with the whole statistic i marked."
                             It began as the DETAIL PANEL'S counts block scaled
@@ -586,59 +616,99 @@ export default async function AutomationsBetaPage({
                             carries `truncate` so it is what clips first if a
                             later change squeezes the rail. Read the rail width
                             note further up before narrowing anything. */}
-                          <span className="block">
-                            <span className="flex items-baseline justify-between gap-2">
-                              <span className="flex min-w-0 items-baseline gap-1">
-                                <span className="font-heading text-lg font-semibold leading-none tabular-nums text-zinc-900">
-                                  {s.total}
+                            <span className="block">
+                              <span className="flex items-baseline justify-between gap-2">
+                                <span className="flex min-w-0 items-baseline gap-1">
+                                  <span className="font-heading text-lg font-semibold leading-none tabular-nums text-zinc-900">
+                                    {s.total}
+                                  </span>
+                                  <span className="truncate text-[10px] text-zinc-500">
+                                    automations
+                                  </span>
                                 </span>
-                                <span className="truncate text-[10px] text-zinc-500">
-                                  automations
-                                </span>
-                              </span>
-                              <span className="flex shrink-0 items-center gap-2 text-[10px] text-zinc-600">
-                                <span className="flex items-center gap-1">
-                                  {/* Active wears the website's own brand
+                                <span className="flex shrink-0 items-center gap-2 text-[10px] text-zinc-600">
+                                  <span className="flex items-center gap-1">
+                                    {/* Active wears the website's own brand
                                     colour, so this dot, the bar below it and
                                     the accent spine to its left are all the
                                     same colour for a given site. */}
-                                  <span
-                                    className="h-1.5 w-1.5 rounded-full"
-                                    style={{
-                                      backgroundColor: ACCENT[site.slug],
-                                    }}
-                                  />
-                                  <span className="font-semibold tabular-nums text-zinc-900">
-                                    {s.active}
+                                    <span
+                                      className="h-1.5 w-1.5 rounded-full"
+                                      style={{
+                                        backgroundColor: ACCENT[site.slug],
+                                      }}
+                                    />
+                                    <span className="font-semibold tabular-nums text-zinc-900">
+                                      {s.active}
+                                    </span>
+                                    active
                                   </span>
-                                  active
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <span className="h-1.5 w-1.5 rounded-full bg-zinc-300" />
-                                  <span className="font-semibold tabular-nums text-zinc-900">
-                                    {s.paused}
+                                  <span className="flex items-center gap-1">
+                                    <span className="h-1.5 w-1.5 rounded-full bg-zinc-300" />
+                                    <span className="font-semibold tabular-nums text-zinc-900">
+                                      {s.paused}
+                                    </span>
+                                    paused
                                   </span>
-                                  paused
                                 </span>
                               </span>
-                            </span>
-                            {/* The split as one bar. Widths are percentages of
+                              {/* The split as one bar. Widths are percentages of
                               the row's OWN total, so the bar always fills. */}
-                            <span className="mt-1.5 flex h-1 w-full overflow-hidden rounded-full bg-zinc-100">
-                              <span
-                                style={{
-                                  width: `${sActivePct}%`,
-                                  backgroundColor: ACCENT[site.slug],
-                                }}
-                              />
-                              <span
-                                className="bg-zinc-300"
-                                style={{ width: `${sPausedPct}%` }}
-                              />
+                              <span className="mt-1.5 flex h-1 w-full overflow-hidden rounded-full bg-zinc-100">
+                                <span
+                                  style={{
+                                    width: `${sActivePct}%`,
+                                    backgroundColor: ACCENT[site.slug],
+                                  }}
+                                />
+                                <span
+                                  className="bg-zinc-300"
+                                  style={{ width: `${sPausedPct}%` }}
+                                />
+                              </span>
                             </span>
+                          </Link>
+
+                          {/* ⭐ THE API-KEY CONTROL, per row, 2026-09-04: "put
+                            that 'API Key Integrated' inside their respective
+                            website card". One per website, where the panel used
+                            to show only the selected site's.
+                            ⚠️ OUTSIDE THE SITE-SELECT <Link> ON PURPOSE: it is
+                            a real <button> and an <a> may not contain one. See
+                            the card's note above.
+                            ⚠️ THE FLEX WRAPPER IS REQUIRED, not decoration: the
+                            button carries `flex-1` and collapses without a flex
+                            parent to fill.
+                            ⭐⭐ THIS IS ALSO THE WHOLE OF THE "API HEALTH CHECK
+                            SHOULD CHECK EVERY WEBSITE" FIX, and it is worth
+                            knowing why no separate code was written for it.
+                            That button's entire body is `onClick={ctx.runAll}`,
+                            and `runAll` fires every check REGISTERED with
+                            HealthCheckProvider. Each of these buttons registers
+                            itself on mount. One mounted meant a one-platform
+                            fan-out; five mounted means all five, exactly as the
+                            live hub has always worked. `runAll` also batches
+                            the five results into one save of its own.
+                            ⚠️ SO THE BUTTON'S CORRECTNESS DEPENDS ON THESE
+                            BEING RENDERED. If a future layout takes them out of
+                            the cards again, the fan-out silently narrows back
+                            to whatever is left mounted. The durable fix, if
+                            that happens, is to let `runAll` iterate
+                            AUTOMATION_SITES server-side instead of depending on
+                            what is on screen. (The 24h auto-check was never
+                            affected: it runs server-side over every platform.)
+                            Clicking one runs a LIVE verify of that platform and
+                            re-colours on the result. Only the boolean reaches
+                            the client; the secret never does. */}
+                          <span className="flex items-center gap-2">
+                            <CopyApiKeyButton
+                              platform={site.slug}
+                              hasApiKey={siteHasKey}
+                              initialOk={health.results[site.slug]?.ok}
+                            />
                           </span>
-                        </span>
-                      </Link>
+                        </div>
+                      </div>
 
                       {/* ⭐ PER-ROW ACTIONS, added 2026-09-03: "Put a white
                           button and a black button on the space i marked for
@@ -895,27 +965,29 @@ export default async function AutomationsBetaPage({
                     first, and scale the RAIL's treatment up rather than
                     reviving either version above. */}
 
-                {/* ⚠️⚠️⚠️ TRIED IN THE RAIL CARDS ON 2026-09-04 AND REVERTED THE
-                    SAME DAY. Do not move this block, or the API-key button
-                    below it, into the cards again without being asked.
-                    The user asked for both ("move these two elements into each
-                    of the respective website's cards", PR #458), saw it, and
-                    reverted it: "return these elements to their last location,
-                    it doesn't look good here."
-                    ⚠️ WHY IT LOOKED WRONG, since the instinct behind it was
-                    sound and someone will have it again. Every earlier move to
-                    the rail traded one copy for five and each copy was SMALL:
-                    a pill, a number, a legend. These two are not small. MEASURED
-                    in the cards: the error block alone was 98px and the card
-                    went 76px -> 218px, so the five cards came to 1128px and the
-                    rail to 1339px against a detail panel of about 500px. The
-                    rail stopped being a rail and the panel it was feeding sat
-                    mostly empty. **The pattern has a size limit, and this is
-                    where it was found.**
-                    ⚠️ WHAT THE REVERT COST, and it is a real regression that
-                    was NOT re-introduced by accident: see the API-key button's
-                    own note below.
-                */}
+                {/* ⚠️⚠️⚠️ THIS BLOCK STAYS HERE. IT WAS TRIED IN THE RAIL CARDS
+                    ON 2026-09-04 AND SENT BACK THE SAME DAY. Do not move it
+                    into the cards again without being asked.
+                    ⚠️ AND NOTE WHAT HAPPENED NEXT, or the record misleads: the
+                    API-key button went to the cards WITH this block (PR #458),
+                    both came back (#459), and then the user asked for the
+                    BUTTON ALONE to go back in ("put that 'API Key Integrated'
+                    inside their respective website card ... This should still
+                    result in a decently short card unlike the tall one before",
+                    #460). **So the button IS in the cards now and this block is
+                    not. The two were not rejected together; only this one was.**
+                    ⚠️ WHY THIS ONE IS THE PROBLEM, since the instinct behind
+                    moving it was sound and someone will have it again. Every
+                    move to the rail trades one copy for five, and it works when
+                    each copy is SMALL: a pill, a number, a legend, a 28px
+                    button. **This block is 98px.** MEASURED with it in the
+                    cards: the card went 76px -> 218px, the five cards to
+                    1128px, the rail to 1339px against a detail panel of about
+                    500px. The rail stopped being a rail and the panel it was
+                    feeding sat mostly empty.
+                    📌 SO THE RULE IS NOT "nothing else moves to the cards", it
+                    is **"measure its height first"**. 28px was fine. 98px was
+                    not. */}
 
                 {/* ⭐ THE ERROR PANEL, from the live hub. One grey block with
                     the lifetime count, how long ago the last one was, and a
@@ -966,10 +1038,13 @@ export default async function AutomationsBetaPage({
                     AUTO-REFRESH / LAST RUN / LAST ERROR.
                     WHY IT WENT: three of its four cells had come to repeat
                     something already on screen. API key = the "API Key
-                    Integrated" button just below; Auto-refresh = the indicator
-                    beside the status pill in the header; Last error = the error
-                    panel's "Last Error N days ago". I raised that as a whole and
-                    the user removed the band rather than the duplicates.
+                    Integrated" button; Auto-refresh = the indicator beside the
+                    status pill in the header; Last error = the error panel's
+                    "Last Error N days ago". I raised that as a whole and the
+                    user removed the band rather than the duplicates.
+                    ⚠️ ALL THREE OF THOSE COUNTERPARTS HAVE SINCE MOVED TO THE
+                    RAIL CARDS, one per website (2026-09-04). So the strip's
+                    facts are on screen five times over now, not zero.
                     ⚠️ "LAST RUN" WENT WITH IT AND IS NOW NOWHERE ON THIS PAGE.
                     It was the one fact the strip uniquely carried. Flagged to
                     the user at removal; they can have it back beside the
@@ -978,45 +1053,6 @@ export default async function AutomationsBetaPage({
                     `lastRunByPlatform` map and the `Meta` component, so this is
                     ONE FEWER DATABASE ROUND TRIP per page load. Do not re-add
                     the query without a consumer for it. */}
-
-                {/* ⚠️ THE ONE THING ALPHA3 DOES NOT HAVE, and now the ONLY place
-                    the API key is reported on this page: Alpha3 kept the
-                    API-key FACT in its status strip and dropped the CONTROL,
-                    because it has no working controls at all. This page kept
-                    the control, and the strip that held the fact is gone
-                    (removed 2026-09-03), so this button carries both.
-                    Clicking it runs a LIVE verify and re-colours on the result.
-                    Only the boolean reaches the client; the secret never does.
-
-                    ⚠️⚠️ KNOWN GAP, MEASURED, NOT A GUESS: "API HEALTH CHECK" AT
-                    THE TOP OF THIS PAGE ONLY RE-CHECKS THE SELECTED WEBSITE.
-                    This button registers itself with HealthCheckProvider, and
-                    `runAll` fires every REGISTERED check. There is exactly one
-                    of these mounted here (the selected site), so the fan-out
-                    has one member. The live hub renders five, one per card, and
-                    its button really does check all five.
-                    ⚠️ THIS WAS ACCIDENTALLY FIXED AND THEN DELIBERATELY
-                    RE-INTRODUCED. Putting a button in every rail card (PR #458)
-                    gave the provider five registrations and the fan-out worked
-                    properly; the user reverted that move for layout reasons
-                    ("it doesn't look good here"), which brought the gap back.
-                    So it is a known cost of a chosen layout, NOT an oversight.
-                    📌 THE FIX, when it is wanted, is NOT to put the buttons
-                    back in the cards. Either register the four unselected
-                    platforms without rendering their buttons, or let the
-                    fan-out iterate the platform list server-side instead of
-                    depending on what happens to be mounted. Raised with the
-                    user; not taken up yet.
-                    📌 THE GENERAL LESSON: a component that self-registers with
-                    a provider changes BEHAVIOUR with how many of it you render.
-                    Count the instances, not just the markup. */}
-                <div className="flex items-center gap-2">
-                  <CopyApiKeyButton
-                    platform={selected.slug}
-                    hasApiKey={hasKey}
-                    initialOk={health.results[selected.slug]?.ok}
-                  />
-                </div>
 
                 {/* The two lists that only fit because this layout gave one
                     website the whole canvas.
