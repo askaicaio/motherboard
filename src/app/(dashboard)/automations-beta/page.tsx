@@ -338,53 +338,56 @@ export default async function AutomationsBetaPage({
           <div className="flex min-h-[640px] overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10">
             {/* ---- Rail. Every website, always visible, so switching costs one
                     click and you never lose your bearings. ---- */}
-            {/* ⚠️ w-[40rem] (640px). WIDENED FIVE TIMES FROM Alpha3's w-64:
-                    w-80 then 416px on 2026-09-03, then 448px, 672px and 640px
-                    on 2026-09-04. It is more than half the pane on a 1440px
-                    screen, a deliberate rebalancing of the layout rather than
-                    a nudge.
-                    ⚠️ THE 672 -> 640 TRIM IS A ROUND-NUMBER PREFERENCE, not a
-                    fix ("make the 672px into 640px"). Nothing needed the 32px
-                    back, so do not go looking for the reason.
-                    ⚠️⚠️ THE LAST TWO STEPS ARE THE ONLY ONES NOT DRIVEN BY
+            {/* ⚠️ w-[600px]. WIDENED FIVE TIMES FROM Alpha3's w-64 AND THEN
+                    TRIMMED TWICE: w-80, then 416px on 2026-09-03, then 448px,
+                    672px and 640px on 2026-09-04, then 600px on 2026-09-06.
+                    It is still a third of the pane on a 1900px screen, a
+                    deliberate rebalancing of the layout rather than a nudge.
+                    ⚠️ BOTH TRIMS ARE ROUND-NUMBER PREFERENCES, not fixes
+                    ("make the 672px into 640px", then "now pls make it 600px").
+                    Nothing needed the 72px back, so do not go looking for the
+                    reason.
+                    ⚠️⚠️ THE LAST THREE STEPS ARE THE ONLY ONES NOT DRIVEN BY
                     CONTENT. Every earlier widening was the minimum some element
                     needed. 672 was a proportion the user asked for outright:
                     "Make this section wider, you can decrease the width of the
                     stuff on the right side to accomodate it. Make the left side
                     roughly x1.5 times as wide." 448 x 1.5 = 672 exactly.
-                    So the cards now have far MORE room than their content
-                    needs (the title line's worst case is 264px against a 514px
-                    text column). THE SLACK IS THE POINT. Do not "reclaim" it,
-                    and do not read the empty right-hand side of a card as a
-                    layout bug.
-                    ⚠️ 448px REMAINS THE CONTENT FLOOR, and that is what the
-                    measurements below are about: the whole counts statistic
-                    ("You can widen the cards on the left to accomodate it") and
-                    the full status indicators ("Resize it as needed") need it
-                    between them. Below 448 the site name truncates.
-                    ⚠️ MEASURED IN THE BROWSER at a 1900px viewport, rather than
-                    reasoned about, at 416 and 448. At 448px an unselected card
-                    is 355px wide (selected or not, because the row reserves the
-                    action buttons' width either way) with a 290px text column,
-                    and the two lines need:
-                      TITLE LINE, worst case "GHL b2b" + the longest status
-                      label ("Recent errors") + "Auto-refresh on" = 264px,
-                      so 26px slack.
-                      STAT LINE, worst case "344 automations" against "144
-                      active / 200 paused" = 235px, so 55px slack.
-                    ⚠️ SO THE TITLE LINE IS NOW THE BINDING CONSTRAINT, not the
-                    statistic. At the previous 416px the title line needed 264
-                    against a 258px column and **"GHL b2b" truncated to
-                    "GHL b2..."**, which is what bought the extra 32px. If you
-                    narrow this, the site NAME is what clips first, because both
-                    indicators are `shrink-0`.
+                    So the cards still have MORE room than their content needs.
+                    THE SLACK IS THE POINT. Do not "reclaim" it, and do not read
+                    the empty right-hand side of a card as a layout bug.
+                    ⚠️⚠️ THE CONTENT FLOOR IS 571px, NOT the 448px this note
+                    claimed until 2026-09-06. 448 was measured BEFORE the Error
+                    History + View list pair moved into the title row (#465).
+                    That pair is 225px and it comes out of the NAME's share of
+                    the title line, so it lifted the floor by 123px. The old
+                    number is not a safe fallback any more.
+                    ⚠️ MEASURED IN THE BROWSER at a 1920px viewport on
+                    2026-09-06, BEFORE shipping 600, with this exact markup and
+                    the live figures. At 600 every card is 583px wide with a
+                    518px content column, all five are 120px tall, and nothing
+                    truncates:
+                      TITLE LINE, worst case ZAPIER ("Zapier" + "Not connected"
+                      + "Auto-refresh off") = 256px against the 285px the pair
+                      leaves it, so 29px slack. THAT 29px IS THE WHOLE MARGIN
+                      and it is why the floor is 571. Every other site has
+                      50-81px.
+                      STAT LINE and the API bar are full-width siblings at
+                      518px, so neither is anywhere near its limit.
+                    ⚠️ SO THE TITLE LINE IS THE BINDING CONSTRAINT AND ZAPIER IS
+                    THE WORST CASE, not GHL b2b as this note said while labels
+                    were the only things on that line. Zapier carries the
+                    longest status label ("Not connected") AND the longer
+                    "Auto-refresh off". If you narrow below 600, the site NAME
+                    clips first, because the pill and the refresh label are both
+                    `shrink-0`.
                     ⚠️ HISTORY, so the earlier reason does not read as stale:
                     the w-80 step existed only so the action buttons could be
                     square at the card's height, and the user narrowed those
                     buttons back to 32px the same day. I offered to hand that
                     64px back and they chose to keep the roomier cards. So
                     neither step is a leftover; do not "restore" w-64. */}
-            <div className="flex w-[40rem] shrink-0 flex-col border-r">
+            <div className="flex w-[600px] shrink-0 flex-col border-r">
               <div className="border-b px-4 py-3">
                 <div className="font-heading text-sm font-semibold text-zinc-900">
                   Sources
