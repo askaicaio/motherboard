@@ -97,6 +97,7 @@ import {
   getErrorCountsByPlatform,
   getDaysSinceLastErrorByPlatform,
 } from "@/lib/automations/errors";
+import { buttonVariants } from "@/components/ui/button";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { TOOLTIP_DELAY_MS } from "@/lib/automations/tooltips";
 import { CopyApiKeyButton } from "@/components/automations/copy-api-key-button";
@@ -379,6 +380,57 @@ export default async function AutomationsBetaPage({
               />
               <ApiHealthCheckButton />
             </div>
+          </div>
+
+          {/* ⭐⭐ TOOLBAR STRIP, 2026-09-06: "Remove this toolbar. Use S2 as a
+              reference and add the old toolbar back to the beta page." S1 was
+              this page's own rail Tools list, S2 was the LIVE hub's strip.
+              ⚠️⚠️ THIS IS A DELIBERATE COPY OF THE LIVE HUB'S MARKUP, NOT A
+              SHARED COMPONENT, and it must stay a copy. `/automations` and
+              `/automations-beta` are independent files ON PURPOSE so the bench
+              can never break the live page; factoring these three links into a
+              shared component would undo that. If the live strip changes and
+              this should follow, copy it again by hand.
+              ⚠️ WHAT IT REPLACED: a vertical **Tools** list pinned under the
+              rail's cards (`RailTool`, a label row plus three chevroned rows).
+              That existed because the rail layout had no toolbar of its own;
+              the note on it read "these three are the only route to those pages
+              from this page". They still are, they are just up here now, so
+              **do not re-add the rail section as well** and leave the estate
+              with two copies.
+              📌 HISTORY THAT CUTS THE OTHER WAY, worth knowing before anyone
+              "improves" this: the LIVE page once tried the opposite swap. PR
+              #427 (2026-08-31) replaced this strip with Alpha's Tools CARD and
+              the user reverted it the same day ("lets roll back the previous
+              change, it doesnt look good right now"). **So the strip has now
+              won on both pages, in both directions.** Treat it as settled.
+              ⚠️ Same three destinations, same order, same icons as the live
+              hub: Feature Integration (Plug), View All Lists (List), Dropdown
+              Configuration (ListChecks). `rounded-xl bg-card ring-1
+              ring-foreground/10` matches the pane below it, exactly as the
+              live strip matches its cards. */}
+          <div className="flex items-center gap-3 rounded-xl bg-card px-4 py-2.5 ring-1 ring-foreground/10">
+            <Link
+              href="/automations/feature-integration"
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              <Plug />
+              Feature Integration
+            </Link>
+            <Link
+              href="/automations/all"
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              <List />
+              View All Lists
+            </Link>
+            <Link
+              href="/automations/dropdown-config"
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              <ListChecks />
+              Dropdown Configuration
+            </Link>
           </div>
 
           {/* One pane, split. The rail is the master list, the panel is the
@@ -948,29 +1000,11 @@ export default async function AutomationsBetaPage({
                 })}
               </nav>
 
-              <div className="border-t p-2">
-                <div className="px-2.5 pb-1 pt-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
-                  Tools
-                </div>
-                {/* ⚠️ REAL LINKS, where Alpha3 renders decorative spans. These
-                    three are the only route to those pages from this page: the
-                    card design's toolbar strip does not exist here. */}
-                <RailTool
-                  href="/automations/feature-integration"
-                  icon={Plug}
-                  label="Feature Integration"
-                />
-                <RailTool
-                  href="/automations/all"
-                  icon={List}
-                  label="View All Lists"
-                />
-                <RailTool
-                  href="/automations/dropdown-config"
-                  icon={ListChecks}
-                  label="Dropdown Configuration"
-                />
-              </div>
+              {/* ⚠️ THE RAIL'S "Tools" SECTION WAS HERE and was removed on
+                  2026-09-06 ("Remove this toolbar"). Its three links moved to
+                  the horizontal strip above the pane, copied from the live hub.
+                  The rail now ends with its cards. Do not put them back: the
+                  destinations are not lost, they are just above. */}
             </div>
 
             {/* ---- Detail panel for the selected website. ---- */}
@@ -1343,7 +1377,9 @@ export default async function AutomationsBetaPage({
 }
 
 // ---------------------------------------------------------------------------
-// Pieces. All copied from Alpha3 except RailTool, which became a real link.
+// Pieces. All copied from Alpha3. (RailTool was the one exception, a real
+// link where Alpha3 has a decorative span; it went with the rail Tools section
+// on 2026-09-06 and its note sits further down.)
 // ---------------------------------------------------------------------------
 
 type Tone = "ok" | "warn" | "bad" | "off";
@@ -1574,27 +1610,12 @@ function Panel({
   );
 }
 
-/** ⚠️ A real <Link>, where Alpha3 renders a decorative <span>. */
-function RailTool({
-  href,
-  icon: Icon,
-  label,
-}: {
-  href: string;
-  icon: React.ElementType;
-  label: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className="flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs text-zinc-600 transition-colors hover:bg-zinc-50 hover:text-zinc-900"
-    >
-      <Icon className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
-      <span className="min-w-0 flex-1 truncate">{label}</span>
-      <ChevronRight className="h-3 w-3 shrink-0 text-zinc-300" />
-    </Link>
-  );
-}
+/* ⚠️ `RailTool` LIVED HERE and went with the rail's Tools section on
+    2026-09-06. It was the one piece this page did NOT copy from Alpha3
+    unchanged: Alpha3 renders those rows as decorative <span>s and this page
+    made them real <Link>s. Nothing renders them any more, so the component
+    went too rather than sitting unused. The live hub's toolbar strip above the
+    pane is what replaced it. */
 
 // ---------------------------------------------------------------------------
 // Time labels. Coarse on purpose: these are glanceable states, not timestamps,
