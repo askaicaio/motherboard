@@ -100,6 +100,7 @@ import {
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { TOOLTIP_DELAY_MS } from "@/lib/automations/tooltips";
 import { CopyApiKeyButton } from "@/components/automations/copy-api-key-button";
+import { CardNavIndicator } from "./nav-indicator";
 import {
   ApiHealthCheckButton,
   AutoHealthCheckToggle,
@@ -383,7 +384,13 @@ export default async function AutomationsBetaPage({
           {/* One pane, split. The rail is the master list, the panel is the
               detail view. Both scroll inside the pane rather than the page, so
               the split never comes apart as the detail content grows. */}
-          <div className="flex min-h-[640px] overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10">
+          {/* ⚠️ `group/pane` IS FUNCTIONAL, not a stray utility. The detail
+              panel dims while a rail navigation is in flight, and it reaches the
+              pending flag with `group-has-[[data-pending]]/pane:`. The flag is
+              set by `CardNavIndicator` inside a rail card, which is a COUSIN of
+              the panel, so a `group` on their common ancestor is what connects
+              them. Drop this class and the panel stops dimming, with no error. */}
+          <div className="group/pane flex min-h-[640px] overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10">
             {/* ---- Rail. Every website, always visible, so switching costs one
                     click and you never lose your bearings. ---- */}
             {/* ⚠️ w-[460px], AND THE 60 IS NOT ROUND BY ACCIDENT. It is the
@@ -592,11 +599,19 @@ export default async function AutomationsBetaPage({
                                button here ever stops responding.
                           ⚠️ `aria-label` because the Link has no text of its
                           own; without it the whole card is an unnamed link. */}
+                      {/* ⚠️ THIS LINK HAS A CHILD NOW, and it is not
+                          decoration: `CardNavIndicator` calls `useLinkStatus`,
+                          which reports the pending state of its NEAREST
+                          ANCESTOR Link. Move it out of here and it reports
+                          `pending: false` forever and silently does nothing.
+                          See its own file for why the feedback exists. */}
                       <Link
                         href={`/automations-beta?site=${site.slug}`}
                         aria-label={`Show ${site.label}`}
                         className="absolute inset-0 rounded-lg"
-                      />
+                      >
+                        <CardNavIndicator accent={ACCENT[site.slug]} />
+                      </Link>
                       {/* Accent spine, full opacity on the selected row and
                           faint on the rest, so the current website is obvious
                           without a second indicator.
@@ -911,7 +926,15 @@ export default async function AutomationsBetaPage({
                 while `lg:` still said "plenty of room". Making this an
                 explicit container lets the pair respond to ITS OWN width
                 instead. See the grid further down. */}
-            <div className="@container min-w-0 flex-1">
+            {/* ⚠️ THE DIM IS THE POINT OF THE WHOLE CHANGE: this panel is the
+                "section of the page" the user said takes a second to change, so
+                it has to acknowledge the click even though its data cannot
+                arrive yet. 60% for the ~300ms a switch takes, eased, so it reads
+                as "working" rather than as a flash.
+                ⚠️ It depends on TWO things elsewhere: `group/pane` on the pane
+                above, and the `data-pending` attribute inside
+                `CardNavIndicator`. Both are silent if removed. */}
+            <div className="@container min-w-0 flex-1 transition-opacity duration-200 group-has-[[data-pending]]/pane:opacity-60">
               {/* Header, tinted with the website's own colour so the panel
                   changes character as you move down the rail. */}
               <div
