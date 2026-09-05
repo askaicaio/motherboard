@@ -605,9 +605,66 @@ export default async function AutomationsBetaPage({
                           ANCESTOR Link. Move it out of here and it reports
                           `pending: false` forever and silently does nothing.
                           See its own file for why the feedback exists. */}
+                      {/* ⚡⚡ `prefetch` IS THE WHOLE SPEED FIX, 2026-09-06, and
+                          it is one prop where a client-side rewrite was the
+                          alternative. READ THIS BEFORE REMOVING IT.
+                          The user asked for an instant switch after #470 (eight
+                          reads in parallel) and #471 (instant click feedback)
+                          left a real wait underneath. The plan was to fetch all
+                          five sites up front and switch on the client, moving
+                          ~950 lines of rail and panel JSX into a client
+                          component. The bundled Next docs made that
+                          unnecessary:
+                            - `prefetch` DEFAULT ("auto"/null) on a DYNAMIC
+                              route prefetches only "the partial route down to
+                              the nearest `loading.js` boundary". This page is
+                              `force-dynamic` with NO loading.js, so the default
+                              prefetches effectively nothing. That is why the
+                              switch always cost a full round trip.
+                            - `prefetch={true}` prefetches "the full route
+                              **for both static and dynamic routes**".
+                            - and the payload then falls under the CLIENT
+                              CACHE's `static` stale time, NOT `dynamic`:
+                              "The `static` property is used for statically
+                              generated pages, **or when the `prefetch` prop on
+                              Link is set to true**". Default 5 minutes.
+                              `dynamic` defaults to 0s (never reused) since
+                              v15, which is exactly why the default prefetch
+                              would not have helped even if it had fetched.
+                          All five cards are in the viewport at once, so all five
+                          payloads land shortly after the page does and a click
+                          is served from cache.
+                          ⚠️⚠️ WHAT IT COSTS, so nobody discovers it as a
+                          mystery: **a page load now triggers FIVE extra full
+                          renders of this route in the background**, one per
+                          card, each running the page's eight queries. Six
+                          renders per view instead of one. That was judged fine
+                          for an internal tool with a handful of users; it would
+                          NOT be fine on a public page. If it ever needs
+                          trimming, the documented pattern is hover-triggered
+                          prefetch (`prefetch={active ? true : false}` with an
+                          `onMouseEnter`), which costs one prefetch per hover.
+                          ⚠️ AND WHAT IT TRADES: a switch can now show data up to
+                          FIVE MINUTES old, where before every switch was a
+                          fresh render. Acceptable here because the error data
+                          behind this panel is refreshed by a 24h cron sweep,
+                          not continuously, so five minutes is nothing against
+                          its actual cadence. **If this page ever gains
+                          second-by-second data, revisit this**, and see
+                          `experimental.staleTimes` (global, so changing it
+                          affects the whole app).
+                          ⚠️ PREFETCHING ONLY RUNS IN PRODUCTION. It cannot be
+                          tested with `next dev`, so do not conclude it is
+                          broken from a local check.
+                          ⚠️ #471'S FEEDBACK STAYS AND IS NOT REDUNDANT: it is
+                          the fallback for a COLD cache (first click after load,
+                          or after the 5 minutes lapse). When the cache is warm
+                          the navigation finishes so fast the tint never
+                          visibly appears, which is the point. */}
                       <Link
                         href={`/automations-beta?site=${site.slug}`}
                         aria-label={`Show ${site.label}`}
+                        prefetch
                         className="absolute inset-0 rounded-lg"
                       >
                         <CardNavIndicator accent={ACCENT[site.slug]} />
