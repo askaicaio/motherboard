@@ -28,21 +28,26 @@
 //     dropped the CONTROL, having no working controls at all. Beta kept the
 //     control; the strip itself was removed on 2026-09-03, so this button is
 //     now the only place the API key is reported.
-//   - THE ERROR HISTORY / VIEW LIST PAIR ON EVERY RAIL CARD, labelled, always
-//     visible, where Alpha3 has nothing per row at all.
-//     ⚠️⚠️ THESE BUTTONS HAVE BEEN THROUGH THREE ARRANGEMENTS IN TWO DAYS, and
-//     the middle one was REMOVED, so read the sequence before "restoring"
+//   - VIEW LIST ON EVERY RAIL CARD, labelled, always visible, where Alpha3 has
+//     nothing per row at all, AND ERROR HISTORY ONCE, IN THE DETAIL HEADER.
+//     ⚠️⚠️ THESE BUTTONS HAVE BEEN THROUGH FOUR ARRANGEMENTS IN THREE DAYS AND
+//     THEY ARE SPLIT NOW, so read the whole sequence before "restoring"
 //     anything:
 //       1. ICON-ONLY, 32px, hidden on the selected row, beside each card
 //          (#443-#447). Removed 2026-09-04, "Remove these buttons" (#463).
 //       2. the LABELLED pair in the DETAIL HEADER only, which is where they
 //          lived while the rail had none.
-//       3. NOW: the labelled pair per card, ALWAYS VISIBLE, and the detail
-//          header gives them up entirely ("Move these buttons to each website
-//          card. They are always visible", #464).
+//       3. the labelled pair PER CARD, always visible, the header giving them
+//          up entirely ("Move these buttons to each website card. They are
+//          always visible", #464).
+//       4. NOW: SPLIT. View list stays on every card; Error History went back
+//          to the header ALONE on 2026-09-06 ("Move these buttons the 'Error
+//          History button' to the blank space I marked for each website's
+//          right side card", #467).
 //     So #463 removed the ICON-ONLY treatment, not the idea of per-card
-//     buttons. **Do not re-add the hide-on-selected gate**: it existed because
-//     the detail header showed the same pair, and the header no longer does.
+//     buttons, and #467 did NOT undo #464 for View list. **Do not re-add the
+//     hide-on-selected gate**: it existed because the header showed the SAME
+//     pair, and the header now holds only the button the cards do not.
 //
 // ⚠️ WHAT ALPHA3'S PREMISE IS, so a future edit does not flatten it back out:
 // the live page gives all 5 websites an equal, shallow slice of the screen,
@@ -629,35 +634,38 @@ export default async function AutomationsBetaPage({
                             </span>
                           </span>
 
-                          {/* ⭐⭐ ERROR HISTORY + VIEW LIST, PER CARD, 2026-09-04:
-                              "Move these buttons to each website card. They are
-                              always visible." The labelled pair, in the same
-                              styling the live hub uses, so both surfaces read
-                              alike.
-                              ⚠️⚠️ "ALWAYS VISIBLE" IS THE INSTRUCTION: there is
-                              NO `!isCurrent` gate. The selected card shows them
-                              exactly like the other four. Do not re-add the
-                              hide-on-selected behaviour the old icon-only
-                              buttons had; its reason (the detail header showing
-                              the same pair) is gone, because the header no
-                              longer has them.
-                              ⚠️ THEY LIVE ON THE TITLE ROW, so they take width
+                          {/* ⭐⭐ VIEW LIST, PER CARD. It arrived here as a PAIR
+                              with Error History on 2026-09-04 ("Move these
+                              buttons to each website card. They are always
+                              visible", #464), and **Error History left again on
+                              2026-09-06 for the detail header's empty right
+                              side** ("Move these buttons the 'Error History
+                              button' to the blank space I marked for each
+                              website's right side card", #467).
+                              ⚠️⚠️ THAT IS A SPLIT, NOT A REVERSAL OF #464. View
+                              list did not move and must not follow it. The two
+                              buttons answer different questions: View list is a
+                              per-website destination you want reachable for all
+                              five at once, while Error History only ever
+                              answers "this website", and the panel beside it is
+                              already about exactly one website. Five copies
+                              were four more than that question needs.
+                              ⚠️ "ALWAYS VISIBLE" IS STILL THE INSTRUCTION for
+                              what is left: there is NO `!isCurrent` gate. The
+                              selected card shows View list exactly like the
+                              other four. Do not re-add the hide-on-selected
+                              behaviour the old icon-only buttons had.
+                              ⚠️ IT LIVES ON THE TITLE ROW, so it takes width
                               from the NAME and from nothing else. The statistic
-                              and the API bar below are full-width siblings. This
-                              is the fix for having hung them off the whole card
-                              height first; see the column's note above.
-                              ⚠️ `relative z-10` lifts them above the card's
-                              overlay Link, which is what makes them clickable at
-                              all. `shrink-0` + the name's `min-w-0` means the
-                              NAME truncates first, never these. */}
+                              and the API bar below are full-width siblings; see
+                              the column's note above for why that matters.
+                              ⚠️⚠️ THE WRAPPER SPAN STAYS EVEN WITH ONE CHILD.
+                              `relative z-10` is what lifts it above the card's
+                              overlay Link; strip the wrapper and the overlay
+                              swallows the click and the button silently stops
+                              working. `shrink-0` + the name's `min-w-0` means
+                              the NAME truncates first, never this. */}
                           <span className="relative z-10 flex shrink-0 items-center gap-2">
-                            <Link
-                              href={`/automations/${site.slug}/errors`}
-                              className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-card px-2.5 text-xs font-medium text-zinc-600 ring-1 ring-foreground/10 transition-colors hover:bg-zinc-50 hover:text-zinc-900"
-                            >
-                              <AlertTriangle className="h-3.5 w-3.5" />
-                              Error History
-                            </Link>
                             <Link
                               href={`/automations/${site.slug}`}
                               className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-zinc-900 px-2.5 text-xs font-medium text-white transition-colors hover:bg-zinc-800"
@@ -842,20 +850,21 @@ export default async function AutomationsBetaPage({
                   background: `linear-gradient(to bottom, ${accent}0F, transparent)`,
                 }}
               >
-                {/* ⚠️⚠️ THIS HEADER HAS NO CONTROLS LEFT AT ALL, and that is the
-                    finished state. It has been emptied twice in one day: the
-                    status pill + auto-refresh indicator on 2026-09-04 ("Remove
-                    this status indicators", #456), then the Error History /
-                    View list pair the same day ("Move these buttons to each
-                    website card. They are always visible", #464). Both moved to
-                    the RAIL CARDS, one copy per website, so nothing was lost.
-                    It is now a logo, a name and a description: an ANSWER TO
-                    "which site am I looking at", nothing more.
-                    ⚠️ `justify-between` and `flex-wrap` are kept on one child
-                    deliberately. They cost nothing and they are exactly what
-                    this row needs the moment anything is put back on the right;
-                    `flex-wrap` in particular is why the old pair never crushed
-                    the name. */}
+                {/* ⚠️⚠️ THIS ROW WAS EMPTIED TWICE ON 2026-09-04 AND HAS ONE
+                    CONTROL BACK: Error History, 2026-09-06, #467. Its own note
+                    sits on the Link below.
+                    ⚠️ WHAT DID NOT COME BACK, and must not: the status pill and
+                    the auto-refresh indicator (#456). The rail cards show that
+                    exact pair, five times, in this header's own components at
+                    this header's own sizes, so THIS was the redundant copy.
+                    Read a removal here as "the rail has it now", not as "we
+                    decided against it". Same shape as the counts block, which
+                    left this panel the same way on 2026-09-03.
+                    ⚠️ `justify-between` and `flex-wrap` were kept on this row
+                    for the whole two days it was empty, deliberately, for
+                    exactly the case that then happened. `flex-wrap` is why a
+                    control on the right cannot crush the name and description
+                    on a narrow panel. */}
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="flex min-w-0 items-center gap-3">
                     <span
@@ -896,6 +905,58 @@ export default async function AutomationsBetaPage({
                       </p>
                     </div>
                   </div>
+
+                  {/* ⭐⭐ ERROR HISTORY, 2026-09-06: "Move these buttons the
+                      'Error History button' to the blank space I marked for
+                      each website's right side card" (#467). The user marked
+                      the button on a rail card and the EMPTY TOP-RIGHT of this
+                      header, so it came out of all five cards and landed here
+                      as ONE control, for whichever website is selected.
+                      ⚠️⚠️ THIS IS THE THIRD TIME THIS BUTTON HAS MOVED and the
+                      SECOND time it has been in this header, so read the whole
+                      sequence before "restoring" anything: icon-only beside
+                      each card (#443-#447) -> removed (#463) -> labelled, in
+                      THIS header (with View list) -> onto every card (#464) ->
+                      back here alone (#467). **View list stayed on the cards
+                      this time**, which is what makes this a split rather than
+                      a return to the #464 arrangement.
+                      ⚠️ THE HEADER IS NO LONGER "NO CONTROLS AT ALL". The note
+                      above used to call that the finished state; it was true
+                      for two days. What IS still true is that the STATUS PILL
+                      and the AUTO-REFRESH INDICATOR stay out (#456): they were
+                      removed as duplicates of the rail's copies, and the rail
+                      still has them. A control arriving here does not reopen
+                      those.
+                      ⚠️ SAME STYLING AS THE CARD'S VIEW LIST, deliberately:
+                      `bg-card` reads as a real button against this header's
+                      tint, and the user picked this treatment ("I like the way
+                      these buttons are rendered").
+                      ⚠️ `shrink-0` so the name and description yield first,
+                      and the row's `flex-wrap` is what stops it crushing them
+                      on a narrow panel. That class was left here deliberately
+                      when the header was emptied, for exactly this.
+                      ⚠️⚠️ MEASURED 2026-09-06, AND IT DOES WRAP ON A NARROW
+                      PANEL. The button sits 24px off the panel's right edge,
+                      top-aligned with the `<h2>` to the pixel, while the panel
+                      is 520px or wider. **Below about 500px the row wraps and
+                      the button drops to its own line, LEFT-aligned under the
+                      description.** It never overflows, which is the whole
+                      point of `flex-wrap`. Panel widths, rail at 600:
+                      ~1030px at a 1920 viewport and ~550px at 1440, both fine;
+                      **~390px at 1280, where the longer descriptions ("Workflows
+                      found in GoHighLevel b2b") do wrap.** That is the same
+                      1280 squeeze already noted on the rail width, not a new
+                      problem, and the user chose the flat rail width knowing
+                      1280 is cramped. Do not "fix" it with `whitespace-nowrap`
+                      or a fixed width: those trade a graceful wrap for a
+                      crushed name. */}
+                  <Link
+                    href={`/automations/${selected.slug}/errors`}
+                    className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-card px-2.5 text-xs font-medium text-zinc-600 ring-1 ring-foreground/10 transition-colors hover:bg-zinc-50 hover:text-zinc-900"
+                  >
+                    <AlertTriangle className="h-3.5 w-3.5" />
+                    Error History
+                  </Link>
                 </div>
               </div>
 
