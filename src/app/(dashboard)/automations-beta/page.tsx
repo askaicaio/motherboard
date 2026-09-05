@@ -343,57 +343,83 @@ export default async function AutomationsBetaPage({
           <div className="flex min-h-[640px] overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10">
             {/* ---- Rail. Every website, always visible, so switching costs one
                     click and you never lose your bearings. ---- */}
-            {/* ⚠️ w-[500px]. WIDENED FIVE TIMES FROM Alpha3's w-64 AND THEN
-                    TRIMMED THREE TIMES: w-80, then 416px on 2026-09-03, then
-                    448px, 672px and 640px on 2026-09-04, then 600px and 500px
-                    on 2026-09-06.
-                    ⚠️ ALL THREE TRIMS ARE ROUND-NUMBER PREFERENCES, not fixes
-                    ("make the 672px into 640px", "now pls make it 600px", "Pls
-                    make that 600 into 500 now"). Nothing needed the 172px back,
-                    so do not go looking for a functional reason.
-                    ⚠️⚠️ THE LAST FOUR STEPS ARE THE ONLY ONES NOT DRIVEN BY
+            {/* ⚠️ w-[460px], AND THE 60 IS NOT ROUND BY ACCIDENT. It is the
+                    narrowest ten-pixel step that still fits every site name.
+                    WIDENED FIVE TIMES FROM Alpha3's w-64 AND THEN TRIMMED FOUR
+                    TIMES: w-80, then 416px on 2026-09-03, then 448px, 672px and
+                    640px on 2026-09-04, then 600px, 500px and 460px on
+                    2026-09-06.
+                    ⚠️ THE FIRST THREE TRIMS ARE ROUND-NUMBER PREFERENCES, not
+                    fixes ("make the 672px into 640px", "now pls make it 600px",
+                    "Pls make that 600 into 500 now"). Nothing needed the width
+                    back, so do not go looking for a functional reason.
+                    🛑🛑 THE FOURTH IS DIFFERENT AND THIS IS THE ONE TO READ
+                    BEFORE TOUCHING THIS NUMBER. The user asked for **450**
+                    ("change the 500 to 450 now"). 450 is 3px UNDER the measured
+                    453px content floor, and it made the Zapier card render
+                    **"Zap…"** instead of "Zapier". That was measured, put to
+                    the user with the cost spelled out, and **they chose 460
+                    instead**, which is the nearest width that fits.
+                    ⚠️ WHY THREE CHARACTERS WENT FOR A 3.7px SHORTFALL, since it
+                    is the reason 450 was not worth it: the ellipsis glyph is
+                    12.7px on its own at this font (500 14px Inter) and it has
+                    to fit INSIDE the space available, so it evicts far more
+                    than it saves. **A name here is either fully visible or
+                    badly cut; there is no gentle degradation.** Never assume a
+                    few pixels under the floor costs a few pixels of text.
+                    ⚠️ IF THIS EVER HAS TO GO BELOW 453, take the 4px off the
+                    TITLE LINE rather than accepting the clip: the row's
+                    `gap-1.5` (6px, twice) and the "Auto-refresh off" label are
+                    the candidates. Do not touch the name's `truncate` /
+                    `min-w-0`: removing those overflows the card instead of
+                    clipping the text, which is worse.
+                    ⚠️⚠️ THE LAST FIVE STEPS ARE THE ONLY ONES NOT DRIVEN BY
                     CONTENT. Every earlier widening was the minimum some element
                     needed. 672 was a proportion the user asked for outright:
                     "Make this section wider, you can decrease the width of the
                     stuff on the right side to accomodate it. Make the left side
                     roughly x1.5 times as wide." 448 x 1.5 = 672 exactly.
-                    ⚠️⚠️ THE RAIL IS NOW BELOW THE 571px "FLOOR" AN EARLIER
-                    VERSION OF THIS NOTE GAVE, AND THAT IS NOT A BUG. 571 was
-                    real, but it was measured while the title row carried the
-                    225px Error History + View list PAIR. #467 moved Error
-                    History to the detail header, the row's buttons went from
-                    225px to 107px, and the floor fell with them.
+                    ⚠️ THE RAIL IS ALSO BELOW THE 571px "FLOOR" AN EARLIER
+                    VERSION OF THIS NOTE GAVE, and THAT part is not a bug at
+                    all. 571 was real, but it was measured while the title row
+                    carried the 225px Error History + View list PAIR. #467 moved
+                    Error History to the detail header, the row's buttons went
+                    from 225px to 107px, and the floor fell to 453 with them.
                     📌 THE GENERAL POINT, since this note has now been wrong
                     TWICE (448 was stale the same way): **a measured width note
                     goes stale the moment anything on the row it measured
                     changes.** Check what a number was measured against before
                     reusing it.
                     ⚠️ MEASURED IN THE BROWSER on 2026-09-06, BEFORE shipping
-                    500, with this exact markup and the live figures, rendering
-                    500 / 600 / 460 side by side at a 1920px viewport:
-                      **THE FLOOR IS 453px.** At 460 the worst card has 7px
-                      left, so 453 is where the site name starts to clip.
-                      **AT 500 every card is 483px wide with a 418px content
-                      column, all five are 120px tall, and nothing truncates.**
-                      TITLE LINE, worst case ZAPIER ("Zapier" + "Not connected"
-                      + "Auto-refresh off") = 256px against the 303px the View
-                      list button leaves it, so 47px slack. Every other site has
-                      69-99px.
-                      STAT LINE needs 228px worst case against the full 418px
-                      column, so 190px spare. The API bar is a full-width
-                      sibling too. NEITHER is close to binding.
+                    each step, with this exact markup and the live figures:
+                      **THE FLOOR IS 453px.** 460 is SEVEN PIXELS ABOVE IT.
+                      **AT 460 every card is 443px wide with a 378px content
+                      column, all five are 120px tall, and NOTHING truncates.**
+                      Title-line slack, per card:
+                        Zapier    +7px   <- the whole margin
+                        GHL b2b  +29px
+                        Make     +50px
+                        GHL      +58px
+                        n8n      +59px
+                      Zapier is worst because it uniquely carries BOTH the
+                      longest status label ("Not connected") AND the longer
+                      "Auto-refresh off".
+                      STAT LINE needs 228px worst case against the full 378px
+                      column, so 150px spare. The API bar is a full-width
+                      sibling too. NEITHER is close to binding, at any width
+                      this rail has had.
                     ⚠️ SO THE TITLE LINE IS THE BINDING CONSTRAINT AND ZAPIER IS
-                    THE WORST CASE. Zapier carries the longest status label
-                    ("Not connected") AND the longer "Auto-refresh off". Narrow
-                    below 453 and the site NAME clips first, because the pill
-                    and the refresh label are both `shrink-0`.
+                    THE WORST CASE. The site NAME is what clips, because the
+                    pill and the refresh label are both `shrink-0` and only the
+                    name has `min-w-0` + `truncate`. That ordering is
+                    deliberate; see the title line's own note.
                     ⚠️ HISTORY, so the earlier reason does not read as stale:
                     the w-80 step existed only so the action buttons could be
                     square at the card's height, and the user narrowed those
                     buttons back to 32px the same day. I offered to hand that
                     64px back and they chose to keep the roomier cards. So
                     neither step is a leftover; do not "restore" w-64. */}
-            <div className="flex w-[500px] shrink-0 flex-col border-r">
+            <div className="flex w-[460px] shrink-0 flex-col border-r">
               <div className="border-b px-4 py-3">
                 <div className="font-heading text-sm font-semibold text-zinc-900">
                   Sources
@@ -950,21 +976,33 @@ export default async function AutomationsBetaPage({
                       `p-6` + THIS PAGE'S OWN `p-6`. A real scrollbar takes
                       ~15px more. **The doubled p-6 is the part that is easy to
                       miss: an earlier version of this note derived 288 and was
-                      wrong at every viewport.** MEASURED with the rail at 500,
+                      wrong at every viewport.** MEASURED with the rail at 460,
                       by rebuilding that chrome around the pane:
-                        1920 -> 1084px panel. No wrap. Two-column lists.
-                        1440 ->  604px panel. No wrap. Lists STACKED (the
-                                 `@min-[640px]` container query does not fire).
-                        1280 ->  444px panel. The LONGEST description wraps,
-                                 the shorter ones do not.
-                      ⚠️ THE 600 -> 500 TRIM IMPROVED THIS BUT DID NOT FIX IT.
-                      At 600 the 1280 panel was 344px, under BOTH thresholds, so
-                      every website wrapped; at 500 only the longest description
-                      does. **It did NOT change the two-column breakpoint**: the
-                      panel is under 640 at 1440 either way, so only 1920 gets
-                      side-by-side lists. Do not "fix" the wrap with
-                      `whitespace-nowrap` or a fixed width: those trade a
-                      graceful wrap for a crushed name. */}
+                        1920 -> 1124px panel. No wrap. Two-column lists.
+                        1440 ->  644px panel. No wrap. **Two-column lists**, by
+                                 FOUR PIXELS over the `@min-[640px]` container
+                                 query.
+                        1280 ->  484px panel. **No wrap at all**, by 12px over
+                                 the 472px threshold.
+                      ⭐⭐ SO THE RAIL TRIMS FIXED THE PANEL, AND 460 IS THE
+                      WIDTH WHERE BOTH COME GOOD. The progression is worth
+                      keeping because it shows how narrow the margins are:
+                        rail 600 -> 1280 panel 344px, EVERY description wrapped.
+                        rail 500 -> 1280 panel 444px, only the longest wrapped;
+                                    1440 panel 604px, lists still stacked.
+                        rail 460 -> 1280 panel 484px, nothing wraps; 1440 panel
+                                    644px, lists go side by side.
+                      🛑 **THE 1440 TWO-COLUMN LAYOUT SURVIVES BY 4px. WIDEN
+                      THIS RAIL AT ALL AND IT IS GONE**, and the failure is
+                      silent: the lists simply stack and nobody connects it to a
+                      rail change. The 1280 wrap has 12px. **Re-measure before
+                      assuming any widening is free.**
+                      ⚠️ THE RAIL IS SQUEEZED FROM BOTH SIDES NOW, which is new:
+                      the cards want >= 453 and the panel wants <= 460. That is
+                      a SEVEN PIXEL WINDOW, so this number is no longer a free
+                      choice. Anything outside it costs something measurable.
+                      Do not "fix" a wrap with `whitespace-nowrap` or a fixed
+                      width: those trade a graceful wrap for a crushed name. */}
                   <Link
                     href={`/automations/${selected.slug}/errors`}
                     className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-card px-2.5 text-xs font-medium text-zinc-600 ring-1 ring-foreground/10 transition-colors hover:bg-zinc-50 hover:text-zinc-900"
