@@ -301,20 +301,18 @@ export default async function AutomationsBetaPage({
     (trendByPlatform[row.platform] ??= {})[row.day] = row.count;
   }
 
-  const portfolioTotal = AUTOMATION_SITES.reduce(
-    (sum, site) => sum + (statsByPlatform.get(site.slug)?.total ?? 0),
-    0,
-  );
-  const connected = AUTOMATION_SITES.filter((s) =>
-    platformHasApiKey(s.slug),
-  ).length;
+  // ⚠️ `portfolioTotal` (the estate-wide sum) and `connected` (how many of
+  // the five have an API key) were computed here for the rail's "Sources"
+  // header. Both went with it on 2026-09-06; see the note where that header
+  // was. Nothing else read either one.
 
   // Everything the detail panel needs about the selected website.
   // NOTE: `stats` (this site's total/active/paused) and the `activePct` /
   // `pausedPct` pair were read here for the panel's counts block. All three
   // went with it on 2026-09-03; see the note at the top of the panel body.
-  // `statsByPlatform` itself stays, because the rail rows and
-  // `portfolioTotal` both read it.
+  // `statsByPlatform` itself stays, because the RAIL ROWS read it. (It was
+  // also feeding `portfolioTotal` until the "Sources" header was removed on
+  // 2026-09-06, so the rail rows are now its only consumer.)
   const accent = ACCENT[selected.slug];
   const hasKey = platformHasApiKey(selected.slug);
   const days = daysSinceErrorByPlatform[selected.slug];
@@ -522,18 +520,23 @@ export default async function AutomationsBetaPage({
                     64px back and they chose to keep the roomier cards. So
                     neither step is a leftover; do not "restore" w-64. */}
             <div className="flex w-[460px] shrink-0 flex-col border-r">
-              <div className="border-b px-4 py-3">
-                <div className="font-heading text-sm font-semibold text-zinc-900">
-                  Sources
-                </div>
-                {/* The aggregate this layout otherwise gives up, in one line so
-                    nothing is actually lost. */}
-                <div className="mt-0.5 text-[11px] text-zinc-500">
-                  {portfolioTotal} automations, {connected} of{" "}
-                  {AUTOMATION_SITES.length} connected
-                </div>
-              </div>
-
+              {/* ⚠️⚠️ THE RAIL'S "Sources" HEADER WAS HERE and was removed on
+                  2026-09-06 ("Remove this section"). It was a title row plus a
+                  one-line ESTATE AGGREGATE: "{total} automations, {n} of 5
+                  connected".
+                  **THAT AGGREGATE NOW EXISTS NOWHERE ON THIS PAGE, and nowhere
+                  on the live hub either** (checked: `/automations` never had
+                  it; only Alpha3 and Alpha4 still carry a copy). Its old note
+                  claimed it was there so "nothing is actually lost" when the
+                  detail panel's counts block went on 2026-09-03. That is no
+                  longer true, and the loss was pointed out before removing it.
+                  **So if a portfolio total is ever wanted back, it is a NEW
+                  element, not a restore**, and `portfolioTotal` / `connected`
+                  went with this block.
+                  ⚠️ The rail now opens straight onto its cards. `nav` keeps its
+                  `p-2`, so they still clear the pane's rounded corner, and the
+                  `border-b` that separated header from list went with the
+                  header rather than being left as a stray rule. */}
               {/* space-y-1.5: each row is a bordered card as of 2026-09-03,
                   so they need air between them. Flush cards would butt their
                   borders into a doubled seam. */}
