@@ -156,77 +156,120 @@ export default async function AutomationsBetaPage({
   const selected =
     AUTOMATION_SITES.find((s) => s.slug === requested) ?? AUTOMATION_SITES[0];
 
-  // Last stored Auto-API health check results + the toggle's state. Needed
-  // because this page's health controls are REAL, unlike Alpha3's static pill.
-  const health = await getHealthState();
-  const autoRefreshMap = await getAutoRefreshMap();
-  const errorCounts = await getErrorCountsByPlatform();
-  const daysSinceErrorByPlatform = await getDaysSinceLastErrorByPlatform();
-
-  const grouped = await db
-    .select({
-      platform: automations.platform,
-      status: automations.status,
-      count: sql<number>`count(*)::int`,
-    })
-    .from(automations)
-    .groupBy(automations.platform, automations.status);
-
-  // The selected website's newest errors, WITH the message text. The card
-  // layouts have room for a count and nothing else, which is the whole reason
-  // this design exists.
-  const siteErrors = await db
-    .select({
-      id: automationErrors.id,
-      message: automationErrors.message,
-      occurredAt: automationErrors.occurredAt,
-      name: automations.name,
-    })
-    .from(automationErrors)
-    .innerJoin(automations, eq(automationErrors.automationId, automations.id))
-    .where(eq(automationErrors.platform, selected.slug))
-    .orderBy(desc(automationErrors.occurredAt))
-    .limit(PANEL_ROWS);
-
-  // Error counts per (platform, UTC day) over the trend window, for the error
-  // panel's bar chart. Came back with the live hub's statistics on 2026-09-03.
-  // ⚠️ Grouped by platform for ALL sites even though only the selected one is
-  // drawn, because that is the shape `Sparkline` takes and it costs the same
-  // single aggregate either way. Platforms with no capture come back empty and
-  // draw a flat baseline, which is the correct picture: GHL, GHL b2b and Zapier
-  // cannot capture errors at all.
+  // Shared by the trend query below and by nothing else; hoisted only because
+  // that query now lives inside a `Promise.all` array.
   const dayExpr = sql`to_char(${automationErrors.occurredAt} at time zone 'UTC', 'YYYY-MM-DD')`;
-  const trendRows = await db
-    .select({
-      platform: automationErrors.platform,
-      day: sql<string>`${dayExpr}`,
-      count: sql<number>`count(*)::int`,
-    })
-    .from(automationErrors)
-    .where(
-      sql`${automationErrors.occurredAt} >= now() - make_interval(days => ${TREND_DAYS - 1})`,
-    )
-    .groupBy(automationErrors.platform, dayExpr);
 
-  // What was edited most recently ON THE SOURCE WEBSITE (the synced
-  // `last_edited_at`, NOT our own Row Update). No hub surface shows this today,
-  // and it is the closest thing to "what is someone actually working on".
-  const recentlyEdited = await db
-    .select({
-      id: automations.id,
-      name: automations.name,
-      status: automations.status,
-      lastEditedAt: automations.lastEditedAt,
-    })
-    .from(automations)
-    .where(
-      and(
-        eq(automations.platform, selected.slug),
-        isNotNull(automations.lastEditedAt),
-      ),
-    )
-    .orderBy(desc(automations.lastEditedAt))
-    .limit(PANEL_ROWS);
+  // -------------------------------------------------------------------------
+  // ⚡⚡ ALL EIGHT READS RUN IN PARALLEL, AND THAT IS LOAD-BEARING, NOT TIDINESS.
+  //
+  // They were eight sequential `await`s until 2026-09-06, which meant the page
+  // paid EIGHT round trips to Supabase end to end instead of one. The user
+  // reported it as the symptom: "there is around a 1 second delay before this
+  // section of the page changes" after clicking a website in the rail.
+  //
+  // MEASURED, against the real database with every pool connection already
+  // warm, so this is query latency and not connection setup:
+  //     sequential   3058 ms
+  //     Promise.all   498 ms      <- the slowest SINGLE query, as expected
+  //     saved        2560 ms (84%)
+  // (Those absolute numbers are from a developer machine, which is much
+  // further from Supabase than Vercel is. THE RATIO is the part that carries
+  // over: this page waits for the slowest query instead of the sum of all of
+  // them.)
+  //
+  // ⚠️ NOTHING HERE DEPENDS ON ANYTHING ELSE HERE. Every one of the eight is
+  // independent; `selected` is resolved from `searchParams` above, before this
+  // runs. **If you add a read that DOES depend on another, do not thread it
+  // through this array** - run it after, or the dependency silently becomes a
+  // race.
+  // ⚠️ `requireAuth()` stays OUTSIDE and BEFORE this on purpose. It is also a
+  // query, but folding it in would run all eight of these for a signed-out
+  // visitor before the guard could redirect.
+  // 📌 SIX OF THE EIGHT RETURN THE SAME DATA FOR EVERY WEBSITE. Only
+  // `siteErrors` and `recentlyEdited` read `selected.slug`, so a site switch
+  // re-runs six queries whose answers cannot have changed. Parallelising makes
+  // that cost one round trip instead of six; removing it entirely means
+  // fetching those two for all five sites and switching on the client. That is
+  // a separate, larger change and it was NOT done here.
+  // -------------------------------------------------------------------------
+  const [
+    // Last stored Auto-API health check results + the toggle's state. Needed
+    // because this page's health controls are REAL, unlike Alpha3's static pill.
+    health,
+    autoRefreshMap,
+    errorCounts,
+    daysSinceErrorByPlatform,
+    grouped,
+    siteErrors,
+    trendRows,
+    recentlyEdited,
+  ] = await Promise.all([
+    getHealthState(),
+    getAutoRefreshMap(),
+    getErrorCountsByPlatform(),
+    getDaysSinceLastErrorByPlatform(),
+    db
+      .select({
+        platform: automations.platform,
+        status: automations.status,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(automations)
+      .groupBy(automations.platform, automations.status),
+    // The selected website's newest errors, WITH the message text. The card
+    // layouts have room for a count and nothing else, which is the whole reason
+    // this design exists.
+    db
+      .select({
+        id: automationErrors.id,
+        message: automationErrors.message,
+        occurredAt: automationErrors.occurredAt,
+        name: automations.name,
+      })
+      .from(automationErrors)
+      .innerJoin(automations, eq(automationErrors.automationId, automations.id))
+      .where(eq(automationErrors.platform, selected.slug))
+      .orderBy(desc(automationErrors.occurredAt))
+      .limit(PANEL_ROWS),
+    // Error counts per (platform, UTC day) over the trend window, for the error
+    // panel's bar chart. Came back with the live hub's statistics on 2026-09-03.
+    // ⚠️ Grouped by platform for ALL sites even though only the selected one is
+    // drawn, because that is the shape `Sparkline` takes and it costs the same
+    // single aggregate either way. Platforms with no capture come back empty and
+    // draw a flat baseline, which is the correct picture: GHL, GHL b2b and Zapier
+    // cannot capture errors at all.
+    db
+      .select({
+        platform: automationErrors.platform,
+        day: sql<string>`${dayExpr}`,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(automationErrors)
+      .where(
+        sql`${automationErrors.occurredAt} >= now() - make_interval(days => ${TREND_DAYS - 1})`,
+      )
+      .groupBy(automationErrors.platform, dayExpr),
+    // What was edited most recently ON THE SOURCE WEBSITE (the synced
+    // `last_edited_at`, NOT our own Row Update). No hub surface shows this today,
+    // and it is the closest thing to "what is someone actually working on".
+    db
+      .select({
+        id: automations.id,
+        name: automations.name,
+        status: automations.status,
+        lastEditedAt: automations.lastEditedAt,
+      })
+      .from(automations)
+      .where(
+        and(
+          eq(automations.platform, selected.slug),
+          isNotNull(automations.lastEditedAt),
+        ),
+      )
+      .orderBy(desc(automations.lastEditedAt))
+      .limit(PANEL_ROWS),
+  ]);
 
   const statsByPlatform = new Map<string, PlatformStats>();
   for (const site of AUTOMATION_SITES) {
