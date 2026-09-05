@@ -343,56 +343,57 @@ export default async function AutomationsBetaPage({
           <div className="flex min-h-[640px] overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10">
             {/* ---- Rail. Every website, always visible, so switching costs one
                     click and you never lose your bearings. ---- */}
-            {/* ⚠️ w-[600px]. WIDENED FIVE TIMES FROM Alpha3's w-64 AND THEN
-                    TRIMMED TWICE: w-80, then 416px on 2026-09-03, then 448px,
-                    672px and 640px on 2026-09-04, then 600px on 2026-09-06.
-                    It is still a third of the pane on a 1900px screen, a
-                    deliberate rebalancing of the layout rather than a nudge.
-                    ⚠️ BOTH TRIMS ARE ROUND-NUMBER PREFERENCES, not fixes
-                    ("make the 672px into 640px", then "now pls make it 600px").
-                    Nothing needed the 72px back, so do not go looking for the
-                    reason.
-                    ⚠️⚠️ THE LAST THREE STEPS ARE THE ONLY ONES NOT DRIVEN BY
+            {/* ⚠️ w-[500px]. WIDENED FIVE TIMES FROM Alpha3's w-64 AND THEN
+                    TRIMMED THREE TIMES: w-80, then 416px on 2026-09-03, then
+                    448px, 672px and 640px on 2026-09-04, then 600px and 500px
+                    on 2026-09-06.
+                    ⚠️ ALL THREE TRIMS ARE ROUND-NUMBER PREFERENCES, not fixes
+                    ("make the 672px into 640px", "now pls make it 600px", "Pls
+                    make that 600 into 500 now"). Nothing needed the 172px back,
+                    so do not go looking for a functional reason.
+                    ⚠️⚠️ THE LAST FOUR STEPS ARE THE ONLY ONES NOT DRIVEN BY
                     CONTENT. Every earlier widening was the minimum some element
                     needed. 672 was a proportion the user asked for outright:
                     "Make this section wider, you can decrease the width of the
                     stuff on the right side to accomodate it. Make the left side
                     roughly x1.5 times as wide." 448 x 1.5 = 672 exactly.
-                    So the cards still have MORE room than their content needs.
-                    THE SLACK IS THE POINT. Do not "reclaim" it, and do not read
-                    the empty right-hand side of a card as a layout bug.
-                    ⚠️⚠️ THE CONTENT FLOOR IS 571px, NOT the 448px this note
-                    claimed until 2026-09-06. 448 was measured BEFORE the Error
-                    History + View list pair moved into the title row (#465).
-                    That pair is 225px and it comes out of the NAME's share of
-                    the title line, so it lifted the floor by 123px. The old
-                    number is not a safe fallback any more.
-                    ⚠️ MEASURED IN THE BROWSER at a 1920px viewport on
-                    2026-09-06, BEFORE shipping 600, with this exact markup and
-                    the live figures. At 600 every card is 583px wide with a
-                    518px content column, all five are 120px tall, and nothing
-                    truncates:
+                    ⚠️⚠️ THE RAIL IS NOW BELOW THE 571px "FLOOR" AN EARLIER
+                    VERSION OF THIS NOTE GAVE, AND THAT IS NOT A BUG. 571 was
+                    real, but it was measured while the title row carried the
+                    225px Error History + View list PAIR. #467 moved Error
+                    History to the detail header, the row's buttons went from
+                    225px to 107px, and the floor fell with them.
+                    📌 THE GENERAL POINT, since this note has now been wrong
+                    TWICE (448 was stale the same way): **a measured width note
+                    goes stale the moment anything on the row it measured
+                    changes.** Check what a number was measured against before
+                    reusing it.
+                    ⚠️ MEASURED IN THE BROWSER on 2026-09-06, BEFORE shipping
+                    500, with this exact markup and the live figures, rendering
+                    500 / 600 / 460 side by side at a 1920px viewport:
+                      **THE FLOOR IS 453px.** At 460 the worst card has 7px
+                      left, so 453 is where the site name starts to clip.
+                      **AT 500 every card is 483px wide with a 418px content
+                      column, all five are 120px tall, and nothing truncates.**
                       TITLE LINE, worst case ZAPIER ("Zapier" + "Not connected"
-                      + "Auto-refresh off") = 256px against the 285px the pair
-                      leaves it, so 29px slack. THAT 29px IS THE WHOLE MARGIN
-                      and it is why the floor is 571. Every other site has
-                      50-81px.
-                      STAT LINE and the API bar are full-width siblings at
-                      518px, so neither is anywhere near its limit.
+                      + "Auto-refresh off") = 256px against the 303px the View
+                      list button leaves it, so 47px slack. Every other site has
+                      69-99px.
+                      STAT LINE needs 228px worst case against the full 418px
+                      column, so 190px spare. The API bar is a full-width
+                      sibling too. NEITHER is close to binding.
                     ⚠️ SO THE TITLE LINE IS THE BINDING CONSTRAINT AND ZAPIER IS
-                    THE WORST CASE, not GHL b2b as this note said while labels
-                    were the only things on that line. Zapier carries the
-                    longest status label ("Not connected") AND the longer
-                    "Auto-refresh off". If you narrow below 600, the site NAME
-                    clips first, because the pill and the refresh label are both
-                    `shrink-0`.
+                    THE WORST CASE. Zapier carries the longest status label
+                    ("Not connected") AND the longer "Auto-refresh off". Narrow
+                    below 453 and the site NAME clips first, because the pill
+                    and the refresh label are both `shrink-0`.
                     ⚠️ HISTORY, so the earlier reason does not read as stale:
                     the w-80 step existed only so the action buttons could be
                     square at the card's height, and the user narrowed those
                     buttons back to 32px the same day. I offered to hand that
                     64px back and they chose to keep the roomier cards. So
                     neither step is a leftover; do not "restore" w-64. */}
-            <div className="flex w-[600px] shrink-0 flex-col border-r">
+            <div className="flex w-[500px] shrink-0 flex-col border-r">
               <div className="border-b px-4 py-3">
                 <div className="font-heading text-sm font-semibold text-zinc-900">
                   Sources
@@ -937,19 +938,33 @@ export default async function AutomationsBetaPage({
                       when the header was emptied, for exactly this.
                       ⚠️⚠️ MEASURED 2026-09-06, AND IT DOES WRAP ON A NARROW
                       PANEL. The button sits 24px off the panel's right edge,
-                      top-aligned with the `<h2>` to the pixel, while the panel
-                      is 520px or wider. **Below about 500px the row wraps and
-                      the button drops to its own line, LEFT-aligned under the
-                      description.** It never overflows, which is the whole
-                      point of `flex-wrap`. Panel widths, rail at 600:
-                      ~1030px at a 1920 viewport and ~550px at 1440, both fine;
-                      **~390px at 1280, where the longer descriptions ("Workflows
-                      found in GoHighLevel b2b") do wrap.** That is the same
-                      1280 squeeze already noted on the rail width, not a new
-                      problem, and the user chose the flat rail width knowing
-                      1280 is cramped. Do not "fix" it with `whitespace-nowrap`
-                      or a fixed width: those trade a graceful wrap for a
-                      crushed name. */}
+                      top-aligned with the `<h2>` to the pixel, until the row
+                      wraps and the button drops to its own line, LEFT-aligned
+                      under the description. It never overflows, which is the
+                      whole point of `flex-wrap`. **The wrap point depends on
+                      the DESCRIPTION's length: below a 472px panel for the
+                      longest one ("Workflows found in GoHighLevel b2b"), below
+                      392px for the shortest.**
+                      ⚠️ PANEL WIDTH = VIEWPORT - 336px OF CHROME - THE RAIL,
+                      and the 336 is 240 sidebar (`pl-60`) + the layout's
+                      `p-6` + THIS PAGE'S OWN `p-6`. A real scrollbar takes
+                      ~15px more. **The doubled p-6 is the part that is easy to
+                      miss: an earlier version of this note derived 288 and was
+                      wrong at every viewport.** MEASURED with the rail at 500,
+                      by rebuilding that chrome around the pane:
+                        1920 -> 1084px panel. No wrap. Two-column lists.
+                        1440 ->  604px panel. No wrap. Lists STACKED (the
+                                 `@min-[640px]` container query does not fire).
+                        1280 ->  444px panel. The LONGEST description wraps,
+                                 the shorter ones do not.
+                      ⚠️ THE 600 -> 500 TRIM IMPROVED THIS BUT DID NOT FIX IT.
+                      At 600 the 1280 panel was 344px, under BOTH thresholds, so
+                      every website wrapped; at 500 only the longest description
+                      does. **It did NOT change the two-column breakpoint**: the
+                      panel is under 640 at 1440 either way, so only 1920 gets
+                      side-by-side lists. Do not "fix" the wrap with
+                      `whitespace-nowrap` or a fixed width: those trade a
+                      graceful wrap for a crushed name. */}
                   <Link
                     href={`/automations/${selected.slug}/errors`}
                     className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-card px-2.5 text-xs font-medium text-zinc-600 ring-1 ring-foreground/10 transition-colors hover:bg-zinc-50 hover:text-zinc-900"
