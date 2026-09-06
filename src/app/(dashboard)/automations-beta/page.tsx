@@ -1307,6 +1307,32 @@ export default async function AutomationsBetaPage({
                     WHY 640px: each column wants ~280px to hold an error message
                     without shredding it. 2 x 288 + the 16px gap + this section's
                     48px of padding lands just under 640. */}
+                {/* ⭐⭐ EVERY ROW IN BOTH LISTS IS A LINK, 2026-09-06: "make it
+                    so that clicking an entry on these leads to their respective
+                    per website page with the search filled in with exactly the
+                    automation's name."
+                    ⚠️ THE `?q=` CONTRACT IS THE WHOLE MECHANISM AND IT ALREADY
+                    EXISTED: `/automations/[platform]` reads `?q=` ON THE SERVER
+                    and hands it to the table as `initialQuery`, which seeds the
+                    search box. **So this needed no change to the live page at
+                    all.** If that param is ever renamed, these two links break
+                    SILENTLY: they will still navigate, the search box will just
+                    be empty.
+                    ⚠️ `encodeURIComponent` is not optional. Automation names in
+                    this estate contain spaces, parentheses and `->` ("New Zoom
+                    meeting -> G-Drive", "Mary the scheduler ( Slots)"), and an
+                    unencoded `&` or `#` would truncate the query.
+                    ⚠️ THE PADDING MOVED FROM THE `<li>` ONTO THE `<Link>`, so
+                    the whole row is the hit target rather than just its text.
+                    Putting it back on the `<li>` leaves a dead border around a
+                    clickable middle.
+                    ⚠️ SAFE TO WRAP because neither row contains an interactive
+                    element: they are spans, a `<p>` and an icon. **If a control
+                    is ever added to a row, this Link has to become an overlay
+                    instead** (`relative` row + `absolute inset-0` Link +
+                    `relative z-10` on the control), the same shape the rail
+                    cards use, because an `<a>` may not contain a button or
+                    another anchor. */}
                 <div className="grid gap-4 @min-[640px]:grid-cols-2">
                   {/* ⚠️ RECENTLY EDITED IS DELIBERATELY FIRST. Alpha3 had
                     Latest errors on the left; the user swapped them on
@@ -1322,23 +1348,28 @@ export default async function AutomationsBetaPage({
                     emptyLabel="No edit dates recorded for this website."
                   >
                     {recentlyEdited.map((row) => (
-                      <li key={row.id} className="px-3.5 py-2.5">
-                        <div className="flex items-baseline justify-between gap-2">
-                          <span className="truncate text-sm font-medium text-zinc-900">
-                            {row.name}
+                      <li key={row.id}>
+                        <Link
+                          href={`/automations/${selected.slug}?q=${encodeURIComponent(row.name)}`}
+                          className="block px-3.5 py-2.5 transition-colors hover:bg-zinc-50"
+                        >
+                          <div className="flex items-baseline justify-between gap-2">
+                            <span className="truncate text-sm font-medium text-zinc-900">
+                              {row.name}
+                            </span>
+                            <span className="shrink-0 text-[11px] tabular-nums text-zinc-400">
+                              {agoLabel(
+                                row.lastEditedAt
+                                  ? new Date(row.lastEditedAt)
+                                  : null,
+                              )}
+                            </span>
+                          </div>
+                          <span className="mt-1 inline-flex items-center gap-1 text-[11px] text-zinc-500">
+                            <PencilLine className="h-3 w-3 shrink-0" />
+                            {row.status === "active" ? "Active" : "Paused"}
                           </span>
-                          <span className="shrink-0 text-[11px] tabular-nums text-zinc-400">
-                            {agoLabel(
-                              row.lastEditedAt
-                                ? new Date(row.lastEditedAt)
-                                : null,
-                            )}
-                          </span>
-                        </div>
-                        <span className="mt-1 inline-flex items-center gap-1 text-[11px] text-zinc-500">
-                          <PencilLine className="h-3 w-3 shrink-0" />
-                          {row.status === "active" ? "Active" : "Paused"}
-                        </span>
+                        </Link>
                       </li>
                     ))}
                   </Panel>
@@ -1354,18 +1385,23 @@ export default async function AutomationsBetaPage({
                     }
                   >
                     {siteErrors.map((row) => (
-                      <li key={row.id} className="px-3.5 py-2.5">
-                        <div className="flex items-baseline justify-between gap-2">
-                          <span className="truncate text-sm font-medium text-zinc-900">
-                            {row.name}
-                          </span>
-                          <span className="shrink-0 text-[11px] tabular-nums text-zinc-400">
-                            {agoLabel(new Date(row.occurredAt))}
-                          </span>
-                        </div>
-                        <p className="mt-0.5 truncate text-xs text-zinc-500">
-                          {row.message ?? "No message recorded"}
-                        </p>
+                      <li key={row.id}>
+                        <Link
+                          href={`/automations/${selected.slug}?q=${encodeURIComponent(row.name)}`}
+                          className="block px-3.5 py-2.5 transition-colors hover:bg-zinc-50"
+                        >
+                          <div className="flex items-baseline justify-between gap-2">
+                            <span className="truncate text-sm font-medium text-zinc-900">
+                              {row.name}
+                            </span>
+                            <span className="shrink-0 text-[11px] tabular-nums text-zinc-400">
+                              {agoLabel(new Date(row.occurredAt))}
+                            </span>
+                          </div>
+                          <p className="mt-0.5 truncate text-xs text-zinc-500">
+                            {row.message ?? "No message recorded"}
+                          </p>
+                        </Link>
                       </li>
                     ))}
                   </Panel>
