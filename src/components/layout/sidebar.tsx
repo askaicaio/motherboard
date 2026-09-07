@@ -18,6 +18,7 @@ import {
   BookOpen,
   Workflow,
   Blocks,
+  Boxes,
   FlaskConical,
   Beaker,
   TestTube,
@@ -99,6 +100,7 @@ const AUTOMATIONS_VERSIONS: {
 }[] = [
   { href: AUTOMATIONS_HREF, label: "Official", icon: Workflow },
   { href: "/automations-beta", label: "Beta", icon: Blocks },
+  { href: "/automations-beta2", label: "Beta2", icon: Boxes },
   { href: "/automations-alpha", label: "Alpha", icon: FlaskConical },
   { href: "/automations-alpha2", label: "Alpha2", icon: Beaker },
   { href: "/automations-alpha3", label: "Alpha3", icon: TestTube },
