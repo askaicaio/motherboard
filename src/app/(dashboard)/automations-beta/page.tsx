@@ -76,7 +76,6 @@ import Link from "next/link";
 // the cards' Error History button uses it rather than introducing a second one.
 import {
   AlertTriangle,
-  ChevronRight,
   Inbox,
   List,
   ListChecks,
@@ -466,8 +465,8 @@ export default async function AutomationsBetaPage({
                     🛑🛑 THE FOURTH IS DIFFERENT AND THIS IS THE ONE TO READ
                     BEFORE TOUCHING THIS NUMBER. The user asked for **450**
                     ("change the 500 to 450 now"). 450 is 3px UNDER the measured
-                    453px content floor (449 since the logo moved into the
-                    title row on 2026-09-06), and it made the Zapier card render
+                    453px content floor (429 as of 2026-09-08; it has moved
+                    twice since, see below), and it made the Zapier card render
                     **"Zap…"** instead of "Zapier". That was measured, put to
                     the user with the cost spelled out, and **they chose 460
                     instead**, which is the nearest width that fits.
@@ -496,7 +495,8 @@ export default async function AutomationsBetaPage({
                     carried the 225px Error History + View list PAIR. #467 moved
                     Error History to the detail header, the row's buttons went
                     from 225px to 107px, and the floor fell to 453 with them
-                    (then to 449 when the logo joined that row on 2026-09-06).
+                    (then 449 when the logo joined that row on 2026-09-06, then
+                    429 when View list lost its chevron on 2026-09-08).
                     📌 THE GENERAL POINT, since this note has now been wrong
                     TWICE (448 was stale the same way): **a measured width note
                     goes stale the moment anything on the row it measured
@@ -504,21 +504,33 @@ export default async function AutomationsBetaPage({
                     reusing it.
                     ⚠️ MEASURED IN THE BROWSER on 2026-09-06, BEFORE shipping
                     each step, with this exact markup and the live figures:
-                      **THE FLOOR IS 449px.** 460 is ELEVEN PIXELS ABOVE IT.
+                      **THE FLOOR IS 429px.** 460 is THIRTY-ONE PIXELS ABOVE
+                      IT, read off a 430 probe where the worst card had 1px left.
                       **AT 460 every card is 443px wide with a 408px content
                       column, all five are 120px tall, and NOTHING truncates.**
                       Title-line slack, per card:
-                        Zapier   +11px   <- the whole margin
-                        GHL b2b  +33px
-                        Make     +54px
-                        GHL      +62px
-                        n8n      +63px
+                        Zapier   +31px   <- the whole margin
+                        GHL b2b  +53px
+                        Make     +74px
+                        GHL      +82px
+                        n8n      +83px
                       Zapier is worst because it uniquely carries BOTH the
                       longest status label ("Not connected") AND the longer
                       "Auto-refresh off".
                       ⚠️ RE-MEASURED 2026-09-06 AFTER THE LOGO MOVED INTO THE
                       TITLE ROW, and it moved BOTH numbers in our favour: the
                       floor went 453 -> 449 and Zapier's slack 7px -> 11px.
+                      **THEN 2026-09-08 MOVED THEM AGAIN**, and this is the
+                      FOURTH time this number has changed: "For both the
+                      Official and Beta1 Page, remove these arrows" took the
+                      trailing chevron off View list, so **the button went 107px
+                      -> 87px and every card gained 20px of title-line slack.
+                      Floor 449 -> 429, Zapier 11px -> 31px.**
+                      📌 THE PATTERN IS THE LESSON, NOT THE NUMBER: 448 -> 571
+                      -> 453 -> 449 -> 429. **Every one of those was measured and
+                      correct when written, and wrong once something on the
+                      title row changed length. Re-measure rather than reusing
+                      whatever this note says.**
                       **The logo did not get cheaper, the GAP did**: as a
                       sibling of the content column it sat behind the card's
                       `gap-2.5` (10px); inside the title row it sits behind
@@ -961,9 +973,17 @@ export default async function AutomationsBetaPage({
                               href={`/automations/${site.slug}`}
                               className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-card px-2.5 text-xs font-medium text-zinc-600 ring-1 ring-foreground/10 transition-colors hover:bg-zinc-50 hover:text-zinc-900"
                             >
+                              {/* ⚠️ NO TRAILING CHEVRON, removed 2026-09-08: "For both the
+                                  Official and Beta1 Page, remove these arrows." The button is
+                                  LEADING ICON + LABEL now, which is what its sibling Error
+                                  History has always been (its own note says "a LEADING
+                                  AlertTriangle and no chevron"), so the two finally match.
+                                  ⚠️ THE SAME EDIT WENT TO BOTH PAGES IN ONE PR, deliberately.
+                                  The live hub and the Beta1 bench carry byte-identical markup
+                                  for this button; letting only one lose the chevron would have
+                                  reopened the divergence #479 closed. Keep them in step. */}
                               <List className="h-3.5 w-3.5" />
                               View list
-                              <ChevronRight className="h-3.5 w-3.5" />
                             </Link>
                           </span>
                         </div>
@@ -1252,8 +1272,8 @@ export default async function AutomationsBetaPage({
                       rail change. The 1280 wrap has 12px. **Re-measure before
                       assuming any widening is free.**
                       ⚠️ THE RAIL IS SQUEEZED FROM BOTH SIDES NOW, which is new:
-                      the cards want >= 449 and the panel wants <= 460. That is
-                      an ELEVEN PIXEL WINDOW, so this number is no longer a free
+                      the cards want >= 429 and the panel wants <= 460. That is
+                      a THIRTY-ONE PIXEL WINDOW, so this number is no longer a free
                       choice. Anything outside it costs something measurable.
                       Do not "fix" a wrap with `whitespace-nowrap` or a fixed
                       width: those trade a graceful wrap for a crushed name. */}
