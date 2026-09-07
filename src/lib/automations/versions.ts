@@ -52,10 +52,28 @@ import {
 // in prose. They were left as written: they are a historical record, and
 // rewriting them would be a large diff with no functional effect.
 
+// ⚠️⚠️ THE LABEL IS THE *QUALIFIED* NAME AND THE PAGE BADGE IS THE *SHORT*
+// ONE. THEY ARE DELIBERATELY DIFFERENT as of 2026-09-08: "Append this to the
+// start of their titles. 'Main Page'". So:
+//     registry label   "Main Page Beta1"   <- what the directory tile shows
+//     badge on the page "Beta1"            <- what the page's own pill shows
+// **WHY BOTH EXIST.** Every one of these versions is a redesign of the
+// Automations MAIN PAGE specifically, as opposed to the Per Website page, the
+// Error History page or the Dropdown Config page. In the directory that
+// qualifier is the useful part, because it says WHICH page's design you are
+// about to open. On the page itself it is noise: the badge sits directly beside
+// an `<h1>` reading "Automations", so a pill reading "MAIN PAGE BETA1" would
+// repeat what the heading already says.
+// **⚠️ AN EARLIER VERSION OF THIS NOTE TOLD YOU TO KEEP THE TWO STRINGS
+// IDENTICAL. That was true for one day and is now wrong.** What must stay in
+// step is the VERSION TOKEN they share: rename Beta1 and you change the badge
+// AND the tail of this label. The prefix belongs to the label only.
+
 export interface AutomationVersion {
   href: string;
-  /** What the UI calls this version. **Not derivable from `href`** for Beta1
-   *  and Alpha1; see the note above. */
+  /** The QUALIFIED name, shown on the Feature Integration directory tile, e.g.
+   *  "Main Page Beta1". **Not derivable from `href`, and not the same as the
+   *  badge on the page itself** - see the note above. */
   label: string;
   icon: React.ElementType;
   /** One line on what this presentation actually tries. Taken from each page's
@@ -77,55 +95,55 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
   },
   {
     href: "/automations-beta",
-    label: "Beta1",
+    label: "Main Page Beta1",
     icon: Blocks,
     blurb: "Assembly bench. Alpha3's master and detail, with working controls.",
   },
   {
     href: "/automations-beta2",
-    label: "Beta2",
+    label: "Main Page Beta2",
     icon: Boxes,
     blurb: "Assembly bench, seeded from Alpha2.",
   },
   {
     href: "/automations-alpha",
-    label: "Alpha1",
+    label: "Main Page Alpha1",
     icon: FlaskConical,
     blurb: "The first redesign proposal.",
   },
   {
     href: "/automations-alpha2",
-    label: "Alpha2",
+    label: "Main Page Alpha2",
     icon: Beaker,
     blurb: "Dark status hero, a comparison table and an error feed.",
   },
   {
     href: "/automations-alpha3",
-    label: "Alpha3",
+    label: "Main Page Alpha3",
     icon: TestTube,
     blurb: "Master and detail.",
   },
   {
     href: "/automations-alpha4",
-    label: "Alpha4",
+    label: "Main Page Alpha4",
     icon: Microscope,
     blurb: "Search first.",
   },
   {
     href: "/automations-alpha5",
-    label: "Alpha5",
+    label: "Main Page Alpha5",
     icon: Atom,
     blurb: "A work queue.",
   },
   {
     href: "/automations-alpha6",
-    label: "Alpha6",
+    label: "Main Page Alpha6",
     icon: Dna,
     blurb: "Inventory quality.",
   },
   {
     href: "/automations-alpha7",
-    label: "Alpha7",
+    label: "Main Page Alpha7",
     icon: Telescope,
     blurb: "A changelog.",
   },
