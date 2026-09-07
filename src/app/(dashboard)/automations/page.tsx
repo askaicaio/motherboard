@@ -147,7 +147,6 @@ import {
   List,
   ListChecks,
   RefreshCw,
-  ChevronRight,
   // Added 2026-09-04 with the bench's Error History / View list pair. It is
   // this app's established error icon (six other call sites), which is why the
   // bench used it and why nothing new was introduced here.
@@ -612,9 +611,17 @@ export default async function AutomationsPage() {
                         // CHANGE. The freeze resumes after it.
                         className="ml-auto inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-card px-2.5 text-xs font-medium text-zinc-600 ring-1 ring-foreground/10 transition-colors hover:bg-zinc-50 hover:text-zinc-900"
                       >
+                        {/* ⚠️ NO TRAILING CHEVRON, removed 2026-09-08: "For both the
+                            Official and Beta1 Page, remove these arrows." The button is
+                            LEADING ICON + LABEL now, which is what its sibling Error
+                            History has always been (its own note says "a LEADING
+                            AlertTriangle and no chevron"), so the two finally match.
+                            ⚠️ THE SAME EDIT WENT TO BOTH PAGES IN ONE PR, deliberately.
+                            The live hub and the Beta1 bench carry byte-identical markup
+                            for this button; letting only one lose the chevron would have
+                            reopened the divergence #479 closed. Keep them in step. */}
                         <List className="h-3.5 w-3.5" />
                         View list
-                        <ChevronRight className="h-3.5 w-3.5" />
                       </Link>
                     </div>
 
@@ -829,7 +836,12 @@ export default async function AutomationsPage() {
                       the card with the longest one.
                       📌 SO THE HEADER HOLDS ONE BUTTON AND THE STRIP HOLDS THE
                       OTHER, which is also what makes both fit: View list alone
-                      is about 112px where the pair was 225px. */}
+                      is about 112px where the pair was 225px.
+                      ⚠️ THAT 112px IS NOW ~87px: the trailing chevron came off
+                      this button on 2026-09-08 ("For both the Official and
+                      Beta1 Page, remove these arrows"). The argument is
+                      unchanged and only got safer, since the header has MORE
+                      room than when it was measured. */}
                       <Link
                         href={`/automations/${site.slug}/errors`}
                         className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-white px-2.5 text-xs font-medium text-zinc-600 ring-1 ring-foreground/10 transition-colors hover:bg-zinc-50 hover:text-zinc-900"
