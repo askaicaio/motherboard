@@ -914,9 +914,34 @@ export default async function AutomationsBetaPage({
                               working. `shrink-0` + the name's `min-w-0` means
                               the NAME truncates first, never this. */}
                           <span className="relative z-10 flex shrink-0 items-center gap-2">
+                            {/* ⚠️⚠️ WHITE, NOT SOLID BLACK, as of 2026-09-07:
+                                "Make these buttons white again."
+                                ⚠️ "AGAIN" DOES NOT POINT AT A PREVIOUS STATE OF
+                                THIS BUTTON. Checked the history: the rail's View
+                                list has been `bg-zinc-900` since it was created
+                                (#443, then #464). **The white button that used
+                                to sit in this card was ERROR HISTORY**, which
+                                left for the detail header in #467 and took the
+                                card's only white control with it.
+                                ⚠️ THIS IS ERROR HISTORY'S EXACT TREATMENT,
+                                copied rather than approximated, and the detail
+                                header's Error History Link still carries the
+                                same string. Keep the two in step: if one is
+                                restyled the other should follow, because they
+                                are the same control class on two surfaces.
+                                🛑 SO THE BENCH AND THE LIVE HUB NOW DIVERGE ON
+                                THIS ONE BUTTON. #461 deliberately promoted the
+                                BLACK treatment to `/automations` so "both
+                                surfaces read alike", and the live cards are
+                                still black. **That was raised with the user
+                                before merging and they took beta-only.** So do
+                                not "fix" the divergence by blackening this
+                                again, and do not whiten the live page without
+                                being asked: the freeze on `/automations` needs
+                                an explicit instruction naming it. */}
                             <Link
                               href={`/automations/${site.slug}`}
-                              className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-zinc-900 px-2.5 text-xs font-medium text-white transition-colors hover:bg-zinc-800"
+                              className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-card px-2.5 text-xs font-medium text-zinc-600 ring-1 ring-foreground/10 transition-colors hover:bg-zinc-50 hover:text-zinc-900"
                             >
                               <List className="h-3.5 w-3.5" />
                               View list
