@@ -456,7 +456,8 @@ export default async function AutomationsBetaPage({
                     🛑🛑 THE FOURTH IS DIFFERENT AND THIS IS THE ONE TO READ
                     BEFORE TOUCHING THIS NUMBER. The user asked for **450**
                     ("change the 500 to 450 now"). 450 is 3px UNDER the measured
-                    453px content floor, and it made the Zapier card render
+                    453px content floor (449 since the logo moved into the
+                    title row on 2026-09-06), and it made the Zapier card render
                     **"Zap…"** instead of "Zapier". That was measured, put to
                     the user with the cost spelled out, and **they chose 460
                     instead**, which is the nearest width that fits.
@@ -467,7 +468,7 @@ export default async function AutomationsBetaPage({
                     than it saves. **A name here is either fully visible or
                     badly cut; there is no gentle degradation.** Never assume a
                     few pixels under the floor costs a few pixels of text.
-                    ⚠️ IF THIS EVER HAS TO GO BELOW 453, take the 4px off the
+                    ⚠️ IF THIS EVER HAS TO GO BELOW THE FLOOR, take the pixels off the
                     TITLE LINE rather than accepting the clip: the row's
                     `gap-1.5` (6px, twice) and the "Auto-refresh off" label are
                     the candidates. Do not touch the name's `truncate` /
@@ -484,7 +485,8 @@ export default async function AutomationsBetaPage({
                     all. 571 was real, but it was measured while the title row
                     carried the 225px Error History + View list PAIR. #467 moved
                     Error History to the detail header, the row's buttons went
-                    from 225px to 107px, and the floor fell to 453 with them.
+                    from 225px to 107px, and the floor fell to 453 with them
+                    (then to 449 when the logo joined that row on 2026-09-06).
                     📌 THE GENERAL POINT, since this note has now been wrong
                     TWICE (448 was stale the same way): **a measured width note
                     goes stale the moment anything on the row it measured
@@ -492,20 +494,28 @@ export default async function AutomationsBetaPage({
                     reusing it.
                     ⚠️ MEASURED IN THE BROWSER on 2026-09-06, BEFORE shipping
                     each step, with this exact markup and the live figures:
-                      **THE FLOOR IS 453px.** 460 is SEVEN PIXELS ABOVE IT.
-                      **AT 460 every card is 443px wide with a 378px content
+                      **THE FLOOR IS 449px.** 460 is ELEVEN PIXELS ABOVE IT.
+                      **AT 460 every card is 443px wide with a 408px content
                       column, all five are 120px tall, and NOTHING truncates.**
                       Title-line slack, per card:
-                        Zapier    +7px   <- the whole margin
-                        GHL b2b  +29px
-                        Make     +50px
-                        GHL      +58px
-                        n8n      +59px
+                        Zapier   +11px   <- the whole margin
+                        GHL b2b  +33px
+                        Make     +54px
+                        GHL      +62px
+                        n8n      +63px
                       Zapier is worst because it uniquely carries BOTH the
                       longest status label ("Not connected") AND the longer
                       "Auto-refresh off".
-                      STAT LINE needs 228px worst case against the full 378px
-                      column, so 150px spare. The API bar is a full-width
+                      ⚠️ RE-MEASURED 2026-09-06 AFTER THE LOGO MOVED INTO THE
+                      TITLE ROW, and it moved BOTH numbers in our favour: the
+                      floor went 453 -> 449 and Zapier's slack 7px -> 11px.
+                      **The logo did not get cheaper, the GAP did**: as a
+                      sibling of the content column it sat behind the card's
+                      `gap-2.5` (10px); inside the title row it sits behind
+                      `gap-1.5` (6px). The content column also gained the 30px
+                      the logo's old column was reserving, 378 -> 408.
+                      STAT LINE needs 228px worst case against the full 408px
+                      column, so 180px spare. The API bar is a full-width
                       sibling too. NEITHER is close to binding, at any width
                       this rail has had.
                     ⚠️ SO THE TITLE LINE IS THE BINDING CONSTRAINT AND ZAPIER IS
@@ -741,13 +751,21 @@ export default async function AutomationsBetaPage({
                           opacity: isCurrent ? 1 : 0.35,
                         }}
                       />
-                      {/* ⚠️ `self-start`: the card is three blocks tall now,
-                          and a vertically centred logo floated beside the
-                          statistic instead of sitting level with the name. */}
-                      <SiteGlyph
-                        site={site}
-                        className="h-5 w-5 shrink-0 self-start"
-                      />
+                      {/* ⚠️⚠️ THE LOGO WAS A FLEX CHILD *HERE* until 2026-09-06
+                          and it is now INSIDE THE TITLE ROW instead. "I noticed
+                          these icons have their own dedicated column. lets not
+                          do that. Move the icons to be inline with the website
+                          name instead."
+                          WHY IT READ AS A COLUMN: as a sibling of the content
+                          column it reserved its own 20px + 10px gap for the
+                          card's WHOLE height, so the statistic and the API bar
+                          started 30px in, level with nothing. That is the same
+                          shape of mistake as #465 (the button pair hung off the
+                          whole column instead of the row it belonged to), and
+                          the same fix: **an element that belongs beside ONE ROW
+                          goes IN that row.**
+                          ⚠️ THE CARD IS NOW SPINE + CONTENT COLUMN, two
+                          children. Do not re-add a third here. */}
                       {/* The card's content column: THREE FULL-WIDTH ROWS, and
                           only the first of them shares its line with the button
                           pair.
@@ -795,6 +813,23 @@ export default async function AutomationsBetaPage({
                             `shrink-0` so the name yields first. */}
                         <div className="flex items-center gap-2">
                           <span className="flex min-w-0 flex-1 items-center gap-1.5">
+                            {/* ⭐ THE LOGO, INLINE WITH THE NAME as of
+                                2026-09-06. It used to be a sibling of the whole
+                                content column; see the note where it was.
+                                ⚠️ NO `self-start` ANY MORE, and its old reason
+                                is satisfied rather than ignored. That class
+                                existed because "a vertically centred logo
+                                floated beside the statistic instead of sitting
+                                level with the name" - true when the logo spanned
+                                the card's full height. This row is
+                                `items-center`, so the logo now centres on the
+                                NAME's line, which is exactly what that note
+                                wanted. Re-adding `self-start` here would push it
+                                against the row's top edge instead.
+                                ⚠️ `shrink-0` is not passed because `SiteGlyph`
+                                applies it internally; it must never shrink, so
+                                the NAME still yields first. */}
+                            <SiteGlyph site={site} className="h-5 w-5" />
                             <span
                               className={cn(
                                 "min-w-0 truncate text-sm",
@@ -1158,8 +1193,8 @@ export default async function AutomationsBetaPage({
                       rail change. The 1280 wrap has 12px. **Re-measure before
                       assuming any widening is free.**
                       ⚠️ THE RAIL IS SQUEEZED FROM BOTH SIDES NOW, which is new:
-                      the cards want >= 453 and the panel wants <= 460. That is
-                      a SEVEN PIXEL WINDOW, so this number is no longer a free
+                      the cards want >= 449 and the panel wants <= 460. That is
+                      an ELEVEN PIXEL WINDOW, so this number is no longer a free
                       choice. Anything outside it costs something measurable.
                       Do not "fix" a wrap with `whitespace-nowrap` or a fixed
                       width: those trade a graceful wrap for a crushed name. */}
