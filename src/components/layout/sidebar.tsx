@@ -17,17 +17,6 @@ import {
   Megaphone,
   BookOpen,
   Workflow,
-  Blocks,
-  Boxes,
-  FlaskConical,
-  Beaker,
-  TestTube,
-  Microscope,
-  Atom,
-  Dna,
-  Telescope,
-  Check,
-  ChevronRight,
   Receipt,
   Handshake,
   Sparkles,
@@ -45,6 +34,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { isAutomationVersionPath } from "@/lib/automations/versions";
 import { canSeeCompanyReports } from "@/lib/auth/permissions";
 import { MANAGEABLE_TABS } from "@/lib/layout/nav";
 import type { Department, AdminRole } from "@/types";
@@ -93,22 +83,22 @@ const ICONS: Record<string, React.ElementType> = {
 // elements picked out of the Alphas get assembled, so it belongs next to the page
 // it is being compared against.
 const AUTOMATIONS_HREF = "/automations";
-const AUTOMATIONS_VERSIONS: {
-  href: string;
-  label: string;
-  icon: React.ElementType;
-}[] = [
-  { href: AUTOMATIONS_HREF, label: "Official", icon: Workflow },
-  { href: "/automations-beta", label: "Beta", icon: Blocks },
-  { href: "/automations-beta2", label: "Beta2", icon: Boxes },
-  { href: "/automations-alpha", label: "Alpha", icon: FlaskConical },
-  { href: "/automations-alpha2", label: "Alpha2", icon: Beaker },
-  { href: "/automations-alpha3", label: "Alpha3", icon: TestTube },
-  { href: "/automations-alpha4", label: "Alpha4", icon: Microscope },
-  { href: "/automations-alpha5", label: "Alpha5", icon: Atom },
-  { href: "/automations-alpha6", label: "Alpha6", icon: Dna },
-  { href: "/automations-alpha7", label: "Alpha7", icon: Telescope },
-];
+// ⚠️⚠️ THE VERSION LIST USED TO LIVE HERE, along with a DROPDOWN MENU on the
+// Automations tab that was the only way to reach the Alpha and Beta benches.
+// Both went on 2026-09-08: "In S2, remove the old way to access the pages
+// since the new feature can do it. The dropdown for the page selection when
+// clicking the automation tab at the left sidebar is also not needed anymore."
+//
+// The list moved to `@/lib/automations/versions` and **the benches are now
+// reached from the Feature Integration page instead**, which lists them as
+// new-tab links. The Automations tab is an ordinary link again, like every
+// other tab.
+//
+// ⚠️ THE ONE THING THIS FILE STILL NEEDS FROM THAT REGISTRY is
+// `isAutomationVersionPath()`, folded into `isActive` below: it keeps the
+// Automations tab highlighted while you sit on a bench route. A plain prefix
+// match cannot do that, because "/automations-beta" is NOT a child of
+// "/automations". Without it, no tab looks active on a bench page.
 
 // Role/department predicates for tabs that gate on more than the
 // per-department visibility config.
@@ -207,62 +197,19 @@ export function Sidebar({ hiddenTabs = [] }: { hiddenTabs?: string[] }) {
             item.href === "/"
               ? pathname === "/"
               : pathname === item.href ||
-                pathname.startsWith(`${item.href}/`);
+                pathname.startsWith(`${item.href}/`) ||
+                // The Automations tab ALSO claims every bench route
+                // ("/automations-beta", "/automations-alpha4", ...). Those are
+                // siblings of "/automations", not children, so the prefix
+                // match above misses them. See the note on the registry.
+                (item.href === AUTOMATIONS_HREF &&
+                  isAutomationVersionPath(pathname));
 
-          // Automations: a menu, not a link. Same look as every other tab
-          // (plus a chevron), and it stays highlighted on either version.
-          if (item.href === AUTOMATIONS_HREF) {
-            // Highlighted on ANY version, the live page included, so the list
-            // above stays the only place a new version has to be registered.
-            const onAnyVersion = AUTOMATIONS_VERSIONS.some(
-              (version) =>
-                pathname === version.href ||
-                pathname.startsWith(`${version.href}/`),
-            );
-            return (
-              <DropdownMenu key={item.href}>
-                <DropdownMenuTrigger
-                  className={cn(
-                    "flex w-full cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-200",
-                    onAnyVersion
-                      ? "bg-zinc-100 text-zinc-900"
-                      : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900"
-                  )}
-                >
-                  <item.icon className="h-4 w-4" />
-                  {item.label}
-                  <ChevronRight className="ml-auto h-3.5 w-3.5 opacity-50" />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  side="right"
-                  align="start"
-                  sideOffset={8}
-                  className="w-44"
-                >
-                  {AUTOMATIONS_VERSIONS.map((version) => {
-                    const current =
-                      pathname === version.href ||
-                      pathname.startsWith(`${version.href}/`);
-                    return (
-                      <DropdownMenuItem
-                        key={version.href}
-                        onClick={() => router.push(version.href)}
-                      >
-                        <version.icon className="mr-2 h-4 w-4" />
-                        {version.label}
-                        {/* Which version you are already on. Both pages carry
-                            the same title, so without this the menu gives no
-                            clue where you are. */}
-                        {current && (
-                          <Check className="ml-auto h-4 w-4 text-zinc-500" />
-                        )}
-                      </DropdownMenuItem>
-                    );
-                  })}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            );
-          }
+          // ⚠️ THE AUTOMATIONS TAB HAD A SPECIAL CASE HERE, a DropdownMenu
+          // listing every version instead of a plain link. It went on
+          // 2026-09-08; the tab is an ordinary Link again and falls through to
+          // the shared branch below. Its highlight-on-a-bench-route behaviour
+          // survives, in `isActive` above. See the registry note at the top.
 
           return (
             <Link
