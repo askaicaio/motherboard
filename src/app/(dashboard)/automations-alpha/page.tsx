@@ -189,7 +189,10 @@ export default async function AutomationsAlphaPage() {
       });
     }
     if (!autoRefreshMap[site.slug]?.enabled) {
-      attention.push({ label: `${site.label}: auto-refresh off`, tone: "warn" });
+      attention.push({
+        label: `${site.label}: auto-refresh off`,
+        tone: "warn",
+      });
     }
   }
 
@@ -204,8 +207,13 @@ export default async function AutomationsAlphaPage() {
             <h1 className="font-heading text-2xl font-semibold tracking-tight">
               Automations
             </h1>
+            {/* ⚠️ "Alpha1", not "Alpha", since 2026-09-08: "Rename these,
+                they should be referred to as Beta1 and Alpha1." **The ROUTE is
+                still /automations-alpha** and was left alone on purpose; see
+                the note in `@/lib/automations/versions`. Keep this string in
+                step with that registry's `label`. */}
             <span className="rounded-full bg-zinc-900 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
-              Alpha
+              Alpha1
             </span>
           </div>
           <p className="mt-1 text-sm text-zinc-500">
@@ -219,7 +227,9 @@ export default async function AutomationsAlphaPage() {
               <span
                 className={cn(
                   "absolute inline-flex h-full w-full rounded-full opacity-60",
-                  health.enabled ? "animate-ping bg-emerald-400" : "bg-zinc-300",
+                  health.enabled
+                    ? "animate-ping bg-emerald-400"
+                    : "bg-zinc-300",
                 )}
               />
               <span
@@ -651,9 +661,7 @@ function Sparkline({
             )}
             style={{
               height:
-                max > 0 && v > 0
-                  ? `${Math.max(12, (v / max) * 100)}%`
-                  : "3px",
+                max > 0 && v > 0 ? `${Math.max(12, (v / max) * 100)}%` : "3px",
             }}
           />
         ))}

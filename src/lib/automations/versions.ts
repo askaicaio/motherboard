@@ -37,8 +37,25 @@ import {
   Workflow,
 } from "lucide-react";
 
+// ⚠️⚠️ THE DISPLAY LABEL AND THE ROUTE DO NOT MATCH FOR TWO VERSIONS, AND
+// THAT IS DELIBERATE. On 2026-09-08 the user renamed the first of each family:
+// "Rename these, they should be referred to as Beta1 and Alpha1". So:
+//     label "Beta1"  -> route /automations-beta
+//     label "Alpha1" -> route /automations-alpha
+// **The ROUTES were left alone on purpose.** They are stable identifiers: open
+// tabs, bookmarks, every PR title and the whole Done List history refer to
+// them, and moving the directories would break all of that to fix a cosmetic
+// mismatch. **Do not "tidy" the routes to match the labels** without being
+// asked; if that is ever wanted it is a rename of two directories plus a sweep
+// of the docs, not a one-line change.
+// ⚠️ OLDER CODE COMMENTS ACROSS THESE PAGES STILL SAY "Alpha" and "Alpha 1"
+// in prose. They were left as written: they are a historical record, and
+// rewriting them would be a large diff with no functional effect.
+
 export interface AutomationVersion {
   href: string;
+  /** What the UI calls this version. **Not derivable from `href`** for Beta1
+   *  and Alpha1; see the note above. */
   label: string;
   icon: React.ElementType;
   /** One line on what this presentation actually tries. Taken from each page's
@@ -60,7 +77,7 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
   },
   {
     href: "/automations-beta",
-    label: "Beta",
+    label: "Beta1",
     icon: Blocks,
     blurb: "Assembly bench. Alpha3's master and detail, with working controls.",
   },
@@ -72,7 +89,7 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
   },
   {
     href: "/automations-alpha",
-    label: "Alpha",
+    label: "Alpha1",
     icon: FlaskConical,
     blurb: "The first redesign proposal.",
   },

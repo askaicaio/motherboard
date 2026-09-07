@@ -359,8 +359,15 @@ export default async function AutomationsBetaPage({
                 {/* Version badge, same pill the seven Alphas wear, so you can
                     tell at a glance this is not the live hub. The live page
                     deliberately has none. */}
+                {/* ⚠️ "Beta1", not "Beta", since 2026-09-08: "Rename these,
+                    they should be referred to as Beta1 and Alpha1." **The ROUTE
+                    is still /automations-beta** and was left alone on purpose;
+                    see the note in `@/lib/automations/versions`. Keep this
+                    string in step with that registry's `label` - the badge and
+                    the directory tile are separate strings and nothing links
+                    them. */}
                 <span className="rounded-full bg-zinc-900 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
-                  Beta
+                  Beta1
                 </span>
               </div>
               <p className="mt-1 text-sm text-zinc-500">
