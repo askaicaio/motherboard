@@ -209,9 +209,13 @@ export default async function AutomationsAlphaPage() {
             </h1>
             {/* ⚠️ "Alpha1", not "Alpha", since 2026-09-08: "Rename these,
                 they should be referred to as Beta1 and Alpha1." **The ROUTE is
-                still /automations-alpha** and was left alone on purpose; see
-                the note in `@/lib/automations/versions`. Keep this string in
-                step with that registry's `label`. */}
+                still /automations-alpha** and was left alone on purpose.
+                ⚠️⚠️ THIS BADGE IS THE *SHORT* NAME AND THAT IS DELIBERATE. The
+                directory tile reads "Main Page Alpha1"; this pill reads just
+                "Alpha1", because it sits beside an `<h1>` already saying
+                "Automations". **The two strings are meant to differ; only the
+                version token has to match.** See
+                `@/lib/automations/versions`. */}
             <span className="rounded-full bg-zinc-900 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
               Alpha1
             </span>
