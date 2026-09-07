@@ -929,16 +929,24 @@ export default async function AutomationsBetaPage({
                                 same string. Keep the two in step: if one is
                                 restyled the other should follow, because they
                                 are the same control class on two surfaces.
-                                🛑 SO THE BENCH AND THE LIVE HUB NOW DIVERGE ON
-                                THIS ONE BUTTON. #461 deliberately promoted the
-                                BLACK treatment to `/automations` so "both
-                                surfaces read alike", and the live cards are
-                                still black. **That was raised with the user
-                                before merging and they took beta-only.** So do
-                                not "fix" the divergence by blackening this
-                                again, and do not whiten the live page without
-                                being asked: the freeze on `/automations` needs
-                                an explicit instruction naming it. */}
+                                ⭐ THE BENCH AND THE LIVE HUB MATCH AGAIN. For
+                                one PR they did not: #478 whitened this copy
+                                only. Asked whether to accept that divergence or
+                                close it, the user chose to close it, and the
+                                live hub's View list was whitened to the same
+                                string in the follow-up. **Both pages now carry
+                                this exact class list, so keep them in step.**
+                                🛑 AND BOTH HAVE GIVEN UP THE CARD'S
+                                PRIMARY/SECONDARY HIERARCHY as a result. Dark
+                                used to mean "the main way in"; now View list
+                                and Error History are equal weight and position
+                                alone signals which matters. **That was put to
+                                the user in those words and accepted, so do not
+                                "restore emphasis" by blackening either copy.**
+                                📌 #461 promoted the BLACK treatment to
+                                `/automations` so both surfaces would read
+                                alike; this reverses the colour while keeping
+                                that goal. */}
                             <Link
                               href={`/automations/${site.slug}`}
                               className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-card px-2.5 text-xs font-medium text-zinc-600 ring-1 ring-foreground/10 transition-colors hover:bg-zinc-50 hover:text-zinc-900"

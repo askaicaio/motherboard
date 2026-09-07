@@ -582,7 +582,35 @@ export default async function AutomationsPage() {
                           picking 16. **Do not "restore" 16px.** */}
                       <Link
                         href={`/automations/${site.slug}`}
-                        className="ml-auto inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-zinc-900 px-2.5 text-xs font-medium text-white transition-colors hover:bg-zinc-800"
+                        // ⚠️⚠️ WHITE, NOT SOLID BLACK, as of 2026-09-07.
+                        // This button was `bg-zinc-900` from its promotion in
+                        // #461 until now. The user whitened the BENCH's copy
+                        // first (#478, "Make these buttons white again"), which
+                        // left the two surfaces disagreeing; asked whether to
+                        // accept that or match them, they chose to match, so
+                        // this is the promotion of the white treatment.
+                        // 🛑🛑 WHAT THIS DELIBERATELY GIVES UP: the card's
+                        // primary/secondary HIERARCHY. Until now dark meant
+                        // "the main way in" - black View list here in the
+                        // header, white Error History down in the footer strip.
+                        // **Both are now white and equal weight, and POSITION
+                        // alone signals which matters.** That was put to the
+                        // user in exactly those terms and accepted. So do NOT
+                        // "restore emphasis" by blackening this again; it is
+                        // not an oversight.
+                        // ⚠️ `bg-card` (pure white, `--card: oklch(1 0 0)`)
+                        // rather than the `bg-white` its sibling uses. The
+                        // sibling needs `bg-white` because it sits on the
+                        // footer's `bg-muted/40` band; this one sits on the
+                        // card itself, so it takes the bench's exact string and
+                        // the two pages now match character for character.
+                        // ⚠️ `ml-auto` and `shrink-0` are POSITIONAL and stay.
+                        // `ring-1` is a box-shadow, so the button's ~112px width
+                        // is unchanged and the header's no-`flex-wrap` rule
+                        // still holds.
+                        // 🔓 THIS LIFTED THE `/automations` FREEZE FOR ONE
+                        // CHANGE. The freeze resumes after it.
+                        className="ml-auto inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-card px-2.5 text-xs font-medium text-zinc-600 ring-1 ring-foreground/10 transition-colors hover:bg-zinc-50 hover:text-zinc-900"
                       >
                         <List className="h-3.5 w-3.5" />
                         View list
