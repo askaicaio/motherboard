@@ -734,9 +734,25 @@ export default async function AutomationsBetaPage({
                       >
                         <CardNavIndicator accent={ACCENT[site.slug]} />
                       </Link>
-                      {/* Accent spine, full opacity on the selected row and
-                          faint on the rest, so the current website is obvious
-                          without a second indicator.
+                      {/* ⭐ Accent spine: THE SELECTED CARD'S ONLY, as of
+                          2026-09-07. "Right now Make is currently selected, so
+                          its correct that it can be seen, but the others are
+                          not selected, so their bar strip should be invisible."
+                          ⚠️ IT WAS `0.35` ON THE UNSELECTED ROWS, not 0. The old
+                          note called that "faint on the rest, so the current
+                          website is obvious without a second indicator", which
+                          was true when the rail had no other selection cue. It
+                          has had `bg-zinc-100` on the selected card for days, so
+                          the faint copies were adding noise rather than
+                          information.
+                          ⚠️⚠️ `opacity: 0` AND NOT A CONDITIONAL RENDER, ON
+                          PURPOSE. The span still occupies its 3px plus the
+                          card's `gap-2.5`, so **all five cards keep identical
+                          internal alignment and nothing shifts when you change
+                          selection.** Returning `null` for the unselected rows
+                          would slide their whole content column 13px left and
+                          make the rail jump on every click. Do not "simplify"
+                          this into `{isCurrent && <span .../>}`.
                           ⚠️ `self-stretch` RATHER THAN THE OLD FIXED `h-7`. The
                           card grew from 56px to 76px when the counts statistic
                           landed in it on 2026-09-03, and a centred 28px dash in
@@ -748,7 +764,7 @@ export default async function AutomationsBetaPage({
                         className="w-[3px] shrink-0 self-stretch rounded-full"
                         style={{
                           backgroundColor: ACCENT[site.slug],
-                          opacity: isCurrent ? 1 : 0.35,
+                          opacity: isCurrent ? 1 : 0,
                         }}
                       />
                       {/* ⚠️⚠️ THE LOGO WAS A FLEX CHILD *HERE* until 2026-09-06
