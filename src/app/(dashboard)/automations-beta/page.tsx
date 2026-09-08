@@ -87,8 +87,18 @@ import { and, desc, eq, isNotNull, sql } from "drizzle-orm";
 
 import { requireAuth } from "@/lib/auth/guard";
 import { db } from "@/lib/db";
-import { automationErrors, automations } from "@/lib/db/schema";
+import {
+  automationDropdownChoices,
+  automationDropdownSelections,
+  automationErrors,
+  automationWebhooks,
+  automations,
+} from "@/lib/db/schema";
 import { AUTOMATION_SITES } from "@/lib/automations/sites";
+import {
+  columnVisibleOnPlatform,
+  type DropdownColumnKey,
+} from "@/lib/automations/dropdown-config";
 import { platformHasApiKey } from "@/lib/automations/credentials";
 import { getAutoRefreshMap } from "@/lib/automations/autorefresh";
 import { getHealthState } from "@/lib/automations/health";
@@ -135,6 +145,56 @@ const PANEL_ROWS = 6;
  *  `dayKeys.length`), so the three cannot fall out of step. */
 const TREND_DAYS = 30;
 
+/** The fields a HUMAN fills in, in Per Website table order, for the detail
+ *  panel's coverage statistic.
+ *
+ *  ⭐ LIFTED FROM ALPHA6 (`automations-alpha6/page.tsx`), 2026-09-09: "add the
+ *  statistic you made in S2". Alpha6 measures how completely the RECORD is
+ *  filled in rather than how the automations are running, which is a thing no
+ *  other surface in this app reports.
+ *
+ *  ⚠️ TWO DELIBERATE DIFFERENCES FROM ALPHA6, both because this copy is scoped
+ *  to ONE website instead of aggregating all five:
+ *    1. Alpha6's list also carries `lastRun` and `lastEdited` as a separate
+ *       SYNCED group, excluded from its completeness figure because a sync
+ *       filling a column in is not documentation. They are not here at all:
+ *       this panel only ranks what a person is meant to type.
+ *    2. `gate` is NEW. Alpha6 scores GHL Tags and GHL Forms against all five
+ *       websites, so Make, n8n and Zapier each contribute a guaranteed 0%.
+ *       Those two columns are GHL-ONLY on the real Per Website table, so here
+ *       they are hidden off GHL (user's call, 2026-09-09: "Hide them off
+ *       GHL"). **Make, n8n and Zapier therefore show SIX rows and the two GHL
+ *       websites show EIGHT.** That also follows Alpha6's own stated honesty
+ *       rule, that a matrix scoring an impossibility as a failure is a matrix
+ *       that lies.
+ *
+ *  ⚠️ THE GATE READS `columnVisibleOnPlatform()`, the SAME helper the Per
+ *  Website table uses, rather than hard-coding the GHL slugs. If a column's
+ *  `visibleOnPlatforms` ever changes in `dropdown-config.ts`, this statistic
+ *  follows it automatically instead of quietly disagreeing with the table.
+ *
+ *  📌 ONE FIELD ALPHA6 OMITS AND SO DOES THIS: **Evaluation** (`triage`), which
+ *  is a real human-filled column on the Per Website table. Worth offering as a
+ *  ninth row; not added here because it was not part of what the user pointed
+ *  at. */
+const COVERAGE_FIELDS: {
+  /** Matches the key the filled-counts lookup is built under. */
+  key: string;
+  label: string;
+  /** The dropdown column this field IS, when it is one. Drives the platform
+   *  gate; a field with no `gate` shows for every website. */
+  gate?: DropdownColumnKey;
+}[] = [
+  { key: "purpose", label: "Purpose" },
+  { key: "notes", label: "Notes" },
+  { key: "author", label: "Author", gate: "author" },
+  { key: "trigger_event", label: "Trigger Event", gate: "trigger_event" },
+  { key: "automation_tags", label: "Automation Tags", gate: "automation_tags" },
+  { key: "ghl_tags", label: "GHL Tags", gate: "ghl_tags" },
+  { key: "ghl_forms", label: "GHL Forms", gate: "ghl_forms" },
+  { key: "webhooks", label: "Webhook Links" },
+];
+
 interface PlatformStats {
   total: number;
   active: number;
@@ -162,7 +222,11 @@ export default async function AutomationsBetaPage({
   const dayExpr = sql`to_char(${automationErrors.occurredAt} at time zone 'UTC', 'YYYY-MM-DD')`;
 
   // -------------------------------------------------------------------------
-  // ⚡⚡ ALL EIGHT READS RUN IN PARALLEL, AND THAT IS LOAD-BEARING, NOT TIDINESS.
+  // ⚡⚡ ALL ELEVEN READS RUN IN PARALLEL, AND THAT IS LOAD-BEARING, NOT
+  // TIDINESS. (It was EIGHT until 2026-09-09, when the detail panel's coverage
+  // statistic added three. The measurement below was taken at eight and still
+  // holds: the page waits for the SLOWEST query, so adding parallel reads costs
+  // nothing until one of them becomes the slowest.)
   //
   // They were eight sequential `await`s until 2026-09-06, which meant the page
   // paid EIGHT round trips to Supabase end to end instead of one. The user
@@ -187,9 +251,10 @@ export default async function AutomationsBetaPage({
   // ⚠️ `requireAuth()` stays OUTSIDE and BEFORE this on purpose. It is also a
   // query, but folding it in would run all eight of these for a signed-out
   // visitor before the guard could redirect.
-  // 📌 SIX OF THE EIGHT RETURN THE SAME DATA FOR EVERY WEBSITE. Only
-  // `siteErrors` and `recentlyEdited` read `selected.slug`, so a site switch
-  // re-runs six queries whose answers cannot have changed. Parallelising makes
+  // 📌 SIX OF THE ELEVEN RETURN THE SAME DATA FOR EVERY WEBSITE. Only
+  // `siteErrors`, `recentlyEdited` and the three coverage reads take
+  // `selected.slug`, so a site switch re-runs six queries whose answers cannot
+  // have changed. Parallelising makes
   // that cost one round trip instead of six; removing it entirely means
   // fetching those two for all five sites and switching on the client. That is
   // a separate, larger change and it was NOT done here.
@@ -205,6 +270,9 @@ export default async function AutomationsBetaPage({
     siteErrors,
     trendRows,
     recentlyEdited,
+    coverageBase,
+    coverageMulti,
+    coverageWebhooks,
   ] = await Promise.all([
     getHealthState(),
     getAutoRefreshMap(),
@@ -270,6 +338,65 @@ export default async function AutomationsBetaPage({
       )
       .orderBy(desc(automations.lastEditedAt))
       .limit(PANEL_ROWS),
+    // ---- The three coverage reads behind the panel's per-field statistic.
+    // All three are scoped to the SELECTED website, so a site switch re-runs
+    // them; that is the same shape `siteErrors` and `recentlyEdited` already
+    // have. Lifted from Alpha6, which runs the same three ungrouped by
+    // platform to build its whole-estate matrix.
+    //
+    // ⚠️ THREE QUERIES AND NOT ONE, because the answer lives in three places:
+    // two of the fields are columns ON `automations`, four are rows in the
+    // shared dropdown-selections junction, and Webhook Links has a junction of
+    // its own. A join across all three would multiply rows and need DISTINCT
+    // counting per field anyway.
+    //
+    // 1. Everything that lives on the row itself, plus the denominator.
+    // ⚠️ BLANK STRINGS COUNT AS MISSING. A Purpose of "" is not a filled-in
+    // one, and `is not null` alone would score it as documented.
+    db
+      .select({
+        total: sql<number>`count(*)::int`,
+        purpose: sql<number>`count(*) filter (where ${automations.purpose} is not null and btrim(${automations.purpose}) <> '')::int`,
+        notes: sql<number>`count(*) filter (where ${automations.notes} is not null and btrim(${automations.notes}) <> '')::int`,
+        author: sql<number>`count(*) filter (where ${automations.authorChoiceId} is not null)::int`,
+        trigger_event: sql<number>`count(*) filter (where ${automations.triggerEventChoiceId} is not null)::int`,
+      })
+      .from(automations)
+      .where(eq(automations.platform, selected.slug)),
+    // 2. The four multi-select columns. They all share ONE junction; which
+    // column a link belongs to is implied by the linked choice's own
+    // `column_key`, which is why this groups by it.
+    // ⚠️ `count(distinct automationId)` IS THE POINT. Six tags on one row is
+    // still one row covered, and a plain `count(*)` would report 600% coverage
+    // on a well-tagged website.
+    db
+      .select({
+        columnKey: automationDropdownChoices.columnKey,
+        filled: sql<number>`count(distinct ${automationDropdownSelections.automationId})::int`,
+      })
+      .from(automationDropdownSelections)
+      .innerJoin(
+        automations,
+        eq(automationDropdownSelections.automationId, automations.id),
+      )
+      .innerJoin(
+        automationDropdownChoices,
+        eq(automationDropdownSelections.choiceId, automationDropdownChoices.id),
+      )
+      .where(eq(automations.platform, selected.slug))
+      .groupBy(automationDropdownChoices.columnKey),
+    // 3. Webhook Links, which keeps its own junction pointing at a different
+    // choice table.
+    db
+      .select({
+        filled: sql<number>`count(distinct ${automationWebhooks.automationId})::int`,
+      })
+      .from(automationWebhooks)
+      .innerJoin(
+        automations,
+        eq(automationWebhooks.automationId, automations.id),
+      )
+      .where(eq(automations.platform, selected.slug)),
   ]);
 
   const statsByPlatform = new Map<string, PlatformStats>();
@@ -299,6 +426,44 @@ export default async function AutomationsBetaPage({
   for (const row of trendRows) {
     (trendByPlatform[row.platform] ??= {})[row.day] = row.count;
   }
+
+  // ---- Fold the three coverage reads into one ranked list for the panel.
+  //
+  // ⚠️ THE DENOMINATOR IS THIS WEBSITE'S OWN ROW COUNT, taken from the
+  // coverage query rather than from `statsByPlatform`. Those totals are
+  // grouped by status and exist for the rail; keeping this self-contained means
+  // a change to either one cannot silently move the other's numbers.
+  // ⚠️ A `columnKey` that is not in `COVERAGE_FIELDS` is ignored on purpose.
+  // `triage` (shown as Evaluation) comes back from query 2 and has no row here;
+  // see the note on the constant.
+  const coverageTotal = coverageBase[0]?.total ?? 0;
+  const coverageFilled: Record<string, number> = {
+    purpose: coverageBase[0]?.purpose ?? 0,
+    notes: coverageBase[0]?.notes ?? 0,
+    author: coverageBase[0]?.author ?? 0,
+    trigger_event: coverageBase[0]?.trigger_event ?? 0,
+    webhooks: coverageWebhooks[0]?.filled ?? 0,
+  };
+  for (const row of coverageMulti) {
+    coverageFilled[row.columnKey] = row.filled;
+  }
+  // ⚠️ SORTED THINNEST FIRST, which is Alpha6's ordering and is the whole
+  // editorial point: the order IS the recommendation about what to fill in
+  // next. Do not re-sort into table order.
+  const coverageRows = COVERAGE_FIELDS.filter(
+    (field) =>
+      !field.gate || columnVisibleOnPlatform(field.gate, selected.slug),
+  )
+    .map((field) => {
+      const filled = coverageFilled[field.key] ?? 0;
+      return {
+        key: field.key,
+        label: field.label,
+        filled,
+        pct: coverageTotal ? (filled / coverageTotal) * 100 : 0,
+      };
+    })
+    .sort((a, b) => a.pct - b.pct);
 
   // ⚠️ `portfolioTotal` (the estate-wide sum) and `connected` (how many of
   // the five have an API key) were computed here for the rail's "Sources"
@@ -1151,241 +1316,326 @@ export default async function AutomationsBetaPage({
                   background: `linear-gradient(to bottom, ${accent}0F, transparent)`,
                 }}
               >
-                {/* ⚠️⚠️ THIS ROW WAS EMPTIED TWICE ON 2026-09-04 AND HAS ONE
-                    CONTROL BACK: Error History, 2026-09-06, #467. Its own note
-                    sits on the Link below.
-                    ⚠️ WHAT DID NOT COME BACK, and must not: the status pill and
-                    the auto-refresh indicator (#456). The rail cards show that
-                    exact pair, five times, in this header's own components at
-                    this header's own sizes, so THIS was the redundant copy.
-                    Read a removal here as "the rail has it now", not as "we
-                    decided against it". Same shape as the counts block, which
-                    left this panel the same way on 2026-09-03.
-                    ⚠️ `justify-between` and `flex-wrap` were kept on this row
-                    for the whole two days it was empty, deliberately, for
-                    exactly the case that then happened. `flex-wrap` is why a
-                    control on the right cannot crush the name and description
-                    on a narrow panel. */}
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <span
-                      aria-hidden
-                      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white ring-1 ring-foreground/10"
-                    >
-                      <SiteGlyph site={selected} className="h-7 w-7" />
-                    </span>
-                    {/* ⚠️⚠️ THE STATUS PILL AND THE AUTO-REFRESH INDICATOR WERE
-                        REMOVED FROM HERE on 2026-09-04 ("Remove this status
-                        indicators"), and this is the SECOND time this page has
-                        shed a duplicate the same way. Do not put them back
-                        without asking.
-                        WHY IT IS NOT A REVERSAL of the two instructions that
-                        put them here ("copy the feature in S1 and put it in the
-                        location on S2" for the auto-refresh, and the pill which
-                        came with Alpha3): both indicators moved INTO THE RAIL
-                        CARDS a day earlier, one per website, in the header's own
-                        components at the header's own sizes (#455). So the
-                        selected row was showing this exact pair a few hundred
-                        pixels to the left, and THIS was the copy that had become
-                        redundant. Five of them replaced one.
-                        📌 SAME SHAPE AS THE COUNTS BLOCK, which went from this
-                        panel for the same reason on 2026-09-03: the user places
-                        an element in the rail, sees the duplication, then clears
-                        the panel's copy. Expect that rhythm, and read a removal
-                        here as "the rail has it now", not as "we decided against
-                        it".
-                        WENT WITH THEM: the `status` and `refreshOn` locals. The
-                        `siteStatus()` ladder and `StatusPill` both STAY, because
-                        the rail rows are now their only callers. */}
-                    <div className="min-w-0">
-                      <h2 className="font-heading text-xl font-semibold text-zinc-900">
-                        {selected.label}
-                      </h2>
-                      <p className="mt-0.5 text-sm text-zinc-600">
-                        {selected.description}
-                      </p>
+                {/* ⭐⭐ THE TOP OF THIS PANEL IS TWO COLUMNS, 2026-09-09: "i
+                    want you to shrink these existing elements to the left side
+                    so they occupy only half the width. In the freed up space,
+                    i want you to add the statistic you made in S2." The user
+                    circled THIS HEADER TOGETHER WITH THE ERROR BLOCK and
+                    pointed at Alpha6's per-field coverage ranking for the space
+                    that frees up.
+                    ⚠️ THE ERROR BLOCK MOVED UP INTO THIS BAND to make that
+                    work; it used to be the first child of the `p-6` body below.
+                    So the band is no longer "the header", it is the whole top
+                    section, and the `border-b` now divides that section from
+                    the two lists rather than the header from the body.
+                    ⚠️ THE TINT AND THE `border-b` STAY ON THE OUTER DIV, which
+                    is why they still span the FULL panel width while the
+                    content inside is halved. Moving either onto the left column
+                    gives you a half-width rule under a half-width tint, which
+                    reads as a rendering fault rather than a design.
+                    ⚠️⚠️ `@min-[920px]` IS A CONTAINER QUERY AND IT IS
+                    LOAD-BEARING, NOT A NICETY. This panel is viewport minus
+                    336px of chrome minus the 460px rail: **1124px at 1920,
+                    644px at 1440, 484px at 1280.** Half of 644 is 322px, and
+                    the measured wrap point for this header's content is 424px
+                    (see the Error History Link's own note, which has the full
+                    measurement). **So a fixed 50/50 would have dropped that
+                    button onto its own line at 1440 and below.** Above 920px
+                    each column gets (panel - 48px padding - 20px gap) / 2,
+                    which is 528px at 1920; below it the statistic stacks under
+                    the error block and 1440 / 1280 render as they did before
+                    this change.
+                    🛑 SO THE SIDE-BY-SIDE IS A 1920-CLASS LAYOUT ONLY, and that
+                    is deliberate. If you want it at 1440 the rail has to give
+                    up width, and the rail cannot go below 429 without
+                    truncating the Zapier card. Re-measure before trading.
+                    ⚠️ `items-start` KEEPS THE SHORTER COLUMN FROM STRETCHING.
+                    The statistic is the taller of the two, so without this the
+                    grey error block would grow to match it and stretch its bar
+                    chart.
+                    📐 HEIGHTS, DERIVED FROM THE CLASSES AND **NOT MEASURED**,
+                    so treat them as the shape of the problem and not as facts:
+                    the left column is roughly 215px (a ~100px header, a 16px
+                    gap, the 98px error block, and 98 IS measured), while the
+                    statistic is about 230px on the three websites that show six
+                    fields and about 300px on the two GHL ones that show eight.
+                    **So the two columns are close on Make, n8n and Zapier and
+                    the statistic runs over on GHL.** If that gap ever matters,
+                    measure it rather than trusting this note: the last five
+                    derived numbers on this page all went stale. */}
+                <div className="grid items-start gap-5 @min-[920px]:grid-cols-2">
+                  <div className="min-w-0 space-y-4">
+                    {/* ⚠️⚠️ THIS ROW WAS EMPTIED TWICE ON 2026-09-04 AND HAS ONE
+                        CONTROL BACK: Error History, 2026-09-06, #467. Its own note
+                        sits on the Link below.
+                        ⚠️ WHAT DID NOT COME BACK, and must not: the status pill and
+                        the auto-refresh indicator (#456). The rail cards show that
+                        exact pair, five times, in this header's own components at
+                        this header's own sizes, so THIS was the redundant copy.
+                        Read a removal here as "the rail has it now", not as "we
+                        decided against it". Same shape as the counts block, which
+                        left this panel the same way on 2026-09-03.
+                        ⚠️ `justify-between` and `flex-wrap` were kept on this row
+                        for the whole two days it was empty, deliberately, for
+                        exactly the case that then happened. `flex-wrap` is why a
+                        control on the right cannot crush the name and description
+                        on a narrow panel. */}
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <span
+                          aria-hidden
+                          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white ring-1 ring-foreground/10"
+                        >
+                          <SiteGlyph site={selected} className="h-7 w-7" />
+                        </span>
+                        {/* ⚠️⚠️ THE STATUS PILL AND THE AUTO-REFRESH INDICATOR WERE
+                            REMOVED FROM HERE on 2026-09-04 ("Remove this status
+                            indicators"), and this is the SECOND time this page has
+                            shed a duplicate the same way. Do not put them back
+                            without asking.
+                            WHY IT IS NOT A REVERSAL of the two instructions that
+                            put them here ("copy the feature in S1 and put it in the
+                            location on S2" for the auto-refresh, and the pill which
+                            came with Alpha3): both indicators moved INTO THE RAIL
+                            CARDS a day earlier, one per website, in the header's own
+                            components at the header's own sizes (#455). So the
+                            selected row was showing this exact pair a few hundred
+                            pixels to the left, and THIS was the copy that had become
+                            redundant. Five of them replaced one.
+                            📌 SAME SHAPE AS THE COUNTS BLOCK, which went from this
+                            panel for the same reason on 2026-09-03: the user places
+                            an element in the rail, sees the duplication, then clears
+                            the panel's copy. Expect that rhythm, and read a removal
+                            here as "the rail has it now", not as "we decided against
+                            it".
+                            WENT WITH THEM: the `status` and `refreshOn` locals. The
+                            `siteStatus()` ladder and `StatusPill` both STAY, because
+                            the rail rows are now their only callers. */}
+                        <div className="min-w-0">
+                          <h2 className="font-heading text-xl font-semibold text-zinc-900">
+                            {selected.label}
+                          </h2>
+                          <p className="mt-0.5 text-sm text-zinc-600">
+                            {selected.description}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* ⭐⭐ ERROR HISTORY, 2026-09-06: "Move these buttons the
+                          'Error History button' to the blank space I marked for
+                          each website's right side card" (#467). The user marked
+                          the button on a rail card and the EMPTY TOP-RIGHT of this
+                          header, so it came out of all five cards and landed here
+                          as ONE control, for whichever website is selected.
+                          ⚠️⚠️ THIS IS THE THIRD TIME THIS BUTTON HAS MOVED and the
+                          SECOND time it has been in this header, so read the whole
+                          sequence before "restoring" anything: icon-only beside
+                          each card (#443-#447) -> removed (#463) -> labelled, in
+                          THIS header (with View list) -> onto every card (#464) ->
+                          back here alone (#467). **View list stayed on the cards
+                          this time**, which is what makes this a split rather than
+                          a return to the #464 arrangement.
+                          ⚠️ THE HEADER IS NO LONGER "NO CONTROLS AT ALL". The note
+                          above used to call that the finished state; it was true
+                          for two days. What IS still true is that the STATUS PILL
+                          and the AUTO-REFRESH INDICATOR stay out (#456): they were
+                          removed as duplicates of the rail's copies, and the rail
+                          still has them. A control arriving here does not reopen
+                          those.
+                          ⚠️ SAME STYLING AS THE CARD'S VIEW LIST, deliberately:
+                          `bg-card` reads as a real button against this header's
+                          tint, and the user picked this treatment ("I like the way
+                          these buttons are rendered").
+                          ⚠️ `shrink-0` so the name and description yield first,
+                          and the row's `flex-wrap` is what stops it crushing them
+                          on a narrow panel. That class was left here deliberately
+                          when the header was emptied, for exactly this.
+                          ⚠️⚠️ MEASURED 2026-09-06, AND IT DOES WRAP ON A NARROW
+                          PANEL. The button sits 24px off the panel's right edge,
+                          top-aligned with the `<h2>` to the pixel, until the row
+                          wraps and the button drops to its own line, LEFT-aligned
+                          under the description. It never overflows, which is the
+                          whole point of `flex-wrap`. **The wrap point depends on
+                          the DESCRIPTION's length: below a 472px panel for the
+                          longest one ("Workflows found in GoHighLevel b2b"), below
+                          392px for the shortest.**
+                          ⚠️ PANEL WIDTH = VIEWPORT - 336px OF CHROME - THE RAIL,
+                          and the 336 is 240 sidebar (`pl-60`) + the layout's
+                          `p-6` + THIS PAGE'S OWN `p-6`. A real scrollbar takes
+                          ~15px more. **The doubled p-6 is the part that is easy to
+                          miss: an earlier version of this note derived 288 and was
+                          wrong at every viewport.** MEASURED with the rail at 460,
+                          by rebuilding that chrome around the pane:
+                            1920 -> 1124px panel. No wrap. Two-column lists.
+                            1440 ->  644px panel. No wrap. **Two-column lists**, by
+                                     FOUR PIXELS over the `@min-[640px]` container
+                                     query.
+                            1280 ->  484px panel. **No wrap at all**, by 12px over
+                                     the 472px threshold.
+                          ⭐⭐ SO THE RAIL TRIMS FIXED THE PANEL, AND 460 IS THE
+                          WIDTH WHERE BOTH COME GOOD. The progression is worth
+                          keeping because it shows how narrow the margins are:
+                            rail 600 -> 1280 panel 344px, EVERY description wrapped.
+                            rail 500 -> 1280 panel 444px, only the longest wrapped;
+                                        1440 panel 604px, lists still stacked.
+                            rail 460 -> 1280 panel 484px, nothing wraps; 1440 panel
+                                        644px, lists go side by side.
+                          🛑 **THE 1440 TWO-COLUMN LAYOUT SURVIVES BY 4px. WIDEN
+                          THIS RAIL AT ALL AND IT IS GONE**, and the failure is
+                          silent: the lists simply stack and nobody connects it to a
+                          rail change. The 1280 wrap has 12px. **Re-measure before
+                          assuming any widening is free.**
+                          ⚠️ THE RAIL IS SQUEEZED FROM BOTH SIDES NOW, which is new:
+                          the cards want >= 429 and the panel wants <= 460. That is
+                          a THIRTY-ONE PIXEL WINDOW, so this number is no longer a free
+                          choice. Anything outside it costs something measurable.
+                          Do not "fix" a wrap with `whitespace-nowrap` or a fixed
+                          width: those trade a graceful wrap for a crushed name. */}
+                      <Link
+                        href={`/automations/${selected.slug}/errors`}
+                        className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-card px-2.5 text-xs font-medium text-zinc-600 ring-1 ring-foreground/10 transition-colors hover:bg-zinc-50 hover:text-zinc-900"
+                      >
+                        <AlertTriangle className="h-3.5 w-3.5" />
+                        Error History
+                      </Link>
+                    </div>
+
+                    {/* ⚠️⚠️ THE PANEL DELIBERATELY OPENS ON THE ERROR PANEL, WITH
+                        NO HEADLINE COUNT ABOVE IT. Two rounds of removals sit here,
+                        both 2026-09-03, and NEITHER should be undone without
+                        asking:
+                        1. Alpha3's FOUR FIGURE CARDS (Tracked / Active / Paused /
+                           Errors in ring-outlined boxes) plus a standalone
+                           proportion bar with a three-part legend. The user
+                           replaced them with the live hub's own treatment: "I liked
+                           the statistics in S1. Replace these stuff in S2 with
+                           that." That is what left the `Figure` helper with no
+                           caller.
+                           WHY THAT WAS RIGHT: Alpha3's four boxes gave the total
+                           and its own parts the same visual weight, so "115"
+                           competed with the "16" and "99" that add up to it.
+                        2. Then THE COUNTS BLOCK that replaced them, which is what
+                           stood here until "Remove this statistic": the total at
+                           3xl with "automations" beside it, the active/paused split
+                           as two dotted figures on the right, and a proportion bar
+                           under both. It took `stats`, `activePct` and `pausedPct`
+                           with it.
+                        ⚠️ #2 IS NOT A REVERSAL OF #1, AND THE STATISTIC IS NOT
+                        LOST. The same block had moved INTO THE RAIL CARDS earlier
+                        the same day, one per website, so the selected row was
+                        showing it a few hundred pixels from this panel's larger
+                        copy. THIS copy was the duplicate that went. The statistic
+                        is now on screen five times over instead of once, which is
+                        more information, not less.
+                        ⚠️ SO IF A HEADLINE NUMBER IS EVER WANTED HERE AGAIN, ask
+                        first, and scale the RAIL's treatment up rather than
+                        reviving either version above.
+                        ⚠️⚠️ A STATISTIC DID ARRIVE IN THIS REGION ON 2026-09-09 AND
+                        IT IS NEITHER OF THE TWO ABOVE. It is Alpha6's per-field
+                        DOCUMENTATION coverage, in the right-hand column of the
+                        band, and it measures how completely the record is filled in
+                        rather than how many automations there are. **The ban above
+                        stands**: the counts block is the rail's job now. Read this
+                        note as "no headline COUNT above the error panel", not as
+                        "nothing may ever sit beside it". */}
+
+                    {/* ⚠️⚠️⚠️ THIS BLOCK STAYS HERE. IT WAS TRIED IN THE RAIL CARDS
+                        ON 2026-09-04 AND SENT BACK THE SAME DAY. Do not move it
+                        into the cards again without being asked.
+                        ⚠️ AND NOTE WHAT HAPPENED NEXT, or the record misleads: the
+                        API-key button went to the cards WITH this block (PR #458),
+                        both came back (#459), and then the user asked for the
+                        BUTTON ALONE to go back in ("put that 'API Key Integrated'
+                        inside their respective website card ... This should still
+                        result in a decently short card unlike the tall one before",
+                        #460). **So the button IS in the cards now and this block is
+                        not. The two were not rejected together; only this one was.**
+                        ⚠️ WHY THIS ONE IS THE PROBLEM, since the instinct behind
+                        moving it was sound and someone will have it again. Every
+                        move to the rail trades one copy for five, and it works when
+                        each copy is SMALL: a pill, a number, a legend, a 28px
+                        button. **This block is 98px.** MEASURED with it in the
+                        cards: the card went 76px -> 218px, the five cards to
+                        1128px, the rail to 1339px against a detail panel of about
+                        500px. The rail stopped being a rail and the panel it was
+                        feeding sat mostly empty.
+                        📌 SO THE RULE IS NOT "nothing else moves to the cards", it
+                        is **"measure its height first"**. 28px was fine. 98px was
+                        not.
+                        📌 IT DID MOVE ON 2026-09-09, but not to the rail: it went
+                        from the `p-6` body up into the header band's LEFT COLUMN,
+                        when the top of this panel became two columns. **"Stays
+                        here" has always meant "not in the five cards", and that is
+                        unchanged.** */}
+
+                    {/* ⭐ THE ERROR PANEL, from the live hub. One grey block with
+                        the lifetime count, how long ago the last one was, and a
+                        30-day bar chart. It brought the per-(platform, day) trend
+                        query, `TREND_DAYS` and the `Sparkline` component back to
+                        this page; Alpha3's layout had no home for any of them.
+                        THE POINT OF IT: a big number that stopped growing reads
+                        completely differently from one still growing. Make's 35 and
+                        n8n's 599 look like the same kind of fact as bare figures,
+                        which is exactly what the Errors figure card did.
+                        ⚠️ IT USED TO DUPLICATE THE FOUR-COLUMN META STRIP'S "LAST
+                        ERROR" CELL, which said the same "34d ago". That strip is
+                        gone ("Remove all these status indicators"), so this is now
+                        the only place the days-since figure appears. */}
+                    <div className="rounded-lg bg-zinc-50 p-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-baseline gap-1.5">
+                          <span
+                            className={cn(
+                              "text-lg font-semibold leading-none tabular-nums",
+                              errors > 0 ? "text-red-600" : "text-zinc-400",
+                            )}
+                          >
+                            {errors}
+                          </span>
+                          <span className="text-xs text-zinc-500">
+                            {errors === 1 ? "error" : "errors"} captured
+                          </span>
+                        </div>
+                        {/* User-set wording. Singular at 1, "today" at 0 because
+                            the day count is FLOORED, and "not tracked yet" when the
+                            platform has captured nothing ever (permanent for GHL,
+                            GHL b2b and Zapier). */}
+                        <span className="text-[11px] text-zinc-500">
+                          {days === undefined
+                            ? "not tracked yet"
+                            : days === 0
+                              ? "Last Error today"
+                              : `Last Error ${days} day${days === 1 ? "" : "s"} ago`}
+                        </span>
+                      </div>
+                      <Sparkline dayKeys={dayKeys} counts={trend} />
                     </div>
                   </div>
 
-                  {/* ⭐⭐ ERROR HISTORY, 2026-09-06: "Move these buttons the
-                      'Error History button' to the blank space I marked for
-                      each website's right side card" (#467). The user marked
-                      the button on a rail card and the EMPTY TOP-RIGHT of this
-                      header, so it came out of all five cards and landed here
-                      as ONE control, for whichever website is selected.
-                      ⚠️⚠️ THIS IS THE THIRD TIME THIS BUTTON HAS MOVED and the
-                      SECOND time it has been in this header, so read the whole
-                      sequence before "restoring" anything: icon-only beside
-                      each card (#443-#447) -> removed (#463) -> labelled, in
-                      THIS header (with View list) -> onto every card (#464) ->
-                      back here alone (#467). **View list stayed on the cards
-                      this time**, which is what makes this a split rather than
-                      a return to the #464 arrangement.
-                      ⚠️ THE HEADER IS NO LONGER "NO CONTROLS AT ALL". The note
-                      above used to call that the finished state; it was true
-                      for two days. What IS still true is that the STATUS PILL
-                      and the AUTO-REFRESH INDICATOR stay out (#456): they were
-                      removed as duplicates of the rail's copies, and the rail
-                      still has them. A control arriving here does not reopen
-                      those.
-                      ⚠️ SAME STYLING AS THE CARD'S VIEW LIST, deliberately:
-                      `bg-card` reads as a real button against this header's
-                      tint, and the user picked this treatment ("I like the way
-                      these buttons are rendered").
-                      ⚠️ `shrink-0` so the name and description yield first,
-                      and the row's `flex-wrap` is what stops it crushing them
-                      on a narrow panel. That class was left here deliberately
-                      when the header was emptied, for exactly this.
-                      ⚠️⚠️ MEASURED 2026-09-06, AND IT DOES WRAP ON A NARROW
-                      PANEL. The button sits 24px off the panel's right edge,
-                      top-aligned with the `<h2>` to the pixel, until the row
-                      wraps and the button drops to its own line, LEFT-aligned
-                      under the description. It never overflows, which is the
-                      whole point of `flex-wrap`. **The wrap point depends on
-                      the DESCRIPTION's length: below a 472px panel for the
-                      longest one ("Workflows found in GoHighLevel b2b"), below
-                      392px for the shortest.**
-                      ⚠️ PANEL WIDTH = VIEWPORT - 336px OF CHROME - THE RAIL,
-                      and the 336 is 240 sidebar (`pl-60`) + the layout's
-                      `p-6` + THIS PAGE'S OWN `p-6`. A real scrollbar takes
-                      ~15px more. **The doubled p-6 is the part that is easy to
-                      miss: an earlier version of this note derived 288 and was
-                      wrong at every viewport.** MEASURED with the rail at 460,
-                      by rebuilding that chrome around the pane:
-                        1920 -> 1124px panel. No wrap. Two-column lists.
-                        1440 ->  644px panel. No wrap. **Two-column lists**, by
-                                 FOUR PIXELS over the `@min-[640px]` container
-                                 query.
-                        1280 ->  484px panel. **No wrap at all**, by 12px over
-                                 the 472px threshold.
-                      ⭐⭐ SO THE RAIL TRIMS FIXED THE PANEL, AND 460 IS THE
-                      WIDTH WHERE BOTH COME GOOD. The progression is worth
-                      keeping because it shows how narrow the margins are:
-                        rail 600 -> 1280 panel 344px, EVERY description wrapped.
-                        rail 500 -> 1280 panel 444px, only the longest wrapped;
-                                    1440 panel 604px, lists still stacked.
-                        rail 460 -> 1280 panel 484px, nothing wraps; 1440 panel
-                                    644px, lists go side by side.
-                      🛑 **THE 1440 TWO-COLUMN LAYOUT SURVIVES BY 4px. WIDEN
-                      THIS RAIL AT ALL AND IT IS GONE**, and the failure is
-                      silent: the lists simply stack and nobody connects it to a
-                      rail change. The 1280 wrap has 12px. **Re-measure before
-                      assuming any widening is free.**
-                      ⚠️ THE RAIL IS SQUEEZED FROM BOTH SIDES NOW, which is new:
-                      the cards want >= 429 and the panel wants <= 460. That is
-                      a THIRTY-ONE PIXEL WINDOW, so this number is no longer a free
-                      choice. Anything outside it costs something measurable.
-                      Do not "fix" a wrap with `whitespace-nowrap` or a fixed
-                      width: those trade a graceful wrap for a crushed name. */}
-                  <Link
-                    href={`/automations/${selected.slug}/errors`}
-                    className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-card px-2.5 text-xs font-medium text-zinc-600 ring-1 ring-foreground/10 transition-colors hover:bg-zinc-50 hover:text-zinc-900"
-                  >
-                    <AlertTriangle className="h-3.5 w-3.5" />
-                    Error History
-                  </Link>
+                  {/* ⭐⭐ ALPHA6'S COVERAGE RANKING, scoped to the selected
+                      website. Alpha6 aggregates all five into one estate-wide
+                      list; here it answers "how well do we know THIS website",
+                      which is the only reading that makes sense in a per-site
+                      panel.
+                      ⚠️ IT IS THE ONLY THING ON THIS PAGE, OR ON THE LIVE HUB,
+                      THAT MEASURES THE RECORD RATHER THAN THE ESTATE. Every
+                      other number here counts automations, errors or runs. This
+                      one counts how much of the documentation a person is meant
+                      to type is actually typed, which is what most of the work
+                      on this tab went into building room for.
+                      ⚠️ `bg-card` ON THE CARD IS DELIBERATE, same reasoning as
+                      the Error History button beside it: this sits ON the
+                      header's tint, and a transparent card would let the tint
+                      show through and stop reading as a card. */}
+                  <CoverageByField rows={coverageRows} total={coverageTotal} />
                 </div>
               </div>
 
-              <div className="space-y-5 p-6">
-                {/* ⚠️⚠️ THE PANEL DELIBERATELY OPENS ON THE ERROR PANEL, WITH
-                    NO HEADLINE COUNT ABOVE IT. Two rounds of removals sit here,
-                    both 2026-09-03, and NEITHER should be undone without
-                    asking:
-                    1. Alpha3's FOUR FIGURE CARDS (Tracked / Active / Paused /
-                       Errors in ring-outlined boxes) plus a standalone
-                       proportion bar with a three-part legend. The user
-                       replaced them with the live hub's own treatment: "I liked
-                       the statistics in S1. Replace these stuff in S2 with
-                       that." That is what left the `Figure` helper with no
-                       caller.
-                       WHY THAT WAS RIGHT: Alpha3's four boxes gave the total
-                       and its own parts the same visual weight, so "115"
-                       competed with the "16" and "99" that add up to it.
-                    2. Then THE COUNTS BLOCK that replaced them, which is what
-                       stood here until "Remove this statistic": the total at
-                       3xl with "automations" beside it, the active/paused split
-                       as two dotted figures on the right, and a proportion bar
-                       under both. It took `stats`, `activePct` and `pausedPct`
-                       with it.
-                    ⚠️ #2 IS NOT A REVERSAL OF #1, AND THE STATISTIC IS NOT
-                    LOST. The same block had moved INTO THE RAIL CARDS earlier
-                    the same day, one per website, so the selected row was
-                    showing it a few hundred pixels from this panel's larger
-                    copy. THIS copy was the duplicate that went. The statistic
-                    is now on screen five times over instead of once, which is
-                    more information, not less.
-                    ⚠️ SO IF A HEADLINE NUMBER IS EVER WANTED HERE AGAIN, ask
-                    first, and scale the RAIL's treatment up rather than
-                    reviving either version above. */}
-
-                {/* ⚠️⚠️⚠️ THIS BLOCK STAYS HERE. IT WAS TRIED IN THE RAIL CARDS
-                    ON 2026-09-04 AND SENT BACK THE SAME DAY. Do not move it
-                    into the cards again without being asked.
-                    ⚠️ AND NOTE WHAT HAPPENED NEXT, or the record misleads: the
-                    API-key button went to the cards WITH this block (PR #458),
-                    both came back (#459), and then the user asked for the
-                    BUTTON ALONE to go back in ("put that 'API Key Integrated'
-                    inside their respective website card ... This should still
-                    result in a decently short card unlike the tall one before",
-                    #460). **So the button IS in the cards now and this block is
-                    not. The two were not rejected together; only this one was.**
-                    ⚠️ WHY THIS ONE IS THE PROBLEM, since the instinct behind
-                    moving it was sound and someone will have it again. Every
-                    move to the rail trades one copy for five, and it works when
-                    each copy is SMALL: a pill, a number, a legend, a 28px
-                    button. **This block is 98px.** MEASURED with it in the
-                    cards: the card went 76px -> 218px, the five cards to
-                    1128px, the rail to 1339px against a detail panel of about
-                    500px. The rail stopped being a rail and the panel it was
-                    feeding sat mostly empty.
-                    📌 SO THE RULE IS NOT "nothing else moves to the cards", it
-                    is **"measure its height first"**. 28px was fine. 98px was
-                    not. */}
-
-                {/* ⭐ THE ERROR PANEL, from the live hub. One grey block with
-                    the lifetime count, how long ago the last one was, and a
-                    30-day bar chart. It brought the per-(platform, day) trend
-                    query, `TREND_DAYS` and the `Sparkline` component back to
-                    this page; Alpha3's layout had no home for any of them.
-                    THE POINT OF IT: a big number that stopped growing reads
-                    completely differently from one still growing. Make's 35 and
-                    n8n's 599 look like the same kind of fact as bare figures,
-                    which is exactly what the Errors figure card did.
-                    ⚠️ IT USED TO DUPLICATE THE FOUR-COLUMN META STRIP'S "LAST
-                    ERROR" CELL, which said the same "34d ago". That strip is
-                    gone ("Remove all these status indicators"), so this is now
-                    the only place the days-since figure appears. */}
-                <div className="rounded-lg bg-zinc-50 p-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-baseline gap-1.5">
-                      <span
-                        className={cn(
-                          "text-lg font-semibold leading-none tabular-nums",
-                          errors > 0 ? "text-red-600" : "text-zinc-400",
-                        )}
-                      >
-                        {errors}
-                      </span>
-                      <span className="text-xs text-zinc-500">
-                        {errors === 1 ? "error" : "errors"} captured
-                      </span>
-                    </div>
-                    {/* User-set wording. Singular at 1, "today" at 0 because
-                        the day count is FLOORED, and "not tracked yet" when the
-                        platform has captured nothing ever (permanent for GHL,
-                        GHL b2b and Zapier). */}
-                    <span className="text-[11px] text-zinc-500">
-                      {days === undefined
-                        ? "not tracked yet"
-                        : days === 0
-                          ? "Last Error today"
-                          : `Last Error ${days} day${days === 1 ? "" : "s"} ago`}
-                    </span>
-                  </div>
-                  <Sparkline dayKeys={dayKeys} counts={trend} />
-                </div>
-
+              {/* ⚠️ `space-y-5` CAME OFF THIS ON 2026-09-09. The error block
+                  was its first child and moved up into the band, so the two
+                  lists are the only child left and there is nothing to space.
+                  Put it back if anything is ever added below them. */}
+              <div className="p-6">
                 {/* ⚠️⚠️ THE META STRIP WAS REMOVED HERE ON 2026-09-03, at the
                     user's instruction: "Remove all these status indicators."
                     It was a four-column band on a grey ground: API KEY /
@@ -1761,6 +2011,98 @@ function Panel({
       )}
     </div>
   );
+}
+
+/** One row per field a human fills in, worst coverage first.
+ *
+ *  ⭐⭐ COPIED FROM ALPHA6'S "By field" PANEL, 2026-09-09, and kept close to it
+ *  on purpose: same row shape (label, bar, percent, filled-over-total), same
+ *  thinnest-first ordering, same four-step colour ramp.
+ *
+ *  ⚠️ TWO PRESENTATION CHANGES, both to fit this panel rather than a full page:
+ *    1. THE TITLE IS "Documented by field", where Alpha6 says just "By field".
+ *       Alpha6's page carries a heading and a caption explaining that the whole
+ *       page is about documentation coverage; inside a panel about one website,
+ *       "By field" alone says nothing about WHAT is being measured.
+ *       "Documented" is Alpha6's own word for this figure.
+ *    2. THE COUNTS COLUMN IS ALWAYS SHOWN. Alpha6 hides it under `sm:`, a
+ *       VIEWPORT query, which is exactly the mistake the two lists below this
+ *       panel had to be rescued from: the RAIL decides how wide this panel is,
+ *       so the window's width cannot answer the question. It is narrower here
+ *       (`w-16` against `w-24`) because a per-website denominator is at most 3
+ *       digits, and the fixed widths total 216px + 36px of gaps + 28px of
+ *       padding, so the bar still gets 144px in the narrowest 424px column.
+ *
+ *  ⚠️ THE HEADER AND THE EMPTY STATE MIRROR `Panel` BELOW, not Alpha6, so the
+ *  three cards in this panel read as one family. Keep them in step.
+ *  ⚠️ `total === 0` CANNOT HAPPEN TODAY (every website has 104 rows or more)
+ *  but it is handled rather than dividing by zero into a column of 0% bars,
+ *  which would look like a real measurement of an empty website.
+ *
+ *  📌 ROW COUNT VARIES BY WEBSITE, and that is the gate doing its job: Make,
+ *  n8n and Zapier show SIX fields, GHL and GHL b2b show EIGHT. Do not "fix" the
+ *  card to a uniform height on the strength of one screenshot. */
+function CoverageByField({
+  rows,
+  total,
+}: {
+  rows: { key: string; label: string; filled: number; pct: number }[];
+  total: number;
+}) {
+  return (
+    <div className="min-w-0 overflow-hidden rounded-lg bg-card ring-1 ring-foreground/10">
+      <div className="flex items-center justify-between gap-2 border-b bg-muted/40 px-3.5 py-2">
+        <span className="text-xs font-semibold text-zinc-800">
+          Documented by field
+        </span>
+        <span className="text-[10px] uppercase tracking-wider text-zinc-500">
+          thinnest first
+        </span>
+      </div>
+      {total === 0 ? (
+        <div className="flex flex-col items-center justify-center gap-2 px-4 py-8 text-center">
+          <Inbox className="h-5 w-5 text-zinc-300" />
+          <p className="text-xs text-zinc-500">
+            No automations recorded for this website yet.
+          </p>
+        </div>
+      ) : (
+        <ul className="divide-y">
+          {rows.map((row) => (
+            <li key={row.key} className="flex items-center gap-3 px-3.5 py-2">
+              <span className="w-28 shrink-0 truncate text-xs font-medium text-zinc-700">
+                {row.label}
+              </span>
+              <div className="flex h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-zinc-100">
+                <span
+                  className={cn("rounded-full", barClass(row.pct))}
+                  style={{ width: `${Math.min(100, row.pct)}%` }}
+                />
+              </div>
+              <span className="w-10 shrink-0 text-right text-xs font-semibold tabular-nums text-zinc-900">
+                {Math.round(row.pct)}%
+              </span>
+              <span className="w-16 shrink-0 text-right text-[11px] tabular-nums text-zinc-400">
+                {row.filled}/{total}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/** The coverage bar's colour ramp. Alpha6's thresholds, unchanged.
+ *
+ *  ⚠️ FOUR STEPS AND NOT A GRADIENT: the point is that a glance sorts the rows
+ *  into "nobody has touched this", "half done" and "done", which a continuous
+ *  scale cannot do. */
+function barClass(p: number): string {
+  if (p < 20) return "bg-red-400";
+  if (p < 45) return "bg-amber-400";
+  if (p < 70) return "bg-emerald-400";
+  return "bg-emerald-600";
 }
 
 /* ⚠️ `RailTool` LIVED HERE and went with the rail's Tools section on
