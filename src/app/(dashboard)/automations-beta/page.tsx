@@ -1349,22 +1349,33 @@ export default async function AutomationsBetaPage({
                     is deliberate. If you want it at 1440 the rail has to give
                     up width, and the rail cannot go below 429 without
                     truncating the Zapier card. Re-measure before trading.
-                    ⚠️ `items-start` KEEPS THE SHORTER COLUMN FROM STRETCHING.
-                    The statistic is the taller of the two, so without this the
-                    grey error block would grow to match it and stretch its bar
-                    chart.
+                    ⚠️⚠️ THERE IS DELIBERATELY NO `items-start` ON THIS GRID,
+                    AND IT USED TO BE HERE. It was removed on 2026-09-09, hours
+                    after the split shipped: "Make this statistic stretch
+                    vertically to fill the empty space below it." **The grid's
+                    DEFAULT stretch is what gives the left column the row's full
+                    height**, and the error block's own `flex-1` is what makes
+                    it USE that height instead of leaving a hole beneath itself.
+                    Re-adding `items-start` brings the hole straight back.
+                    ⚠️ THE ROW'S HEIGHT COMES FROM THE STATISTIC, which is
+                    always the taller of the two, so nothing else stretches
+                    today. **If the left column ever grows past it** (a wrapped
+                    header, a third block), the STATISTIC starts stretching
+                    instead and its ring will enclose empty space at its foot.
+                    That is the failure to watch for, and the fix is to grow its
+                    rows, NOT to re-add `items-start`.
                     📐 HEIGHTS, DERIVED FROM THE CLASSES AND **NOT MEASURED**,
                     so treat them as the shape of the problem and not as facts:
-                    the left column is roughly 215px (a ~100px header, a 16px
-                    gap, the 98px error block, and 98 IS measured), while the
-                    statistic is about 230px on the three websites that show six
-                    fields and about 300px on the two GHL ones that show eight.
-                    **So the two columns are close on Make, n8n and Zapier and
-                    the statistic runs over on GHL.** If that gap ever matters,
-                    measure it rather than trusting this note: the last five
-                    derived numbers on this page all went stale. */}
-                <div className="grid items-start gap-5 @min-[920px]:grid-cols-2">
-                  <div className="min-w-0 space-y-4">
+                    the header is ~100px and the gap 16px, so the error block is
+                    handed whatever is left of the statistic's ~230px on the
+                    three websites that show six fields and ~300px on the two
+                    GHL ones that show eight. **That is roughly 114px and 180px,
+                    against the 98px it occupied naturally.** So it gets taller
+                    everywhere, and most on GHL. If any of this matters, measure
+                    it rather than trusting this note: the last five derived
+                    numbers on this page all went stale. */}
+                <div className="grid gap-5 @min-[920px]:grid-cols-2">
+                  <div className="flex min-w-0 flex-col gap-4">
                     {/* ⚠️⚠️ THIS ROW WAS EMPTIED TWICE ON 2026-09-04 AND HAS ONE
                         CONTROL BACK: Error History, 2026-09-06, #467. Its own note
                         sits on the Link below.
@@ -1566,11 +1577,28 @@ export default async function AutomationsBetaPage({
                         from the `p-6` body up into the header band's LEFT COLUMN,
                         when the top of this panel became two columns. **"Stays
                         here" has always meant "not in the five cards", and that is
-                        unchanged.** */}
+                        unchanged.**
+                        ⚠️ AND THE 98px ABOVE IS NOW ITS *NATURAL* HEIGHT, NOT ITS
+                        RENDERED ONE. Later the same day it was given `flex-1` to
+                        fill the left column, so it renders taller than 98px here.
+                        **98px is still the right number for the cards question**,
+                        because that is what it would collapse back to. */}
 
-                    {/* ⭐ THE ERROR PANEL, from the live hub. One grey block with
-                        the lifetime count, how long ago the last one was, and a
-                        30-day bar chart. It brought the per-(platform, day) trend
+                    {/* ⭐ THE ERROR PANEL, from the live hub. One block with the
+                        lifetime count, how long ago the last one was, and a
+                        30-day bar chart.
+                        ⚠️⚠️ IT IS NO LONGER GREY AND NO LONGER CONTENT-HEIGHT,
+                        both changed 2026-09-09: "give it the same borders and
+                        background as the statistic to its right side." So
+                        `bg-zinc-50` became **`bg-card` + `ring-1
+                        ring-foreground/10`, copied off `CoverageByField`
+                        beside it**, and `flex flex-1 flex-col` makes it fill
+                        the left column. **THE TWO CARDS ARE MEANT TO MATCH NOW,
+                        so a change to either one's frame belongs on both.**
+                        ⚠️ THE LIVE HUB STILL HAS THE GREY VERSION. This is a
+                        bench divergence, not a bug to reconcile: `bg-zinc-50`
+                        worked there because that block sits on plain white, and
+                        here it sits on the header's tint beside a ringed card. It brought the per-(platform, day) trend
                         query, `TREND_DAYS` and the `Sparkline` component back to
                         this page; Alpha3's layout had no home for any of them.
                         THE POINT OF IT: a big number that stopped growing reads
@@ -1581,7 +1609,7 @@ export default async function AutomationsBetaPage({
                         ERROR" CELL, which said the same "34d ago". That strip is
                         gone ("Remove all these status indicators"), so this is now
                         the only place the days-since figure appears. */}
-                    <div className="rounded-lg bg-zinc-50 p-3">
+                    <div className="flex flex-1 flex-col rounded-lg bg-card p-3 ring-1 ring-foreground/10">
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex items-baseline gap-1.5">
                           <span
@@ -1940,6 +1968,22 @@ function SiteGlyph({
  *  a single error still shows a readable bar, at the cost of the sites not being
  *  comparable by height. Deliberate: only one site is on screen here, which
  *  makes it even less of a trade-off than it was on the card grid. */
+/** The error panel's 30-day bar chart.
+ *
+ *  ⚠️⚠️ IT GROWS TO FILL ITS PARENT AS OF 2026-09-09, where it used to be a
+ *  fixed `h-7` (28px) row. The error panel around it now stretches to fill the
+ *  detail panel's left column, and without this the extra height became a void
+ *  INSIDE that block instead of a taller chart.
+ *  ⚠️ `min-h-7` IS THE FLOOR AND IS LOAD-BEARING: on a narrow panel the columns
+ *  stack, the block goes back to content height, and `flex-1` would otherwise
+ *  resolve to nothing and collapse the bars. It keeps the old 28px as the
+ *  minimum, so the stacked layout renders exactly as it did before.
+ *  ⚠️ THE BARS ARE PERCENTAGE-HEIGHT, which is why growing the row is enough:
+ *  they rescale themselves and the 12% floor still separates a 1-error day from
+ *  a 40-error day. Zero days stay a flat 3px stub at any height.
+ *  📌 THE THREE PLATFORMS THAT CANNOT CAPTURE ERRORS (GHL, GHL b2b, Zapier) now
+ *  draw a taller row of stubs. That reads as "nothing here", which is correct,
+ *  and it is the price of the block filling its column. */
 function Sparkline({
   dayKeys,
   counts,
@@ -1950,8 +1994,8 @@ function Sparkline({
   const values = dayKeys.map((k) => counts[k] ?? 0);
   const max = Math.max(...values, 0);
   return (
-    <div className="mt-2.5">
-      <div className="flex h-7 items-end gap-[3px]">
+    <div className="mt-2.5 flex flex-1 flex-col">
+      <div className="flex min-h-7 flex-1 items-end gap-[3px]">
         {values.map((v, i) => (
           <span
             key={dayKeys[i]}
