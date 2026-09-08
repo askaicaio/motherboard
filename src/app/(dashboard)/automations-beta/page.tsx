@@ -886,6 +886,46 @@ export default async function AutomationsBetaPage({
                           All five cards are in the viewport at once, so all five
                           payloads land shortly after the page does and a click
                           is served from cache.
+                          🛑🛑 **AND THAT IS EXACTLY WHAT BROKE THE PAGE ON
+                          2026-09-09, SO `prefetch` IS NOW `false`. DO NOT TURN
+                          IT BACK ON WITHOUT READING THIS.**
+                          The user: "There seems to be a problem with beta1. I
+                          can't load the page ... Occasionally, it does load,
+                          but if I try to switch to a different website view,
+                          like n8n, even though Make works fine, it won't change
+                          to n8n and loads for a long time." **Beta1 was the
+                          only page affected**, which is the tell: it is the
+                          only page that fans out like this.
+                          📐 MEASURED, against the real database, by putting the
+                          page's whole read block behind a public throwaway
+                          route and firing the same six requests a page load
+                          fires:
+                            1 render   ->    2.0 s, all reads fine
+                            6 renders  ->  ONE returns in 2.1 s and the other
+                                           FIVE take 5.1 MINUTES
+                          The dev server logged all six as `200`, so they do
+                          finish; the browser has long since given up. **That is
+                          precisely the reported symptom: the first site renders
+                          and every switch hangs**, because the switch is served
+                          by one of the five starved prefetch renders.
+                          ⚠️⚠️ WHAT IT IS *NOT*, all ruled out by measurement, so
+                          nobody re-runs this: the SQL (all three coverage
+                          queries do 6-way concurrency in 460 ms each in
+                          isolation), the connection limit (17 of 60 in use),
+                          and a pool deadlock. **The queries are fine. The
+                          multiplier is the problem.**
+                          📌 THE COST IS REAL AND THE USER ACCEPTED IT KNOWINGLY:
+                          this reinstates the switch delay that #470, #471 and
+                          #472 were spent removing. `CardNavIndicator` still
+                          gives the instant click feedback from #471, so the
+                          click is still acknowledged immediately; only the data
+                          waits.
+                          ⭐ THE WAY BACK, if the speed is wanted again, is
+                          HOVER-TRIGGERED prefetch (one prefetch per hover
+                          instead of five per page load), which needs the card
+                          to become a client component. **Do not simply restore
+                          `prefetch`**: six concurrent renders of this page is
+                          a measured failure, not a theoretical one.
                           ⚠️⚠️ WHAT IT COSTS, so nobody discovers it as a
                           mystery: **a page load now triggers FIVE extra full
                           renders of this route in the background**, one per
@@ -916,7 +956,7 @@ export default async function AutomationsBetaPage({
                       <Link
                         href={`/automations-beta?site=${site.slug}`}
                         aria-label={`Show ${site.label}`}
-                        prefetch
+                        prefetch={false}
                         className="absolute inset-0 rounded-lg"
                       >
                         <CardNavIndicator accent={ACCENT[site.slug]} />
