@@ -222,11 +222,43 @@ export default async function AutomationsBetaPage({
   const dayExpr = sql`to_char(${automationErrors.occurredAt} at time zone 'UTC', 'YYYY-MM-DD')`;
 
   // -------------------------------------------------------------------------
-  // ⚡⚡ ALL ELEVEN READS RUN IN PARALLEL, AND THAT IS LOAD-BEARING, NOT
-  // TIDINESS. (It was EIGHT until 2026-09-09, when the detail panel's coverage
-  // statistic added three. The measurement below was taken at eight and still
-  // holds: the page waits for the SLOWEST query, so adding parallel reads costs
-  // nothing until one of them becomes the slowest.)
+  // ⚡⚡ THE ELEVEN READS RUN IN PARALLEL IN TWO WAVES OF SIX AND FIVE, AND
+  // **THE WAVES ARE A BUG FIX, NOT A STYLE CHOICE. DO NOT COLLAPSE THEM BACK
+  // INTO ONE `Promise.all`.**
+  //
+  // 🛑🛑 WHAT HAPPENED, 2026-09-09: this block went from EIGHT reads to ELEVEN
+  // when the coverage statistic landed (#486), and **the connection pool in
+  // `src/lib/db/index.ts` is `max: 10`.** So every render asked for one more
+  // connection than the pool can hand out. The page became unloadable: the user
+  // reported "I can't load the page ... Occasionally, it does load, but if I try
+  // to switch to a different website view, like n8n, even though Make works
+  // fine, it won't change to n8n and loads for a long time." **Beta1 was the
+  // only page affected, because it has by far the widest read fan-out.**
+  //
+  // 📐 MEASURED against the real database, one fresh client per trial, with the
+  // exact options `src/lib/db/index.ts` uses:
+  //       8 concurrent -> ok, 1774 ms
+  //       9 concurrent -> ok, 1905 ms
+  //      10 concurrent -> **PostgresError: canceling statement due to statement
+  //                       timeout** (SQLSTATE 57014; the server's
+  //                       `statement_timeout` is 2min)
+  // ⚠️⚠️ AND IT IS A RACE, NOT A CLEAN CEILING: a later run of ELEVEN passed in
+  // 2048 ms. **That intermittency IS the reported symptom.** Do not conclude the
+  // limit is fine because one run succeeded; at or above `max` this block is
+  // gambling, and the losing case costs two minutes.
+  // ⚠️ THE FINGERPRINT, if it ever recurs: `pg_stat_activity` fills with this
+  // page's queries in state `active` and `wait_event = Client/ClientRead`,
+  // meaning the database has answered and nothing is reading the result.
+  //
+  // ⭐ SO THE RULE FOR THIS PAGE: **KEEP EACH WAVE AT SIX OR FEWER, AND WELL
+  // UNDER `max`.** Adding a twelfth read means adding it to a wave, or adding a
+  // third wave, NOT widening one. The two-wave shape costs ONE extra round trip
+  // (about 20 ms on Vercel, where a query is ~5-20 ms) and buys the margin back.
+  //
+  // WHY PARALLEL AT ALL, which is still true and still load-bearing: they were
+  // eight sequential `await`s until 2026-09-06, which cost EIGHT round trips
+  // end to end. The user reported it as "there is around a 1 second delay before
+  // this section of the page changes".
   //
   // They were eight sequential `await`s until 2026-09-06, which meant the page
   // paid EIGHT round trips to Supabase end to end instead of one. The user
@@ -259,6 +291,7 @@ export default async function AutomationsBetaPage({
   // fetching those two for all five sites and switching on the client. That is
   // a separate, larger change and it was NOT done here.
   // -------------------------------------------------------------------------
+  // ---- WAVE 1 of 2. Six reads. See the cap rule above before adding here.
   const [
     // Last stored Auto-API health check results + the toggle's state. Needed
     // because this page's health controls are REAL, unlike Alpha3's static pill.
@@ -268,11 +301,6 @@ export default async function AutomationsBetaPage({
     daysSinceErrorByPlatform,
     grouped,
     siteErrors,
-    trendRows,
-    recentlyEdited,
-    coverageBase,
-    coverageMulti,
-    coverageWebhooks,
   ] = await Promise.all([
     getHealthState(),
     getAutoRefreshMap(),
@@ -301,6 +329,17 @@ export default async function AutomationsBetaPage({
       .where(eq(automationErrors.platform, selected.slug))
       .orderBy(desc(automationErrors.occurredAt))
       .limit(PANEL_ROWS),
+  ]);
+
+  // ---- WAVE 2 of 2. Five reads. Nothing here depends on wave 1; the split is
+  // purely to keep concurrent connections under the pool's `max: 10`.
+  const [
+    trendRows,
+    recentlyEdited,
+    coverageBase,
+    coverageMulti,
+    coverageWebhooks,
+  ] = await Promise.all([
     // Error counts per (platform, UTC day) over the trend window, for the error
     // panel's bar chart. Came back with the live hub's statistics on 2026-09-03.
     // ⚠️ Grouped by platform for ALL sites even though only the selected one is
