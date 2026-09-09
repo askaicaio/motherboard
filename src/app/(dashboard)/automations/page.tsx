@@ -1872,7 +1872,7 @@ export default async function AutomationsPage({
                     Both are PANEL_ROWS long and only fit at all because this
                     layout gives one website the whole canvas. */}
                   <Panel
-                    title="Recently edited"
+                    title="Recently Edited on Website"
                     hint="on the website"
                     empty={recentlyEdited.length === 0}
                     emptyLabel="No edit dates recorded for this website."
@@ -1905,7 +1905,7 @@ export default async function AutomationsPage({
                   </Panel>
 
                   <Panel
-                    title="Latest errors"
+                    title="Latest Errors"
                     hint={`newest ${PANEL_ROWS}`}
                     empty={siteErrors.length === 0}
                     emptyLabel={
@@ -2202,7 +2202,9 @@ function Panel({
  *  thinnest-first ordering, same four-step colour ramp.
  *
  *  ⚠️ TWO PRESENTATION CHANGES, both to fit this panel rather than a full page:
- *    1. THE TITLE IS "Documented by field", where Alpha6 says just "By field".
+ *    1. THE TITLE IS "Documentation by Field", where Alpha6 says just "By
+ *       field". (It read "Documented by field" until 2026-09-10, when the user
+ *       retitled all three panel headers on the live hub.)
  *       Alpha6's page carries a heading and a caption explaining that the whole
  *       page is about documentation coverage; inside a panel about one website,
  *       "By field" alone says nothing about WHAT is being measured.
@@ -2235,7 +2237,7 @@ function CoverageByField({
     <div className="min-w-0 overflow-hidden rounded-lg bg-card ring-1 ring-foreground/10">
       <div className="flex items-center justify-between gap-2 border-b bg-muted/40 px-3.5 py-2">
         <span className="text-xs font-semibold text-zinc-800">
-          Documented by field
+          Documentation by Field
         </span>
         <span className="text-[10px] uppercase tracking-wider text-zinc-500">
           thinnest first
