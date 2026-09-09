@@ -189,7 +189,7 @@ export function Sidebar({ hiddenTabs = [] }: { hiddenTabs?: string[] }) {
           // Active = this exact route, or one of its CHILD routes. The match
           // stops at a path segment boundary: a plain startsWith would also
           // light "/automations" up while sitting on an unrelated route that
-          // merely begins with those characters (e.g. "/automations-alpha",
+          // merely begins with those characters (e.g. "/automations-alpha1",
           // which the Automations tab claims DELIBERATELY, just below, rather
           // than by accident). Every existing tab is unaffected, since a real
           // child route always begins with "<href>/".

@@ -77,7 +77,7 @@ interface PlatformStats {
   paused: number;
 }
 
-export default async function AutomationsAlphaPage() {
+export default async function AutomationsAlpha1Page() {
   await requireAuth();
 
   const health = await getHealthState();
@@ -208,8 +208,13 @@ export default async function AutomationsAlphaPage() {
               Automations
             </h1>
             {/* ⚠️ "Alpha1", not "Alpha", since 2026-09-08: "Rename these,
-                they should be referred to as Beta1 and Alpha1." **The ROUTE is
-                still /automations-alpha** and was left alone on purpose.
+                they should be referred to as Beta1 and Alpha1."
+                ⚠️ THE ROUTE CAUGHT UP ON 2026-09-10: this page now lives at
+                `/automations-alpha1`, matching the badge. It sat at
+                `/automations-alpha` for two days, and nothing serves that path
+                any more, so an old tab or bookmark on it 404s.
+                ⚠️ OLDER COMMENTS IN THIS FILE STILL SAY "Alpha" in prose and
+                mean this page. Left as a historical record.
                 ⚠️⚠️ THIS BADGE IS THE *SHORT* NAME AND THAT IS DELIBERATE. The
                 directory tile reads "Main Page Alpha1"; this pill reads just
                 "Alpha1", because it sits beside an `<h1>` already saying
