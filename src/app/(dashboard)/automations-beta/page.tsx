@@ -111,6 +111,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { TOOLTIP_DELAY_MS } from "@/lib/automations/tooltips";
 import { CopyApiKeyButton } from "@/components/automations/copy-api-key-button";
 import { CardNavIndicator } from "./nav-indicator";
+import { HoverPrefetchLink } from "./hover-prefetch-link";
 import {
   ApiHealthCheckButton,
   AutoHealthCheckToggle,
@@ -922,59 +923,34 @@ export default async function AutomationsBetaPage({
                               `dynamic` defaults to 0s (never reused) since
                               v15, which is exactly why the default prefetch
                               would not have helped even if it had fetched.
-                          All five cards are in the viewport at once, so all five
-                          payloads land shortly after the page does and a click
-                          is served from cache.
-                          🛑🛑 **AND THAT IS EXACTLY WHAT BROKE THE PAGE ON
-                          2026-09-09, SO `prefetch` IS NOW `false`. DO NOT TURN
-                          IT BACK ON WITHOUT READING THIS.**
-                          The user: "There seems to be a problem with beta1. I
-                          can't load the page ... Occasionally, it does load,
-                          but if I try to switch to a different website view,
-                          like n8n, even though Make works fine, it won't change
-                          to n8n and loads for a long time." **Beta1 was the
-                          only page affected**, which is the tell: it is the
-                          only page that fans out like this.
-                          📐 MEASURED, against the real database, by putting the
-                          page's whole read block behind a public throwaway
-                          route and firing the same six requests a page load
-                          fires:
-                            1 render   ->    2.0 s, all reads fine
-                            6 renders  ->  ONE returns in 2.1 s and the other
-                                           FIVE take 5.1 MINUTES
-                          The dev server logged all six as `200`, so they do
-                          finish; the browser has long since given up. **That is
-                          precisely the reported symptom: the first site renders
-                          and every switch hangs**, because the switch is served
-                          by one of the five starved prefetch renders.
-                          ⚠️⚠️ WHAT IT IS *NOT*, all ruled out by measurement, so
-                          nobody re-runs this: the SQL (all three coverage
-                          queries do 6-way concurrency in 460 ms each in
-                          isolation), the connection limit (17 of 60 in use),
-                          and a pool deadlock. **The queries are fine. The
-                          multiplier is the problem.**
-                          📌 THE COST IS REAL AND THE USER ACCEPTED IT KNOWINGLY:
-                          this reinstates the switch delay that #470, #471 and
-                          #472 were spent removing. `CardNavIndicator` still
-                          gives the instant click feedback from #471, so the
-                          click is still acknowledged immediately; only the data
-                          waits.
-                          ⭐ THE WAY BACK, if the speed is wanted again, is
-                          HOVER-TRIGGERED prefetch (one prefetch per hover
-                          instead of five per page load), which needs the card
-                          to become a client component. **Do not simply restore
-                          `prefetch`**: six concurrent renders of this page is
-                          a measured failure, not a theoretical one.
-                          ⚠️⚠️ WHAT IT COSTS, so nobody discovers it as a
-                          mystery: **a page load now triggers FIVE extra full
-                          renders of this route in the background**, one per
-                          card, each running the page's eight queries. Six
-                          renders per view instead of one. That was judged fine
-                          for an internal tool with a handful of users; it would
-                          NOT be fine on a public page. If it ever needs
-                          trimming, the documented pattern is hover-triggered
-                          prefetch (`prefetch={active ? true : false}` with an
-                          `onMouseEnter`), which costs one prefetch per hover.
+                          All five cards are in the viewport at once, though,
+                          so putting `prefetch` on the Link prefetches ALL FIVE
+                          on every page load: SIX full renders of this route per
+                          view, one real and five background, each running the
+                          page's whole read block, whether or not anyone clicks.
+                          🛑 **SO IT IS NOT ON THE LINK ANY MORE. IT IS DEFERRED
+                          TO HOVER, in `./hover-prefetch-link.tsx`** (2026-09-09).
+                          One prefetch, for the card you are actually heading
+                          for, after an 80ms dwell so a mouse sweeping down the
+                          rail does not arm all five anyway. Read that file
+                          before changing any of this; it carries the reasoning
+                          and the doc citations.
+                          ⚠️⚠️ AND CORRECT A WRONG NOTE THAT STOOD HERE FOR PART
+                          OF 2026-09-09: this comment used to say prefetch was
+                          "EXACTLY WHAT BROKE THE PAGE" that day. **IT WAS NOT.**
+                          #488 turned prefetch off on that theory and **the page
+                          stayed broken.** The real cause was found in #489: the
+                          read block had gone to ELEVEN queries in one
+                          `Promise.all` against a `max: 10` connection pool. See
+                          the read block's own comment, and [[db-pool-max-10-fanout]]
+                          in memory. **The width of ONE render was the bug, not
+                          how many renders run.**
+                          📌 THE FAN-OUT IS STILL WORTH AVOIDING, which is why
+                          hover rather than a plain restore: five uninvited
+                          background renders per view is real load against a
+                          10-connection pool, it just was not the fault. Judged
+                          fine for an internal tool once; it would NOT be fine on
+                          a public page.
                           ⚠️ AND WHAT IT TRADES: a switch can now show data up to
                           FIVE MINUTES old, where before every switch was a
                           fresh render. Acceptable here because the error data
@@ -992,14 +968,13 @@ export default async function AutomationsBetaPage({
                           or after the 5 minutes lapse). When the cache is warm
                           the navigation finishes so fast the tint never
                           visibly appears, which is the point. */}
-                      <Link
+                      <HoverPrefetchLink
                         href={`/automations-beta?site=${site.slug}`}
-                        aria-label={`Show ${site.label}`}
-                        prefetch={false}
+                        label={`Show ${site.label}`}
                         className="absolute inset-0 rounded-lg"
                       >
                         <CardNavIndicator accent={ACCENT[site.slug]} />
-                      </Link>
+                      </HoverPrefetchLink>
                       {/* ⭐ Accent spine: THE SELECTED CARD'S ONLY, as of
                           2026-09-07. "Right now Make is currently selected, so
                           its correct that it can be seen, but the others are
