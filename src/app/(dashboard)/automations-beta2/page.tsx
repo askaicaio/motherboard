@@ -192,11 +192,21 @@ export default async function AutomationsBeta2Page() {
                 </h1>
                 {/* ⚠️ The badge is what tells you which version you are looking
                 at, and it is the ONLY visible difference from Alpha2 right now.
-                Keep it in step with this page's label in AUTOMATIONS_VERSIONS
-                (src/components/layout/sidebar.tsx); the menu and the badge are
-                separate strings and nothing links them. */}
+                Keep it in step with this page's label in AUTOMATIONS_VERSIONS.
+                ⚠️ THAT REGISTRY MOVED on 2026-09-08 and this note was stale: it
+                is `src/lib/automations/versions.ts`, NOT the sidebar. The
+                sidebar's version dropdown was removed the same day.
+                🛑🛑 THIS PAGE IS "Beta3" AS OF 2026-09-10, AND IT USED TO BE
+                "Beta2". THE PAGE DID NOT CHANGE, ONLY ITS NAME. The user:
+                "First, Rename the current Beta2 into Beta3. Then the current
+                Beta 1 into Beta2. We have plans for another Beta1 page later."
+                ⚠️⚠️ SO THE ROUTE IS /automations-beta2 AND THE PAGE IS BETA3.
+                Off by one, deliberately: routes are stable identifiers and are
+                not renamed for cosmetics. See `@/lib/automations/versions`.
+                ⚠️ OLDER COMMENTS IN THIS FILE STILL SAY "Beta2" AND MEAN THIS
+                PAGE. Left as a historical record, same as the other benches. */}
                 <span className="rounded-full bg-zinc-900 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
-                  Beta2
+                  Beta3
                 </span>
               </div>
               <p className="mt-1 text-sm text-zinc-500">

@@ -573,18 +573,32 @@ export default async function AutomationsBetaPage({
                 {/* Version badge, same pill the seven Alphas wear, so you can
                     tell at a glance this is not the live hub. The live page
                     deliberately has none. */}
-                {/* ⚠️ "Beta1", not "Beta", since 2026-09-08: "Rename these,
-                    they should be referred to as Beta1 and Alpha1." **The ROUTE
-                    is still /automations-beta** and was left alone on purpose.
+                {/* 🛑🛑 THIS PAGE IS "Beta2" AS OF 2026-09-10, AND IT USED TO BE
+                    "Beta1". THE PAGE DID NOT CHANGE, ONLY ITS NAME. The user:
+                    "First, Rename the current Beta2 into Beta3. Then the
+                    current Beta 1 into Beta2. We have plans for another Beta1
+                    page later." So **"Beta1" is now a RESERVED, UNBUILT name**,
+                    not this page.
+                    ⚠️⚠️ EVERY OLDER COMMENT IN THIS FILE STILL SAYS "Beta1" AND
+                    MEANS THIS PAGE. They were left as written, the same way the
+                    2026-09-08 rename left "Alpha" prose alone: they are a
+                    historical record, and rewriting hundreds of lines of
+                    commentary would be a huge diff with no functional effect.
+                    **Read "Beta1" in this file's prose as "this page".**
+                    ⚠️ THE ROUTE IS STILL /automations-beta, deliberately, so the
+                    route and the label are now OFF BY ONE. Full reasoning in
+                    `@/lib/automations/versions`; do not move the directory.
+                    ⚠️ It was also renamed once before, on 2026-09-08: "Rename
+                    these, they should be referred to as Beta1 and Alpha1."
                     ⚠️⚠️ THIS BADGE IS THE *SHORT* NAME AND THAT IS DELIBERATE.
                     The directory tile on the Feature Integration page reads
-                    "Main Page Beta1"; this pill reads just "Beta1", because it
+                    "Main Page Beta2"; this pill reads just "Beta2", because it
                     sits beside an `<h1>` already saying "Automations" and the
                     qualifier would repeat it. **The two strings are meant to
                     differ; only the version token has to match.** Full
                     reasoning in `@/lib/automations/versions`. */}
                 <span className="rounded-full bg-zinc-900 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
-                  Beta1
+                  Beta2
                 </span>
               </div>
               <p className="mt-1 text-sm text-zinc-500">
