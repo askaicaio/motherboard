@@ -97,7 +97,7 @@ const AUTOMATIONS_HREF = "/automations";
 // ⚠️ THE ONE THING THIS FILE STILL NEEDS FROM THAT REGISTRY is
 // `isAutomationVersionPath()`, folded into `isActive` below: it keeps the
 // Automations tab highlighted while you sit on a bench route. A plain prefix
-// match cannot do that, because "/automations-beta" is NOT a child of
+// match cannot do that, because "/automations-beta2" is NOT a child of
 // "/automations". Without it, no tab looks active on a bench page.
 
 // Role/department predicates for tabs that gate on more than the
@@ -199,7 +199,7 @@ export function Sidebar({ hiddenTabs = [] }: { hiddenTabs?: string[] }) {
               : pathname === item.href ||
                 pathname.startsWith(`${item.href}/`) ||
                 // The Automations tab ALSO claims every bench route
-                // ("/automations-beta", "/automations-alpha4", ...). Those are
+                // ("/automations-beta2", "/automations-alpha4", ...). Those are
                 // siblings of "/automations", not children, so the prefix
                 // match above misses them. See the note on the registry.
                 (item.href === AUTOMATIONS_HREF &&
