@@ -37,11 +37,36 @@ import {
   Workflow,
 } from "lucide-react";
 
-// ⚠️⚠️ THE DISPLAY LABEL AND THE ROUTE DO NOT MATCH FOR TWO VERSIONS, AND
-// THAT IS DELIBERATE. On 2026-09-08 the user renamed the first of each family:
-// "Rename these, they should be referred to as Beta1 and Alpha1". So:
-//     label "Beta1"  -> route /automations-beta
-//     label "Alpha1" -> route /automations-alpha
+// 🛑🛑 THE BETAS WERE RENUMBERED ON 2026-09-10 AND EVERY BETA LABEL NOW
+// DISAGREES WITH ITS ROUTE. READ THIS BEFORE TRUSTING EITHER.
+// The user: "First, Rename the current Beta2 into Beta3. Then the current Beta
+// 1 into Beta2. We have plans for another Beta1 page later." **Nothing about
+// the pages changed. Only the names moved, to free up "Beta1" for a page that
+// does not exist yet.**
+//
+//     route /automations-beta   -> label "Main Page Beta2"   (was Beta1)
+//     route /automations-beta2  -> label "Main Page Beta3"   (was Beta2)
+//     route /automations-beta1  -> DOES NOT EXIST YET, reserved for the new one
+//
+// ⚠️⚠️ SO "/automations-beta2" SERVES BETA **3**. That is the trap: the route
+// number and the label number are now OFF BY ONE for the whole beta family, and
+// a future renumbering would shift them again. **Trust this table and the
+// `label` field. Never infer a version's name from its URL.**
+// 📌 THE ROUTES WERE STILL LEFT ALONE, for the same reason as 2026-09-08 (see
+// below): they are stable identifiers that open tabs, bookmarks, every PR title
+// and the whole Done List refer to. Renaming two directories to fix a cosmetic
+// mismatch would break all of that, and the mismatch would come back the next
+// time the user renumbers.
+// ⚠️ WHEN THE NEW BETA1 IS BUILT it should take `/automations-beta1`, which is
+// free. That leaves the family reading beta -> Beta2, beta1 -> Beta1,
+// beta2 -> Beta3, which looks wrong and IS correct. Do not "fix" it by moving
+// directories without asking.
+//
+// ⚠️⚠️ THE DISPLAY LABEL AND THE ROUTE ALSO DID NOT MATCH BEFORE THIS, AND THAT
+// WAS ALREADY DELIBERATE. On 2026-09-08 the user renamed the first of each
+// family: "Rename these, they should be referred to as Beta1 and Alpha1". So:
+//     label "Beta1"  -> route /automations-beta   (now label "Beta2")
+//     label "Alpha1" -> route /automations-alpha  (unchanged)
 // **The ROUTES were left alone on purpose.** They are stable identifiers: open
 // tabs, bookmarks, every PR title and the whole Done List history refer to
 // them, and moving the directories would break all of that to fix a cosmetic
@@ -55,8 +80,8 @@ import {
 // ⚠️⚠️ THE LABEL IS THE *QUALIFIED* NAME AND THE PAGE BADGE IS THE *SHORT*
 // ONE. THEY ARE DELIBERATELY DIFFERENT as of 2026-09-08: "Append this to the
 // start of their titles. 'Main Page'". So:
-//     registry label   "Main Page Beta1"   <- what the directory tile shows
-//     badge on the page "Beta1"            <- what the page's own pill shows
+//     registry label   "Main Page Beta2"   <- what the directory tile shows
+//     badge on the page "Beta2"            <- what the page's own pill shows
 // **WHY BOTH EXIST.** Every one of these versions is a redesign of the
 // Automations MAIN PAGE specifically, as opposed to the Per Website page, the
 // Error History page or the Dropdown Config page. In the directory that
@@ -66,13 +91,14 @@ import {
 // repeat what the heading already says.
 // **⚠️ AN EARLIER VERSION OF THIS NOTE TOLD YOU TO KEEP THE TWO STRINGS
 // IDENTICAL. That was true for one day and is now wrong.** What must stay in
-// step is the VERSION TOKEN they share: rename Beta1 and you change the badge
-// AND the tail of this label. The prefix belongs to the label only.
+// step is the VERSION TOKEN they share: rename a version and you change the
+// badge AND the tail of this label. The prefix belongs to the label only.
+// **The 2026-09-10 renumbering did exactly that for both betas.**
 
 export interface AutomationVersion {
   href: string;
   /** The QUALIFIED name, shown on the Feature Integration directory tile, e.g.
-   *  "Main Page Beta1". **Not derivable from `href`, and not the same as the
+   *  "Main Page Beta2". **Not derivable from `href`, and not the same as the
    *  badge on the page itself** - see the note above. */
   label: string;
   icon: React.ElementType;
@@ -95,13 +121,15 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
   },
   {
     href: "/automations-beta",
-    label: "Main Page Beta1",
+    label: "Main Page Beta2",
     icon: Blocks,
     blurb: "Assembly bench. Alpha3's master and detail, with working controls.",
+    // ⚠️ The page is UNCHANGED; only its NAME moved (Beta1 -> Beta2). See the
+    // renumbering note at the top of this file.
   },
   {
     href: "/automations-beta2",
-    label: "Main Page Beta2",
+    label: "Main Page Beta3",
     icon: Boxes,
     blurb: "Assembly bench, seeded from Alpha2.",
   },
