@@ -132,8 +132,18 @@ const ACCENT: Record<string, string> = {
   zapier: "#FF4F00",
 };
 
-/** Rows each detail panel list shows before it stops. */
-const PANEL_ROWS = 6;
+/** Rows each detail panel list shows before it stops.
+ *
+ *  ⚠️ THIS IS THE ONLY PLACE TO CHANGE IT. It drives the `.limit()` on BOTH
+ *  panel queries (Recently edited, Latest errors) AND the "newest N" hint the
+ *  errors panel renders, so the two cannot fall out of step. **Do not hard-code
+ *  the number in the hint**, which is exactly how a stale "NEWEST 6" over five
+ *  rows would happen.
+ *  📌 WAS 6 UNTIL 2026-09-10, when the user asked for both lists to show "only
+ *  the latest 5 entries". No layout depends on the count: the lists sit below
+ *  the header band, so shortening them does not touch the two-column split or
+ *  the coverage statistic's height. */
+const PANEL_ROWS = 5;
 
 /** How many days of error history the error panel's bar chart covers.
  *
