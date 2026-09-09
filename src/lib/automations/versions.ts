@@ -37,36 +37,39 @@ import {
   Workflow,
 } from "lucide-react";
 
-// 🛑🛑 THE BETAS WERE RENUMBERED ON 2026-09-10 AND EVERY BETA LABEL NOW
-// DISAGREES WITH ITS ROUTE. READ THIS BEFORE TRUSTING EITHER.
-// The user: "First, Rename the current Beta2 into Beta3. Then the current Beta
-// 1 into Beta2. We have plans for another Beta1 page later." **Nothing about
-// the pages changed. Only the names moved, to free up "Beta1" for a page that
-// does not exist yet.**
+// ⭐⭐ THE BETAS WERE RENUMBERED AND THEIR ROUTES MOVED WITH THEM, 2026-09-10.
+// Two instructions, an hour apart. First the names: "Rename the current Beta2
+// into Beta3. Then the current Beta 1 into Beta2. We have plans for another
+// Beta1 page later." Then the routes: "Rename their links as well, they don't
+// match their actual name at the moment."
 //
-//     route /automations-beta   -> label "Main Page Beta2"   (was Beta1)
-//     route /automations-beta2  -> label "Main Page Beta3"   (was Beta2)
+//     route /automations-beta2  -> label "Main Page Beta2"  (was /automations-beta,  Beta1)
+//     route /automations-beta3  -> label "Main Page Beta3"  (was /automations-beta2, Beta2)
 //     route /automations-beta1  -> DOES NOT EXIST YET, reserved for the new one
+//     route /automations-beta   -> GONE. Nothing serves it.
 //
-// ⚠️⚠️ SO "/automations-beta2" SERVES BETA **3**. That is the trap: the route
-// number and the label number are now OFF BY ONE for the whole beta family, and
-// a future renumbering would shift them again. **Trust this table and the
-// `label` field. Never infer a version's name from its URL.**
-// 📌 THE ROUTES WERE STILL LEFT ALONE, for the same reason as 2026-09-08 (see
-// below): they are stable identifiers that open tabs, bookmarks, every PR title
-// and the whole Done List refer to. Renaming two directories to fix a cosmetic
-// mismatch would break all of that, and the mismatch would come back the next
-// time the user renumbers.
-// ⚠️ WHEN THE NEW BETA1 IS BUILT it should take `/automations-beta1`, which is
-// free. That leaves the family reading beta -> Beta2, beta1 -> Beta1,
-// beta2 -> Beta3, which looks wrong and IS correct. Do not "fix" it by moving
-// directories without asking.
+// **So for the BETAS the route number and the label number now agree**, which
+// they did not for the hour between the two instructions.
+// ⚠️⚠️ THE ALPHAS STILL DISAGREE, AND THAT IS THE REMAINING TRAP:
+//     route /automations-alpha  -> label "Main Page Alpha1"
+// Alpha1 was renamed on 2026-09-08 and its directory was NOT moved. **It was
+// offered alongside this change and left alone**, so alpha2..alpha7 match their
+// labels and alpha does not. **Never infer a version's name from its URL; read
+// the `label` field.**
+// ⚠️ WHAT MOVING A ROUTE COSTS, since the earlier note argued against it and the
+// user overrode that: any open tab or bookmark on `/automations-beta` now 404s,
+// and every past PR title and Done List entry naming that route describes a path
+// that no longer exists. Those records were left as written; they are history.
+// 📌 IF A VERSION IS EVER RENUMBERED AGAIN, MOVE THE DIRECTORY IN THE SAME PR.
+// The hour where the labels said one thing and the URLs said another is exactly
+// what the user objected to, and it is avoidable by doing both at once.
+// ⚠️ ORDER MATTERS WHEN SHIFTING NAMES UPWARD: take the HIGHEST number first
+// (beta2 -> beta3, then beta -> beta2), or the second move collides with a
+// directory that still exists.
 //
-// ⚠️⚠️ THE DISPLAY LABEL AND THE ROUTE ALSO DID NOT MATCH BEFORE THIS, AND THAT
-// WAS ALREADY DELIBERATE. On 2026-09-08 the user renamed the first of each
-// family: "Rename these, they should be referred to as Beta1 and Alpha1". So:
-//     label "Beta1"  -> route /automations-beta   (now label "Beta2")
-//     label "Alpha1" -> route /automations-alpha  (unchanged)
+// ⚠️ THE ALPHA MISMATCH DATES FROM 2026-09-08, when the user renamed the first
+// of each family: "Rename these, they should be referred to as Beta1 and
+// Alpha1". The betas have since been reconciled; the alphas have not.
 // **The ROUTES were left alone on purpose.** They are stable identifiers: open
 // tabs, bookmarks, every PR title and the whole Done List history refer to
 // them, and moving the directories would break all of that to fix a cosmetic
@@ -120,7 +123,7 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
     official: true,
   },
   {
-    href: "/automations-beta",
+    href: "/automations-beta2",
     label: "Main Page Beta2",
     icon: Blocks,
     blurb: "Assembly bench. Alpha3's master and detail, with working controls.",
@@ -128,7 +131,7 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
     // renumbering note at the top of this file.
   },
   {
-    href: "/automations-beta2",
+    href: "/automations-beta3",
     label: "Main Page Beta3",
     icon: Boxes,
     blurb: "Assembly bench, seeded from Alpha2.",
@@ -186,7 +189,7 @@ export const AUTOMATION_BENCH_VERSIONS = AUTOMATION_VERSIONS.filter(
 /** True while `pathname` is any registered version, the live hub included.
  *  The sidebar's ONLY use of this registry: it keeps the Automations tab
  *  highlighted on a bench route, which a plain prefix match cannot do because
- *  "/automations-beta" is not a child of "/automations". */
+ *  "/automations-beta2" is not a child of "/automations". */
 export function isAutomationVersionPath(pathname: string): boolean {
   return AUTOMATION_VERSIONS.some(
     (v) => pathname === v.href || pathname.startsWith(`${v.href}/`),
