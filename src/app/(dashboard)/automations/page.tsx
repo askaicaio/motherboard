@@ -1872,7 +1872,7 @@ export default async function AutomationsPage({
                     Both are PANEL_ROWS long and only fit at all because this
                     layout gives one website the whole canvas. */}
                   <Panel
-                    title="Recently Edited from Website"
+                    title="Recently Edited on Website"
                     hint="on the website"
                     empty={recentlyEdited.length === 0}
                     emptyLabel="No edit dates recorded for this website."
