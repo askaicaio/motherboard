@@ -1440,12 +1440,17 @@ export default async function AutomationsBetaPage({
                         Read a removal here as "the rail has it now", not as "we
                         decided against it". Same shape as the counts block, which
                         left this panel the same way on 2026-09-03.
-                        ⚠️ `justify-between` and `flex-wrap` were kept on this row
-                        for the whole two days it was empty, deliberately, for
-                        exactly the case that then happened. `flex-wrap` is why a
-                        control on the right cannot crush the name and description
-                        on a narrow panel. */}
-                    <div className="flex flex-wrap items-start justify-between gap-4">
+                        ⚠️ `justify-between` was kept on this row for the whole
+                        two days it was empty, deliberately, for exactly the case
+                        that then happened.
+                        🛑 **`flex-wrap` WAS ALSO KEPT, AND IT WAS REMOVED ON
+                        2026-09-10. DO NOT PUT IT BACK.** It is what let this row
+                        break onto two lines, dropping Error History under the
+                        description, and the user reported that as a bug: "notice
+                        how the 'error history' button is in a different location
+                        for both cases. I want the button to be in one spot only."
+                        The Link's own note below has the full story. */}
+                    <div className="flex items-start justify-between gap-4">
                       <div className="flex min-w-0 items-center gap-3">
                         <span
                           aria-hidden
@@ -1511,19 +1516,42 @@ export default async function AutomationsBetaPage({
                           `bg-card` reads as a real button against this header's
                           tint, and the user picked this treatment ("I like the way
                           these buttons are rendered").
-                          ⚠️ `shrink-0` so the name and description yield first,
-                          and the row's `flex-wrap` is what stops it crushing them
-                          on a narrow panel. That class was left here deliberately
-                          when the header was emptied, for exactly this.
-                          ⚠️⚠️ MEASURED 2026-09-06, AND IT DOES WRAP ON A NARROW
-                          PANEL. The button sits 24px off the panel's right edge,
-                          top-aligned with the `<h2>` to the pixel, until the row
-                          wraps and the button drops to its own line, LEFT-aligned
-                          under the description. It never overflows, which is the
-                          whole point of `flex-wrap`. **The wrap point depends on
-                          the DESCRIPTION's length: below a 472px panel for the
-                          longest one ("Workflows found in GoHighLevel b2b"), below
-                          392px for the shortest.**
+                          ⚠️ `shrink-0` so the name and description yield first.
+                          **The row no longer wraps**, so this is what keeps the
+                          button at its full width while the text beside it gives
+                          way.
+                          🛑🛑 THE ROW LOST `flex-wrap` ON 2026-09-10, AND THE
+                          NOTE THAT USED TO SIT HERE CALLED THE WRAP CORRECT
+                          BEHAVIOUR. It was, right up until #486 halved the space
+                          it had. **Do not restore it.**
+                          WHAT WENT WRONG: with `flex-wrap`, this row broke in two
+                          whenever the name, description and button could not sit
+                          side by side, dropping Error History onto its own line,
+                          LEFT-aligned under the description. That was measured on
+                          2026-09-06 and judged fine, because the header then had
+                          the WHOLE panel (1124px at 1920) and only wrapped below
+                          472px, which never happened in practice.
+                          **#486 PUT THIS HEADER IN THE LEFT COLUMN OF A TWO-COLUMN
+                          BAND, so it gets about 528px at 1920 instead of 1124px**,
+                          and GHL b2b started wrapping while the other four did not.
+                          The user: "I want the button to be in one spot only."
+                          ⚠️ WHY ONLY GHL b2b: it is the ONLY description long
+                          enough. **"Workflows found in the GoHighLevel B2B
+                          subaccount" is 48 characters against 30 for the next
+                          longest** ("Workflows found in GoHighLevel").
+                          📌 AND NOTE THE OLD NOTE HAD THE STRING WRONG TOO: it
+                          quoted the longest as "Workflows found in GoHighLevel
+                          b2b", 34 characters. **The descriptions live in
+                          `sites.ts`, which is SHARED WITH THE FROZEN LIVE HUB, so
+                          they are not ours to shorten** and the layout has to cope
+                          with whatever length they are.
+                          ⭐ HOW IT COPES NOW: without `flex-wrap` the row cannot
+                          break, so the text block (which already carries
+                          `min-w-0`) shrinks and the DESCRIPTION wraps to a second
+                          line instead. The button stays top-right for all five
+                          sites. **The extra line costs nothing downstream**: the
+                          error block beneath it is `flex-1` and absorbs the
+                          height, so the column and the panel are unchanged.
                           ⚠️ PANEL WIDTH = VIEWPORT - 336px OF CHROME - THE RAIL,
                           and the 336 is 240 sidebar (`pl-60`) + the layout's
                           `p-6` + THIS PAGE'S OWN `p-6`. A real scrollbar takes
