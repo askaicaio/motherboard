@@ -134,6 +134,8 @@ import {
   PencilLine,
   Plug,
   RefreshCw,
+  // Back on 2026-09-10 for the page title's icon; see the note at the <h1>.
+  Workflow,
 } from "lucide-react";
 import { and, desc, eq, isNotNull, sql } from "drizzle-orm";
 
@@ -619,6 +621,16 @@ export default async function AutomationsPage({
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <div className="flex items-center gap-2">
+                {/* ⭐ THE TITLE ICON CAME BACK ON 2026-09-10: "Add back the icon
+                    that was previously on the left side of Automations."
+                    ⚠️ IT IS THE SAME `Workflow` GLYPH THE HUB WORE UNTIL THE
+                    2026-09-10 PROMOTION, at the same 20px and the same muted
+                    tone, copied from the design now preserved at
+                    `/automations-beta1`. The master-and-detail design had
+                    dropped it; this is a restoration, not a new decision.
+                    ⚠️ IT SITS INSIDE THE `gap-2` ROW WITH THE `<h1>`, so it
+                    tracks the heading rather than the page padding. */}
+                <Workflow className="h-5 w-5 text-zinc-500" />
                 <h1 className="font-heading text-2xl font-semibold tracking-tight">
                   Automations
                 </h1>

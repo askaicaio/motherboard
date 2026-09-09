@@ -48,7 +48,19 @@ export const AUTOMATION_SITES: AutomationSite[] = [
   },
   {
     slug: "ghl-b2b",
-    label: "GHL b2b",
+    // ⚠️ "GHL B2B", capitalised, since 2026-09-10: "change the header text
+    // 'GHL b2b' into 'GHL B2B'". The user was pointing at the hub's rail card
+    // and detail header, and chose to change it HERE rather than override it on
+    // those two pages, so the name is spelled one way everywhere.
+    // ⚠️⚠️ THIS STRING IS RENDERED BY 16 SURFACES: the live hub, all nine bench
+    // pages, the Per Website page and its Error History page, the Website column
+    // on View All Lists, the Feature Integration tables and the
+    // related-automations dialog. **That reach is the reason it was worth
+    // asking about, and the reason to think before editing it again.**
+    // ⚠️ THE SLUG IS UNTOUCHED AND MUST STAY `ghl-b2b`. It is the platform key
+    // in the database, in every route, and in the sync code. **This is a display
+    // string only.**
+    label: "GHL B2B",
     description: "Workflows found in the GoHighLevel B2B subaccount",
     icon: "/automation-icons/ghl.png",
   },
