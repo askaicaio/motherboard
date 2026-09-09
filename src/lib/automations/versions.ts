@@ -32,6 +32,7 @@ import {
   Dna,
   FlaskConical,
   Layers,
+  PanelTop,
   Microscope,
   Telescope,
   TestTube,
@@ -188,6 +189,21 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
     label: "Main Page Alpha7",
     icon: Telescope,
     blurb: "A changelog.",
+  },
+  // ⚠️⚠️ GAMMA IS A DIFFERENT KIND OF ENTRY FROM EVERYTHING ABOVE IT, and the
+  // label says so. Every Alpha and Beta is a redesign of the whole Main Page.
+  // **A GAMMA IS A SHOWCASE OF ONE COMPONENT, rendered several ways on a single
+  // page so the user can pick between them.** Gamma1 does that for the toolbar
+  // strip. If a future request is "give me options for <one element>", add
+  // Gamma2 rather than another Beta.
+  // 📌 Hence the label is NOT "Main Page Gamma1": the "Main Page" prefix means
+  // "this is a design FOR the main page", and this is a design for one strip on
+  // it. Calling it that would promise a full page and deliver a gallery.
+  {
+    href: "/automations-gamma1",
+    label: "Toolbar Options Gamma1",
+    icon: PanelTop,
+    blurb: "Nine ways to render the hub's toolbar strip, stacked to compare.",
   },
 ];
 
