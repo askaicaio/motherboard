@@ -31,6 +31,7 @@ import {
   Boxes,
   Dna,
   FlaskConical,
+  Layers,
   Microscope,
   Telescope,
   TestTube,
@@ -45,7 +46,8 @@ import {
 //
 //     route /automations-beta2  -> label "Main Page Beta2"  (was /automations-beta,  Beta1)
 //     route /automations-beta3  -> label "Main Page Beta3"  (was /automations-beta2, Beta2)
-//     route /automations-beta1  -> DOES NOT EXIST YET, reserved for the new one
+//     route /automations-beta1  -> label "Main Page Beta1"  (BUILT 2026-09-10,
+//                                   a fresh copy of the live hub's design)
 //     route /automations-beta   -> GONE. Nothing serves it.
 //
 //     route /automations-alpha1 -> label "Main Page Alpha1" (was /automations-alpha)
@@ -124,6 +126,12 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
     icon: Workflow,
     blurb: "The live hub.",
     official: true,
+  },
+  {
+    href: "/automations-beta1",
+    label: "Main Page Beta1",
+    icon: Layers,
+    blurb: "Assembly bench, seeded from the live hub's current design.",
   },
   {
     href: "/automations-beta2",
