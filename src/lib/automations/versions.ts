@@ -48,14 +48,16 @@ import {
 //     route /automations-beta1  -> DOES NOT EXIST YET, reserved for the new one
 //     route /automations-beta   -> GONE. Nothing serves it.
 //
-// **So for the BETAS the route number and the label number now agree**, which
-// they did not for the hour between the two instructions.
-// ⚠️⚠️ THE ALPHAS STILL DISAGREE, AND THAT IS THE REMAINING TRAP:
-//     route /automations-alpha  -> label "Main Page Alpha1"
-// Alpha1 was renamed on 2026-09-08 and its directory was NOT moved. **It was
-// offered alongside this change and left alone**, so alpha2..alpha7 match their
-// labels and alpha does not. **Never infer a version's name from its URL; read
-// the `label` field.**
+//     route /automations-alpha1 -> label "Main Page Alpha1" (was /automations-alpha)
+//     route /automations-alpha  -> GONE. Nothing serves it.
+//
+// ⭐⭐ **EVERY VERSION'S ROUTE NOW MATCHES ITS LABEL, WITH NO EXCEPTIONS**, for
+// the first time since the families were renamed on 2026-09-08. Alpha1's
+// directory moved in the same session, right after the betas, once the user saw
+// the betas reconciled: it was the last odd one out.
+// 🛑 **KEEP IT THAT WAY. A version's route, label, badge and exported function
+// name are FOUR strings that all carry its number, and the only cheap moment to
+// change them is together.**
 // ⚠️ WHAT MOVING A ROUTE COSTS, since the earlier note argued against it and the
 // user overrode that: any open tab or bookmark on `/automations-beta` now 404s,
 // and every past PR title and Done List entry naming that route describes a path
@@ -67,9 +69,10 @@ import {
 // (beta2 -> beta3, then beta -> beta2), or the second move collides with a
 // directory that still exists.
 //
-// ⚠️ THE ALPHA MISMATCH DATES FROM 2026-09-08, when the user renamed the first
-// of each family: "Rename these, they should be referred to as Beta1 and
-// Alpha1". The betas have since been reconciled; the alphas have not.
+// ⚠️ BOTH MISMATCHES DATED FROM 2026-09-08, when the user renamed the first of
+// each family ("Rename these, they should be referred to as Beta1 and Alpha1")
+// and the directories were deliberately left behind. Both were reconciled on
+// 2026-09-10, the betas first and Alpha1 immediately after.
 // **The ROUTES were left alone on purpose.** They are stable identifiers: open
 // tabs, bookmarks, every PR title and the whole Done List history refer to
 // them, and moving the directories would break all of that to fix a cosmetic
@@ -137,7 +140,7 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
     blurb: "Assembly bench, seeded from Alpha2.",
   },
   {
-    href: "/automations-alpha",
+    href: "/automations-alpha1",
     label: "Main Page Alpha1",
     icon: FlaskConical,
     blurb: "The first redesign proposal.",
