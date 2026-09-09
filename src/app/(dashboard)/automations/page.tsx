@@ -1603,10 +1603,20 @@ export default async function AutomationsPage({
                           BAND, so it gets about 528px at 1920 instead of 1124px**,
                           and GHL b2b started wrapping while the other four did not.
                           The user: "I want the button to be in one spot only."
-                          ⚠️ WHY ONLY GHL b2b: it is the ONLY description long
+                          ⚠️ WHY ONLY GHL b2b: it WAS the ONLY description long
                           enough. **"Workflows found in the GoHighLevel B2B
-                          subaccount" is 48 characters against 30 for the next
+                          subaccount" was 48 characters against 30 for the next
                           longest** ("Workflows found in GoHighLevel").
+                          ⚠️⚠️ THAT STRING SHRANK ON 2026-09-10, LATER THE SAME
+                          DAY: the user had "subaccount" removed, so it is now
+                          **"Workflows found in the GoHighLevel B2B", 37
+                          characters.** The gap to the next longest is 7
+                          characters instead of 18, so **this header should no
+                          longer wrap that description onto a second line at any
+                          normal width.** The `flex-wrap` removal below is still
+                          right and still the reason the button cannot move; it
+                          just has far less work to do now. **Re-measure before
+                          relying on either number.**
                           📌 AND NOTE THE OLD NOTE HAD THE STRING WRONG TOO: it
                           quoted the longest as "Workflows found in GoHighLevel
                           b2b", 34 characters. **The descriptions live in

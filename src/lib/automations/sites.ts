@@ -61,7 +61,14 @@ export const AUTOMATION_SITES: AutomationSite[] = [
     // in the database, in every route, and in the sync code. **This is a display
     // string only.**
     label: "GHL B2B",
-    description: "Workflows found in the GoHighLevel B2B subaccount",
+    // ⚠️ "subaccount" was dropped on 2026-09-10 at the user's request. Like
+    // the label above, this is ONE SHARED STRING and the change reaches every
+    // surface that shows a website description, not just the hub.
+    // 📌 IT WAS ALSO THE LONGEST DESCRIPTION BY A DISTANCE (48 characters) and
+    // is now 37, which MATTERS TO LAYOUT: the hub's detail header used to wrap
+    // this one description onto a second line and should no longer need to.
+    // See the header note in `automations/page.tsx`.
+    description: "Workflows found in the GoHighLevel B2B",
     icon: "/automation-icons/ghl.png",
   },
   {
