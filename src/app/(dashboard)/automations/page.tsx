@@ -1137,8 +1137,37 @@ export default async function AutomationsPage({
                             and needs `min-w-0` to shrink; both indicators are
                             `shrink-0` so the name yields first. */}
                         <div className="flex items-center gap-2">
-                          <span className="flex min-w-0 flex-1 items-center gap-1.5">
-                            {/* ⭐ THE LOGO, INLINE WITH THE NAME as of
+                          {/* ⭐⭐ TWO GROUPS ON THIS ROW, 2026-09-11: "I want to
+                              change the layout of these three elements in the
+                              card. (1)(2) is the order from left to right.
+                              1.) The website logo and name  2.) Site status
+                              above with Auto-refresh status below it."
+                              ⚠️ BEFORE THIS IT WAS FOUR PEERS IN ONE LINE: logo,
+                              name, status, auto-refresh. Now it is
+                              **[logo + name] [status over auto-refresh]**, so
+                              the two state readouts read as one block instead
+                              of trailing off the end of the name.
+                              ⚠️ THE OUTER GAP WENT 1.5 -> 2.5 (6px -> 10px)
+                              because it now separates two GROUPS rather than
+                              four peers; group (1) keeps 1.5 internally. That
+                              was my call, not the user's; the instruction was
+                              about order and stacking.
+                              📐 MEASURED, and it costs 3px PER CARD, not zero.
+                              I first assumed zero because View list is a sibling
+                              in this row at `h-8`, so the row was already 32px.
+                              **The stack comes out at 35px, so it clears the
+                              button by 3px:**
+                                inner group   20px -> 35px
+                                whole card   120px -> 123px
+                              Five cards, so the rail grows ~15px overall. That
+                              is well inside the pane and nothing truncates.
+                              **Do not repeat my assumption: measure it if the
+                              stack ever gains a third line, because at that
+                              point the card grows by a full line each time.** */}
+                          <span className="flex min-w-0 flex-1 items-center gap-2.5">
+                            {/* ---- (1) logo + name ---- */}
+                            <span className="flex min-w-0 items-center gap-1.5">
+                              {/* ⭐ THE LOGO, INLINE WITH THE NAME as of
                                 2026-09-06. It used to be a sibling of the whole
                                 content column; see the note where it was.
                                 ⚠️ NO `self-start` ANY MORE, and its old reason
@@ -1154,40 +1183,57 @@ export default async function AutomationsPage({
                                 ⚠️ `shrink-0` is not passed because `SiteGlyph`
                                 applies it internally; it must never shrink, so
                                 the NAME still yields first. */}
-                            <SiteGlyph site={site} className="h-5 w-5" />
-                            <span
-                              className={cn(
-                                "min-w-0 truncate text-sm",
-                                isCurrent
-                                  ? "font-semibold text-zinc-900"
-                                  : "font-medium text-zinc-700",
-                              )}
-                            >
-                              {site.label}
-                            </span>
-                            <StatusPill
-                              tone={siteStat.tone}
-                              label={siteStat.label}
-                            />
-                            <span
-                              title={
-                                siteRefreshOn
-                                  ? "Auto-refresh on"
-                                  : "Auto-refresh off"
-                              }
-                              className="flex shrink-0 items-center gap-1 whitespace-nowrap text-[11px] text-zinc-500"
-                            >
-                              <RefreshCw
+                              <SiteGlyph site={site} className="h-5 w-5" />
+                              <span
                                 className={cn(
-                                  "h-3 w-3 shrink-0",
-                                  siteRefreshOn
-                                    ? "text-emerald-600"
-                                    : "text-zinc-400",
+                                  "min-w-0 truncate text-sm",
+                                  isCurrent
+                                    ? "font-semibold text-zinc-900"
+                                    : "font-medium text-zinc-700",
                                 )}
+                              >
+                                {site.label}
+                              </span>
+                            </span>
+
+                            {/* ---- (2) status above, auto-refresh below ----
+                                ⚠️ `flex-col items-start` is the whole change
+                                here: these two were side-by-side peers of the
+                                name until 2026-09-11.
+                                ⚠️ `shrink-0` MOVED TO THIS WRAPPER from the
+                                auto-refresh span inside it. The group must keep
+                                its width and let the NAME truncate instead,
+                                which is what `min-w-0 truncate` on the name is
+                                for. Put `shrink-0` back on the inner span and
+                                nothing breaks, it is just redundant.
+                                ⚠️ `gap-0.5` (2px) not more: two 11px lines want
+                                to read as one block. At `gap-1` they start
+                                looking like separate rows. */}
+                            <span className="flex shrink-0 flex-col items-start gap-0.5">
+                              <StatusPill
+                                tone={siteStat.tone}
+                                label={siteStat.label}
                               />
-                              {siteRefreshOn
-                                ? "Auto-refresh on"
-                                : "Auto-refresh off"}
+                              <span
+                                title={
+                                  siteRefreshOn
+                                    ? "Auto-refresh on"
+                                    : "Auto-refresh off"
+                                }
+                                className="flex items-center gap-1 whitespace-nowrap text-[11px] text-zinc-500"
+                              >
+                                <RefreshCw
+                                  className={cn(
+                                    "h-3 w-3 shrink-0",
+                                    siteRefreshOn
+                                      ? "text-emerald-600"
+                                      : "text-zinc-400",
+                                  )}
+                                />
+                                {siteRefreshOn
+                                  ? "Auto-refresh on"
+                                  : "Auto-refresh off"}
+                              </span>
                             </span>
                           </span>
 
