@@ -302,6 +302,65 @@ const PALETTE = {
  * the single headline figure of a card, `--pa-blue-bright`.
  */
 
+/* 🪟🪟 THE WINDOW HIERARCHY, 2026-09-11, and it INVERTED what came before.
+ *
+ * The user, with the game screenshot beside the page: "notice how the reference
+ * is majority dark, the background behind every text is also dark, but
+ * surrounding them is a brighter colored window. Pls implement that kind of
+ * coloring hierarchy, you are permitted to add more window border segmentation
+ * where needed."
+ *
+ * ⚠️⚠️ WHAT WAS WRONG BEFORE, because it is the easy mistake to re-make: the
+ * first pass mapped the LIGHT theme's surfaces onto the palette one for one.
+ * The live hub is white cards on a grey page, so `bg-card` became #16202A on a
+ * #0A0E13 page. **That makes every content area the BRIGHTEST large thing on
+ * screen, which is the exact opposite of the reference.** The game puts its
+ * readouts on black and spends its light on the CHASSIS around them.
+ *
+ * ⭐⭐ SO THE RULE ON THIS PAGE IS NOW: **LIGHT GOES ON THE FRAME, NEVER BEHIND
+ * THE TEXT.** Five tiers, and every surface must be one of them:
+ *
+ *   TIER          COLOUR              WHAT USES IT
+ *   ----          ------              ------------
+ *   page ground   `void`    #0A0E13   the page itself, the title row
+ *   WELL          `void`    #0A0E13   everything behind text: the pane halves,
+ *                                     the toolbar cells, the rail cards, the
+ *                                     stat blocks, the panel bodies
+ *   lift          `card`    #16202A   a well under the cursor (hover only)
+ *   selected      `inset`   #2A3038   the one selected rail card, and the two
+ *                                     raised controls
+ *   CHROME        `line`    #4A5560   frames, gutters, panel header strips,
+ *                                     control rings, every divider
+ *
+ * 📌 THE PAGE GROUND AND THE WELLS ARE THE SAME COLOUR ON PURPOSE. That is how
+ * the reference reads: the black behind a readout is the same black as the space
+ * between windows, and the only thing that says "this is a window" is the bright
+ * band around it. **Do not add a step between them to "separate" a panel; add
+ * chrome instead.**
+ *
+ * 🔧 THE TWO WAYS A FRAME IS BUILT, and which to reach for:
+ *   1. **`ring-[3px] ring-[var(--pa-line)]`** on a well. A ring paints OUTSIDE
+ *      the border box, so it costs no layout and no wrapper. **This is the
+ *      default; use it for any leaf block.**
+ *   2. **`bg-[var(--pa-line)] p-[3px]` with `gap-[3px]`** on a container whose
+ *      CHILDREN are the wells. The chrome shows through the padding and the gap,
+ *      so the gutter BETWEEN cells is chrome too. **Only worth it where sibling
+ *      cells must read as separate modules**, which is the toolbar (three cells)
+ *      and the pane (rail | detail). This is the "more window border
+ *      segmentation" the user authorised.
+ *
+ * ⚠️ A CONTAINER BUILT THE SECOND WAY GIVES ITS CHILDREN NO BACKGROUND. Each
+ * child needs its own `bg-[var(--pa-void)]`, or it shows chrome and its text
+ * lands on #4A5560. That is the failure mode to look for if a region of this
+ * page suddenly looks washed out.
+ *
+ * 📌 CHROME IS A TEXT BACKGROUND IN EXACTLY ONE PLACE: the panel header strips,
+ * where the reference also puts its labels on the chassis. Titles there are
+ * `--pa-bright` (5.8:1) and hints are `--pa-label` (3.5:1). **Muted grey does
+ * NOT survive on chrome, it lands at 2.2:1**, which is why those hints moved to
+ * amber rather than staying grey.
+ */
+
 /** Five token overrides plus the palette itself, attached to the page root.
  *
  *  ⚠️ THE FIRST FIVE ARE THE LEVER described in the header: they recolour every
@@ -314,7 +373,16 @@ const PALETTE = {
 const PAGE_VARS = {
   "--background": PALETTE.void,
   "--foreground": PALETTE.bright,
-  "--card": PALETTE.card,
+  // 🛑🛑 `--card` IS THE **VOID**, NOT `PALETTE.card`, AND THAT IS THE WHOLE
+  // POINT OF THE 2026-09-11 HIERARCHY PASS. Every `bg-card` on this page is a
+  // place text sits, and in the reference **text always sits on the darkest
+  // colour**. Point this at `PALETTE.card` again and every well on the page
+  // lifts to #16202A, which is the inverted-hierarchy look the user rejected.
+  // See the WINDOW HIERARCHY note above for the full table.
+  "--card": PALETTE.void,
+  // ⚠️ NOTHING READS THIS ANY MORE. `bg-muted/40` was the two panel header
+  // strips and both became solid chrome on 2026-09-11. Kept so a future
+  // `bg-muted` lands on a palette colour instead of the app's default grey.
   "--muted": PALETTE.inset,
   "--border": PALETTE.line,
   "--pa-void": PALETTE.void,
@@ -360,7 +428,10 @@ const ACCENT: Record<string, string> = {
  *  padding and border would fight the cell. That import went with them and
  *  this file no longer needs it. */
 const TOOL_SEGMENT =
-  "flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-[var(--pa-bright)] transition-colors hover:bg-[var(--pa-inset)] hover:text-[var(--pa-label)]";
+  // ⚠️ `bg-[var(--pa-void)]` IS LOAD-BEARING as of 2026-09-11: the strip around
+  // these cells is chrome, so a cell with no background of its own puts its
+  // label on #4A5560. See the WINDOW HIERARCHY note.
+  "flex items-center justify-center gap-2 bg-[var(--pa-void)] px-4 py-3 text-sm font-medium text-[var(--pa-bright)] transition-colors hover:bg-[var(--pa-inset)] hover:text-[var(--pa-label)]";
 
 /** Rows each detail panel list shows before it stops.
  *
@@ -900,7 +971,18 @@ export default async function AutomationsAlphaA1Page({
               📐 IT IS SHORTER THAN WHAT IT REPLACED, which is free height for
               the pane below. Measured on the real page after the swap; see the
               PR. */}
-          <div className="grid grid-cols-3 overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10">
+          {/* ⭐ A CHROME FRAME WITH THREE WELLS IN IT, 2026-09-11. `p-[3px]`
+              plus `gap-[3px]` on a chrome-filled grid means the frame AND the
+              two gutters between the cells are the same bright band, which is
+              how the reference draws its ENGINEERING / PRODUCTION / RESEARCH
+              tab strip.
+              ⚠️ THIS IS WHY `border-l` CAME OFF SEGMENTS 2 AND 3: the gutter
+              IS the divider now, and a hairline inside a 3px chrome gap just
+              thickens one edge of it.
+              ⚠️ `overflow-hidden` STAYS. The cells are square-cornered inside a
+              `rounded-xl` frame, so without it their corners poke through the
+              radius. */}
+          <div className="grid grid-cols-3 gap-[3px] overflow-hidden rounded-xl bg-[var(--pa-line)] p-[3px]">
             <Link
               href="/automations/feature-integration"
               className={TOOL_SEGMENT}
@@ -908,17 +990,11 @@ export default async function AutomationsAlphaA1Page({
               <Plug className="h-4 w-4 text-[var(--pa-muted)]" />
               Feature Integration
             </Link>
-            <Link
-              href="/automations/all"
-              className={cn(TOOL_SEGMENT, "border-l")}
-            >
+            <Link href="/automations/all" className={TOOL_SEGMENT}>
               <List className="h-4 w-4 text-[var(--pa-muted)]" />
               View All Lists
             </Link>
-            <Link
-              href="/automations/dropdown-config"
-              className={cn(TOOL_SEGMENT, "border-l")}
-            >
+            <Link href="/automations/dropdown-config" className={TOOL_SEGMENT}>
               <ListChecks className="h-4 w-4 text-[var(--pa-muted)]" />
               Dropdown Configuration
             </Link>
@@ -933,7 +1009,14 @@ export default async function AutomationsAlphaA1Page({
               set by `CardNavIndicator` inside a rail card, which is a COUSIN of
               the panel, so a `group` on their common ancestor is what connects
               them. Drop this class and the panel stops dimming, with no error. */}
-          <div className="group/pane flex min-h-[640px] overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10">
+          {/* ⭐ THE SAME CHROME-FRAME TREATMENT AS THE TOOLBAR, 2026-09-11:
+              the rail and the detail panel are two WELLS separated by a 3px
+              chrome gutter, inside a 3px chrome frame.
+              ⚠️ THE GUTTER REPLACED THE RAIL'S `border-r`. Keeping both would
+              draw a hairline down the middle of a chrome band.
+              📐 THE RAIL KEEPS ITS 460px; the frame and the gutter take their
+              9px out of the detail panel's `flex-1`. */}
+          <div className="group/pane flex min-h-[640px] gap-[3px] overflow-hidden rounded-xl bg-[var(--pa-line)] p-[3px]">
             {/* ---- Rail. Every website, always visible, so switching costs one
                     click and you never lose your bearings. ---- */}
             {/* ⚠️ w-[460px], AND THE 60 IS NOT ROUND BY ACCIDENT. It is the
@@ -1035,7 +1118,7 @@ export default async function AutomationsAlphaA1Page({
                     buttons back to 32px the same day. I offered to hand that
                     64px back and they chose to keep the roomier cards. So
                     neither step is a leftover; do not "restore" w-64. */}
-            <div className="flex w-[460px] shrink-0 flex-col border-r">
+            <div className="flex w-[460px] shrink-0 flex-col bg-[var(--pa-void)]">
               {/* ⚠️⚠️ THE RAIL'S "Sources" HEADER WAS HERE and was removed on
                   2026-09-06 ("Remove this section"). It was a title row plus a
                   one-line ESTATE AGGREGATE: "{total} automations, {n} of 5
@@ -1139,9 +1222,15 @@ export default async function AutomationsAlphaA1Page({
                       key={site.slug}
                       className={cn(
                         "relative flex items-stretch gap-2.5 rounded-lg border px-2.5 py-2 transition-colors",
+                        // ⚠️ THREE STEPS, AND THE IDLE ONE IS THE VOID as of
+                        // 2026-09-11: idle #0A0E13 -> hover #16202A -> selected
+                        // #2A3038. The card's own `border` is chrome, so an
+                        // idle card is a dark well in a bright frame like every
+                        // other window on the page; selection is the only thing
+                        // that lifts a surface here.
                         isCurrent
                           ? "bg-[var(--pa-inset)]"
-                          : "bg-card hover:bg-[var(--pa-inset)]",
+                          : "bg-[var(--pa-void)] hover:bg-[var(--pa-card)]",
                       )}
                     >
                       {/* ⭐⭐ THE SITE-SELECT LINK IS A FULL-CARD OVERLAY, and
@@ -1567,7 +1656,7 @@ export default async function AutomationsAlphaA1Page({
                                 that goal. */}
                             <Link
                               href={`/automations/${site.slug}`}
-                              className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-card px-2.5 text-xs font-medium text-[var(--pa-muted)] ring-1 ring-foreground/10 transition-colors hover:bg-[var(--pa-inset)] hover:text-[var(--pa-label)]"
+                              className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-[var(--pa-inset)] px-2.5 text-xs font-medium text-[var(--pa-muted)] ring-1 ring-[var(--pa-line)] transition-colors hover:bg-[var(--pa-line)] hover:text-[var(--pa-label)]"
                             >
                               {/* ⚠️ NO TRAILING CHEVRON, removed 2026-09-08: "For both the
                                   Official and Beta1 Page, remove these arrows." The button is
@@ -1741,7 +1830,7 @@ export default async function AutomationsAlphaA1Page({
                 ⚠️ It depends on TWO things elsewhere: `group/pane` on the pane
                 above, and the `data-pending` attribute inside
                 `CardNavIndicator`. Both are silent if removed. */}
-            <div className="@container min-w-0 flex-1 transition-opacity duration-200 group-has-[[data-pending]]/pane:opacity-60">
+            <div className="@container min-w-0 flex-1 bg-[var(--pa-void)] transition-opacity duration-200 group-has-[[data-pending]]/pane:opacity-60">
               {/* Header, tinted with the website's own colour so the panel
                   changes character as you move down the rail. */}
               <div
@@ -1834,7 +1923,7 @@ export default async function AutomationsAlphaA1Page({
                       <div className="flex min-w-0 items-center gap-3">
                         <span
                           aria-hidden
-                          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white ring-1 ring-foreground/10"
+                          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[var(--pa-void)] ring-1 ring-[var(--pa-line)]"
                         >
                           <SiteGlyph site={selected} className="h-7 w-7" />
                         </span>
@@ -1977,7 +2066,7 @@ export default async function AutomationsAlphaA1Page({
                           width: those trade a graceful wrap for a crushed name. */}
                       <Link
                         href={`/automations/${selected.slug}/errors`}
-                        className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-card px-2.5 text-xs font-medium text-[var(--pa-muted)] ring-1 ring-foreground/10 transition-colors hover:bg-[var(--pa-inset)] hover:text-[var(--pa-label)]"
+                        className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-[var(--pa-inset)] px-2.5 text-xs font-medium text-[var(--pa-muted)] ring-1 ring-[var(--pa-line)] transition-colors hover:bg-[var(--pa-line)] hover:text-[var(--pa-label)]"
                       >
                         <AlertTriangle className="h-3.5 w-3.5" />
                         Error History
@@ -2082,7 +2171,13 @@ export default async function AutomationsAlphaA1Page({
                         ERROR" CELL, which said the same "34d ago". That strip is
                         gone ("Remove all these status indicators"), so this is now
                         the only place the days-since figure appears. */}
-                    <div className="flex flex-1 flex-col rounded-lg bg-card p-3 ring-1 ring-foreground/10">
+                    {/* ⚠️ `ring-[3px]` + a VOID fill since 2026-09-11, and it
+                        still matches `CoverageByField` beside it, which is the
+                        standing rule for this block. Both are now a dark well
+                        in a 3px chrome frame; Coverage's frame is simply wider
+                        at the top because its header strip sits ON the chrome.
+                        See the WINDOW HIERARCHY note. */}
+                    <div className="flex flex-1 flex-col rounded-lg bg-[var(--pa-void)] p-3 ring-[3px] ring-[var(--pa-line)]">
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex items-baseline gap-1.5">
                           <span
@@ -2532,12 +2627,19 @@ function Panel({
   children: React.ReactNode;
 }) {
   return (
-    <div className="overflow-hidden rounded-lg ring-1 ring-foreground/10">
-      <div className="flex items-center justify-between gap-2 border-b bg-muted/40 px-3.5 py-2">
+    <div className="overflow-hidden rounded-lg bg-[var(--pa-void)] ring-[3px] ring-[var(--pa-line)]">
+      {/* ⭐ THE HEADER STRIP IS THE ONE PLACE ON THIS PAGE WHERE TEXT SITS ON
+          CHROME, 2026-09-11, and the reference does the same with its section
+          labels. `border-b` came off with the tint: a hairline between a chrome
+          strip and its own frame is invisible.
+          ⚠️ THE HINT IS AMBER, NOT MUTED GREY. #8A96A2 on #4A5560 is 2.2:1 and
+          all but disappears; amber is 3.5:1 and is what the game uses for a
+          label. It is also a WORD, which is this page's own rule for amber. */}
+      <div className="flex items-center justify-between gap-2 bg-[var(--pa-line)] px-3.5 py-2">
         <span className="text-xs font-semibold text-[var(--pa-bright)]">
           {title}
         </span>
-        <span className="text-[10px] uppercase tracking-wider text-[var(--pa-muted)]">
+        <span className="text-[10px] uppercase tracking-wider text-[var(--pa-label)]">
           {hint}
         </span>
       </div>
@@ -2592,12 +2694,14 @@ function CoverageByField({
   total: number;
 }) {
   return (
-    <div className="min-w-0 overflow-hidden rounded-lg bg-card ring-1 ring-foreground/10">
-      <div className="flex items-center justify-between gap-2 border-b bg-muted/40 px-3.5 py-2">
+    <div className="min-w-0 overflow-hidden rounded-lg bg-[var(--pa-void)] ring-[3px] ring-[var(--pa-line)]">
+      {/* Same frame and the same label-on-chrome strip as `PanelShell`; see its
+          note. These two shells are meant to look identical. */}
+      <div className="flex items-center justify-between gap-2 bg-[var(--pa-line)] px-3.5 py-2">
         <span className="text-xs font-semibold text-[var(--pa-bright)]">
           Documentation by Field
         </span>
-        <span className="text-[10px] uppercase tracking-wider text-[var(--pa-muted)]">
+        <span className="text-[10px] uppercase tracking-wider text-[var(--pa-label)]">
           thinnest first
         </span>
       </div>
