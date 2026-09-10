@@ -34,6 +34,7 @@ import {
   Layers,
   PanelTop,
   Microscope,
+  Palette,
   Telescope,
   TestTube,
   Workflow,
@@ -189,6 +190,18 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
     label: "Main Page Alpha7",
     icon: Telescope,
     blurb: "A changelog.",
+  },
+  // ⚠️ A RECOLOUR BENCH, not a restructure. AlphaA1 is the LIVE HUB'S EXACT
+  // STRUCTURE with every colour replaced from a nine-colour palette the user
+  // curated off a game screenshot. **It keeps the "Main Page" prefix because it
+  // IS a main-page design**; what varies is the palette, not the layout.
+  // 📌 The "A" is the user's naming, not a maturity marker. If more recolours
+  // follow, AlphaA2 is the shape to reuse.
+  {
+    href: "/automations-alpha-a1",
+    label: "Main Page AlphaA1",
+    icon: Palette,
+    blurb: "The live hub, recoloured to a nine-colour palette.",
   },
   // ⚠️⚠️ AN "OPTIONS" ENTRY IS A DIFFERENT KIND OF THING FROM EVERYTHING ABOVE
   // IT, and the label says so. Every Alpha and Beta is a redesign of the whole
