@@ -190,18 +190,36 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
     icon: Telescope,
     blurb: "A changelog.",
   },
-  // ⚠️⚠️ GAMMA IS A DIFFERENT KIND OF ENTRY FROM EVERYTHING ABOVE IT, and the
-  // label says so. Every Alpha and Beta is a redesign of the whole Main Page.
-  // **A GAMMA IS A SHOWCASE OF ONE COMPONENT, rendered several ways on a single
-  // page so the user can pick between them.** Gamma1 does that for the toolbar
-  // strip. If a future request is "give me options for <one element>", add
-  // Gamma2 rather than another Beta.
-  // 📌 Hence the label is NOT "Main Page Gamma1": the "Main Page" prefix means
-  // "this is a design FOR the main page", and this is a design for one strip on
-  // it. Calling it that would promise a full page and deliver a gallery.
+  // ⚠️⚠️ AN "OPTIONS" ENTRY IS A DIFFERENT KIND OF THING FROM EVERYTHING ABOVE
+  // IT, and the label says so. Every Alpha and Beta is a redesign of the whole
+  // Main Page. **AN OPTIONS PAGE IS A SHOWCASE OF ONE COMPONENT, rendered
+  // several ways on a single page so the user can pick between them.** This one
+  // does that for the hub's toolbar strip.
+  // 📌 SO IT IS NOT "Main Page ...": that prefix means "a design FOR the main
+  // page", and this is a design for one strip on it. Using it would promise a
+  // whole page and deliver a gallery. **The element goes first and the word
+  // "Options" carries the category**, so a future set for a different element
+  // is "Sidebar Options 1", NOT another Beta and NOT a running family count.
+  //
+  // 🏷️🏷️ THIS WAS CALLED "GAMMA1" UNTIL 2026-09-11 AND WAS RENAMED FOR A REASON
+  // WORTH KEEPING. The user coined "Gamma1" and later asked for suggestions;
+  // two problems settled it:
+  //   1. **Greek letters imply a MATURITY STAGE.** The real ladder is alpha ->
+  //      beta -> release candidate -> GA, and it stops at two letters. So
+  //      "Gamma1" reads as MORE finished than Beta3, when in fact it is
+  //      orthogonal to maturity: it is a different KIND of page, not a later
+  //      one.
+  //   2. **⚠️⚠️ "GAMMA" ALREADY MEANS SOMETHING ELSE IN THIS CODEBASE.** The
+  //      Reports feature integrates Gamma.app for deck generation:
+  //      `lib/reports/gamma-client.ts`, `lib/inngest/functions/generate-gamma.ts`,
+  //      `GAMMA_API_KEY`, and the `gamma_status` / `gamma_url` /
+  //      `gamma_credits_*` columns on `reports`. **Anyone grepping "gamma" is
+  //      looking for that.** A toolbar gallery sharing the word was a real
+  //      collision, and it is the stronger of the two reasons.
+  // **Do not reintroduce a Greek letter for a version family here.**
   {
-    href: "/automations-gamma1",
-    label: "Toolbar Options Gamma1",
+    href: "/automations-toolbar-options-1",
+    label: "Toolbar Options 1",
     icon: PanelTop,
     blurb: "Nine ways to render the hub's toolbar strip, stacked to compare.",
   },
