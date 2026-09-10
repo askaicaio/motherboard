@@ -1578,13 +1578,14 @@ export default async function AutomationsBeta2Page({
                           enough. **"Workflows found in the GoHighLevel B2B
                           subaccount" was 48 characters against 30 for the next
                           longest** ("Workflows found in GoHighLevel").
-                          ⚠️⚠️ THAT STRING SHRANK ON 2026-09-10, LATER THE SAME
-                          DAY: the user had "subaccount" removed, so it is now
-                          **"Workflows found in the GoHighLevel B2B", 37
-                          characters.** The gap to the next longest is 7
-                          characters instead of 18, so **this header should no
-                          longer wrap that description onto a second line at any
-                          normal width.** The `flex-wrap` removal below is still
+                          ⚠️⚠️ THAT STRING SHRANK TWICE AND IS NO LONGER THE
+                          CONSTRAINT IT WAS. "subaccount" went on 2026-09-10 and
+                          "the" on 2026-09-11, so it now reads **"Workflows
+                          found in GoHighLevel B2B", 33 characters**, down from
+                          48. **The gap to the next longest is 3 characters
+                          instead of 18**, so **this header should no longer
+                          wrap any description onto a second line at any normal
+                          width.** The `flex-wrap` removal below is still
                           right and still the reason the button cannot move; it
                           just has far less work to do now. **Re-measure before
                           relying on either number.**
