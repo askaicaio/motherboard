@@ -1,7 +1,19 @@
 // =============================================================
-// Automations "Gamma1", route /automations-gamma1
+// Automations "Toolbar Options 1", route /automations-toolbar-options-1
 // =============================================================
-// ⭐ A NEW FAMILY, AND A DIFFERENT KIND OF PAGE. Created 2026-09-10: "i need
+// 🏷️ RENAMED FROM "GAMMA1" ON 2026-09-11, route and all. The user coined
+// "Gamma1", then asked for suggestions; two things decided it:
+//   1. **A Greek letter implies a MATURITY STAGE.** alpha -> beta -> release
+//      candidate -> GA is the real ladder and it stops at two letters, so
+//      "Gamma1" read as MORE finished than Beta3. This page is not further
+//      along, it is a different KIND of page.
+//   2. **⚠️ "GAMMA" ALREADY MEANS Gamma.app IN THIS CODEBASE**, which the
+//      Reports feature integrates for deck generation (`gamma-client.ts`,
+//      `GAMMA_API_KEY`, the `gamma_*` columns on `reports`). Sharing the word
+//      was a genuine grep collision. **That was the stronger reason.**
+// **The old route /automations-gamma1 is gone; nothing serves it.**
+//
+// ⭐ A DIFFERENT KIND OF PAGE FROM EVERY ALPHA AND BETA. Created 2026-09-10: "i need
 // suggestions on other ways to display this toolbar. Still in the same spot,
 // which is directly below the Automation Header. Create a Gamma1 Page. Put all
 // your suggested toolbar aesthetics there. one after the other."
@@ -9,9 +21,11 @@
 // ⚠️⚠️ THIS IS NOT A HUB REDESIGN, WHICH IS WHAT EVERY ALPHA AND BETA IS. It is
 // a COMPONENT SHOWCASE: one element, the toolbar strip, rendered several ways,
 // stacked so they can be compared against each other in the position they would
-// actually occupy. **Read GAMMA as "variations on one component" and ALPHA /
-// BETA as "variations on the whole page".** If the user asks for suggestions on
-// some other single element later, Gamma2 is the shape to reuse.
+// actually occupy. **Read AN "OPTIONS" PAGE as "variations on one component" and
+// ALPHA / BETA as "variations on the whole page".** If the user asks for
+// suggestions on some other single element later, copy this shape and name it
+// after that element: "Sidebar Options 1", "Card Options 1". **The element goes
+// first; there is no running family number across different elements.**
 //
 // ⚠️ WHAT IT IS COMPARING: the three-link strip that sits directly below the
 // page header on the live hub, going to Feature Integration, View All Lists and
@@ -81,7 +95,7 @@ const TOOLS = [
   },
 ] as const;
 
-export default async function AutomationsGamma1Page() {
+export default async function AutomationsToolbarOptions1Page() {
   await requireAuth();
 
   return (
@@ -95,8 +109,13 @@ export default async function AutomationsGamma1Page() {
             <h1 className="font-heading text-2xl font-semibold tracking-tight">
               Automations
             </h1>
+            {/* ⚠️ THE BADGE IS THE *SHORT* NAME, same convention as every
+                other version page: the directory tile reads "Toolbar Options
+                1" and this pill drops the element qualifier, because the pill
+                sits beside an <h1> already saying "Automations" and the strip
+                it describes is visible directly below. */}
             <span className="rounded-full bg-zinc-900 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
-              Gamma1
+              Options 1
             </span>
           </div>
           <p className="mt-1 text-sm text-zinc-500">
