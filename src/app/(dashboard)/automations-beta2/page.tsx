@@ -110,7 +110,6 @@ import {
   getErrorCountsByPlatform,
   getDaysSinceLastErrorByPlatform,
 } from "@/lib/automations/errors";
-import { buttonVariants } from "@/components/ui/button";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { TOOLTIP_DELAY_MS } from "@/lib/automations/tooltips";
 import { CopyApiKeyButton } from "@/components/automations/copy-api-key-button";
@@ -135,6 +134,18 @@ const ACCENT: Record<string, string> = {
   "ghl-b2b": "#8FDDB4",
   zapier: "#FF4F00",
 };
+
+/** One segment of the toolbar strip: a third of the width, centred.
+ *
+ *  ⚠️ HOISTED SO THE THREE SEGMENTS CANNOT DRIFT. They are identical apart
+ *  from the divider, and three inline copies of this string is how one of them
+ *  ends up a padding step out from the others.
+ *  ⚠️ NO `buttonVariants` ANY MORE. The strip used outline BUTTONS until
+ *  2026-09-11; these are full-height cells in a grid, so a button's own
+ *  padding and border would fight the cell. That import went with them and
+ *  this file no longer needs it. */
+const TOOL_SEGMENT =
+  "flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 hover:text-zinc-900";
 
 /** Rows each detail panel list shows before it stops.
  *
@@ -662,26 +673,50 @@ export default async function AutomationsBeta2Page({
               Configuration (ListChecks). `rounded-xl bg-card ring-1
               ring-foreground/10` matches the pane below it, exactly as the
               live strip matches its cards. */}
-          <div className="flex items-center gap-3 rounded-xl bg-card px-4 py-2.5 ring-1 ring-foreground/10">
+          {/* ⭐⭐ EQUAL THIRDS, FULL WIDTH, 2026-09-11: "Implement this toolbar
+              into the live." The user picked variant 06 off
+              `/automations-toolbar-options-1`, which showed nine treatments of
+              this strip side by side.
+              ⚠️ WHAT CHANGED IS THE ARRANGEMENT, NOT THE DECISION TO HAVE A
+              STRIP. It was three `outline` buttons floating in a flex row with
+              `gap-3`; it is now three EQUAL CELLS of a `grid-cols-3`, divided by
+              hairlines, filling the pane's width. **The note below about the
+              strip beating the Tools CARD is untouched and still stands**: that
+              was a different argument, about where these links live at all.
+              ⚠️ THE BUTTONS ARE GONE ON PURPOSE. A cell that spans a third of
+              the row does not want a button's own padding and border inside it,
+              which is why `buttonVariants` left this file entirely. The segments
+              share `TOOL_SEGMENT` so they cannot drift.
+              ⚠️ `overflow-hidden` IS LOAD-BEARING, not decoration: without it
+              the middle and right cells' `hover:bg-zinc-50` paints over the
+              container's rounded corners on the outer edges. Remove it and the
+              corners square off on hover only, which is the sort of thing that
+              looks like a rendering bug.
+              ⚠️ `border-l` ON SEGMENTS 2 AND 3 ONLY. Putting it on all three
+              draws a line against the container's left edge.
+              📐 IT IS SHORTER THAN WHAT IT REPLACED, which is free height for
+              the pane below. Measured on the real page after the swap; see the
+              PR. */}
+          <div className="grid grid-cols-3 overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10">
             <Link
               href="/automations/feature-integration"
-              className={buttonVariants({ variant: "outline", size: "sm" })}
+              className={TOOL_SEGMENT}
             >
-              <Plug />
+              <Plug className="h-4 w-4 text-zinc-500" />
               Feature Integration
             </Link>
             <Link
               href="/automations/all"
-              className={buttonVariants({ variant: "outline", size: "sm" })}
+              className={cn(TOOL_SEGMENT, "border-l")}
             >
-              <List />
+              <List className="h-4 w-4 text-zinc-500" />
               View All Lists
             </Link>
             <Link
               href="/automations/dropdown-config"
-              className={buttonVariants({ variant: "outline", size: "sm" })}
+              className={cn(TOOL_SEGMENT, "border-l")}
             >
-              <ListChecks />
+              <ListChecks className="h-4 w-4 text-zinc-500" />
               Dropdown Configuration
             </Link>
           </div>
