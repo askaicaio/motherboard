@@ -167,6 +167,31 @@ export function AutoHealthCheckToggle({
       : 0,
   );
   const [error, setError] = useState<string | null>(null);
+  // ⚠️⚠️ THIS EXISTS ONLY TO FIX A HYDRATION MISMATCH, 2026-09-11. Do not
+  // remove it as dead-looking state.
+  // THE BUG: `remainingMs` is seeded by a lazy `useState` initialiser that
+  // calls `Date.now()`. That initialiser runs ONCE ON THE SERVER during SSR and
+  // AGAIN ON THE CLIENT during hydration, and the two clocks are never the same
+  // instant, so the server shipped "Next check in 21:36:05" and the browser
+  // rendered "Next check in 21:35:49". React logged
+  // "Hydration failed because the server rendered text didn't match".
+  // THE FIX: do not render the countdown until the client has mounted. The
+  // server and the first client render now agree on rendering NOTHING, which is
+  // what hydration compares, and the real value appears a tick later from the
+  // interval effect below.
+  // ⚠️ WHY NOT SEED IT TO 0 INSTEAD: `remainingMs <= 0` is what `elapsed` reads
+  // to fire the scheduled fan-out. A 0 at first render would make `elapsed`
+  // true on every page load. **It would be caught** by that effect's re-verify
+  // against `nextCheckAtRef`, which exists for exactly this, but relying on a
+  // downstream guard to undo a wrong value is worse than not creating it.
+  // ⚠️ WHY NOT `suppressHydrationWarning`: it silences the warning for the
+  // whole subtree, including future real mismatches, and still ships a stale
+  // number in the HTML. A countdown computed on the server is wrong by the time
+  // it arrives, so the honest thing is not to send one.
+  // 📌 NO LAYOUT SHIFT: this <p> is `absolute`, so appearing a tick later moves
+  // nothing.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const errorTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Latest nextCheckAt, read by the elapsed effect to re-verify the countdown
   // REALLY reached zero before firing (guards against a stale remainingMs during
@@ -316,7 +341,7 @@ export function AutoHealthCheckToggle({
         >
           {error}
         </p>
-      ) : enabled && nextCheckAt ? (
+      ) : mounted && enabled && nextCheckAt ? (
         <p className="absolute left-0 top-full z-10 mt-1 whitespace-nowrap text-[11px] font-medium text-zinc-500">
           {remainingMs > 0
             ? `Next check in ${formatHealthCountdown(remainingMs)}`
