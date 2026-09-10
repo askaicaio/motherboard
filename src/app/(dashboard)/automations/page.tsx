@@ -1976,11 +1976,20 @@ export default async function AutomationsPage({
 
 type Tone = "ok" | "warn" | "bad" | "off";
 
+// ⚠️ TEXT COLOUR ONLY, since 2026-09-11: "Remove the pill aesthetic for these
+// indicators. Keep the text and color changing properties, as well as the
+// colored dot." **The background tint and the ring went; the per-tone TEXT
+// colour is the property that stayed**, and it is still the thing that makes a
+// row scannable.
+// ⚠️ THESE SHADES WERE CHOSEN AGAINST A TINTED PILL and now sit on the card's
+// own background. They are dark enough to hold up (700/800 weights), which is
+// why they were kept rather than darkened. **If the card ground ever changes,
+// re-check these rather than assuming.**
 const TONE_CLASSES: Record<Tone, string> = {
-  ok: "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
-  warn: "bg-amber-50 text-amber-800 ring-amber-600/25",
-  bad: "bg-red-50 text-red-700 ring-red-600/20",
-  off: "bg-zinc-100 text-zinc-600 ring-zinc-500/20",
+  ok: "text-emerald-700",
+  warn: "text-amber-800",
+  bad: "text-red-700",
+  off: "text-zinc-600",
 };
 
 const TONE_DOTS: Record<Tone, string> = {
@@ -2048,7 +2057,9 @@ function siteStatus(
         : { tone: "ok", label: "Healthy" };
 }
 
-/** The pill beside the selected website's name. PRESENTATION ONLY: it renders
+/** The status indicator beside the website's name: a coloured dot and a
+ *  coloured label, with no pill around it since 2026-09-11. PRESENTATION ONLY:
+ *  it renders
  *  whatever tone and label it is handed. **The rules that choose them live in
  *  `siteStatus()` directly above, documented there.** Change the logic there,
  *  not here.
@@ -2065,7 +2076,15 @@ function StatusPill({ tone, label }: { tone: Tone; label: string }) {
   return (
     <span
       className={cn(
-        "inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-medium ring-1",
+        // ⚠️ NO PILL as of 2026-09-11: `rounded-full px-2.5 py-1 ring-1` and the
+        // background tint were removed at the user's request. **The NAME is now
+        // a misnomer and was left alone deliberately** rather than renaming a
+        // component across two files for a style change; read it as "the status
+        // indicator".
+        // ⚠️ IT NOW MATCHES THE AUTO-REFRESH INDICATOR SITTING NEXT TO IT, which
+        // has always been a bare icon plus 11px text. That pairing is most of
+        // the point: two indicators on one row now read as one family.
+        "inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap text-[11px] font-medium",
         TONE_CLASSES[tone],
       )}
     >
