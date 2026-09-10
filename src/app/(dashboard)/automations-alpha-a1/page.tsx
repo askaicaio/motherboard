@@ -261,10 +261,24 @@ const PALETTE = {
   /** 9. Healthy, on, positive. */
   green: "#4FAF4A",
   /** 10. NUMERIC VALUES. Added 2026-09-11, and the reason is in the note
-   *  below: the reference uses a cool tone for figures and warm for words. */
-  blue: "#7E9CB8",
-  /** 11. The one headline figure per card, a step brighter than 10. */
-  blueBright: "#A9C6DE",
+   *  below: the reference uses a cool tone for figures and warm for words.
+   *  ⚠️⚠️ RESAMPLED THE SAME DAY, from #7E9CB8 to this. The user: "the blue used
+   *  in S1 are not as blue as the screenshot in S2. Like the S1 text are
+   *  desaturated blue." They were right, and it was the THIRD read of this one
+   *  colour.
+   *  📌 WHY MY READS KEPT DRIFTING GREY, because it will happen again: small
+   *  antialiased text on a near-black ground physically MIXES with that ground,
+   *  which pulls apparent saturation down. **The colour that looks right as 11px
+   *  text is more saturated than the colour you read off it.** So sampling text
+   *  under-reads chroma every time, and the fix is to pick from candidates
+   *  rendered at the real size, which is how this value was chosen. */
+  blue: "#5CA0DC",
+  /** 11. The one headline figure per card, a step brighter than 10.
+   *  ⚠️ DERIVED, NOT SAMPLED: #5CA0DC is HSL(208, 65%, 61%), so this is the
+   *  same hue and saturation lifted to 76% lightness. The previous #A9C6DE was
+   *  eyeballed with the same grey bias as the old 10, so it was replaced rather
+   *  than kept. **If 10 is ever retuned, recompute this from it.** */
+  blueBright: "#9AC4EA",
 } as const;
 
 /* 🎨🎨 WHY THERE ARE ELEVEN COLOURS AND NOT NINE, 2026-09-11.
