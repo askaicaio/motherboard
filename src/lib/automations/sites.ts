@@ -64,11 +64,16 @@ export const AUTOMATION_SITES: AutomationSite[] = [
     // ⚠️ "subaccount" was dropped on 2026-09-10 at the user's request. Like
     // the label above, this is ONE SHARED STRING and the change reaches every
     // surface that shows a website description, not just the hub.
-    // 📌 IT WAS ALSO THE LONGEST DESCRIPTION BY A DISTANCE (48 characters) and
-    // is now 37, which MATTERS TO LAYOUT: the hub's detail header used to wrap
-    // this one description onto a second line and should no longer need to.
+    // ⚠️ "the" went too, on 2026-09-11, so it now matches GHL's own line
+    // ("Workflows found in GoHighLevel"). Asked about the reach again rather
+    // than assuming, per the standing rule; the user chose every screen again.
+    // 📌 IT WAS THE LONGEST DESCRIPTION BY A DISTANCE (48 characters), then 37,
+    // and is now 33, which MATTERS TO LAYOUT: the hub's detail header used to
+    // wrap this one description onto a second line and no longer needs to.
+    // **It is now only 3 characters longer than the next longest**, so this
+    // description has stopped being the constraint it was for a week.
     // See the header note in `automations/page.tsx`.
-    description: "Workflows found in the GoHighLevel B2B",
+    description: "Workflows found in GoHighLevel B2B",
     icon: "/automation-icons/ghl.png",
   },
   {
