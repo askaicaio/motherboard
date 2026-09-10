@@ -260,7 +260,33 @@ const PALETTE = {
   red: "#C0392F",
   /** 9. Healthy, on, positive. */
   green: "#4FAF4A",
+  /** 10. NUMERIC VALUES. Added 2026-09-11, and the reason is in the note
+   *  below: the reference uses a cool tone for figures and warm for words. */
+  blue: "#7E9CB8",
+  /** 11. The one headline figure per card, a step brighter than 10. */
+  blueBright: "#A9C6DE",
 } as const;
+
+/* 🎨🎨 WHY THERE ARE ELEVEN COLOURS AND NOT NINE, 2026-09-11.
+ *
+ * The first pass had nine, and the page came out drowning in amber. **The
+ * cause was a mistake in how the palette was read, not in how it was applied.**
+ * I sampled the game screenshot and filed every light tone as one off-white
+ * (#DCE2E8). The user spotted that the stat NUMERALS are actually blue, which
+ * at 11px against near-black is easy to miss and easier still to miss once you
+ * have already named an "off-white" bucket for light things to fall into.
+ *
+ * ⭐⭐ THE REFERENCE SPLITS TEXT BY WHAT IT IS, and recovering that is what
+ * fixes the amber problem properly rather than just muting it:
+ *     AMBER  -> words. Resource names, section labels, the site's own name.
+ *     RED    -> stat LABELS (WE, RE, AR, SP, HP, MT).
+ *     BLUE   -> stat VALUES. Every figure in the grid.
+ * The first pass sent all "strong text" to amber, which the game never does.
+ *
+ * ⚠️ SO THE RULE ON THIS PAGE IS: **A NUMBER IS BLUE, A WORD IS AMBER OR
+ * OFF-WHITE.** If you add a figure to this page, it wants `--pa-blue`; if it is
+ * the single headline figure of a card, `--pa-blue-bright`.
+ */
 
 /** Five token overrides plus the palette itself, attached to the page root.
  *
@@ -286,6 +312,8 @@ const PAGE_VARS = {
   "--pa-bright": PALETTE.bright,
   "--pa-red": PALETTE.red,
   "--pa-green": PALETTE.green,
+  "--pa-blue": PALETTE.blue,
+  "--pa-blue-bright": PALETTE.blueBright,
 } as React.CSSProperties;
 
 /** Per-website accent, drawn from the palette because everything must be.
@@ -297,7 +325,12 @@ const PAGE_VARS = {
  *  "healthy"**. See the header. */
 const ACCENT: Record<string, string> = {
   make: PALETTE.label,
-  n8n: PALETTE.red,
+  // ⚠️ BLUE SINCE 2026-09-11, WAS RED. Red is this page's error colour, so an
+  // accent in red meant the same swatch said "n8n" in one place and "something
+  // is wrong" in another. Blue was uncommitted, so the worse of the two
+  // collisions is gone. **Green still doubles as "healthy" on GHL below**; that
+  // is the remaining one and needs a twelfth colour to fix properly.
+  n8n: PALETTE.blue,
   ghl: PALETTE.green,
   "ghl-b2b": PALETTE.muted,
   zapier: PALETTE.bright,
@@ -1569,7 +1602,10 @@ export default async function AutomationsAlphaA1Page({
                         <span className="block">
                           <span className="flex items-baseline justify-between gap-2">
                             <span className="flex min-w-0 items-baseline gap-1">
-                              <span className="font-heading text-lg font-semibold leading-none tabular-nums text-[var(--pa-label)]">
+                              {/* ⚠️ THE HEADLINE FIGURE, so it gets the brighter
+                                  blue. Every other number on the card uses
+                                  `--pa-blue`; see the palette note. */}
+                              <span className="font-heading text-lg font-semibold leading-none tabular-nums text-[var(--pa-blue-bright)]">
                                 {s.total}
                               </span>
                               <span className="truncate text-[10px] text-[var(--pa-muted)]">
@@ -1588,14 +1624,14 @@ export default async function AutomationsAlphaA1Page({
                                     backgroundColor: ACCENT[site.slug],
                                   }}
                                 />
-                                <span className="font-semibold tabular-nums text-[var(--pa-label)]">
+                                <span className="font-semibold tabular-nums text-[var(--pa-blue)]">
                                   {s.active}
                                 </span>
                                 active
                               </span>
                               <span className="flex items-center gap-1">
                                 <span className="h-1.5 w-1.5 rounded-full bg-[var(--pa-line)]" />
-                                <span className="font-semibold tabular-nums text-[var(--pa-label)]">
+                                <span className="font-semibold tabular-nums text-[var(--pa-blue)]">
                                   {s.paused}
                                 </span>
                                 paused
@@ -2171,7 +2207,7 @@ export default async function AutomationsAlphaA1Page({
                           className="block px-3.5 py-2.5 transition-colors hover:bg-[var(--pa-inset)]"
                         >
                           <div className="flex items-baseline justify-between gap-2">
-                            <span className="truncate text-sm font-medium text-[var(--pa-label)]">
+                            <span className="truncate text-sm font-medium text-[var(--pa-bright)]">
                               {row.name}
                             </span>
                             <span className="shrink-0 text-[11px] tabular-nums text-[var(--pa-muted)]">
@@ -2208,7 +2244,7 @@ export default async function AutomationsAlphaA1Page({
                           className="block px-3.5 py-2.5 transition-colors hover:bg-[var(--pa-inset)]"
                         >
                           <div className="flex items-baseline justify-between gap-2">
-                            <span className="truncate text-sm font-medium text-[var(--pa-label)]">
+                            <span className="truncate text-sm font-medium text-[var(--pa-bright)]">
                               {row.name}
                             </span>
                             <span className="shrink-0 text-[11px] tabular-nums text-[var(--pa-muted)]">
@@ -2571,7 +2607,7 @@ function CoverageByField({
                   style={{ width: `${Math.min(100, row.pct)}%` }}
                 />
               </div>
-              <span className="w-10 shrink-0 text-right text-xs font-semibold tabular-nums text-[var(--pa-label)]">
+              <span className="w-10 shrink-0 text-right text-xs font-semibold tabular-nums text-[var(--pa-blue)]">
                 {Math.round(row.pct)}%
               </span>
               <span className="w-16 shrink-0 text-right text-[11px] tabular-nums text-[var(--pa-muted)]">
