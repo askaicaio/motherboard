@@ -1154,10 +1154,36 @@ export default async function AutomationsBeta2Page({
                                 ⚠️ `shrink-0` is not passed because `SiteGlyph`
                                 applies it internally; it must never shrink, so
                                 the NAME still yields first. */}
-                              <SiteGlyph site={site} className="h-5 w-5" />
+                              {/* ⭐ SCALED UP ON 2026-09-11 to balance group
+                                  (2): "Make this section a bit larger to match
+                                  the current extra height added by section (2)
+                                  i mentioned earlier." The stack beside it is
+                                  35px and this group was 20px.
+                                  📐 CHOSEN BY MEASURING FOUR CANDIDATES on the
+                                  real page, not by picking a number:
+                                    h-5 + text-sm   20px   (before)
+                                    h-7 + text-sm   28px
+                                    h-8 + text-base 32px   <- shipped
+                                    h-9 + text-base 36px
+                                  **h-8 + text-base is the largest that is FREE:
+                                  group (2) still sets the row at 35px, so the
+                                  card stays 123px.** h-9 would have matched 35
+                                  almost exactly and cost 1px per card, which is
+                                  not worth it for a 4px gain.
+                                  ⚠️ NOTHING CLIPS at this size, checked on all
+                                  five names including the longest ("GHL B2B").
+                                  The name still truncates first if the row ever
+                                  runs out of width.
+                                  ⚠️ 16px IS THE CEILING FOR TEXT IN A CARD HERE.
+                                  The page's own <h1> is 24px, and a card title
+                                  at that size competes with the heading; that is
+                                  exactly why View list was walked back from 24
+                                  to 16 across four deploys on 2026-08-31. Do not
+                                  go past text-base. */}
+                              <SiteGlyph site={site} className="h-8 w-8" />
                               <span
                                 className={cn(
-                                  "min-w-0 truncate text-sm",
+                                  "min-w-0 truncate text-base",
                                   isCurrent
                                     ? "font-semibold text-zinc-900"
                                     : "font-medium text-zinc-700",
