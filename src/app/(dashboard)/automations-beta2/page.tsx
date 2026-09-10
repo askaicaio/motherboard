@@ -82,6 +82,8 @@ import {
   PencilLine,
   Plug,
   RefreshCw,
+  // The negated twin, for the auto-refresh OFF state. Added 2026-09-11.
+  RefreshCwOff,
   // Back on 2026-09-10 for the page title's icon; see the note at the <h1>.
   Workflow,
 } from "lucide-react";
@@ -1219,14 +1221,38 @@ export default async function AutomationsBeta2Page({
                                 }
                                 className="flex items-center gap-1 whitespace-nowrap text-[11px] text-zinc-500"
                               >
-                                <RefreshCw
-                                  className={cn(
-                                    "h-3 w-3 shrink-0",
-                                    siteRefreshOn
-                                      ? "text-emerald-600"
-                                      : "text-zinc-400",
-                                  )}
-                                />
+                                {/* ⭐ TWO DIFFERENT GLYPHS, 2026-09-11: "Make
+                                    the auto refresh 'off' icon more distinct.
+                                    Its hard to differentiate it from the 'On'
+                                    icon."
+                                    ⚠️ BOTH STATES USED `RefreshCw` UNTIL NOW,
+                                    separated only by colour (emerald vs zinc).
+                                    At 12px, on a card you scan rather than
+                                    read, that is not enough of a difference.
+                                    **`RefreshCwOff` is the same glyph with a
+                                    slash through it**, so it still reads as
+                                    "this is about refreshing" while being
+                                    unmistakably negated.
+                                    ⚠️ THE OFF TONE WENT `zinc-400` ->
+                                    `zinc-500` so the slash is actually legible
+                                    at this size. That was my call; the
+                                    instruction was about the icon.
+                                    ⚠️⚠️ DELIBERATELY NOT RED OR AMBER. Off is a
+                                    correct, expected state, not a fault: Zapier
+                                    has no API integration at all, so its
+                                    auto-refresh is off by design. A warning
+                                    colour here would invent a problem. **The
+                                    slash carries the meaning; the colour stays
+                                    neutral.**
+                                    📌 The `title` on the wrapper still spells
+                                    out "Auto-refresh off" on hover, and the
+                                    label beside it always has. This only fixes
+                                    the at-a-glance read. */}
+                                {siteRefreshOn ? (
+                                  <RefreshCw className="h-3 w-3 shrink-0 text-emerald-600" />
+                                ) : (
+                                  <RefreshCwOff className="h-3 w-3 shrink-0 text-zinc-500" />
+                                )}
                                 {siteRefreshOn
                                   ? "Auto-refresh on"
                                   : "Auto-refresh off"}
