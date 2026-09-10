@@ -72,8 +72,13 @@ export default async function AutomationsFeatureIntegrationPage() {
       <Card>
         <CardContent className="p-0">
           <div className="flex items-center justify-between gap-3 border-b bg-zinc-50 px-3 py-2">
+            {/* ⚠️ "Experimental" was added on 2026-09-11 at the user request.
+                It earns its place: this section links ELEVEN parallel designs of
+                pages that already exist and work, and without that word the
+                heading reads like a list of releases rather than a bench. The
+                live hub is deliberately NOT in here. */}
             <h2 className="text-sm font-semibold text-zinc-900">
-              Design Versions
+              Experimental Design Versions
             </h2>
             <span className="text-xs text-zinc-500">
               {AUTOMATION_BENCH_VERSIONS.length} pages, each opens in a new tab
