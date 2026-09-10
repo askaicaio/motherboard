@@ -222,7 +222,12 @@ import {
 } from "@/lib/automations/errors";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { TOOLTIP_DELAY_MS } from "@/lib/automations/tooltips";
-import { CopyApiKeyButton } from "@/components/automations/copy-api-key-button";
+// ⚠️ THE LOCAL COPY, NOT THE SHARED ONE, as of 2026-09-11. The shared button
+// hard-codes `bg-green-50` / `bg-red-50` and takes no `className`, so its two
+// states were the last near-white fills behind text on this page. The copy's
+// own header explains why a Tailwind var override could not reach it and why
+// this is a duplicate rather than a new prop on the shared component.
+import { CopyApiKeyButton } from "./copy-api-key-button";
 import { CardNavIndicator } from "./nav-indicator";
 import { HoverPrefetchLink } from "./hover-prefetch-link";
 import {
