@@ -859,9 +859,41 @@ export default async function AutomationsAlphaA1Page({
   // and `days` the error panel's "Last Error N days ago".
 
   return (
+    // 🛑🛑 `-m-6 p-12 min-h-screen` IS A FULL-BLEED ESCAPE AND EVERY PART OF IT
+    // IS LOAD-BEARING, 2026-09-12: "There is white background around the dark
+    // background. The only white background that should be here is the left
+    // navigation side panel."
+    //
+    // ⚠️ THE CAUSE: the SHARED dashboard layout renders
+    // `<main className="flex-1 bg-zinc-50 p-6">`, so this page's box is inset
+    // 24px inside a NEAR-WHITE ground it does not own, and `main` is `flex-1` of
+    // a `min-h-screen` column so it is also TALLER than this page's content.
+    // **Painting `bg-[var(--pa-void)]` on this div could only ever colour the
+    // page's own box; the frame of `bg-zinc-50` around it belongs to the
+    // layout.** That frame is invisible on every other page because they are
+    // light too. This is the first dark page in the app.
+    //
+    // ⭐ THE FIX WITHOUT TOUCHING THE LAYOUT, which would repaint every page in
+    // the dashboard:
+    //   `-m-6`        pulls this div's border box out over `main`'s 24px padding
+    //                 on all four sides, so it spans `main`'s padding box.
+    //   `p-12`        puts the 24px back INSIDE the dark, and adds the layout's
+    //                 24px on top. **48px, not 24px, is what keeps every element
+    //                 exactly where it was before this change.**
+    //   `min-h-screen` fills the height `main` has and the content does not.
+    //                 `main` starts at y=0 (this layout has no header), so one
+    //                 viewport is the right number. **`min-h-full` would NOT
+    //                 work: it needs a definite height on the parent.**
+    //
+    // ⚠️ IT DOES NOT OVERFLOW, despite reaching past `main`'s content box.
+    // `overflow-x-clip` on `main` clips at the PADDING box, which is exactly
+    // where this div now ends. Horizontal is flush; nothing is cut.
+    // ⚠️ THE SIDEBAR IS UNTOUCHED AND MUST STAY THAT WAY. It is a sibling of
+    // `main`, outside this div entirely, which is the one white thing the user
+    // wants kept.
     <div
       style={PAGE_VARS}
-      className="space-y-5 bg-[var(--pa-void)] p-6 text-[var(--pa-bright)] [color-scheme:dark]"
+      className="-m-6 min-h-screen space-y-5 bg-[var(--pa-void)] p-12 text-[var(--pa-bright)] [color-scheme:dark]"
     >
       {/* The health controls carry tooltips, so they need a provider, and the
           shared TOOLTIP_DELAY_MS keeps their timing identical to the rest of
