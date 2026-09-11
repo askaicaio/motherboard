@@ -413,11 +413,24 @@ const PALETTE = {
  * lands on #4A5560. That is the failure mode to look for if a region of this
  * page suddenly looks washed out.
  *
- * 📌 CHROME IS A TEXT BACKGROUND IN EXACTLY ONE PLACE: the panel header strips,
- * where the reference also puts its labels on the chassis. Titles there are
- * `--pa-bright` (5.8:1) and hints are `--pa-label` (3.5:1). **Muted grey does
- * NOT survive on chrome, it lands at 2.2:1**, which is why those hints moved to
- * amber rather than staying grey.
+ * 🛑🛑 CHROME IS NEVER A TEXT BACKGROUND. NOT ANYWHERE, NOT ON HOVER.
+ *
+ * ⚠️ THIS PARAGRAPH USED TO SAY THE OPPOSITE, and the correction is worth
+ * keeping: it claimed the panel header strips were a deliberate exception
+ * "where the reference also puts its labels on the chassis". **It does not.**
+ * The game's ENGINEERING / PRODUCTION / RESEARCH tabs and its MECHS / REACTORS /
+ * WEAPONS tabs are DARK CELLS SET INTO the chassis, and I read a grey band with
+ * amber text where there was a grey band around a dark cell with amber text.
+ * The user caught it: "the background behind the text is always the dark
+ * colors, while keeping the bounding frames and windows a lighter color."
+ *
+ * 📌 SO EVERY LABEL LIVES IN A DARK CELL, and the chrome is only ever the band
+ * around it. **That also killed three hover states** which filled with chrome
+ * and put a label on it for as long as the cursor was there; those controls now
+ * sit on `--pa-card` and lift to `--pa-inset`, both dark.
+ * 📌 The four tiers that ARE allowed behind text are the four dark ones: void,
+ * card, inset, and the accents. **If you find yourself typing
+ * `bg-[var(--pa-line)]` on an element that contains a glyph, stop.**
  */
 
 /** Five token overrides plus the palette itself, attached to the page root.
@@ -1061,7 +1074,7 @@ export default async function AutomationsAlphaA1Page({
                   History): chrome fill, chrome ring, amber label. The default
                   variant's `bg-primary` is a near-black pill with near-white
                   text, which is two violations at once on this page. */}
-              <ApiHealthCheckButton className="bg-[var(--pa-inset)] text-[var(--pa-label)] ring-1 ring-[var(--pa-line)] hover:bg-[var(--pa-line)]" />
+              <ApiHealthCheckButton className="bg-[var(--pa-card)] text-[var(--pa-label)] ring-1 ring-[var(--pa-line)] hover:bg-[var(--pa-inset)]" />
             </div>
           </div>
 
@@ -1804,7 +1817,7 @@ export default async function AutomationsAlphaA1Page({
                                 that goal. */}
                             <Link
                               href={`/automations/${site.slug}`}
-                              className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-[var(--pa-inset)] px-2.5 text-xs font-medium text-[var(--pa-label)] ring-1 ring-[var(--pa-line)] transition-colors hover:bg-[var(--pa-line)]"
+                              className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-[var(--pa-card)] px-2.5 text-xs font-medium text-[var(--pa-label)] ring-1 ring-[var(--pa-line)] transition-colors hover:bg-[var(--pa-inset)]"
                             >
                               {/* ⚠️ NO TRAILING CHEVRON, removed 2026-09-08: "For both the
                                   Official and Beta1 Page, remove these arrows." The button is
@@ -2214,7 +2227,7 @@ export default async function AutomationsAlphaA1Page({
                           width: those trade a graceful wrap for a crushed name. */}
                       <Link
                         href={`/automations/${selected.slug}/errors`}
-                        className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-[var(--pa-inset)] px-2.5 text-xs font-medium text-[var(--pa-label)] ring-1 ring-[var(--pa-line)] transition-colors hover:bg-[var(--pa-line)]"
+                        className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-[var(--pa-card)] px-2.5 text-xs font-medium text-[var(--pa-label)] ring-1 ring-[var(--pa-line)] transition-colors hover:bg-[var(--pa-inset)]"
                       >
                         <AlertTriangle className="h-3.5 w-3.5" />
                         Error History
@@ -2798,20 +2811,36 @@ function Panel({
 }) {
   return (
     <div className="overflow-hidden rounded-lg bg-[var(--pa-void)] ring-[3px] ring-[var(--pa-line)]">
-      {/* ⭐ THE HEADER STRIP IS THE ONE PLACE ON THIS PAGE WHERE TEXT SITS ON
-          CHROME, 2026-09-11, and the reference does the same with its section
-          labels. `border-b` came off with the tint: a hairline between a chrome
-          strip and its own frame is invisible.
-          ⚠️ THE HINT IS AMBER, NOT MUTED GREY. #8A96A2 on #4A5560 is 2.2:1 and
-          all but disappears; amber is 3.5:1 and is what the game uses for a
-          label. It is also a WORD, which is this page's own rule for amber. */}
-      <div className="flex items-center justify-between gap-2 bg-[var(--pa-line)] px-3.5 py-2">
-        <span className="text-xs font-semibold text-[var(--pa-label)]">
-          {title}
-        </span>
-        <span className="text-[10px] uppercase tracking-wider text-[var(--pa-label)]">
-          {hint}
-        </span>
+      {/* 🛑🛑 THE LABEL SITS IN ITS OWN DARK CELL INSIDE A CHROME BAND, and the
+          nesting is the whole point. **DO NOT FLATTEN IT BACK INTO ONE CHROME
+          STRIP WITH TEXT ON IT.**
+          ⚠️ THAT IS EXACTLY WHAT IT WAS from 2026-09-11 to 2026-09-12, on my
+          reading that the reference puts its section labels on the chassis. **It
+          does not.** The user, back at the screenshot: "notice all the text are
+          above a dark background. Currently some of the text is still over a
+          lighter background. Make it so the background behind the text is always
+          the dark colors, while keeping the bounding frames and windows a
+          lighter color."
+          ⭐ LOOK AGAIN AND THE GAME'S OWN TABS PROVE IT: ENGINEERING / PRODUCTION
+          / RESEARCH / HANGAR, and MECHS / REACTORS / WEAPONS, are **dark cells
+          with amber text, SET INTO the grey chassis.** The chassis is never
+          behind a glyph; it is only ever the frame around one.
+          📌 SO THE PAGE'S RULE IS NOW ABSOLUTE: **CHROME #4A5560 IS A FRAME
+          COLOUR AND NEVER A TEXT BACKGROUND.** The `p-[3px]` band here is the
+          same frame technique as the toolbar and the pane; see the WINDOW
+          HIERARCHY note.
+          ⚠️ THE HINT STAYS AMBER. It moved off muted grey when it was on chrome
+          (2.2:1); on the void it would survive, but amber is also what the game
+          uses for a label and it is a WORD, which is this page's own rule. */}
+      <div className="bg-[var(--pa-line)] p-[3px]">
+        <div className="flex items-center justify-between gap-2 rounded-[4px] bg-[var(--pa-void)] px-3 py-1.5">
+          <span className="text-xs font-semibold text-[var(--pa-label)]">
+            {title}
+          </span>
+          <span className="text-[10px] uppercase tracking-wider text-[var(--pa-label)]">
+            {hint}
+          </span>
+        </div>
       </div>
       {empty ? (
         <div className="flex flex-col items-center justify-center gap-2 px-4 py-8 text-center">
@@ -2868,15 +2897,18 @@ function CoverageByField({
 }) {
   return (
     <div className="min-w-0 overflow-hidden rounded-lg bg-[var(--pa-void)] ring-[3px] ring-[var(--pa-line)]">
-      {/* Same frame and the same label-on-chrome strip as `PanelShell`; see its
-          note. These two shells are meant to look identical. */}
-      <div className="flex items-center justify-between gap-2 bg-[var(--pa-line)] px-3.5 py-2">
-        <span className="text-xs font-semibold text-[var(--pa-label)]">
-          Documentation by Field
-        </span>
-        <span className="text-[10px] uppercase tracking-wider text-[var(--pa-label)]">
-          thinnest first
-        </span>
+      {/* Same frame and the same label-in-a-dark-cell header as `PanelShell`;
+          see its note for why the label is NOT on the chrome. These two shells
+          are meant to look identical. */}
+      <div className="bg-[var(--pa-line)] p-[3px]">
+        <div className="flex items-center justify-between gap-2 rounded-[4px] bg-[var(--pa-void)] px-3 py-1.5">
+          <span className="text-xs font-semibold text-[var(--pa-label)]">
+            Documentation by Field
+          </span>
+          <span className="text-[10px] uppercase tracking-wider text-[var(--pa-label)]">
+            thinnest first
+          </span>
+        </div>
       </div>
       {total === 0 ? (
         <div className="flex flex-col items-center justify-center gap-2 px-4 py-8 text-center">
