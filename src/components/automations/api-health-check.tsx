@@ -29,6 +29,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Activity, Clock, Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 /** A single card's check; resolves with its result so the fan-out can persist
  *  them (or void if the card skipped, e.g. already checking). */
@@ -112,12 +113,29 @@ export function useHealthCheckRegistration(check: CheckFn) {
   }, [ctx]);
 }
 
-/** The Main Page toolbar button. Renders nothing if not inside a provider. */
-export function ApiHealthCheckButton() {
+/** The Main Page toolbar button. Renders nothing if not inside a provider.
+ *
+ *  ⚠️ `className` IS FOR ONE CALLER AND IS OTHERWISE UNUSED, added 2026-09-12.
+ *  `/automations-alpha-a1` is a DARK page and this button's default variant is
+ *  `bg-primary text-primary-foreground`, i.e. near-white text, which broke that
+ *  page's rule that text is only ever amber, blue or red.
+ *  **OMIT IT AND NOTHING CHANGES**, which is the point: the live hub and Beta2
+ *  pass nothing and render exactly as before. It merges through `cn`, so an
+ *  arbitrary `text-[...]` displaces the variant's colour rather than fighting it.
+ *  📌 THE ALTERNATIVE WAS A LOCAL COPY of this 354-line file, as was done for
+ *  `copy-api-key-button.tsx`. **Rejected here because this component is
+ *  stateful** (countdown, persistence, error handling), so a twin would drift in
+ *  BEHAVIOUR and not just in colour. The user made that call on 2026-09-12. */
+export function ApiHealthCheckButton({ className }: { className?: string }) {
   const ctx = useContext(HealthCheckContext);
   if (!ctx) return null;
   return (
-    <Button size="sm" onClick={ctx.runAll} disabled={ctx.running}>
+    <Button
+      size="sm"
+      onClick={ctx.runAll}
+      disabled={ctx.running}
+      className={className}
+    >
       {ctx.running ? (
         <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
       ) : (
@@ -153,9 +171,24 @@ function formatHealthCountdown(ms: number): string {
 export function AutoHealthCheckToggle({
   initialEnabled,
   initialNextCheckAt,
+  classNames,
 }: {
   initialEnabled: boolean;
   initialNextCheckAt: string | null;
+  /** Optional per-page colour overrides, added 2026-09-12 for the dark
+   *  `/automations-alpha-a1`. **Omit it and every class below is exactly what it
+   *  has always been**; the live hub and Beta2 pass nothing. Each one merges
+   *  through `cn`, so an arbitrary `text-[...]` displaces the default colour.
+   *  See `ApiHealthCheckButton` above for why this is a prop and not a copy. */
+  classNames?: {
+    /** The row wrapper, which is what colours the "Auto-API health check"
+     *  label AND the clock icon beside it (the icon has no colour of its own). */
+    label?: string;
+    /** The "Next check in HH:MM:SS" line under the toggle. */
+    countdown?: string;
+    /** The transient failure line, which replaces the countdown. */
+    error?: string;
+  };
 }) {
   const [enabled, setEnabled] = useState(initialEnabled);
   const [nextCheckAt, setNextCheckAt] = useState<string | null>(
@@ -310,7 +343,12 @@ export function AutoHealthCheckToggle({
   }
 
   return (
-    <div className="relative flex items-center gap-2 text-xs text-zinc-600">
+    <div
+      className={cn(
+        "relative flex items-center gap-2 text-xs text-zinc-600",
+        classNames?.label,
+      )}
+    >
       {/* Tooltip on the LABEL, not the Switch: the switch is the control and
           wrapping it in a trigger risks the one interaction that matters. The
           two non-obvious facts are that the cadence is 24h and that turning it
@@ -337,12 +375,20 @@ export function AutoHealthCheckToggle({
       {error ? (
         <p
           role="alert"
-          className="absolute left-0 top-full z-10 mt-1 max-w-xs text-xs font-medium text-red-600"
+          className={cn(
+            "absolute left-0 top-full z-10 mt-1 max-w-xs text-xs font-medium text-red-600",
+            classNames?.error,
+          )}
         >
           {error}
         </p>
       ) : mounted && enabled && nextCheckAt ? (
-        <p className="absolute left-0 top-full z-10 mt-1 whitespace-nowrap text-[11px] font-medium text-zinc-500">
+        <p
+          className={cn(
+            "absolute left-0 top-full z-10 mt-1 whitespace-nowrap text-[11px] font-medium text-zinc-500",
+            classNames?.countdown,
+          )}
+        >
           {remainingMs > 0
             ? `Next check in ${formatHealthCountdown(remainingMs)}`
             : "Checking soon…"}
