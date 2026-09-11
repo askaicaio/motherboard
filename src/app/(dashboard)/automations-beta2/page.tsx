@@ -95,7 +95,6 @@ import {
   automationDropdownChoices,
   automationDropdownSelections,
   automationErrors,
-  automationWebhooks,
   automations,
 } from "@/lib/db/schema";
 import { AUTOMATION_SITES } from "@/lib/automations/sites";
@@ -179,30 +178,46 @@ const TREND_DAYS = 30;
  *  filled in rather than how the automations are running, which is a thing no
  *  other surface in this app reports.
  *
- *  ⚠️ TWO DELIBERATE DIFFERENCES FROM ALPHA6, both because this copy is scoped
- *  to ONE website instead of aggregating all five:
- *    1. Alpha6's list also carries `lastRun` and `lastEdited` as a separate
- *       SYNCED group, excluded from its completeness figure because a sync
- *       filling a column in is not documentation. They are not here at all:
- *       this panel only ranks what a person is meant to type.
- *    2. `gate` is NEW. Alpha6 scores GHL Tags and GHL Forms against all five
- *       websites, so Make, n8n and Zapier each contribute a guaranteed 0%.
- *       Those two columns are GHL-ONLY on the real Per Website table, so here
- *       they are hidden off GHL (user's call, 2026-09-09: "Hide them off
- *       GHL"). **Make, n8n and Zapier therefore show SIX rows and the two GHL
- *       websites show EIGHT.** That also follows Alpha6's own stated honesty
- *       rule, that a matrix scoring an impossibility as a failure is a matrix
- *       that lies.
+ *  🛑🛑 THREE FIELDS WERE REMOVED ON 2026-09-12, AND THE TEST THAT REMOVED THEM
+ *  IS THE MOST IMPORTANT THING IN THIS NOTE. **GHL Tags, GHL Forms and Webhook
+ *  Links are gone**, on the user's instruction: "Remove these statistics from
+ *  the 5 websites. The main reason being that its not required to fill them out
+ *  100% because not all automations can have them."
  *
- *  ⚠️ THE GATE READS `columnVisibleOnPlatform()`, the SAME helper the Per
- *  Website table uses, rather than hard-coding the GHL slugs. If a column's
- *  `visibleOnPlatforms` ever changes in `dropdown-config.ts`, this statistic
- *  follows it automatically instead of quietly disagreeing with the table.
+ *  ⭐⭐ **SO A FIELD BELONGS IN THIS PANEL ONLY IF EVERY AUTOMATION ON THE
+ *  WEBSITE COULD LEGITIMATELY HAVE IT.** The three that went are CONDITIONAL by
+ *  nature: an automation with no webhook has no link to record, and one that
+ *  touches no GHL form has no form to name. **Their coverage could never reach
+ *  100%, so ranking them thinnest-first told you to go and fill in something
+ *  that does not exist** - the exact opposite of this panel's job, which is to
+ *  say what is worth documenting next. **Apply that test before adding a row
+ *  here.** It is a narrower contract than "every human-filled column", which is
+ *  what the list started as.
+ *
+ *  📌 WHAT IT COST, and it is a saving rather than a cost: Webhook Links was the
+ *  only field with a junction of its own, so its query went too and **the page
+ *  dropped from eleven reads to ten.** See the read block.
+ *
+ *  ⚠️ ONE DELIBERATE DIFFERENCE FROM ALPHA6 REMAINS, because this copy is scoped
+ *  to ONE website instead of aggregating all five: Alpha6's list also carries
+ *  `lastRun` and `lastEdited` as a separate SYNCED group, excluded from its
+ *  completeness figure because a sync filling a column in is not documentation.
+ *  They are not here at all: this panel only ranks what a person is meant to
+ *  type. **Alpha6 itself still scores all three removed fields**; it was not
+ *  part of this instruction and is a different, whole-estate design.
+ *
+ *  ⚠️ `gate` NOW GATES NOTHING, AND IS KEPT ON PURPOSE. It hid GHL Tags and GHL
+ *  Forms off the three non-GHL websites, and those two were the only
+ *  platform-scoped columns in `dropdown-config.ts` (`visibleOnPlatforms`). With
+ *  them gone **every website shows the same FIVE rows.** The machinery stays
+ *  because it reads `columnVisibleOnPlatform()`, the SAME helper the Per Website
+ *  table uses, so a field that becomes platform-scoped later is handled with no
+ *  new code and this statistic cannot quietly disagree with the table.
  *
  *  📌 ONE FIELD ALPHA6 OMITS AND SO DOES THIS: **Evaluation** (`triage`), which
- *  is a real human-filled column on the Per Website table. Worth offering as a
- *  ninth row; not added here because it was not part of what the user pointed
- *  at. */
+ *  is a real human-filled column on the Per Website table. It passes the test
+ *  above and is worth offering as a sixth row; not added because it was not part
+ *  of what the user pointed at. */
 const COVERAGE_FIELDS: {
   /** Matches the key the filled-counts lookup is built under. */
   key: string;
@@ -216,9 +231,6 @@ const COVERAGE_FIELDS: {
   { key: "author", label: "Author", gate: "author" },
   { key: "trigger_event", label: "Trigger Event", gate: "trigger_event" },
   { key: "automation_tags", label: "Automation Tags", gate: "automation_tags" },
-  { key: "ghl_tags", label: "GHL Tags", gate: "ghl_tags" },
-  { key: "ghl_forms", label: "GHL Forms", gate: "ghl_forms" },
-  { key: "webhooks", label: "Webhook Links" },
 ];
 
 interface PlatformStats {
@@ -248,7 +260,7 @@ export default async function AutomationsBeta2Page({
   const dayExpr = sql`to_char(${automationErrors.occurredAt} at time zone 'UTC', 'YYYY-MM-DD')`;
 
   // -------------------------------------------------------------------------
-  // ⚡⚡ THE ELEVEN READS RUN IN PARALLEL IN TWO WAVES OF SIX AND FIVE, AND
+  // ⚡⚡ THE TEN READS RUN IN PARALLEL IN TWO WAVES OF SIX AND FOUR, AND
   // **THE WAVES ARE A BUG FIX, NOT A STYLE CHOICE. DO NOT COLLAPSE THEM BACK
   // INTO ONE `Promise.all`.**
   //
@@ -277,7 +289,7 @@ export default async function AutomationsBeta2Page({
   // meaning the database has answered and nothing is reading the result.
   //
   // ⭐ SO THE RULE FOR THIS PAGE: **KEEP EACH WAVE AT SIX OR FEWER, AND WELL
-  // UNDER `max`.** Adding a twelfth read means adding it to a wave, or adding a
+  // UNDER `max`.** Adding an eleventh read means adding it to a wave, or adding a
   // third wave, NOT widening one. The two-wave shape costs ONE extra round trip
   // (about 20 ms on Vercel, where a query is ~5-20 ms) and buys the margin back.
   //
@@ -309,8 +321,8 @@ export default async function AutomationsBeta2Page({
   // ⚠️ `requireAuth()` stays OUTSIDE and BEFORE this on purpose. It is also a
   // query, but folding it in would run all eight of these for a signed-out
   // visitor before the guard could redirect.
-  // 📌 SIX OF THE ELEVEN RETURN THE SAME DATA FOR EVERY WEBSITE. Only
-  // `siteErrors`, `recentlyEdited` and the three coverage reads take
+  // 📌 SIX OF THE TEN RETURN THE SAME DATA FOR EVERY WEBSITE. Only
+  // `siteErrors`, `recentlyEdited` and the two coverage reads take
   // `selected.slug`, so a site switch re-runs six queries whose answers cannot
   // have changed. Parallelising makes
   // that cost one round trip instead of six; removing it entirely means
@@ -357,112 +369,109 @@ export default async function AutomationsBeta2Page({
       .limit(PANEL_ROWS),
   ]);
 
-  // ---- WAVE 2 of 2. Five reads. Nothing here depends on wave 1; the split is
+  // ---- WAVE 2 of 2. Four reads. Nothing here depends on wave 1; the split is
   // purely to keep concurrent connections under the pool's `max: 10`.
-  const [
-    trendRows,
-    recentlyEdited,
-    coverageBase,
-    coverageMulti,
-    coverageWebhooks,
-  ] = await Promise.all([
-    // Error counts per (platform, UTC day) over the trend window, for the error
-    // panel's bar chart. Came back with the live hub's statistics on 2026-09-03.
-    // ⚠️ Grouped by platform for ALL sites even though only the selected one is
-    // drawn, because that is the shape `Sparkline` takes and it costs the same
-    // single aggregate either way. Platforms with no capture come back empty and
-    // draw a flat baseline, which is the correct picture: GHL, GHL b2b and Zapier
-    // cannot capture errors at all.
-    db
-      .select({
-        platform: automationErrors.platform,
-        day: sql<string>`${dayExpr}`,
-        count: sql<number>`count(*)::int`,
-      })
-      .from(automationErrors)
-      .where(
-        sql`${automationErrors.occurredAt} >= now() - make_interval(days => ${TREND_DAYS - 1})`,
-      )
-      .groupBy(automationErrors.platform, dayExpr),
-    // What was edited most recently ON THE SOURCE WEBSITE (the synced
-    // `last_edited_at`, NOT our own Row Update). No hub surface shows this today,
-    // and it is the closest thing to "what is someone actually working on".
-    db
-      .select({
-        id: automations.id,
-        name: automations.name,
-        status: automations.status,
-        lastEditedAt: automations.lastEditedAt,
-      })
-      .from(automations)
-      .where(
-        and(
-          eq(automations.platform, selected.slug),
-          isNotNull(automations.lastEditedAt),
-        ),
-      )
-      .orderBy(desc(automations.lastEditedAt))
-      .limit(PANEL_ROWS),
-    // ---- The three coverage reads behind the panel's per-field statistic.
-    // All three are scoped to the SELECTED website, so a site switch re-runs
-    // them; that is the same shape `siteErrors` and `recentlyEdited` already
-    // have. Lifted from Alpha6, which runs the same three ungrouped by
-    // platform to build its whole-estate matrix.
-    //
-    // ⚠️ THREE QUERIES AND NOT ONE, because the answer lives in three places:
-    // two of the fields are columns ON `automations`, four are rows in the
-    // shared dropdown-selections junction, and Webhook Links has a junction of
-    // its own. A join across all three would multiply rows and need DISTINCT
-    // counting per field anyway.
-    //
-    // 1. Everything that lives on the row itself, plus the denominator.
-    // ⚠️ BLANK STRINGS COUNT AS MISSING. A Purpose of "" is not a filled-in
-    // one, and `is not null` alone would score it as documented.
-    db
-      .select({
-        total: sql<number>`count(*)::int`,
-        purpose: sql<number>`count(*) filter (where ${automations.purpose} is not null and btrim(${automations.purpose}) <> '')::int`,
-        notes: sql<number>`count(*) filter (where ${automations.notes} is not null and btrim(${automations.notes}) <> '')::int`,
-        author: sql<number>`count(*) filter (where ${automations.authorChoiceId} is not null)::int`,
-        trigger_event: sql<number>`count(*) filter (where ${automations.triggerEventChoiceId} is not null)::int`,
-      })
-      .from(automations)
-      .where(eq(automations.platform, selected.slug)),
-    // 2. The four multi-select columns. They all share ONE junction; which
-    // column a link belongs to is implied by the linked choice's own
-    // `column_key`, which is why this groups by it.
-    // ⚠️ `count(distinct automationId)` IS THE POINT. Six tags on one row is
-    // still one row covered, and a plain `count(*)` would report 600% coverage
-    // on a well-tagged website.
-    db
-      .select({
-        columnKey: automationDropdownChoices.columnKey,
-        filled: sql<number>`count(distinct ${automationDropdownSelections.automationId})::int`,
-      })
-      .from(automationDropdownSelections)
-      .innerJoin(
-        automations,
-        eq(automationDropdownSelections.automationId, automations.id),
-      )
-      .innerJoin(
-        automationDropdownChoices,
-        eq(automationDropdownSelections.choiceId, automationDropdownChoices.id),
-      )
-      .where(eq(automations.platform, selected.slug))
-      .groupBy(automationDropdownChoices.columnKey),
-    // 3. Webhook Links, which keeps its own junction pointing at a different
-    // choice table.
-    db
-      .select({
-        filled: sql<number>`count(distinct ${automationWebhooks.automationId})::int`,
-      })
-      .from(automationWebhooks)
-      .innerJoin(
-        automations,
-        eq(automationWebhooks.automationId, automations.id),
-      )
-      .where(eq(automations.platform, selected.slug)),
-  ]);
+  const [trendRows, recentlyEdited, coverageBase, coverageMulti] =
+    await Promise.all([
+      // Error counts per (platform, UTC day) over the trend window, for the error
+      // panel's bar chart. Came back with the live hub's statistics on 2026-09-03.
+      // ⚠️ Grouped by platform for ALL sites even though only the selected one is
+      // drawn, because that is the shape `Sparkline` takes and it costs the same
+      // single aggregate either way. Platforms with no capture come back empty and
+      // draw a flat baseline, which is the correct picture: GHL, GHL b2b and Zapier
+      // cannot capture errors at all.
+      db
+        .select({
+          platform: automationErrors.platform,
+          day: sql<string>`${dayExpr}`,
+          count: sql<number>`count(*)::int`,
+        })
+        .from(automationErrors)
+        .where(
+          sql`${automationErrors.occurredAt} >= now() - make_interval(days => ${TREND_DAYS - 1})`,
+        )
+        .groupBy(automationErrors.platform, dayExpr),
+      // What was edited most recently ON THE SOURCE WEBSITE (the synced
+      // `last_edited_at`, NOT our own Row Update). No hub surface shows this today,
+      // and it is the closest thing to "what is someone actually working on".
+      db
+        .select({
+          id: automations.id,
+          name: automations.name,
+          status: automations.status,
+          lastEditedAt: automations.lastEditedAt,
+        })
+        .from(automations)
+        .where(
+          and(
+            eq(automations.platform, selected.slug),
+            isNotNull(automations.lastEditedAt),
+          ),
+        )
+        .orderBy(desc(automations.lastEditedAt))
+        .limit(PANEL_ROWS),
+      // ---- The two coverage reads behind the panel's per-field statistic.
+      // Both are scoped to the SELECTED website, so a site switch re-runs them;
+      // that is the same shape `siteErrors` and `recentlyEdited` already have.
+      // Lifted from Alpha6, which runs the same reads ungrouped by platform to
+      // build its whole-estate matrix.
+      //
+      // ⚠️ THERE WERE THREE UNTIL 2026-09-12. Webhook Links kept a junction of its
+      // own and so needed a query of its own; it left the panel with GHL Tags and
+      // GHL Forms (see `COVERAGE_FIELDS`), and **the page went from eleven reads
+      // to ten**. Wave 2 is a read shorter as a result.
+      //
+      // ⚠️ TWO QUERIES AND NOT ONE, because the answer still lives in two places:
+      // four of the five fields are columns ON `automations`, and Automation Tags
+      // is a multi-select living as rows in the shared dropdown-selections
+      // junction. A join across both would multiply rows and need DISTINCT
+      // counting per field anyway.
+      //
+      // 1. Everything that lives on the row itself, plus the denominator.
+      // ⚠️ BLANK STRINGS COUNT AS MISSING. A Purpose of "" is not a filled-in
+      // one, and `is not null` alone would score it as documented.
+      db
+        .select({
+          total: sql<number>`count(*)::int`,
+          purpose: sql<number>`count(*) filter (where ${automations.purpose} is not null and btrim(${automations.purpose}) <> '')::int`,
+          notes: sql<number>`count(*) filter (where ${automations.notes} is not null and btrim(${automations.notes}) <> '')::int`,
+          author: sql<number>`count(*) filter (where ${automations.authorChoiceId} is not null)::int`,
+          trigger_event: sql<number>`count(*) filter (where ${automations.triggerEventChoiceId} is not null)::int`,
+        })
+        .from(automations)
+        .where(eq(automations.platform, selected.slug)),
+      // 2. The multi-select columns. They all share ONE junction; which column
+      // a link belongs to is implied by the linked choice's own `column_key`,
+      // which is why this groups by it.
+      // ⚠️ THIS STILL READS EVERY MULTI-SELECT COLUMN AND THE FOLD NOW CONSUMES
+      // ONLY ONE OF THEM, Automation Tags. That is deliberate: it is a single
+      // grouped aggregate either way, narrowing it to one `column_key` would save
+      // nothing measurable, and the fold already ignores keys with no row in
+      // `COVERAGE_FIELDS`. **So re-adding a multi-select field needs no query
+      // change, only a row in that constant.**
+      // ⚠️ `count(distinct automationId)` IS THE POINT. Six tags on one row is
+      // still one row covered, and a plain `count(*)` would report 600% coverage
+      // on a well-tagged website.
+      db
+        .select({
+          columnKey: automationDropdownChoices.columnKey,
+          filled: sql<number>`count(distinct ${automationDropdownSelections.automationId})::int`,
+        })
+        .from(automationDropdownSelections)
+        .innerJoin(
+          automations,
+          eq(automationDropdownSelections.automationId, automations.id),
+        )
+        .innerJoin(
+          automationDropdownChoices,
+          eq(
+            automationDropdownSelections.choiceId,
+            automationDropdownChoices.id,
+          ),
+        )
+        .where(eq(automations.platform, selected.slug))
+        .groupBy(automationDropdownChoices.columnKey),
+    ]);
 
   const statsByPlatform = new Map<string, PlatformStats>();
   for (const site of AUTOMATION_SITES) {
@@ -492,7 +501,7 @@ export default async function AutomationsBeta2Page({
     (trendByPlatform[row.platform] ??= {})[row.day] = row.count;
   }
 
-  // ---- Fold the three coverage reads into one ranked list for the panel.
+  // ---- Fold the two coverage reads into one ranked list for the panel.
   //
   // ⚠️ THE DENOMINATOR IS THIS WEBSITE'S OWN ROW COUNT, taken from the
   // coverage query rather than from `statsByPlatform`. Those totals are
@@ -507,7 +516,6 @@ export default async function AutomationsBeta2Page({
     notes: coverageBase[0]?.notes ?? 0,
     author: coverageBase[0]?.author ?? 0,
     trigger_event: coverageBase[0]?.trigger_event ?? 0,
-    webhooks: coverageWebhooks[0]?.filled ?? 0,
   };
   for (const row of coverageMulti) {
     coverageFilled[row.columnKey] = row.filled;
@@ -2370,9 +2378,12 @@ function Panel({
  *  but it is handled rather than dividing by zero into a column of 0% bars,
  *  which would look like a real measurement of an empty website.
  *
- *  📌 ROW COUNT VARIES BY WEBSITE, and that is the gate doing its job: Make,
- *  n8n and Zapier show SIX fields, GHL and GHL b2b show EIGHT. Do not "fix" the
- *  card to a uniform height on the strength of one screenshot. */
+ *  📌 EVERY WEBSITE SHOWS THE SAME FIVE ROWS as of 2026-09-12. It used to vary
+ *  (six off GHL, eight on it) because GHL Tags and GHL Forms were gated to the
+ *  GHL websites, and both left the panel with Webhook Links; see
+ *  `COVERAGE_FIELDS` for the test that removed them. **The gate still runs, so
+ *  the count CAN vary again** - do not hard-code a height here on the strength
+ *  of today's five. */
 function CoverageByField({
   rows,
   total,
