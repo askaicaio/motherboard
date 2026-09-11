@@ -28,6 +28,15 @@
 // different endpoint, a changed prop), this copy does not get it for free.**
 // Check both when touching either.
 //
+// 🛑 THE OK STATE IS BLUE, NOT GREEN, AS OF 2026-09-12: "notice how none of the
+// text ever uses the white color. There are only 3 colors used for text. the
+// red, the yellow, and the blue." Green is not one of them, and this button was
+// the biggest block of green text on the page (five bars, one per website).
+// **The BORDER moved with the label rather than staying green**, because the
+// reference matches a readout's border to its label colour, and a green frame
+// around a blue word reads as an accident. Blue vs red still separates the two
+// states at a glance.
+//
 // 🎨 THE THREE STATES, AND WHY THEY ARE READOUTS RATHER THAN RAISED CONTROLS:
 // the reference draws a status cell as a DARK well with a COLOURED border and
 // coloured text (its mech stat cells do exactly this in red). So all three
@@ -133,7 +142,7 @@ export function CopyApiKeyButton({
         variant="outline"
         size="sm"
         disabled
-        className="flex-1 border-[var(--pa-line)] bg-[var(--pa-void)] text-[var(--pa-muted)]"
+        className="flex-1 border-[var(--pa-line)] bg-[var(--pa-void)] text-[var(--pa-label)]"
       >
         <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
         Checking API Key Status…
@@ -150,7 +159,7 @@ export function CopyApiKeyButton({
         variant="outline"
         size="sm"
         onClick={() => check({ persist: true })}
-        className="flex-1 border-[var(--pa-green)] bg-[var(--pa-void)] text-[var(--pa-green)] hover:bg-[var(--pa-card)] hover:text-[var(--pa-green)]"
+        className="flex-1 border-[var(--pa-blue)] bg-[var(--pa-void)] text-[var(--pa-blue)] hover:bg-[var(--pa-card)] hover:text-[var(--pa-blue)]"
       >
         <Check className="mr-2 h-3.5 w-3.5" />
         API Key Integrated

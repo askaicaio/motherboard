@@ -301,9 +301,51 @@ const PALETTE = {
  *     BLUE   -> stat VALUES. Every figure in the grid.
  * The first pass sent all "strong text" to amber, which the game never does.
  *
- * ⚠️ SO THE RULE ON THIS PAGE IS: **A NUMBER IS BLUE, A WORD IS AMBER OR
- * OFF-WHITE.** If you add a figure to this page, it wants `--pa-blue`; if it is
- * the single headline figure of a card, `--pa-blue-bright`.
+ * 🛑🛑 AND ON 2026-09-12 THE RULE GOT STRICTER, BECAUSE OFF-WHITE WAS NEVER IN
+ * THE REFERENCE AT ALL. The user, back at the screenshot: "notice how none of
+ * the text ever uses the white color. There are only 3 colors used for text.
+ * the red, the yellow, and the blue. Use those instead."
+ *
+ * ⭐⭐ **SO EVERY PIECE OF TEXT ON THIS PAGE IS ONE OF EXACTLY THREE COLOURS,
+ * AND WHICH ONE IS DECIDED BY WHAT THE TEXT *IS*:**
+ *
+ *     AMBER `--pa-label`  ->  A LABEL. Anything that NAMES something: headings,
+ *                             panel titles, field names, units ("automations",
+ *                             "active"), buttons, statuses, the app's own words.
+ *     BLUE  `--pa-blue`   ->  A VALUE. Anything that IS the data: every figure,
+ *                             every automation name, every timestamp.
+ *                             `--pa-blue-bright` for the one headline figure of
+ *                             a card.
+ *     RED   `--pa-red`    ->  A PROBLEM. Error counts, error messages, a website
+ *                             that is erroring or has no API key.
+ *
+ * 📌 **LABEL / VALUE / PROBLEM IS A GENERALISATION OF THE OLD "a number is blue"
+ * RULE, NOT A REVERSAL OF IT.** A number was only ever blue because numbers are
+ * values. The reference proves the wider version: "METALLITE" is amber and
+ * "49967" beside it is blue; "ENGINEERS TEAM" is amber and "382" under it is
+ * blue. **What changed is that word-shaped VALUES (automation names, "54d ago")
+ * moved from off-white to blue rather than to amber.**
+ *
+ * ⚠️ AND THAT CHOICE IS LOAD-BEARING, not a coin toss. Sending every ex-off-white
+ * word to amber would have rebuilt the wall of amber the user rejected on
+ * 2026-09-11 ("there is too much amber text"). **The list bodies are the largest
+ * block of text on the page; they are data, so they are blue, and the page keeps
+ * a readable amber/blue balance.**
+ * 📌 HONEST COUNTEREXAMPLE IN THE REFERENCE: its date line, "17 WEDNESDAY AUGUST
+ * 2199", is a word-shaped value rendered in amber. So the game is not perfectly
+ * consistent either; label/value is the DOMINANT pattern, not a law it never
+ * breaks.
+ *
+ * 🛑 **OFF-WHITE #DCE2E8 IS NO LONGER A TEXT COLOUR.** It survives ONLY as
+ * `--foreground` (which is what `ring-foreground/10` reads) and as Zapier's
+ * accent spine. **Do not reach for `--pa-bright` to make text stand out; reach
+ * for the right one of the three.**
+ * 🛑 **MUTED GREY #8A96A2 IS NO LONGER A TEXT COLOUR EITHER.** It is now an ICON
+ * colour and nothing else. The reference's chassis glyphs are grey, so icons
+ * keep it; the instruction was about text.
+ * 🛑 **GREEN IS NOT A TEXT COLOUR.** "Healthy" and "API Key Integrated" were
+ * green and are now blue, because the reference has no green text. Green stays
+ * on the status DOTS and the coverage bars, which are marks rather than words.
  */
 
 /* 🪟🪟 THE WINDOW HIERARCHY, 2026-09-11, and it INVERTED what came before.
@@ -435,7 +477,7 @@ const TOOL_SEGMENT =
   // ⚠️ `bg-[var(--pa-void)]` IS LOAD-BEARING as of 2026-09-11: the strip around
   // these cells is chrome, so a cell with no background of its own puts its
   // label on #4A5560. See the WINDOW HIERARCHY note.
-  "flex items-center justify-center gap-2 bg-[var(--pa-void)] px-4 py-3 text-sm font-medium text-[var(--pa-bright)] transition-colors hover:bg-[var(--pa-inset)] hover:text-[var(--pa-label)]";
+  "flex items-center justify-center gap-2 bg-[var(--pa-void)] px-4 py-3 text-sm font-medium text-[var(--pa-label)] transition-colors hover:bg-[var(--pa-inset)]";
 
 /** Rows each detail panel list shows before it stops.
  *
@@ -893,7 +935,11 @@ export default async function AutomationsAlphaA1Page({
     // wants kept.
     <div
       style={PAGE_VARS}
-      className="-m-6 min-h-screen space-y-5 bg-[var(--pa-void)] p-12 text-[var(--pa-bright)] [color-scheme:dark]"
+      // ⚠️ THE PAGE'S INHERITED TEXT COLOUR IS AMBER as of 2026-09-12, not
+      // off-white. Anything without a colour class of its own lands here, and
+      // the h1 is the one that matters: it has no class and would otherwise
+      // inherit the LIGHT dashboard's near-black. See the palette's rule note.
+      className="-m-6 min-h-screen space-y-5 bg-[var(--pa-void)] p-12 text-[var(--pa-label)] [color-scheme:dark]"
     >
       {/* The health controls carry tooltips, so they need a provider, and the
           shared TOOLTIP_DELAY_MS keeps their timing identical to the rest of
@@ -932,9 +978,14 @@ export default async function AutomationsAlphaA1Page({
                 {/* ⚠️ A BADGE, because this IS a bench. The comment inherited
                     from the live page follows and is about THAT page; on this
                     one the pill is correct and its absence would be the bug.
-                    ⚠️ IT IS AMBER ON VOID, not the live family's black-on-white
-                    pill, because black is not in the palette. */}
-                <span className="rounded-full bg-[var(--pa-label)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--pa-void)]">
+                    ⚠️⚠️ IT WAS A FILLED AMBER PILL WITH DARK TEXT UNTIL 2026-09-12,
+                    and the dark text is why it changed: "There are only 3 colors
+                    used for text." **#0A0E13 on amber was a fourth.** It is now
+                    amber ON the void behind an amber ring, which is the same
+                    readout language as every other framed thing on this page.
+                    📌 It reads quieter than the filled pill did. That is fine:
+                    the badge only has to say which bench you are on. */}
+                <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--pa-label)] ring-1 ring-[var(--pa-label)]">
                   AlphaA1
                 </span>
                 {/* ⚠️ NO VERSION BADGE HERE, AND THAT IS THE POINT. The black
@@ -947,7 +998,7 @@ export default async function AutomationsAlphaA1Page({
                     dropped here deliberately; do not copy them back on the next
                     promotion. */}
               </div>
-              <p className="mt-1 text-sm text-[var(--pa-muted)]">
+              <p className="mt-1 text-sm text-[var(--pa-label)]">
                 Tracks workflows from different automation websites all in one
                 place.
               </p>
@@ -1559,10 +1610,12 @@ export default async function AutomationsAlphaA1Page({
                               <SiteGlyph site={site} className="h-8 w-8" />
                               <span
                                 className={cn(
-                                  "min-w-0 truncate text-base",
-                                  isCurrent
-                                    ? "font-semibold text-[var(--pa-label)]"
-                                    : "font-medium text-[var(--pa-bright)]",
+                                  "min-w-0 truncate text-base text-[var(--pa-label)]",
+                                  // ⚠️ BOTH STATES ARE AMBER as of 2026-09-12
+                                  // (a website's name is a LABEL). **Selection
+                                  // is carried by the WEIGHT, and by the card's
+                                  // own lift, not by the colour any more.**
+                                  isCurrent ? "font-semibold" : "font-medium",
                                 )}
                               >
                                 {site.label}
@@ -1593,7 +1646,7 @@ export default async function AutomationsAlphaA1Page({
                                     ? "Auto-refresh on"
                                     : "Auto-refresh off"
                                 }
-                                className="flex items-center gap-1 whitespace-nowrap text-[11px] text-[var(--pa-muted)]"
+                                className="flex items-center gap-1 whitespace-nowrap text-[11px] text-[var(--pa-label)]"
                               >
                                 {/* ⭐ TWO DIFFERENT GLYPHS, 2026-09-11: "Make
                                     the auto refresh 'off' icon more distinct.
@@ -1701,7 +1754,7 @@ export default async function AutomationsAlphaA1Page({
                                 that goal. */}
                             <Link
                               href={`/automations/${site.slug}`}
-                              className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-[var(--pa-inset)] px-2.5 text-xs font-medium text-[var(--pa-muted)] ring-1 ring-[var(--pa-line)] transition-colors hover:bg-[var(--pa-line)] hover:text-[var(--pa-label)]"
+                              className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-[var(--pa-inset)] px-2.5 text-xs font-medium text-[var(--pa-label)] ring-1 ring-[var(--pa-line)] transition-colors hover:bg-[var(--pa-line)]"
                             >
                               {/* ⚠️ NO TRAILING CHEVRON, removed 2026-09-08: "For both the
                                   Official and Beta1 Page, remove these arrows." The button is
@@ -1756,11 +1809,11 @@ export default async function AutomationsAlphaA1Page({
                               <span className="font-heading text-lg font-semibold leading-none tabular-nums text-[var(--pa-blue-bright)]">
                                 {s.total}
                               </span>
-                              <span className="truncate text-[10px] text-[var(--pa-muted)]">
+                              <span className="truncate text-[10px] text-[var(--pa-label)]">
                                 automations
                               </span>
                             </span>
-                            <span className="flex shrink-0 items-center gap-2 text-[10px] text-[var(--pa-muted)]">
+                            <span className="flex shrink-0 items-center gap-2 text-[10px] text-[var(--pa-label)]">
                               <span className="flex items-center gap-1">
                                 {/* Active wears the website's own brand
                                     colour, so this dot, the bar below it and
@@ -1999,7 +2052,7 @@ export default async function AutomationsAlphaA1Page({
                           <h2 className="font-heading text-xl font-semibold text-[var(--pa-label)]">
                             {selected.label}
                           </h2>
-                          <p className="mt-0.5 text-sm text-[var(--pa-muted)]">
+                          <p className="mt-0.5 text-sm text-[var(--pa-label)]">
                             {selected.description}
                           </p>
                         </div>
@@ -2111,7 +2164,7 @@ export default async function AutomationsAlphaA1Page({
                           width: those trade a graceful wrap for a crushed name. */}
                       <Link
                         href={`/automations/${selected.slug}/errors`}
-                        className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-[var(--pa-inset)] px-2.5 text-xs font-medium text-[var(--pa-muted)] ring-1 ring-[var(--pa-line)] transition-colors hover:bg-[var(--pa-line)] hover:text-[var(--pa-label)]"
+                        className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-[var(--pa-inset)] px-2.5 text-xs font-medium text-[var(--pa-label)] ring-1 ring-[var(--pa-line)] transition-colors hover:bg-[var(--pa-line)]"
                       >
                         <AlertTriangle className="h-3.5 w-3.5" />
                         Error History
@@ -2228,14 +2281,18 @@ export default async function AutomationsAlphaA1Page({
                           <span
                             className={cn(
                               "text-lg font-semibold leading-none tabular-nums",
+                              // ⚠️ ZERO ERRORS IS BLUE, NOT GREY, as of
+                              // 2026-09-12: it is still a VALUE, and grey left
+                              // the text vocabulary. Red stays for a count that
+                              // is actually a problem.
                               errors > 0
                                 ? "text-[var(--pa-red)]"
-                                : "text-[var(--pa-muted)]",
+                                : "text-[var(--pa-blue)]",
                             )}
                           >
                             {errors}
                           </span>
-                          <span className="text-xs text-[var(--pa-muted)]">
+                          <span className="text-xs text-[var(--pa-label)]">
                             {errors === 1 ? "error" : "errors"} captured
                           </span>
                         </div>
@@ -2243,7 +2300,7 @@ export default async function AutomationsAlphaA1Page({
                             the day count is FLOORED, and "not tracked yet" when the
                             platform has captured nothing ever (permanent for GHL,
                             GHL b2b and Zapier). */}
-                        <span className="text-[11px] text-[var(--pa-muted)]">
+                        <span className="text-[11px] text-[var(--pa-label)]">
                           {days === undefined
                             ? "not tracked yet"
                             : days === 0
@@ -2361,10 +2418,10 @@ export default async function AutomationsAlphaA1Page({
                           className="block px-3.5 py-2.5 transition-colors hover:bg-[var(--pa-inset)]"
                         >
                           <div className="flex items-baseline justify-between gap-2">
-                            <span className="truncate text-sm font-medium text-[var(--pa-bright)]">
+                            <span className="truncate text-sm font-medium text-[var(--pa-blue)]">
                               {row.name}
                             </span>
-                            <span className="shrink-0 text-[11px] tabular-nums text-[var(--pa-muted)]">
+                            <span className="shrink-0 text-[11px] tabular-nums text-[var(--pa-blue)]">
                               {agoLabel(
                                 row.lastEditedAt
                                   ? new Date(row.lastEditedAt)
@@ -2372,7 +2429,7 @@ export default async function AutomationsAlphaA1Page({
                               )}
                             </span>
                           </div>
-                          <span className="mt-1 inline-flex items-center gap-1 text-[11px] text-[var(--pa-muted)]">
+                          <span className="mt-1 inline-flex items-center gap-1 text-[11px] text-[var(--pa-label)]">
                             <PencilLine className="h-3 w-3 shrink-0" />
                             {row.status === "active" ? "Active" : "Paused"}
                           </span>
@@ -2398,14 +2455,21 @@ export default async function AutomationsAlphaA1Page({
                           className="block px-3.5 py-2.5 transition-colors hover:bg-[var(--pa-inset)]"
                         >
                           <div className="flex items-baseline justify-between gap-2">
-                            <span className="truncate text-sm font-medium text-[var(--pa-bright)]">
+                            <span className="truncate text-sm font-medium text-[var(--pa-blue)]">
                               {row.name}
                             </span>
-                            <span className="shrink-0 text-[11px] tabular-nums text-[var(--pa-muted)]">
+                            <span className="shrink-0 text-[11px] tabular-nums text-[var(--pa-blue)]">
                               {agoLabel(new Date(row.occurredAt))}
                             </span>
                           </div>
-                          <p className="mt-0.5 truncate text-xs text-[var(--pa-muted)]">
+                          {/* ⚠️ THE MESSAGE IS RED as of 2026-09-12 because it
+                              IS the problem, and red is one of the three text
+                              colours left. 📐 IT IS THE PAGE'S WORST CONTRAST
+                              at 3.5:1 against the void, measured, and it is kept
+                              anyway: the reference puts its red labels on black
+                              at the same ratio, and the row NAME above it is
+                              blue at 6.9:1, so the row is still scannable. */}
+                          <p className="mt-0.5 truncate text-xs text-[var(--pa-red)]">
                             {row.message ?? "No message recorded"}
                           </p>
                         </Link>
@@ -2439,11 +2503,22 @@ type Tone = "ok" | "warn" | "bad" | "off";
 // own background. They are dark enough to hold up (700/800 weights), which is
 // why they were kept rather than darkened. **If the card ground ever changes,
 // re-check these rather than assuming.**
+// ⚠️⚠️ THREE COLOURS, NOT FOUR, AS OF 2026-09-12, and the ladder is now
+// **blue -> amber -> red**. Green and grey left the page's text vocabulary
+// entirely (see the palette's rule note), so:
+//   ok   was green -> **BLUE**. "Healthy" is the normal reading, and blue is
+//        the reference's colour for a normal reading.
+//   off  was grey  -> **RED**. "Not connected" is a real deficiency, and the
+//        card's own API bar already says so in red right underneath.
+// ⚠️ THE DOTS DID NOT CHANGE. `TONE_DOTS` below still carries green/amber/red,
+// so the four states stay distinguishable at a glance even though ok and its
+// dot no longer agree. **The dots are marks, not text; the instruction was
+// about text.**
 const TONE_CLASSES: Record<Tone, string> = {
-  ok: "text-[var(--pa-green)]",
+  ok: "text-[var(--pa-blue)]",
   warn: "text-[var(--pa-label)]",
   bad: "text-[var(--pa-red)]",
-  off: "text-[var(--pa-muted)]",
+  off: "text-[var(--pa-red)]",
 };
 
 const TONE_DOTS: Record<Tone, string> = {
@@ -2647,7 +2722,7 @@ function Sparkline({
           />
         ))}
       </div>
-      <div className="mt-1.5 text-[10px] uppercase tracking-wider text-[var(--pa-muted)]">
+      <div className="mt-1.5 text-[10px] uppercase tracking-wider text-[var(--pa-label)]">
         Last {dayKeys.length} days
       </div>
     </div>
@@ -2681,7 +2756,7 @@ function Panel({
           all but disappears; amber is 3.5:1 and is what the game uses for a
           label. It is also a WORD, which is this page's own rule for amber. */}
       <div className="flex items-center justify-between gap-2 bg-[var(--pa-line)] px-3.5 py-2">
-        <span className="text-xs font-semibold text-[var(--pa-bright)]">
+        <span className="text-xs font-semibold text-[var(--pa-label)]">
           {title}
         </span>
         <span className="text-[10px] uppercase tracking-wider text-[var(--pa-label)]">
@@ -2691,7 +2766,7 @@ function Panel({
       {empty ? (
         <div className="flex flex-col items-center justify-center gap-2 px-4 py-8 text-center">
           <Inbox className="h-5 w-5 text-[var(--pa-line)]" />
-          <p className="text-xs text-[var(--pa-muted)]">{emptyLabel}</p>
+          <p className="text-xs text-[var(--pa-label)]">{emptyLabel}</p>
         </div>
       ) : (
         <ul className="divide-y">{children}</ul>
@@ -2746,7 +2821,7 @@ function CoverageByField({
       {/* Same frame and the same label-on-chrome strip as `PanelShell`; see its
           note. These two shells are meant to look identical. */}
       <div className="flex items-center justify-between gap-2 bg-[var(--pa-line)] px-3.5 py-2">
-        <span className="text-xs font-semibold text-[var(--pa-bright)]">
+        <span className="text-xs font-semibold text-[var(--pa-label)]">
           Documentation by Field
         </span>
         <span className="text-[10px] uppercase tracking-wider text-[var(--pa-label)]">
@@ -2756,7 +2831,7 @@ function CoverageByField({
       {total === 0 ? (
         <div className="flex flex-col items-center justify-center gap-2 px-4 py-8 text-center">
           <Inbox className="h-5 w-5 text-[var(--pa-line)]" />
-          <p className="text-xs text-[var(--pa-muted)]">
+          <p className="text-xs text-[var(--pa-label)]">
             No automations recorded for this website yet.
           </p>
         </div>
@@ -2764,7 +2839,7 @@ function CoverageByField({
         <ul className="divide-y">
           {rows.map((row) => (
             <li key={row.key} className="flex items-center gap-3 px-3.5 py-2">
-              <span className="w-28 shrink-0 truncate text-xs font-medium text-[var(--pa-bright)]">
+              <span className="w-28 shrink-0 truncate text-xs font-medium text-[var(--pa-label)]">
                 {row.label}
               </span>
               <div className="flex h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-[var(--pa-inset)]">
@@ -2776,7 +2851,7 @@ function CoverageByField({
               <span className="w-10 shrink-0 text-right text-xs font-semibold tabular-nums text-[var(--pa-blue)]">
                 {Math.round(row.pct)}%
               </span>
-              <span className="w-16 shrink-0 text-right text-[11px] tabular-nums text-[var(--pa-muted)]">
+              <span className="w-16 shrink-0 text-right text-[11px] tabular-nums text-[var(--pa-blue)]">
                 {row.filled}/{total}
               </span>
             </li>
