@@ -2855,14 +2855,26 @@ function Panel({
           with amber text, SET INTO the grey chassis.** The chassis is never
           behind a glyph; it is only ever the frame around one.
           📌 SO THE PAGE'S RULE IS NOW ABSOLUTE: **CHROME #4A5560 IS A FRAME
-          COLOUR AND NEVER A TEXT BACKGROUND.** The `p-[3px]` band here is the
-          same frame technique as the toolbar and the pane; see the WINDOW
-          HIERARCHY note.
+          COLOUR AND NEVER A TEXT BACKGROUND.**
+          🛑🛑 AND THE BAND IS `pb-[3px]`, NOT `p-[3px]`. **DO NOT PAD THE OTHER
+          THREE SIDES.** It wrapped the cell on all four until 2026-09-12, which
+          **doubled the frame to 6px along this panel's top, left and right**
+          because the shell ALREADY carries `ring-[3px]`, while every other edge
+          on the page stayed at 3px. The user spotted it: "These elements have
+          thicker white borders in only specific spots for some reason. Make it
+          uniform to the rest of the border thickness."
+          ⭐ THE GENERAL TRAP: **a ring and an inner band are both frames, and
+          nesting them adds up.** The ring already frames this panel, so the band
+          only has to do the one thing the ring cannot, which is separate the
+          label from the list. One edge, one job.
+          ⚠️ THE CELL LOST ITS RADIUS with the padding. Flush inside the shell,
+          a rounded cell would let the chrome behind it show through at the top
+          corners, which is the same 6px bulge in a different shape.
           ⚠️ THE HINT STAYS AMBER. It moved off muted grey when it was on chrome
           (2.2:1); on the void it would survive, but amber is also what the game
           uses for a label and it is a WORD, which is this page's own rule. */}
-      <div className="bg-[var(--pa-line)] p-[3px]">
-        <div className="flex items-center justify-between gap-2 rounded-[7px] bg-[var(--pa-void)] px-3 py-1.5">
+      <div className="bg-[var(--pa-line)] pb-[3px]">
+        <div className="flex items-center justify-between gap-2 bg-[var(--pa-void)] px-3 py-1.5">
           <span className="text-xs font-semibold text-[var(--pa-label)]">
             {title}
           </span>
@@ -2929,8 +2941,8 @@ function CoverageByField({
       {/* Same frame and the same label-in-a-dark-cell header as `PanelShell`;
           see its note for why the label is NOT on the chrome. These two shells
           are meant to look identical. */}
-      <div className="bg-[var(--pa-line)] p-[3px]">
-        <div className="flex items-center justify-between gap-2 rounded-[7px] bg-[var(--pa-void)] px-3 py-1.5">
+      <div className="bg-[var(--pa-line)] pb-[3px]">
+        <div className="flex items-center justify-between gap-2 bg-[var(--pa-void)] px-3 py-1.5">
           <span className="text-xs font-semibold text-[var(--pa-label)]">
             Documentation by Field
           </span>
