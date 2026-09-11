@@ -34,13 +34,14 @@
 // oddly until tuned. The user asked for a first pass and said so: "We can
 // consider adding more colours later if some things look bad."**
 //
-// ⚠️ WHAT NINE COLOURS CANNOT DO, flagged rather than hidden:
-//   1. **THE FIVE PER-SITE ACCENTS.** The live page gives each website its own
-//      hue. The palette has at most five distinguishable values, so the accents
-//      now reuse amber, red, green, grey and off-white, and **two of those
-//      collide with meaning**: red also means error, green also means healthy.
-//      Survivable only because the accent spine shows on the SELECTED card
-//      alone. **Fix this first if colours get added.**
+// ⚠️ WHAT THE NINE COLOURS CANNOT DO, flagged rather than hidden:
+//   1. ✅ **RESOLVED 2026-09-12, AND THE ANSWER WAS TO STOP TRYING.** This said
+//      the palette could not supply five distinguishable per-site accents, so
+//      they reused amber/red/green/grey/off-white and green ended up meaning
+//      both "GHL" and "healthy". **The accents now use the WEBSITE'S OWN BRAND
+//      COLOUR, off-palette, matching the logos that were already left alone.**
+//      See `ACCENT` below for why that is coherent rather than a hole in the
+//      recolour. A brand mark is identity, not styling.
 //   2. **THE COVERAGE BAR'S FOUR-STEP RAMP collapses to three.** One green
 //      means "half done" and "done" can no longer differ.
 //
@@ -456,24 +457,38 @@ const PAGE_VARS = {
   "--pa-blue-bright": PALETTE.blueBright,
 } as React.CSSProperties;
 
-/** Per-website accent, drawn from the palette because everything must be.
+/** Per-website accent: **the WEBSITE'S OWN BRAND COLOUR, deliberately OFF the
+ *  eleven-colour palette.**
  *
- *  🛑 THE PALETTE'S WEAKEST POINT, AND DELIBERATE RATHER THAN AN OVERSIGHT. The
- *  live page uses five unrelated hues so each website is identifiable at a
- *  glance. Nine colours cannot supply five distinct accents that also stay out
- *  of the way of meaning, so **red here collides with "error" and green with
- *  "healthy"**. See the header. */
+ *  🛑🛑 THIS IS NOT AN OVERSIGHT AND NOT A LEFTOVER. **DO NOT "FIX" IT BACK INTO
+ *  THE PALETTE.** It was palette-mapped from 2026-09-11 to 2026-09-12 and the
+ *  user sent it back, circling the selected card's spine: "make these aesthetic
+ *  vertical bars like the last one that used the same color of the website
+ *  logo." These five values are the live hub's, unchanged.
+ *
+ *  ⭐⭐ WHY IT IS COHERENT RATHER THAN AN EXCEPTION TO THE RECOLOUR: **this is
+ *  the LOGO's colour, and the logos were already agreed to stay off-palette**
+ *  (2026-09-11, "Leave the logos alone"): a brand mark is IDENTITY, not styling.
+ *  The spine, the active dot and the split bar are all extensions of the logo
+ *  sitting inches away from it, so they answer to the logo, not to the palette.
+ *  **The rule is: anything that says WHICH WEBSITE this is wears the brand
+ *  colour; everything else wears the palette.**
+ *
+ *  📌 AND IT FIXES THE PALETTE'S WORST COLLISION AS A SIDE EFFECT. The mapped
+ *  version had to reuse amber/blue/green/grey/off-white, so **green said both
+ *  "GHL" and "healthy"** and blue said both "n8n" and "a value". Five unrelated
+ *  hues cannot collide with meanings the palette does not contain.
+ *
+ *  ⚠️ FOUR THINGS READ THIS MAP, and they move together on purpose: the rail
+ *  card's accent spine, its "active" dot, the active segment of its split bar,
+ *  and the detail header's gradient tint. **A website is one colour everywhere
+ *  it appears.** */
 const ACCENT: Record<string, string> = {
-  make: PALETTE.label,
-  // ⚠️ BLUE SINCE 2026-09-11, WAS RED. Red is this page's error colour, so an
-  // accent in red meant the same swatch said "n8n" in one place and "something
-  // is wrong" in another. Blue was uncommitted, so the worse of the two
-  // collisions is gone. **Green still doubles as "healthy" on GHL below**; that
-  // is the remaining one and needs a twelfth colour to fix properly.
-  n8n: PALETTE.blue,
-  ghl: PALETTE.green,
-  "ghl-b2b": PALETTE.muted,
-  zapier: PALETTE.bright,
+  make: "#B02DE9",
+  n8n: "#EA4B71",
+  ghl: "#2FBF71",
+  "ghl-b2b": "#8FDDB4",
+  zapier: "#FF4F00",
 };
 
 /** One segment of the toolbar strip: a third of the width, centred.
