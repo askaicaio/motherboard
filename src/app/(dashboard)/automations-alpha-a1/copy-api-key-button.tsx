@@ -28,14 +28,28 @@
 // different endpoint, a changed prop), this copy does not get it for free.**
 // Check both when touching either.
 //
-// 🛑 THE OK STATE IS BLUE, NOT GREEN, AS OF 2026-09-12: "notice how none of the
-// text ever uses the white color. There are only 3 colors used for text. the
-// red, the yellow, and the blue." Green is not one of them, and this button was
-// the biggest block of green text on the page (five bars, one per website).
-// **The BORDER moved with the label rather than staying green**, because the
-// reference matches a readout's border to its label colour, and a green frame
-// around a blue word reads as an accident. Blue vs red still separates the two
-// states at a glance.
+// 🛑🛑 THE OK STATE IS GREEN, AND IT IS THE PAGE'S ONE DELIBERATE EXCEPTION TO
+// THE THREE-COLOUR TEXT RULE. **DO NOT "FIX" IT TO BLUE.**
+//
+// It went green -> blue on 2026-09-12 when the rule landed ("There are only 3
+// colors used for text. the red, the yellow, and the blue"), and **the user sent
+// it straight back the same day, circling these bars: "the previous color of the
+// these buttons were better, use those."**
+//
+// ⭐ WHY GREEN EARNS THE EXCEPTION, rather than this being a simple taste
+// reversal: **this bar is the only ON/OFF pair on the page where both states
+// render the same shape at the same size**, five of them stacked in the rail. It
+// is read as a column, and green/red is the pairing that can be scanned without
+// reading the words. Blue/red are both "normal" colours on this page (blue is
+// every figure and every automation name), so the blue state stopped announcing
+// itself. **Green carries no other meaning inside this component.**
+//
+// 📌 THE RULE STILL HOLDS EVERYWHERE ELSE. "Healthy" in the rail card is BLUE,
+// not green, and the status dots keep their own colours. See the palette note in
+// `page.tsx`, which names this file as the exception.
+// ⚠️ THE BORDER MOVES WITH THE LABEL, both here and in the red state: the
+// reference matches a readout's frame to its label colour, and a mismatched pair
+// reads as an accident.
 //
 // 🎨 THE THREE STATES, AND WHY THEY ARE READOUTS RATHER THAN RAISED CONTROLS:
 // the reference draws a status cell as a DARK well with a COLOURED border and
@@ -159,7 +173,7 @@ export function CopyApiKeyButton({
         variant="outline"
         size="sm"
         onClick={() => check({ persist: true })}
-        className="flex-1 border-[var(--pa-blue)] bg-[var(--pa-void)] text-[var(--pa-blue)] hover:bg-[var(--pa-card)] hover:text-[var(--pa-blue)]"
+        className="flex-1 border-[var(--pa-green)] bg-[var(--pa-void)] text-[var(--pa-green)] hover:bg-[var(--pa-card)] hover:text-[var(--pa-green)]"
       >
         <Check className="mr-2 h-3.5 w-3.5" />
         API Key Integrated
