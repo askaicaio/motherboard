@@ -1138,13 +1138,32 @@ export default async function AutomationsAlphaA1Page({
               ⚠️ THIS IS WHY `border-l` CAME OFF SEGMENTS 2 AND 3: the gutter
               IS the divider now, and a hairline inside a 3px chrome gap just
               thickens one edge of it.
-              ⚠️ `overflow-hidden` STAYS. The cells are square-cornered inside a
-              `rounded-xl` frame, so without it their corners poke through the
-              radius. */}
+              ⚠️ `overflow-hidden` STAYS as a backstop, but it is NOT what
+              shapes the corners any more; see the radius note below.
+              🛑🛑 THE END CELLS CARRY `rounded-l-[11px]` / `rounded-r-[11px]` AND
+              THE NUMBER IS NOT ARBITRARY. **DO NOT DROP THEM AND DO NOT ROUND
+              THEM "A BIT".**
+              THE BUG THEY FIX, reported 2026-09-12 ("Why are the corners here
+              missing color?"): with square cells, `overflow-hidden` clipped them
+              to the frame's arc, and **at each rounded corner the chrome band
+              thinned to NOTHING and the dark cell touched the outer edge.** The
+              corner looked like a bite out of the frame.
+              📐 WHY: `--radius-xl` is `0.625rem * 1.4` = **14px**. On the 45°
+              diagonal the frame's arc sits 14 - 14/√2 = 4.1px in from the
+              corner, while a square cell starts at the 3px padding - so the cell
+              already covers the arc there and no chrome survives.
+              ⭐ THE RULE IS THE CONCENTRIC-RADIUS ONE, and it is worth knowing
+              generally: **an inner element inside a rounded frame needs
+              `outer radius - padding`**, here 14 - 3 = **11px**, or the band
+              around it is uneven. **If `--radius` or the padding ever changes,
+              this number changes with them.**
+              ⚠️ ONLY THE OUTER EDGES ARE ROUNDED (`-l` on the first cell, `-r`
+              on the last). The interior corners stay square so the strip still
+              reads as one segmented control rather than three separate pills. */}
           <div className="grid grid-cols-3 gap-[3px] overflow-hidden rounded-xl bg-[var(--pa-line)] p-[3px]">
             <Link
               href="/automations/feature-integration"
-              className={TOOL_SEGMENT}
+              className={cn(TOOL_SEGMENT, "rounded-l-[11px]")}
             >
               <Plug className="h-4 w-4 text-[var(--pa-muted)]" />
               Feature Integration
@@ -1153,7 +1172,10 @@ export default async function AutomationsAlphaA1Page({
               <List className="h-4 w-4 text-[var(--pa-muted)]" />
               View All Lists
             </Link>
-            <Link href="/automations/dropdown-config" className={TOOL_SEGMENT}>
+            <Link
+              href="/automations/dropdown-config"
+              className={cn(TOOL_SEGMENT, "rounded-r-[11px]")}
+            >
               <ListChecks className="h-4 w-4 text-[var(--pa-muted)]" />
               Dropdown Configuration
             </Link>
@@ -1277,7 +1299,12 @@ export default async function AutomationsAlphaA1Page({
                     buttons back to 32px the same day. I offered to hand that
                     64px back and they chose to keep the roomier cards. So
                     neither step is a leftover; do not "restore" w-64. */}
-            <div className="flex w-[460px] shrink-0 flex-col bg-[var(--pa-void)]">
+            {/* ⚠️ `rounded-l-[11px]` IS THE CONCENTRIC INNER RADIUS, not a
+                decoration: 14px frame minus 3px padding. Without it the dark
+                rail reaches the outer edge at the pane's rounded corners and the
+                chrome band disappears there. Same fix, same number, as the
+                toolbar above; its note has the arithmetic. */}
+            <div className="flex w-[460px] shrink-0 flex-col rounded-l-[11px] bg-[var(--pa-void)]">
               {/* ⚠️⚠️ THE RAIL'S "Sources" HEADER WAS HERE and was removed on
                   2026-09-06 ("Remove this section"). It was a title row plus a
                   one-line ESTATE AGGREGATE: "{total} automations, {n} of 5
@@ -1991,7 +2018,9 @@ export default async function AutomationsAlphaA1Page({
                 ⚠️ It depends on TWO things elsewhere: `group/pane` on the pane
                 above, and the `data-pending` attribute inside
                 `CardNavIndicator`. Both are silent if removed. */}
-            <div className="@container min-w-0 flex-1 bg-[var(--pa-void)] transition-opacity duration-200 group-has-[[data-pending]]/pane:opacity-60">
+            {/* ⚠️ `rounded-r-[11px]`: the detail half's outer corners, same
+                concentric radius as the rail's. See the toolbar's note. */}
+            <div className="@container min-w-0 flex-1 rounded-r-[11px] bg-[var(--pa-void)] transition-opacity duration-200 group-has-[[data-pending]]/pane:opacity-60">
               {/* Header, tinted with the website's own colour so the panel
                   changes character as you move down the rail. */}
               <div
@@ -2833,7 +2862,7 @@ function Panel({
           (2.2:1); on the void it would survive, but amber is also what the game
           uses for a label and it is a WORD, which is this page's own rule. */}
       <div className="bg-[var(--pa-line)] p-[3px]">
-        <div className="flex items-center justify-between gap-2 rounded-[4px] bg-[var(--pa-void)] px-3 py-1.5">
+        <div className="flex items-center justify-between gap-2 rounded-[7px] bg-[var(--pa-void)] px-3 py-1.5">
           <span className="text-xs font-semibold text-[var(--pa-label)]">
             {title}
           </span>
@@ -2901,7 +2930,7 @@ function CoverageByField({
           see its note for why the label is NOT on the chrome. These two shells
           are meant to look identical. */}
       <div className="bg-[var(--pa-line)] p-[3px]">
-        <div className="flex items-center justify-between gap-2 rounded-[4px] bg-[var(--pa-void)] px-3 py-1.5">
+        <div className="flex items-center justify-between gap-2 rounded-[7px] bg-[var(--pa-void)] px-3 py-1.5">
           <span className="text-xs font-semibold text-[var(--pa-label)]">
             Documentation by Field
           </span>
