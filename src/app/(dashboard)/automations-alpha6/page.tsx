@@ -20,6 +20,14 @@
 // as 0%. A matrix that scores an impossibility as a failure is a matrix that
 // lies.
 //
+// ⚠️⚠️ AND THAT RULE IS WHY THREE FIELDS LEFT THIS PAGE ON 2026-09-12. **GHL
+// Tags, GHL Forms and Webhook Links are gone**; see `FIELDS` for the test they
+// failed. The matrix had been breaking its own rule twice over: the two GHL
+// columns scored Make, n8n and Zapier as a guaranteed 0% when those websites do
+// not have the columns at all, and all three measured something an individual
+// automation is not required to have. **If a field is added back here, it has to
+// pass the test at `FIELDS` first.**
+//
 // Real data, static controls.
 // =============================================================
 
@@ -32,7 +40,6 @@ import { db } from "@/lib/db";
 import {
   automationDropdownChoices,
   automationDropdownSelections,
-  automationWebhooks,
   automations,
 } from "@/lib/db/schema";
 import { AUTOMATION_SITES, isSyncablePlatform } from "@/lib/automations/sites";
@@ -54,16 +61,35 @@ const ACCENT: Record<string, string> = {
 //   source "choice"   -> a single-select FK on `automations`
 //   source "multi"    -> at least one row in the dropdown-selections junction
 //                        for that column_key
-//   source "webhook"  -> at least one row in the webhook junction
+// (There was a fourth, source "webhook" -> at least one row in the webhook
+// junction. It went with Webhook Links on 2026-09-12 and took the page's third
+// query with it.)
 //
 // `synced: true` marks a field the SOURCE WEBSITE supplies rather than a human,
 // which is why it sits in its own group and is excluded from the headline
 // completeness figure. Documenting is the thing being measured here; a sync
 // filling a column in is not documentation.
+// 🛑🛑 THREE FIELDS WERE REMOVED ON 2026-09-12, and the test is the reusable
+// part. The user, pointing at the live hub's copy of this statistic: "Remove
+// these statistics from the 5 websites. The main reason being that its not
+// required to fill them out 100% because not all automations can have them."
+//
+// ⭐⭐ **A FIELD BELONGS IN THIS MATRIX ONLY IF EVERY AUTOMATION ON THE WEBSITE
+// COULD LEGITIMATELY HAVE IT.** GHL Tags, GHL Forms and Webhook Links are all
+// CONDITIONAL by nature: an automation with no webhook has no link to record,
+// and one that touches no GHL form has no form to name. **Their coverage could
+// never reach 100%, so a pale cell was not a gap to go and fill** - which is the
+// entire point of a coverage matrix. The two GHL columns were worse still: they
+// scored the three non-GHL websites at 0% for columns those websites do not
+// have, which is exactly the lie the honesty rule at the top forbids.
+//
+// 📌 THIS PAGE FOLLOWED THE LIVE HUB rather than leading it. The same three came
+// off `/automations`, Beta2 and AlphaA1 in #516; this is #517. **The live hub's
+// copy is the one users see; keep them in step.**
 const FIELDS: {
   key: string;
   label: string;
-  source: "row" | "choice" | "multi" | "webhook";
+  source: "row" | "choice" | "multi";
   synced?: boolean;
   /** Populated only via a sync, so it cannot exist without one. */
   needsSync?: boolean;
@@ -73,9 +99,6 @@ const FIELDS: {
   { key: "author", label: "Author", source: "choice" },
   { key: "trigger_event", label: "Trigger Event", source: "choice" },
   { key: "automation_tags", label: "Automation Tags", source: "multi" },
-  { key: "ghl_tags", label: "GHL Tags", source: "multi" },
-  { key: "ghl_forms", label: "GHL Forms", source: "multi" },
-  { key: "webhooks", label: "Webhook Links", source: "webhook" },
   {
     key: "lastRun",
     label: "Last Runtime",
@@ -134,15 +157,9 @@ export default async function AutomationsAlpha6Page() {
     )
     .groupBy(automations.platform, automationDropdownChoices.columnKey);
 
-  // Webhook Links keeps its own junction, pointing at a different choice table.
-  const webhookRows = await db
-    .select({
-      platform: automations.platform,
-      filled: sql<number>`count(distinct ${automationWebhooks.automationId})::int`,
-    })
-    .from(automationWebhooks)
-    .innerJoin(automations, eq(automationWebhooks.automationId, automations.id))
-    .groupBy(automations.platform);
+  // (A third read lived here until 2026-09-12: Webhook Links kept its own
+  // junction pointing at a different choice table, so it needed a query of its
+  // own. It left the matrix with the two GHL columns; see `FIELDS`.)
 
   // ---- Fold everything into one filled-count lookup: platform -> field -> n.
   const totals: Record<string, number> = {};
@@ -164,10 +181,6 @@ export default async function AutomationsAlpha6Page() {
   for (const row of multiRows) {
     if (!(row.platform in filled)) continue;
     filled[row.platform][row.columnKey] = row.filled;
-  }
-  for (const row of webhookRows) {
-    if (!(row.platform in filled)) continue;
-    filled[row.platform].webhooks = row.filled;
   }
 
   /** Whether this website can supply this field at all. */
