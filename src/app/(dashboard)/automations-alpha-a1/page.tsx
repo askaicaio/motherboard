@@ -343,9 +343,21 @@ const PALETTE = {
  * 🛑 **MUTED GREY #8A96A2 IS NO LONGER A TEXT COLOUR EITHER.** It is now an ICON
  * colour and nothing else. The reference's chassis glyphs are grey, so icons
  * keep it; the instruction was about text.
- * 🛑 **GREEN IS NOT A TEXT COLOUR.** "Healthy" and "API Key Integrated" were
- * green and are now blue, because the reference has no green text. Green stays
- * on the status DOTS and the coverage bars, which are marks rather than words.
+ * 🛑 **GREEN IS NOT A TEXT COLOUR, WITH ONE NAMED EXCEPTION.** "Healthy" in the
+ * rail card is BLUE, and green otherwise stays on the status DOTS and the
+ * coverage bars, which are marks rather than words.
+ *
+ * ⚠️⚠️ THE EXCEPTION IS THE API-KEY BAR'S "API Key Integrated", which is GREEN.
+ * It was moved to blue with everything else on 2026-09-12 and **the user sent it
+ * straight back the same day: "the previous color of the these buttons were
+ * better, use those."** The reasoning is written at the top of
+ * `copy-api-key-button.tsx`: **it is the only ON/OFF pair on the page rendered
+ * at the same shape and size five times in a column, so it is scanned rather
+ * than read, and blue/red do not separate at a glance the way green/red do**
+ * (blue is already every figure and every automation name on this page).
+ * 📌 **SO THE RULE IS "THREE COLOURS, PLUS ONE DOCUMENTED EXCEPTION", NOT
+ * "three colours".** If a second exception is ever wanted, it needs the same
+ * kind of argument: a specific job the three cannot do, not a preference.
  */
 
 /* 🪟🪟 THE WINDOW HIERARCHY, 2026-09-11, and it INVERTED what came before.
