@@ -1007,11 +1007,34 @@ export default async function AutomationsAlphaA1Page({
                 pill. Same [auto toggle] [manual action] order the per-website
                 pages use. */}
             <div className="flex shrink-0 items-center gap-3">
+              {/* ⭐ THE LAST THREE STRINGS THAT WERE NOT AMBER, BLUE OR RED,
+                  fixed 2026-09-12. They live in the SHARED
+                  `api-health-check.tsx` (`text-zinc-600`, `text-zinc-500`, and
+                  the button's near-white `text-primary-foreground`), and the
+                  Tailwind-var trick does NOT reach palette classes like those.
+                  ⚠️ SO THE SHARED COMPONENT GAINED OPTIONAL COLOUR PROPS, and
+                  this is their ONLY caller. **Every other page passes nothing
+                  and renders exactly as before.** The alternative, a local copy
+                  of a 354-line STATEFUL component, was rejected: that twin would
+                  drift in behaviour, not just colour. The user chose this on
+                  2026-09-12.
+                  📌 THE CLOCK ICON GOES AMBER TOO, because it inherits from the
+                  label wrapper. Left that way: it reads as part of the label
+                  rather than as one of the page's grey chrome glyphs. */}
               <AutoHealthCheckToggle
                 initialEnabled={health.enabled}
                 initialNextCheckAt={health.nextCheckAt}
+                classNames={{
+                  label: "text-[var(--pa-label)]",
+                  countdown: "text-[var(--pa-label)]",
+                  error: "text-[var(--pa-red)]",
+                }}
               />
-              <ApiHealthCheckButton />
+              {/* ⚠️ MATCHES THE PAGE'S OTHER RAISED CONTROLS (View list, Error
+                  History): chrome fill, chrome ring, amber label. The default
+                  variant's `bg-primary` is a near-black pill with near-white
+                  text, which is two violations at once on this page. */}
+              <ApiHealthCheckButton className="bg-[var(--pa-inset)] text-[var(--pa-label)] ring-1 ring-[var(--pa-line)] hover:bg-[var(--pa-line)]" />
             </div>
           </div>
 
