@@ -43,7 +43,9 @@ export function ThemeToggle({ site }: { site: string }) {
     <div
       role="group"
       aria-label="Colour mode"
-      className="flex h-8 items-stretch gap-px rounded-lg bg-zinc-200 p-px"
+      // ⚠️ THE TRAY IS THE PAGE'S FRAME COLOUR, read from `--border` rather
+      // than hard-coded, so it follows `LINE` in `page.tsx` if that is retuned.
+      className="flex h-8 items-stretch gap-px rounded-lg bg-[var(--border)] p-px"
     >
       {/* ⚠️ A `<span>`, NOT A LINK TO THIS PAGE: the current mode is a state
           marker, not a second button. See the dark twin's note. */}
