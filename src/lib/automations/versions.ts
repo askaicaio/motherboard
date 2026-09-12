@@ -207,6 +207,11 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
   // varies between them is the palette, not the layout. **So a third "A" is only
   // warranted by a third member of THIS experiment**, not by any recolour.
   // 📌 The "A" itself is the user's naming, not a maturity marker.
+  // ⭐ THEY ARE CONNECTED AS OF 2026-09-13. Each page carries a light/dark
+  // toggle in its header cluster, and **it is two LINKS: the pair is two routes,
+  // not one page with two palettes.** The selected website rides across the
+  // switch on `?site=`. **So these two entries are one feature; open either and
+  // you can reach the other.**
   {
     href: "/automations-alpha-a1",
     label: "Main Page AlphaA1",

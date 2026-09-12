@@ -1,47 +1,57 @@
-"use client";
-
-// LIGHT / DARK MODE TOGGLE for the Automations hub. AlphaA1's copy.
+// LIGHT / DARK MODE TOGGLE for the Automations hub. AlphaA1's copy, DARK side.
 // =============================================================
-// 🛑🛑 IT IS DELIBERATELY INERT. **CLICKING IT CHANGES NOTHING BUT ITS OWN
-// HIGHLIGHT.** Do not file that as a bug, and do not "finish" it by wiring a
-// theme in without being asked.
+// ⭐⭐ IT NAVIGATES. **The two "modes" are two ROUTES, and this control is two
+// links.** Clicking the sun goes to `/automations-alpha-a2` (the light page);
+// the moon is the page you are already on. Wired 2026-09-13: "Connect AlphaA1
+// with AlphaA2 now. The lightdark toggle now controls which page gets
+// displayed."
 //
-// ⭐ THE CONTEXT, from the user on 2026-09-12, because it reframes what this
-// whole page is for: "i was thinking that AlphaA1 is the 'Dark mode', and the
-// current live version of the page is the 'Light mode'." **So AlphaA1 stops
-// being only a palette experiment and becomes the dark half of a pair.** The
-// ask was explicit about scope: "It will become the light-dark toggle later,
-// but we can add that functionality later, just show the toggling aesthetic to
-// me for now."
+// 🛑 IT WAS INERT FOR A DAY, on purpose ("just show the toggling aesthetic to me
+// for now", 2026-09-12), which is why the aesthetic was settled before any of
+// this existed. **The look did not change when it was wired up**; only the two
+// `<span>`s became a link and an `aria-current` marker.
 //
-// 📌 WHAT WIRING IT UP WOULD ACTUALLY MEAN, recorded now while the reasoning is
-// fresh, because it is more than a class swap:
-//   - The two "modes" are currently TWO PAGES at two routes, not one page with
-//     two palettes. A real toggle either navigates between them or the palette
-//     has to move into the live hub behind a `data-theme` attribute.
-//   - `PAGE_VARS` in `page.tsx` is the whole dark theme and it is applied on the
-//     page root, so the second option is mostly "lift that object somewhere a
-//     client component can flip". **The colours are already a single source.**
-//   - Persistence (localStorage or a user setting) and the no-flash-on-load
-//     problem are the parts that actually cost time, not the colours.
+// ⚠️⚠️ WHY NAVIGATION RATHER THAN A `data-theme` FLIP, which was the other
+// option written down when this was inert: **AlphaA2 is a copy of the LIVE hub,
+// and its colours are `zinc-*` LITERALS, not tokens.** A CSS variable cannot
+// reach `text-zinc-900`, so flipping one attribute could never restyle it. The
+// only reason AlphaA1 can be themed by variables at all is that its recolour
+// rewrote every one of those classes to `[var(--pa-*)]`. **Two routes is not a
+// shortcut here; it is the honest shape of what exists.**
 //
-// ⚠️ IT SEEDS TO DARK because this page IS the dark one. On the live hub the
-// same component would seed to light.
+// 📌 SO WHAT WOULD A REAL IN-PAGE THEME TAKE? The same rewrite AlphaA1 already
+// had: one page whose every colour is a token, plus `PAGE_VARS` behind a
+// `data-theme` attribute, plus persistence and the no-flash-on-load problem.
+// **That is a different project from this toggle**; do not start it because this
+// one looks like a stepping stone.
+//
+// 🔁 THIS FILE HAS A TWIN at `automations-alpha-a2/theme-toggle.tsx`, the LIGHT
+// side. It is the same markup with the palette swapped and the two segments'
+// roles reversed. **They are meant to look like one control across both pages,
+// so a change to either belongs in both.** Duplicated rather than shared because
+// version pages are self-contained, the same reason `hover-prefetch-link.tsx`
+// and `nav-indicator.tsx` exist twice in this folder.
+//
+// ⚠️ `site` IS NOT DECORATION. Without it, switching mode would throw you back
+// to the default website, which makes the toggle useless for comparing the two
+// designs on the site you were actually looking at. The page already knows the
+// selection server-side, so it is passed in rather than read from the URL on the
+// client: no `useSearchParams`, no Suspense boundary, no hydration gap.
 // =============================================================
 
-import { useState } from "react";
 import { Moon, Sun } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { HoverPrefetchLink } from "./hover-prefetch-link";
 
 /** One segment. Active = a lifted well with an amber glyph; inactive = the void
  *  with a grey one, lifting on hover. **Both states are dark**, which is the
  *  page's rule: chrome frames, never a background behind content. */
 const SEGMENT =
   "flex w-8 items-center justify-center transition-colors [&_svg]:h-4 [&_svg]:w-4";
+const ACTIVE = "bg-[var(--pa-inset)] text-[var(--pa-label)]";
+const INACTIVE =
+  "bg-[var(--pa-void)] text-[var(--pa-muted)] hover:bg-[var(--pa-card)] hover:text-[var(--pa-label)]";
 
-export function ThemeToggle() {
-  const [mode, setMode] = useState<"light" | "dark">("dark");
-
+export function ThemeToggle({ site }: { site: string }) {
   return (
     // ⚠️ THE FRAME IS 1px HERE, NOT THE PAGE'S USUAL 3px, and that is on
     // purpose: 3px belongs to the big windows (the toolbar, the pane, the
@@ -56,38 +66,31 @@ export function ThemeToggle() {
       aria-label="Colour mode"
       className="flex h-8 items-stretch gap-px rounded-lg bg-[var(--pa-line)] p-px"
     >
-      <button
-        type="button"
-        onClick={() => setMode("light")}
-        aria-pressed={mode === "light"}
-        aria-label="Light mode"
-        title="Light mode (not wired up yet)"
-        className={cn(
-          SEGMENT,
-          "rounded-l-[9px]",
-          mode === "light"
-            ? "bg-[var(--pa-inset)] text-[var(--pa-label)]"
-            : "bg-[var(--pa-void)] text-[var(--pa-muted)] hover:bg-[var(--pa-card)] hover:text-[var(--pa-label)]",
-        )}
+      {/* ⚠️ HOVER-PREFETCHED, NOT PREFETCHED. A plain `prefetch` here would
+          render the whole sibling page in the background on EVERY view of this
+          one, and that page's read block is ten queries against a `max: 10`
+          pool. See `hover-prefetch-link.tsx` and [[db-pool-max-10-fanout]]. The
+          80ms dwell means the switch is warm by the time you click it without
+          costing anything to people who never do. */}
+      <HoverPrefetchLink
+        href={`/automations-alpha-a2?site=${site}`}
+        label="Switch to light mode"
+        className={`${SEGMENT} rounded-l-[9px] ${INACTIVE}`}
       >
         <Sun />
-      </button>
-      <button
-        type="button"
-        onClick={() => setMode("dark")}
-        aria-pressed={mode === "dark"}
-        aria-label="Dark mode"
-        title="Dark mode (not wired up yet)"
-        className={cn(
-          SEGMENT,
-          "rounded-r-[9px]",
-          mode === "dark"
-            ? "bg-[var(--pa-inset)] text-[var(--pa-label)]"
-            : "bg-[var(--pa-void)] text-[var(--pa-muted)] hover:bg-[var(--pa-card)] hover:text-[var(--pa-label)]",
-        )}
+      </HoverPrefetchLink>
+      {/* ⚠️ A `<span>`, NOT A LINK TO THIS PAGE. The only action this control
+          offers is switching, so the current mode is a state marker rather than
+          a second button; `aria-current` says which one you are on and keyboard
+          focus skips straight to the one that does something. */}
+      <span
+        aria-current="page"
+        aria-label="Dark mode (current)"
+        title="Dark mode"
+        className={`${SEGMENT} rounded-r-[9px] ${ACTIVE}`}
       >
         <Moon />
-      </button>
+      </span>
     </div>
   );
 }
