@@ -5,18 +5,43 @@
 // page. This one looks like the current Live page and Beta2 page. We will be
 // trying out compatability of this page with AlphaA1 later."
 //
-// ⚠️⚠️ SO THIS IS A COPY OF THE LIVE HUB AND IT IS MEANT TO STAY ONE. Nothing
-// here is a redesign. **If you find yourself improving the layout, you are on
-// the wrong page** - that belongs on a Beta or an Alpha.
+// 🛑🛑 IT IS NO LONGER A BYTE-FAITHFUL COPY OF THE LIVE HUB, as of 2026-09-13.
+// **It is now the LIGHT TWIN OF ALPHAA1'S GEOMETRY**, and the distinction
+// matters when you diff it against `automations/page.tsx`.
 //
-// 📌 FIVE DELIBERATE DIFFERENCES FROM `automations/page.tsx`, not the usual
-// four. The first four are the bookkeeping every bench carries and are listed in
-// the inherited header below: this header, the function name, the version badge,
-// and the rail's self-link.
-// **The fifth is the LIGHT/DARK TOGGLE in the header cluster** (2026-09-13),
-// which is the only one a reader would notice. It is the twin of AlphaA1's and
-// it navigates between the two pages. **The live hub has none and should not get
-// one from this experiment.**
+// THE USER, comparing the two halves side by side: "I noticed the elements
+// between the two version are slightly uneven. Some text are positioned slightly
+// differently between the two versions. I think it is because the dark mode has
+// border thickness while the light mode doesnt. Can you bring AlphaA2 into the
+// same size specs as AlphaA1?" **They were right about the cause.** Measured
+// before the fix, at 1500x950: AlphaA1's toolbar was 6px taller (a 3px chrome
+// band top and bottom), its pane inset another 3px, so the rail and the detail
+// panel sat 9px lower than here and 3-6px to the right.
+//
+// ⭐⭐ SO THE FRAMES ARE NOW ALPHAA1'S, IN LIGHT TONES: 3px bands where the dark
+// page has 3px bands, `ring-[3px]` where it has `ring-[3px]`, and the same
+// concentric radii. **`zinc-200` plays the part `--pa-line` plays there**, and
+// white plays the void. Every landmark lands on the same pixel in both halves.
+//
+// ⚠️⚠️ WHY THAT IS NOT SCOPE CREEP: **a light/dark pair whose halves are laid out
+// differently is not a pair.** The toggle swaps between these two pages, so any
+// geometric difference reads as the page jumping when you switch. The
+// side-by-side comparison is the ONLY thing this page exists for.
+// 🛑 **BUT IT DOES MEAN THE LAYOUT IS NOW ALPHAA1'S, NOT THE LIVE HUB'S.** If
+// what you want is a faithful copy of the live page, that is
+// `/automations-beta2`, not this. **Still do not redesign this page**; match
+// AlphaA1 or change nothing.
+//
+// 📌 SIX DELIBERATE DIFFERENCES FROM `automations/page.tsx` NOW. The first four
+// are the bookkeeping every bench carries and are listed in the inherited header
+// below: this header, the function name, the version badge, and the rail's
+// self-link.
+//   5. **THE LIGHT/DARK TOGGLE** in the header cluster (2026-09-13), the twin of
+//      AlphaA1's, which navigates between the two pages.
+//   6. **THE FRAME GEOMETRY** (2026-09-13): 3px bands and `ring-[3px]` in place
+//      of the live hub's 1px hairlines, so this page lines up with AlphaA1 to
+//      the pixel. See the note above.
+// **The live hub has neither and should not get either from this experiment.**
 //
 // ⭐⭐ WHY IT EXISTS AT ALL, given `/automations` and `/automations-beta2`
 // already render this exact design: **the pair is the point.** The user reads
@@ -260,7 +285,10 @@ const ACCENT: Record<string, string> = {
  *  padding and border would fight the cell. That import went with them and
  *  this file no longer needs it. */
 const TOOL_SEGMENT =
-  "flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 hover:text-zinc-900";
+  // ⚠️ `bg-card` IS LOAD-BEARING as of 2026-09-13: the strip around these cells
+  // is a `zinc-200` band, so a cell with no background of its own puts its label
+  // on the band. Mirrors AlphaA1, where the same class sits on the void.
+  "flex items-center justify-center gap-2 bg-card px-4 py-3 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 hover:text-zinc-900";
 
 /** Rows each detail panel list shows before it stops.
  *
@@ -810,24 +838,31 @@ export default async function AutomationsAlphaA2Page({
               📐 IT IS SHORTER THAN WHAT IT REPLACED, which is free height for
               the pane below. Measured on the real page after the swap; see the
               PR. */}
-          <div className="grid grid-cols-3 overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10">
+          {/* ⭐ ALPHAA1'S TOOLBAR GEOMETRY IN LIGHT TONES, 2026-09-13. `p-[3px]`
+              plus `gap-[3px]` on a `zinc-200` grid: the frame AND the two
+              gutters between the cells are one band, which is what makes this
+              strip 50px tall like its dark twin instead of 44px.
+              ⚠️ THIS IS WHY `border-l` CAME OFF SEGMENTS 2 AND 3: the gutter IS
+              the divider now.
+              📐 `rounded-l/r-[11px]` ON THE END CELLS IS THE CONCENTRIC RADIUS,
+              14px frame minus 3px padding. Without it the band thins to nothing
+              at the outer corners; the dark twin's note has the arithmetic and
+              the bug it fixed. */}
+          <div className="grid grid-cols-3 gap-[3px] overflow-hidden rounded-xl bg-zinc-200 p-[3px]">
             <Link
               href="/automations/feature-integration"
-              className={TOOL_SEGMENT}
+              className={cn(TOOL_SEGMENT, "rounded-l-[11px]")}
             >
               <Plug className="h-4 w-4 text-zinc-500" />
               Feature Integration
             </Link>
-            <Link
-              href="/automations/all"
-              className={cn(TOOL_SEGMENT, "border-l")}
-            >
+            <Link href="/automations/all" className={TOOL_SEGMENT}>
               <List className="h-4 w-4 text-zinc-500" />
               View All Lists
             </Link>
             <Link
               href="/automations/dropdown-config"
-              className={cn(TOOL_SEGMENT, "border-l")}
+              className={cn(TOOL_SEGMENT, "rounded-r-[11px]")}
             >
               <ListChecks className="h-4 w-4 text-zinc-500" />
               Dropdown Configuration
@@ -843,7 +878,12 @@ export default async function AutomationsAlphaA2Page({
               set by `CardNavIndicator` inside a rail card, which is a COUSIN of
               the panel, so a `group` on their common ancestor is what connects
               them. Drop this class and the panel stops dimming, with no error. */}
-          <div className="group/pane flex min-h-[640px] overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10">
+          {/* ⭐ THE SAME BAND TREATMENT AS THE TOOLBAR, matching AlphaA1: the
+              rail and the detail panel are two WELLS separated by a 3px gutter
+              inside a 3px frame. **THE GUTTER REPLACED THE RAIL'S `border-r`**,
+              and the 3px of padding is what put this page's rail and panel on
+              the same pixel as the dark twin's. */}
+          <div className="group/pane flex min-h-[640px] gap-[3px] overflow-hidden rounded-xl bg-zinc-200 p-[3px]">
             {/* ---- Rail. Every website, always visible, so switching costs one
                     click and you never lose your bearings. ---- */}
             {/* ⚠️ w-[460px], AND THE 60 IS NOT ROUND BY ACCIDENT. It is the
@@ -945,7 +985,10 @@ export default async function AutomationsAlphaA2Page({
                     buttons back to 32px the same day. I offered to hand that
                     64px back and they chose to keep the roomier cards. So
                     neither step is a leftover; do not "restore" w-64. */}
-            <div className="flex w-[460px] shrink-0 flex-col border-r">
+            {/* ⚠️ `bg-card` because the pane behind it is now a band, and
+                `rounded-l-[11px]` because a square corner inside a 14px radius
+                eats the band at the corner. Both mirror AlphaA1. */}
+            <div className="flex w-[460px] shrink-0 flex-col rounded-l-[11px] bg-card">
               {/* ⚠️⚠️ THE RAIL'S "Sources" HEADER WAS HERE and was removed on
                   2026-09-06 ("Remove this section"). It was a title row plus a
                   one-line ESTATE AGGREGATE: "{total} automations, {n} of 5
@@ -1646,7 +1689,7 @@ export default async function AutomationsAlphaA2Page({
                 ⚠️ It depends on TWO things elsewhere: `group/pane` on the pane
                 above, and the `data-pending` attribute inside
                 `CardNavIndicator`. Both are silent if removed. */}
-            <div className="@container min-w-0 flex-1 transition-opacity duration-200 group-has-[[data-pending]]/pane:opacity-60">
+            <div className="@container min-w-0 flex-1 rounded-r-[11px] bg-card transition-opacity duration-200 group-has-[[data-pending]]/pane:opacity-60">
               {/* Header, tinted with the website's own colour so the panel
                   changes character as you move down the rail. */}
               <div
@@ -1987,7 +2030,10 @@ export default async function AutomationsAlphaA2Page({
                         ERROR" CELL, which said the same "34d ago". That strip is
                         gone ("Remove all these status indicators"), so this is now
                         the only place the days-since figure appears. */}
-                    <div className="flex flex-1 flex-col rounded-lg bg-card p-3 ring-1 ring-foreground/10">
+                    {/* ⚠️ `ring-[3px] ring-zinc-200` MATCHES ALPHAA1, and it
+                        still matches `CoverageByField` beside it, which is the
+                        standing rule for this block. */}
+                    <div className="flex flex-1 flex-col rounded-lg bg-card p-3 ring-[3px] ring-zinc-200">
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex items-baseline gap-1.5">
                           <span
@@ -2435,12 +2481,20 @@ function Panel({
   children: React.ReactNode;
 }) {
   return (
-    <div className="overflow-hidden rounded-lg ring-1 ring-foreground/10">
-      <div className="flex items-center justify-between gap-2 border-b bg-muted/40 px-3.5 py-2">
-        <span className="text-xs font-semibold text-zinc-800">{title}</span>
-        <span className="text-[10px] uppercase tracking-wider text-zinc-500">
-          {hint}
-        </span>
+    <div className="overflow-hidden rounded-lg bg-card ring-[3px] ring-zinc-200">
+      {/* ⭐ ALPHAA1'S HEADER SHAPE IN LIGHT TONES: the label sits in its own
+          white cell with a 3px band UNDER it only. **`pb-[3px]`, not `p-[3px]`:
+          the shell's ring already frames three sides, and padding all four
+          would double it to 6px there.** The dark twin's note has the full
+          story. `px-3 py-1.5` rather than `px-3.5 py-2` so the label lands on
+          the same pixel in both halves. */}
+      <div className="bg-zinc-200 pb-[3px]">
+        <div className="flex items-center justify-between gap-2 bg-card px-3 py-1.5">
+          <span className="text-xs font-semibold text-zinc-800">{title}</span>
+          <span className="text-[10px] uppercase tracking-wider text-zinc-500">
+            {hint}
+          </span>
+        </div>
       </div>
       {empty ? (
         <div className="flex flex-col items-center justify-center gap-2 px-4 py-8 text-center">
@@ -2496,14 +2550,18 @@ function CoverageByField({
   total: number;
 }) {
   return (
-    <div className="min-w-0 overflow-hidden rounded-lg bg-card ring-1 ring-foreground/10">
-      <div className="flex items-center justify-between gap-2 border-b bg-muted/40 px-3.5 py-2">
-        <span className="text-xs font-semibold text-zinc-800">
-          Documentation by Field
-        </span>
-        <span className="text-[10px] uppercase tracking-wider text-zinc-500">
-          thinnest first
-        </span>
+    <div className="min-w-0 overflow-hidden rounded-lg bg-card ring-[3px] ring-zinc-200">
+      {/* Same frame and the same label-in-a-white-cell header as `Panel`; see
+          its note. These two shells are meant to look identical. */}
+      <div className="bg-zinc-200 pb-[3px]">
+        <div className="flex items-center justify-between gap-2 bg-card px-3 py-1.5">
+          <span className="text-xs font-semibold text-zinc-800">
+            Documentation by Field
+          </span>
+          <span className="text-[10px] uppercase tracking-wider text-zinc-500">
+            thinnest first
+          </span>
+        </div>
       </div>
       {total === 0 ? (
         <div className="flex flex-col items-center justify-center gap-2 px-4 py-8 text-center">
