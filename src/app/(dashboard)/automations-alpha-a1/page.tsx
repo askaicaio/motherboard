@@ -228,10 +228,10 @@ import { TOOLTIP_DELAY_MS } from "@/lib/automations/tooltips";
 // own header explains why a Tailwind var override could not reach it and why
 // this is a duplicate rather than a new prop on the shared component.
 import { CopyApiKeyButton } from "./copy-api-key-button";
-// ⚠️ LOCAL, LIKE EVERY CLIENT LEAF IN THIS FOLDER, and INERT on purpose: it
-// moves its own highlight and nothing else. See its own header for the context
-// (the user reads AlphaA1 as the dark half of a light/dark pair) and for what
-// wiring it up would actually involve.
+// ⚠️ LOCAL, LIKE EVERY CLIENT LEAF IN THIS FOLDER. **It is no longer inert:
+// since 2026-09-13 its light half is a real link to `/automations-alpha-a2`.**
+// Its own header explains why the pair is two ROUTES rather than one page with
+// a `data-theme` flag, and why the link is hover-prefetched.
 import { ThemeToggle } from "./theme-toggle";
 import { CardNavIndicator } from "./nav-indicator";
 import { HoverPrefetchLink } from "./hover-prefetch-link";
@@ -1052,13 +1052,18 @@ export default async function AutomationsAlphaA1Page({
                 pill. Same [auto toggle] [manual action] order the per-website
                 pages use. */}
             <div className="flex shrink-0 items-center gap-3">
-              {/* ⭐ ADDED 2026-09-12, at the user's marked spot: LEFTMOST in the
-                  control cluster, ahead of the health-check pair. "Pls add a
-                  toggle around the marked spot. It will become the light-dark
-                  toggle later, but we can add that functionality later, just
-                  show the toggling aesthetic to me for now."
-                  ⚠️ IT DOES NOTHING YET AND THAT IS THE SPEC. */}
-              <ThemeToggle />
+              {/* ⭐ ADDED 2026-09-12 at the user's marked spot, LEFTMOST in the
+                  control cluster; WIRED UP 2026-09-13: "Connect AlphaA1 with
+                  AlphaA2 now. The lightdark toggle now controls which page gets
+                  displayed."
+                  ⚠️ `site` CARRIES THE SELECTION ACROSS THE SWITCH. Without it
+                  you land back on the default website every time you change
+                  mode, which would make the toggle useless for the one thing it
+                  is for: comparing the two designs on the same data. **It is
+                  read on the SERVER here rather than from the URL on the client,
+                  so the toggle needs no `useSearchParams` and no Suspense
+                  boundary.** */}
+              <ThemeToggle site={selected.slug} />
               {/* ⭐ THE LAST THREE STRINGS THAT WERE NOT AMBER, BLUE OR RED,
                   fixed 2026-09-12. They live in the SHARED
                   `api-health-check.tsx` (`text-zinc-600`, `text-zinc-500`, and

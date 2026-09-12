@@ -7,10 +7,16 @@
 //
 // ⚠️⚠️ SO THIS IS A COPY OF THE LIVE HUB AND IT IS MEANT TO STAY ONE. Nothing
 // here is a redesign. **If you find yourself improving the layout, you are on
-// the wrong page** - that belongs on a Beta or an Alpha. The four deliberate
-// differences from `automations/page.tsx` are listed in its own inherited
-// header below, and they are the same four every bench carries: the header, the
-// function name, the version badge, and the rail's self-link.
+// the wrong page** - that belongs on a Beta or an Alpha.
+//
+// 📌 FIVE DELIBERATE DIFFERENCES FROM `automations/page.tsx`, not the usual
+// four. The first four are the bookkeeping every bench carries and are listed in
+// the inherited header below: this header, the function name, the version badge,
+// and the rail's self-link.
+// **The fifth is the LIGHT/DARK TOGGLE in the header cluster** (2026-09-13),
+// which is the only one a reader would notice. It is the twin of AlphaA1's and
+// it navigates between the two pages. **The live hub has none and should not get
+// one from this experiment.**
 //
 // ⭐⭐ WHY IT EXISTS AT ALL, given `/automations` and `/automations-beta2`
 // already render this exact design: **the pair is the point.** The user reads
@@ -33,9 +39,12 @@
 //     it; see [[automations-done]] Round 121 for the tested half (Tailwind's own
 //     palette vars are NOT overridable).
 //
-// ⚠️ NO THEME TOGGLE HERE YET, deliberately. AlphaA1 has an inert one; this page
-// was asked to look like the live hub, and the live hub has none. Adding it is a
-// one-line import when the pairing work starts.
+// ✅ THE PAIRING IS WIRED, 2026-09-13: "Connect AlphaA1 with AlphaA2 now. The
+// lightdark toggle now controls which page gets displayed." **The prediction in
+// the note below was right about the mechanism and it is why the toggle
+// NAVIGATES rather than restyling anything**: this page's colours are `zinc-*`
+// literals, which no CSS variable can reach, so there was nothing to flip. See
+// `theme-toggle.tsx` for the full reasoning.
 //
 // ⚠️ SELF-CONTAINED, like every version page. **Do not extract anything shared
 // between this file and `automations/page.tsx`**, however identical they look.
@@ -217,6 +226,10 @@ import { TOOLTIP_DELAY_MS } from "@/lib/automations/tooltips";
 import { CopyApiKeyButton } from "@/components/automations/copy-api-key-button";
 import { CardNavIndicator } from "./nav-indicator";
 import { HoverPrefetchLink } from "./hover-prefetch-link";
+// ⚠️ THE FIFTH DELIBERATE DIFFERENCE FROM THE LIVE HUB, added 2026-09-13. The
+// live page has no toggle and should not get one from this experiment; see this
+// page's header.
+import { ThemeToggle } from "./theme-toggle";
 import {
   ApiHealthCheckButton,
   AutoHealthCheckToggle,
@@ -729,6 +742,14 @@ export default async function AutomationsAlphaA2Page({
                 pill. Same [auto toggle] [manual action] order the per-website
                 pages use. */}
             <div className="flex shrink-0 items-center gap-3">
+              {/* ⭐ THE LIGHT/DARK TOGGLE, 2026-09-13: "Connect AlphaA1 with
+                  AlphaA2 now. The lightdark toggle now controls which page gets
+                  displayed." Same slot as its twin on AlphaA1 (leftmost, ahead
+                  of the health-check pair) and the same 32px geometry, so the
+                  control does not move or resize when you switch pages.
+                  ⚠️ `site` CARRIES THE SELECTION ACROSS THE SWITCH, read on the
+                  server here rather than from the URL on the client. */}
+              <ThemeToggle site={selected.slug} />
               <AutoHealthCheckToggle
                 initialEnabled={health.enabled}
                 initialNextCheckAt={health.nextCheckAt}
