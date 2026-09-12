@@ -14,9 +14,53 @@ import { ArrowLeft, ExternalLink } from "lucide-react";
 import { FeatureIntegrationTables } from "@/components/automations/feature-integration-tables";
 import { getFeatureIntegrationMap } from "@/lib/automations/feature-integration";
 import { Card, CardContent } from "@/components/ui/card";
-import { AUTOMATION_BENCH_VERSIONS } from "@/lib/automations/versions";
+import {
+  AUTOMATION_BENCH_VERSIONS,
+  AUTOMATION_PARKED_VERSIONS,
+  type AutomationVersion,
+} from "@/lib/automations/versions";
 
 export const dynamic = "force-dynamic";
+
+/** One directory tile. **Hoisted on 2026-09-13 when a second list appeared**,
+ *  so the parked pair and the active benches cannot drift into looking like two
+ *  different kinds of link. They are the same kind of link; only the section
+ *  they sit in differs.
+ *
+ *  ⚠️ `target="_blank"` IS THE REQUEST, not a flourish: "Clicking each page here
+ *  results in a new tab being opened that leads to that page." `rel="noreferrer"`
+ *  comes with it as the usual companion.
+ *  ⚠️⚠️ `prefetch={false}` IS DELIBERATE AND SHOULD STAY. Every one of these
+ *  routes is `force-dynamic` and runs the hub's full query set, so a default
+ *  prefetch would fire a full page render PER TILE as soon as the section
+ *  entered the viewport. One prefetch = one whole render, and it is only worth
+ *  paying where a click is likely. **A directory you scan is not that.** */
+function VersionTile({ version }: { version: AutomationVersion }) {
+  return (
+    <Link
+      href={version.href}
+      target="_blank"
+      rel="noreferrer"
+      prefetch={false}
+      className="group flex items-start gap-3 rounded-lg px-3 py-2.5 ring-1 ring-foreground/10 transition-colors hover:bg-zinc-50"
+    >
+      <version.icon className="mt-0.5 h-4 w-4 shrink-0 text-zinc-500" />
+      <span className="min-w-0 flex-1">
+        <span className="flex items-center gap-1.5">
+          <span className="text-sm font-medium text-zinc-900">
+            {version.label}
+          </span>
+          {/* The new-tab tell. Muted until hover so a grid of them does not
+              read as a grid of warnings. */}
+          <ExternalLink className="h-3 w-3 shrink-0 text-zinc-300 transition-colors group-hover:text-zinc-500" />
+        </span>
+        <span className="mt-0.5 block text-xs text-zinc-500">
+          {version.blurb}
+        </span>
+      </span>
+    </Link>
+  );
+}
 
 export default async function AutomationsFeatureIntegrationPage() {
   await requireAuth();
@@ -56,27 +100,21 @@ export default async function AutomationsFeatureIntegrationPage() {
           Automations dropdown was removed in the same change, so if this
           section goes, the Alphas and Betas are unreachable except by typing
           the URL. Nothing else links them.
-          ⚠️ `target="_blank"` IS THE REQUEST, not a flourish: "Clicking each
-          page here results in a new tab being opened that leads to that page."
-          `rel="noreferrer"` comes with it as the usual companion.
-          ⚠️⚠️ `prefetch={false}` IS DELIBERATE AND SHOULD STAY. These nine
-          routes are all `force-dynamic` and each runs the hub's full query set,
-          so a default prefetch would fire NINE full page renders as soon as
-          this section entered the viewport. That lesson is written up in
-          [the beta rail's prefetch note]: one prefetch = one whole render, and
-          it is only worth paying where a click is likely. Here it is not: this
-          is a directory you scan, not a control you keep clicking.
+          ⚠️ The new-tab and no-prefetch rules moved to `VersionTile` above,
+          which both sections share.
           ⚠️ The blurbs come from `@/lib/automations/versions`, which took them
           from each page's OWN header comment. Do not rewrite them here; fix
-          them there so the page and its description cannot drift. */}
+          them there so the page and its description cannot drift.
+          ⭐ THERE ARE TWO SECTIONS AS OF 2026-09-13. This one is the active
+          benches; the parked pair has its own card below. */}
       <Card>
         <CardContent className="p-0">
           <div className="flex items-center justify-between gap-3 border-b bg-zinc-50 px-3 py-2">
             {/* ⚠️ "Experimental" was added on 2026-09-11 at the user request.
-                It earns its place: this section links ELEVEN parallel designs of
-                pages that already exist and work, and without that word the
-                heading reads like a list of releases rather than a bench. The
-                live hub is deliberately NOT in here. */}
+                It earns its place: this section links parallel designs of pages
+                that already exist and work, and without that word the heading
+                reads like a list of releases rather than a bench. The live hub
+                is deliberately NOT in here. */}
             <h2 className="text-sm font-semibold text-zinc-900">
               Experimental Design Versions
             </h2>
@@ -86,29 +124,47 @@ export default async function AutomationsFeatureIntegrationPage() {
           </div>
           <div className="grid gap-2 p-3 sm:grid-cols-2 lg:grid-cols-3">
             {AUTOMATION_BENCH_VERSIONS.map((version) => (
-              <Link
-                key={version.href}
-                href={version.href}
-                target="_blank"
-                rel="noreferrer"
-                prefetch={false}
-                className="group flex items-start gap-3 rounded-lg px-3 py-2.5 ring-1 ring-foreground/10 transition-colors hover:bg-zinc-50"
-              >
-                <version.icon className="mt-0.5 h-4 w-4 shrink-0 text-zinc-500" />
-                <span className="min-w-0 flex-1">
-                  <span className="flex items-center gap-1.5">
-                    <span className="text-sm font-medium text-zinc-900">
-                      {version.label}
-                    </span>
-                    {/* The new-tab tell. Muted until hover so nine of them do
-                        not read as nine warnings. */}
-                    <ExternalLink className="h-3 w-3 shrink-0 text-zinc-300 transition-colors group-hover:text-zinc-500" />
-                  </span>
-                  <span className="mt-0.5 block text-xs text-zinc-500">
-                    {version.blurb}
-                  </span>
-                </span>
-              </Link>
+              <VersionTile key={version.href} version={version} />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ⭐⭐ THE PARKED PAIR, IN ITS OWN CARD, 2026-09-13: "Lets leave the
+          AlphaA1 and AlphaA2 now. They will remain in alpha indefinitely unless
+          corpo says its something they want. In the feature integration page,
+          Put their own separate window from the rest of the test pages."
+          ⚠️⚠️ THE SPLIT IS ABOUT WHOSE MOVE IT IS, NOT ABOUT QUALITY. Everything
+          in the card above is a design still being explored, so the next move is
+          ours. These two are finished and waiting on a business decision, so the
+          next move is not. **Left in the same list they would read as two items
+          on a to-do list that never move.**
+          📌 THEY ARE STILL ORDINARY TILES, deliberately: same component, same
+          new-tab behaviour, same no-prefetch. Only the section differs, because
+          the pages are not lesser, they are just not ours to advance.
+          ⚠️ THE TWO ARE ONE FEATURE and the subtitle says so. Opening either one
+          gets you the other through the toggle in its header, so listing them as
+          two unrelated tiles would undersell what they are. */}
+      <Card>
+        <CardContent className="p-0">
+          <div className="flex items-start justify-between gap-3 border-b bg-zinc-50 px-3 py-2">
+            <div className="min-w-0">
+              <h2 className="text-sm font-semibold text-zinc-900">
+                Light / Dark Mode Pair
+              </h2>
+              <p className="mt-0.5 text-xs text-zinc-500">
+                One design in two themes, linked by a toggle in each
+                page&rsquo;s header. Parked in alpha unless the business asks
+                for it.
+              </p>
+            </div>
+            <span className="shrink-0 text-xs text-zinc-500">
+              {AUTOMATION_PARKED_VERSIONS.length} pages, each opens in a new tab
+            </span>
+          </div>
+          <div className="grid gap-2 p-3 sm:grid-cols-2 lg:grid-cols-3">
+            {AUTOMATION_PARKED_VERSIONS.map((version) => (
+              <VersionTile key={version.href} version={version} />
             ))}
           </div>
         </CardContent>

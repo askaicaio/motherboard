@@ -15,7 +15,9 @@
 // selection when clicking the automation tab at the left sidebar is also not
 // needed anymore"). Two things now read it and neither owns it:
 //   1. the Feature Integration page, which renders the bench versions as the
-//      ONLY way to reach them;
+//      ONLY way to reach them. **Since 2026-09-13 it renders them as TWO lists,
+//      the active benches and the parked pair**; see `parked` below. Both are
+//      on that page, so the split changed presentation, not reachability;
 //   2. the sidebar, which uses it for one thing only: keeping the Automations
 //      tab highlighted while you are on a bench route.
 //
@@ -119,6 +121,20 @@ export interface AutomationVersion {
   /** The live hub. Excluded from the Feature Integration page's list, because
    *  that page is reached FROM it and the sidebar tab already goes there. */
   official?: boolean;
+  /** ⭐ PARKED: finished, reachable, and NOT waiting on engineering. Added
+   *  2026-09-13 for the AlphaA1/AlphaA2 pair: "They will remain in alpha
+   *  indefinitely unless corpo says its something they want."
+   *
+   *  **THE DISTINCTION IS ABOUT WHO THE NEXT MOVE BELONGS TO, not about how
+   *  finished a page is.** An ordinary bench is a design still being explored,
+   *  and the next move is ours. A parked one is done and waiting on a BUSINESS
+   *  decision, and the next move is theirs. Mixing the two in one list makes the
+   *  directory read as a to-do list with two items that never move.
+   *
+   *  ⚠️ IT IS NOT "deprecated" AND NOT "on hold". Nothing here is abandoned and
+   *  nothing is blocked; do not repurpose this flag for either. If a page is
+   *  ever genuinely dead, it should be deleted, not flagged. */
+  parked?: boolean;
 }
 
 export const AUTOMATION_VERSIONS: AutomationVersion[] = [
@@ -212,17 +228,26 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
   // not one page with two palettes.** The selected website rides across the
   // switch on `?site=`. **So these two entries are one feature; open either and
   // you can reach the other.**
+  // 🛑 BOTH ARE `parked` AS OF 2026-09-13 and so render in their own section of
+  // the Feature Integration page rather than among the benches: "Lets leave the
+  // AlphaA1 and AlphaA2 now. They will remain in alpha indefinitely unless corpo
+  // says its something they want. In the feature integration page, Put their own
+  // separate window from the rest of the test pages."
+  // ⚠️ **PARKED MEANS THE NEXT MOVE IS THE BUSINESS'S, NOT OURS.** The pair is
+  // finished and works; see `parked` on the interface above.
   {
     href: "/automations-alpha-a1",
     label: "Main Page AlphaA1",
     icon: Palette,
     blurb: "Dark mode: the live hub on an eleven-colour palette.",
+    parked: true,
   },
   {
     href: "/automations-alpha-a2",
     label: "Main Page AlphaA2",
     icon: Palette,
-    blurb: "Light mode: the live hub unchanged, for pairing with AlphaA1.",
+    blurb: "Light mode: the same layout, paired to AlphaA1 by a toggle.",
+    parked: true,
   },
   // ⚠️⚠️ AN "OPTIONS" ENTRY IS A DIFFERENT KIND OF THING FROM EVERYTHING ABOVE
   // IT, and the label says so. Every Alpha and Beta is a redesign of the whole
@@ -259,10 +284,21 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
   },
 ];
 
-/** The benches only: everything except the live hub. What the Feature
- *  Integration page lists. */
+/** The ACTIVE benches: everything except the live hub and the parked pair.
+ *  The Feature Integration page's main list.
+ *
+ *  ⚠️ IT NARROWED ON 2026-09-13 and anything counting it will have moved: it
+ *  was every non-official version, and is now every non-official, non-parked
+ *  one. **The two lists together are still the complete set of benches**, and
+ *  that page renders both, so nothing became unreachable. */
 export const AUTOMATION_BENCH_VERSIONS = AUTOMATION_VERSIONS.filter(
-  (v) => !v.official,
+  (v) => !v.official && !v.parked,
+);
+
+/** The parked pair, listed separately on the Feature Integration page. See
+ *  `parked` on `AutomationVersion` for what the flag means and does not mean. */
+export const AUTOMATION_PARKED_VERSIONS = AUTOMATION_VERSIONS.filter(
+  (v) => v.parked,
 );
 
 /** True while `pathname` is any registered version, the live hub included.
