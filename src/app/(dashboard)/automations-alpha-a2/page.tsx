@@ -20,8 +20,10 @@
 //
 // ⭐⭐ SO THE FRAMES ARE NOW ALPHAA1'S, IN LIGHT TONES: 3px bands where the dark
 // page has 3px bands, `ring-[3px]` where it has `ring-[3px]`, and the same
-// concentric radii. **`zinc-200` plays the part `--pa-line` plays there**, and
-// white plays the void. Every landmark lands on the same pixel in both halves.
+// concentric radii. **`LINE` (#A1A1AA) plays the part `--pa-line` plays
+// there**, and white plays the void. Every landmark lands on the same pixel in
+// both halves, and the frame reads as strongly against white as the chassis does
+// against black: both are 2.56:1. See `LINE` for that arithmetic.
 //
 // ⚠️⚠️ WHY THAT IS NOT SCOPE CREEP: **a light/dark pair whose halves are laid out
 // differently is not a pair.** The toggle swaps between these two pages, so any
@@ -284,9 +286,37 @@ const ACCENT: Record<string, string> = {
  *  2026-09-11; these are full-height cells in a grid, so a button's own
  *  padding and border would fight the cell. That import went with them and
  *  this file no longer needs it. */
+/** The frame colour for this page, and **the ONLY place it is written down**.
+ *
+ *  ⭐⭐ THIS IS THE LIGHT TWIN OF ALPHAA1'S `--pa-line` (#4A5560), and the value
+ *  is MEASURED rather than picked: it is the zinc step that gives white the same
+ *  contrast ratio that #4A5560 gives AlphaA1's void.
+ *    dark:  #4A5560 on #0A0E13 -> (0.0897+0.05)/(0.0045+0.05) = **2.56:1**
+ *    light: #A1A1AA on #FFFFFF -> (1.05)/(0.3597+0.05)       = **2.56:1**
+ *  **So the frame reads as strongly against white here as the chassis does
+ *  against black there**, which is what makes the two halves feel like one
+ *  design rather than a bold page and a faint one.
+ *
+ *  ⚠️ IT WAS `zinc-200` (#E4E4E7) FOR A DAY and that is only **1.25:1**: the
+ *  frames were technically present and visually absent. The user: "try giving
+ *  the borderlines here a darker color".
+ *
+ *  📌 IT IS ASSIGNED TO `--border`, WHICH IS THE WHOLE TRICK. `globals.css` maps
+ *  `--color-border: var(--border)`, so this one line also recolours every
+ *  `border`, `border-b`, `border-r` and `divide-y` on the page - the rail cards,
+ *  the detail header's rule, the list row dividers. **AlphaA1 does exactly the
+ *  same thing with the same variable**, which is why its card borders and its
+ *  chassis are one colour. Retune this and the whole page follows. */
+const LINE = "#A1A1AA";
+
+/** ⚠️ The page root carries this, the same way AlphaA1's root carries its own
+ *  `PAGE_VARS`. It is ONE override, not a palette: everything else on this page
+ *  is still the live hub's own `zinc-*`. */
+const PAGE_VARS = { "--border": LINE } as React.CSSProperties;
+
 const TOOL_SEGMENT =
   // ⚠️ `bg-card` IS LOAD-BEARING as of 2026-09-13: the strip around these cells
-  // is a `zinc-200` band, so a cell with no background of its own puts its label
+  // is a `--border` band, so a cell with no background of its own puts its label
   // on the band. Mirrors AlphaA1, where the same class sits on the void.
   "flex items-center justify-center gap-2 bg-card px-4 py-3 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 hover:text-zinc-900";
 
@@ -712,7 +742,7 @@ export default async function AutomationsAlphaA2Page({
   // and `days` the error panel's "Last Error N days ago".
 
   return (
-    <div className="space-y-5 p-6">
+    <div style={PAGE_VARS} className="space-y-5 p-6">
       {/* The health controls carry tooltips, so they need a provider, and the
           shared TOOLTIP_DELAY_MS keeps their timing identical to the rest of
           the tab. HealthCheckProvider is what lets the "API Health Check"
@@ -839,7 +869,7 @@ export default async function AutomationsAlphaA2Page({
               the pane below. Measured on the real page after the swap; see the
               PR. */}
           {/* ⭐ ALPHAA1'S TOOLBAR GEOMETRY IN LIGHT TONES, 2026-09-13. `p-[3px]`
-              plus `gap-[3px]` on a `zinc-200` grid: the frame AND the two
+              plus `gap-[3px]` on a `--border` grid: the frame AND the two
               gutters between the cells are one band, which is what makes this
               strip 50px tall like its dark twin instead of 44px.
               ⚠️ THIS IS WHY `border-l` CAME OFF SEGMENTS 2 AND 3: the gutter IS
@@ -848,7 +878,7 @@ export default async function AutomationsAlphaA2Page({
               14px frame minus 3px padding. Without it the band thins to nothing
               at the outer corners; the dark twin's note has the arithmetic and
               the bug it fixed. */}
-          <div className="grid grid-cols-3 gap-[3px] overflow-hidden rounded-xl bg-zinc-200 p-[3px]">
+          <div className="grid grid-cols-3 gap-[3px] overflow-hidden rounded-xl bg-[var(--border)] p-[3px]">
             <Link
               href="/automations/feature-integration"
               className={cn(TOOL_SEGMENT, "rounded-l-[11px]")}
@@ -883,7 +913,7 @@ export default async function AutomationsAlphaA2Page({
               inside a 3px frame. **THE GUTTER REPLACED THE RAIL'S `border-r`**,
               and the 3px of padding is what put this page's rail and panel on
               the same pixel as the dark twin's. */}
-          <div className="group/pane flex min-h-[640px] gap-[3px] overflow-hidden rounded-xl bg-zinc-200 p-[3px]">
+          <div className="group/pane flex min-h-[640px] gap-[3px] overflow-hidden rounded-xl bg-[var(--border)] p-[3px]">
             {/* ---- Rail. Every website, always visible, so switching costs one
                     click and you never lose your bearings. ---- */}
             {/* ⚠️ w-[460px], AND THE 60 IS NOT ROUND BY ACCIDENT. It is the
@@ -1518,7 +1548,7 @@ export default async function AutomationsAlphaA2Page({
                                 that goal. */}
                             <Link
                               href={`/automations/${site.slug}`}
-                              className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-card px-2.5 text-xs font-medium text-zinc-600 ring-1 ring-foreground/10 transition-colors hover:bg-zinc-50 hover:text-zinc-900"
+                              className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-card px-2.5 text-xs font-medium text-zinc-600 ring-1 ring-[var(--border)] transition-colors hover:bg-zinc-50 hover:text-zinc-900"
                             >
                               {/* ⚠️ NO TRAILING CHEVRON, removed 2026-09-08: "For both the
                                   Official and Beta1 Page, remove these arrows." The button is
@@ -1782,7 +1812,7 @@ export default async function AutomationsAlphaA2Page({
                       <div className="flex min-w-0 items-center gap-3">
                         <span
                           aria-hidden
-                          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white ring-1 ring-foreground/10"
+                          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white ring-1 ring-[var(--border)]"
                         >
                           <SiteGlyph site={selected} className="h-7 w-7" />
                         </span>
@@ -1925,7 +1955,7 @@ export default async function AutomationsAlphaA2Page({
                           width: those trade a graceful wrap for a crushed name. */}
                       <Link
                         href={`/automations/${selected.slug}/errors`}
-                        className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-card px-2.5 text-xs font-medium text-zinc-600 ring-1 ring-foreground/10 transition-colors hover:bg-zinc-50 hover:text-zinc-900"
+                        className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-card px-2.5 text-xs font-medium text-zinc-600 ring-1 ring-[var(--border)] transition-colors hover:bg-zinc-50 hover:text-zinc-900"
                       >
                         <AlertTriangle className="h-3.5 w-3.5" />
                         Error History
@@ -2030,10 +2060,10 @@ export default async function AutomationsAlphaA2Page({
                         ERROR" CELL, which said the same "34d ago". That strip is
                         gone ("Remove all these status indicators"), so this is now
                         the only place the days-since figure appears. */}
-                    {/* ⚠️ `ring-[3px] ring-zinc-200` MATCHES ALPHAA1, and it
+                    {/* ⚠️ `ring-[3px] ring-[var(--border)]` MATCHES ALPHAA1, and it
                         still matches `CoverageByField` beside it, which is the
                         standing rule for this block. */}
-                    <div className="flex flex-1 flex-col rounded-lg bg-card p-3 ring-[3px] ring-zinc-200">
+                    <div className="flex flex-1 flex-col rounded-lg bg-card p-3 ring-[3px] ring-[var(--border)]">
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex items-baseline gap-1.5">
                           <span
@@ -2445,7 +2475,10 @@ function Sparkline({
             title={`${dayKeys[i]}: ${v}`}
             className={cn(
               "flex-1 rounded-[2px]",
-              v > 0 ? "bg-red-400" : "bg-zinc-200",
+              // ⚠️ THE FRAME COLOUR, NOT A LIGHTER GREY: at `zinc-200` a
+              // zero-error day was invisible against the card. AlphaA1 draws
+              // these in its chassis colour for the same reason.
+              v > 0 ? "bg-red-400" : "bg-[var(--border)]",
             )}
             style={{
               // The 12% floor keeps a 1-error day from rendering as a hairline
@@ -2481,14 +2514,14 @@ function Panel({
   children: React.ReactNode;
 }) {
   return (
-    <div className="overflow-hidden rounded-lg bg-card ring-[3px] ring-zinc-200">
+    <div className="overflow-hidden rounded-lg bg-card ring-[3px] ring-[var(--border)]">
       {/* ⭐ ALPHAA1'S HEADER SHAPE IN LIGHT TONES: the label sits in its own
           white cell with a 3px band UNDER it only. **`pb-[3px]`, not `p-[3px]`:
           the shell's ring already frames three sides, and padding all four
           would double it to 6px there.** The dark twin's note has the full
           story. `px-3 py-1.5` rather than `px-3.5 py-2` so the label lands on
           the same pixel in both halves. */}
-      <div className="bg-zinc-200 pb-[3px]">
+      <div className="bg-[var(--border)] pb-[3px]">
         <div className="flex items-center justify-between gap-2 bg-card px-3 py-1.5">
           <span className="text-xs font-semibold text-zinc-800">{title}</span>
           <span className="text-[10px] uppercase tracking-wider text-zinc-500">
@@ -2550,10 +2583,10 @@ function CoverageByField({
   total: number;
 }) {
   return (
-    <div className="min-w-0 overflow-hidden rounded-lg bg-card ring-[3px] ring-zinc-200">
+    <div className="min-w-0 overflow-hidden rounded-lg bg-card ring-[3px] ring-[var(--border)]">
       {/* Same frame and the same label-in-a-white-cell header as `Panel`; see
           its note. These two shells are meant to look identical. */}
-      <div className="bg-zinc-200 pb-[3px]">
+      <div className="bg-[var(--border)] pb-[3px]">
         <div className="flex items-center justify-between gap-2 bg-card px-3 py-1.5">
           <span className="text-xs font-semibold text-zinc-800">
             Documentation by Field
