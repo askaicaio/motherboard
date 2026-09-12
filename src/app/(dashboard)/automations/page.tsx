@@ -128,6 +128,10 @@ import Link from "next/link";
 // the cards' Error History button uses it rather than introducing a second one.
 import {
   AlertTriangle,
+  // Housekeeping Alerts, added 2026-09-13. A broom reads as tidying-up work,
+  // which is what that page is; the app has no other cleanup surface to
+  // collide with.
+  Brush,
   Inbox,
   List,
   ListChecks,
@@ -729,12 +733,27 @@ export default async function AutomationsPage({
               container's rounded corners on the outer edges. Remove it and the
               corners square off on hover only, which is the sort of thing that
               looks like a rendering bug.
-              ⚠️ `border-l` ON SEGMENTS 2 AND 3 ONLY. Putting it on all three
-              draws a line against the container's left edge.
+              ⚠️ `border-l` ON EVERY SEGMENT BUT THE FIRST. Putting it on all
+              of them draws a line against the container's left edge.
               📐 IT IS SHORTER THAN WHAT IT REPLACED, which is free height for
               the pane below. Measured on the real page after the swap; see the
-              PR. */}
-          <div className="grid grid-cols-3 overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10">
+              PR.
+              ⭐⭐ A FOURTH CELL LANDED 2026-09-13: HOUSEKEEPING ALERTS. It was
+              specified in the backlog from 2026-09-03 as "a new button in the
+              Main Page toolbar strip", so this is the destination the feature
+              was always headed for, not a new decision about where it goes.
+              ⚠️⚠️ THE THIRDS ARE NOW QUARTERS, and that is the visible cost.
+              The user picked variant 06 for its EQUAL CELLS FILLING THE WIDTH,
+              and a fourth cell keeps that property while making each one
+              narrower. **The property they chose is preserved; the proportion
+              is not, and it could not be.** If the strip ever reads crowded,
+              the backlog's own note is the context: a Tools CARD replaced this
+              strip once and was reverted the same day, so **do not reach for
+              that** without first solving the height problem that sank it.
+              📌 EVERY LABEL STILL FITS ON ONE LINE at the widths this page
+              runs; "Dropdown Configuration" is the longest and was the binding
+              constraint before the fourth cell as well. */}
+          <div className="grid grid-cols-4 overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10">
             <Link
               href="/automations/feature-integration"
               className={TOOL_SEGMENT}
@@ -755,6 +774,13 @@ export default async function AutomationsPage({
             >
               <ListChecks className="h-4 w-4 text-zinc-500" />
               Dropdown Configuration
+            </Link>
+            <Link
+              href="/automations/housekeeping-alerts"
+              className={cn(TOOL_SEGMENT, "border-l")}
+            >
+              <Brush className="h-4 w-4 text-zinc-500" />
+              Housekeeping Alerts
             </Link>
           </div>
 
