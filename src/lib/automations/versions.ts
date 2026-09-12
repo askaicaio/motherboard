@@ -191,17 +191,33 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
     icon: Telescope,
     blurb: "A changelog.",
   },
-  // ⚠️ A RECOLOUR BENCH, not a restructure. AlphaA1 is the LIVE HUB'S EXACT
-  // STRUCTURE with every colour replaced from a nine-colour palette the user
-  // curated off a game screenshot. **It keeps the "Main Page" prefix because it
-  // IS a main-page design**; what varies is the palette, not the layout.
-  // 📌 The "A" is the user's naming, not a maturity marker. If more recolours
-  // follow, AlphaA2 is the shape to reuse.
+  // ⭐⭐ THE "A" FAMILY IS A LIGHT/DARK PAIR, not a series of recolours. Read
+  // these two together; neither makes much sense alone.
+  //   AlphaA1 = the DARK mode. The live hub's EXACT structure with every colour
+  //             replaced from an eleven-colour palette the user curated off a
+  //             game screenshot.
+  //   AlphaA2 = the LIGHT mode. The live hub's design copied UNCHANGED, so the
+  //             pairing can be tried out without experimenting on the page
+  //             everyone actually uses.
+  // 📌 THE FRAMING IS THE USER'S, 2026-09-12: "i was thinking that AlphaA1 is
+  // the 'Dark mode', and the current live version of the page is the 'Light
+  // mode'." AlphaA2 followed the next day: "We will be trying out compatability
+  // of this page with AlphaA1 later."
+  // ⚠️ BOTH KEEP THE "Main Page" PREFIX because both ARE main-page designs; what
+  // varies between them is the palette, not the layout. **So a third "A" is only
+  // warranted by a third member of THIS experiment**, not by any recolour.
+  // 📌 The "A" itself is the user's naming, not a maturity marker.
   {
     href: "/automations-alpha-a1",
     label: "Main Page AlphaA1",
     icon: Palette,
-    blurb: "The live hub, recoloured to a nine-colour palette.",
+    blurb: "Dark mode: the live hub on an eleven-colour palette.",
+  },
+  {
+    href: "/automations-alpha-a2",
+    label: "Main Page AlphaA2",
+    icon: Palette,
+    blurb: "Light mode: the live hub unchanged, for pairing with AlphaA1.",
   },
   // ⚠️⚠️ AN "OPTIONS" ENTRY IS A DIFFERENT KIND OF THING FROM EVERYTHING ABOVE
   // IT, and the label says so. Every Alpha and Beta is a redesign of the whole
