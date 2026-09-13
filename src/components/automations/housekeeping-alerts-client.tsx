@@ -54,18 +54,19 @@ export interface HousekeepingChoices {
   webhookChoices: ChoiceOption[];
 }
 
-/** How many rows a section renders before it stops.
+/** How many rows the list renders before it stops.
  *
- *  ⚠️ THE BIG SECTION IS 473 ROWS. Rendering all of them costs a visibly slow
- *  page for a list nobody scrolls to the bottom of, so it stops here and says
- *  so. **The website filter is the real answer**: the backlog is entirely n8n,
- *  GHL and GHL B2B, so picking one turns this into a list you can finish.
+ *  ⚠️ THE FULL LIST IS 526 ROWS. Rendering all of them costs a visibly slow page
+ *  for a list nobody scrolls to the bottom of, so it stops here and says so.
+ *  **The website filter is the real answer**: the backlog is entirely n8n, GHL
+ *  and GHL B2B, so picking one turns this into a list you can finish.
  *
- *  📌 IT IS 100 RATHER THAN 50 SO THE NEARLY-DONE SECTION IS NEVER TRUNCATED.
- *  At 50 the 53 rows missing only Evaluation and Notes showed as "showing 50 of
- *  53", which hides three rows to save nothing and truncates **the one section
- *  that is actually finishable**. Anything under 100 now renders whole. */
-const SECTION_LIMIT = 100;
+ *  ⭐ THE CAP IS SAFE ONLY BECAUSE THE ROWS ARRIVE FEWEST-MISSING-FIRST. The 53
+ *  rows that are two fields from done sort above the 473 untouched ones, so they
+ *  are inside the first 100 and can never be the part that gets cut. **If the
+ *  server's ordering ever changes, this cap starts hiding the most finishable
+ *  work.** */
+const LIST_LIMIT = 100;
 
 /** The GHL websites, the only ones whose Edit dialog shows the GHL Tags and GHL
  *  Forms pickers. Passing those choices to a Make or n8n row would put two
@@ -96,21 +97,26 @@ export function HousekeepingAlertsClient({
     return m;
   }, [rows]);
 
-  /** Sections keyed by HOW MANY of the five are missing, fewest first.
+  /** What the one list actually renders, and whether it stopped early.
    *
-   *  ⚠️ BUILT FROM THE DATA, NOT HARD-CODED. Today the estate has exactly two
-   *  groups (missing 2, missing 5) and nothing in between, but that is a fact
-   *  about the current backlog, not a rule. **A hard-coded "nearly done" and
-   *  "untouched" pair would silently hide a row missing three.** */
-  const sections = useMemo(() => {
-    const byCount = new Map<number, HousekeepingRow[]>();
-    for (const r of visible) {
-      const n = r.missing.length;
-      if (!byCount.has(n)) byCount.set(n, []);
-      byCount.get(n)!.push(r);
-    }
-    return [...byCount.entries()].sort((a, b) => a[0] - b[0]);
-  }, [visible]);
+   *  🛑 IT USED TO BE GROUPED into a section per "how many of the five are
+   *  missing", each with its own header. **The user removed that** (2026-09-13):
+   *  "categorizing them in separate windows in unecessary. remove these separate
+   *  headers and place them all in just one window." **Do not reintroduce the
+   *  section headers.**
+   *  📌 THE ORDER THOSE SECTIONS PRODUCED IS KEPT, because it was a separate
+   *  decision the user made earlier the same day ("Nearly done first"): the rows
+   *  arrive from the server sorted by fewest-missing, then website, then name.
+   *  **The grouping was the presentation; the ordering is the priority, and only
+   *  the presentation was rejected.** Each row's red chips already say how much
+   *  is left, which is what the headers were duplicating. */
+  const { shown, capped } = useMemo(
+    () => ({
+      shown: visible.slice(0, LIST_LIMIT),
+      capped: visible.length > LIST_LIMIT,
+    }),
+    [visible],
+  );
 
   /** Re-run the shared rule against the row the dialog saved, and either drop
    *  it, or keep it with its chips updated.
@@ -179,51 +185,22 @@ export function HousekeepingAlertsClient({
           </p>
         </div>
       ) : (
-        sections.map(([count, all]) => {
-          const capped = all.length > SECTION_LIMIT;
-          const shown = capped ? all.slice(0, SECTION_LIMIT) : all;
-          return (
-            <section
-              key={count}
-              className="overflow-hidden rounded-lg ring-1 ring-foreground/10"
-            >
-              <div className="flex items-baseline justify-between gap-3 border-b bg-zinc-50 px-3.5 py-2">
-                <div className="min-w-0">
-                  <h2 className="text-sm font-semibold text-zinc-900">
-                    {count === REQUIRED_COLUMNS.length
-                      ? "Nothing filled in yet"
-                      : `Missing ${count} of ${REQUIRED_COLUMNS.length}`}
-                  </h2>
-                  <p className="mt-0.5 text-xs text-zinc-500">
-                    {count === REQUIRED_COLUMNS.length
-                      ? "None of the required columns have been filled."
-                      : `${REQUIRED_COLUMNS.length - count} of the five are already done.`}
-                  </p>
-                </div>
-                <span className="shrink-0 text-xs tabular-nums text-zinc-500">
-                  {capped
-                    ? `showing ${shown.length} of ${all.length}`
-                    : all.length}
-                </span>
-              </div>
-              <ul className="divide-y">
-                {shown.map((row) => (
-                  <ListRow
-                    key={row.id}
-                    row={row}
-                    onEdit={() => setEditing(row)}
-                  />
-                ))}
-              </ul>
-              {capped ? (
-                <p className="border-t bg-zinc-50 px-3.5 py-2 text-xs text-zinc-500">
-                  {all.length - shown.length} more. Filter by website to work
-                  through them.
-                </p>
-              ) : null}
-            </section>
-          );
-        })
+        // ⚠️ ONE CARD, NO HEADER STRIP. The count lives on the "All websites"
+        // chip above and the page's subtitle says what the list is, so a header
+        // here would be a third copy of the same two facts.
+        <section className="overflow-hidden rounded-lg ring-1 ring-foreground/10">
+          <ul className="divide-y">
+            {shown.map((row) => (
+              <ListRow key={row.id} row={row} onEdit={() => setEditing(row)} />
+            ))}
+          </ul>
+          {capped ? (
+            <p className="border-t bg-zinc-50 px-3.5 py-2 text-xs text-zinc-500">
+              Showing {shown.length} of {visible.length}. Filter by website to
+              work through the rest.
+            </p>
+          ) : null}
+        </section>
       )}
 
       {/* ⚠️ ONE DIALOG FOR THE WHOLE PAGE, keyed by the row's id so it remounts
