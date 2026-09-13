@@ -25,6 +25,8 @@ import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { ExternalLink, Inbox } from "lucide-react";
 
+import { Card, CardContent } from "@/components/ui/card";
+import { useFitViewportHeight } from "@/lib/automations/use-fit-viewport-height";
 import { ColorBadge } from "@/components/automations/color-badge";
 import { WorkflowDialog } from "@/components/automations/workflow-dialog";
 import type { AutomationRow } from "@/components/automations/automations-table-client";
@@ -53,20 +55,6 @@ export interface HousekeepingChoices {
   ghlFormChoices: ChoiceOption[];
   webhookChoices: ChoiceOption[];
 }
-
-/** How many rows the list renders before it stops.
- *
- *  ⚠️ THE FULL LIST IS 526 ROWS. Rendering all of them costs a visibly slow page
- *  for a list nobody scrolls to the bottom of, so it stops here and says so.
- *  **The website filter is the real answer**: the backlog is entirely n8n, GHL
- *  and GHL B2B, so picking one turns this into a list you can finish.
- *
- *  ⭐ THE CAP IS SAFE ONLY BECAUSE THE ROWS ARRIVE FEWEST-MISSING-FIRST. The 53
- *  rows that are two fields from done sort above the 473 untouched ones, so they
- *  are inside the first 100 and can never be the part that gets cut. **If the
- *  server's ordering ever changes, this cap starts hiding the most finishable
- *  work.** */
-const LIST_LIMIT = 100;
 
 /** The GHL websites, the only ones whose Edit dialog shows the GHL Tags and GHL
  *  Forms pickers. Passing those choices to a Make or n8n row would put two
@@ -97,26 +85,9 @@ export function HousekeepingAlertsClient({
     return m;
   }, [rows]);
 
-  /** What the one list actually renders, and whether it stopped early.
-   *
-   *  🛑 IT USED TO BE GROUPED into a section per "how many of the five are
-   *  missing", each with its own header. **The user removed that** (2026-09-13):
-   *  "categorizing them in separate windows in unecessary. remove these separate
-   *  headers and place them all in just one window." **Do not reintroduce the
-   *  section headers.**
-   *  📌 THE ORDER THOSE SECTIONS PRODUCED IS KEPT, because it was a separate
-   *  decision the user made earlier the same day ("Nearly done first"): the rows
-   *  arrive from the server sorted by fewest-missing, then website, then name.
-   *  **The grouping was the presentation; the ordering is the priority, and only
-   *  the presentation was rejected.** Each row's red chips already say how much
-   *  is left, which is what the headers were duplicating. */
-  const { shown, capped } = useMemo(
-    () => ({
-      shown: visible.slice(0, LIST_LIMIT),
-      capped: visible.length > LIST_LIMIT,
-    }),
-    [visible],
-  );
+  /** The scroll window's measured height. Same hook the four Automations
+   *  tables use, so this list caps itself the same way they do. */
+  const { ref: scrollRef, style: scrollStyle } = useFitViewportHeight();
 
   /** Re-run the shared rule against the row the dialog saved, and either drop
    *  it, or keep it with its chips updated.
@@ -185,22 +156,47 @@ export function HousekeepingAlertsClient({
           </p>
         </div>
       ) : (
-        // ⚠️ ONE CARD, NO HEADER STRIP. The count lives on the "All websites"
-        // chip above and the page's subtitle says what the list is, so a header
-        // here would be a third copy of the same two facts.
-        <section className="overflow-hidden rounded-lg ring-1 ring-foreground/10">
-          <ul className="divide-y">
-            {shown.map((row) => (
-              <ListRow key={row.id} row={row} onEdit={() => setEditing(row)} />
-            ))}
-          </ul>
-          {capped ? (
-            <p className="border-t bg-zinc-50 px-3.5 py-2 text-xs text-zinc-500">
-              Showing {shown.length} of {visible.length}. Filter by website to
-              work through the rest.
-            </p>
-          ) : null}
-        </section>
+        // ⭐⭐ A BOUNDED SCROLL WINDOW, THE SAME ONE THE PER WEBSITE TABLES USE,
+        // 2026-09-13: "I want the table in Housekeeping to have the same width
+        // limits, and scrolling feature. Displaying everything in a tall window
+        // isnt the way to go. We should be displaying everything in a small
+        // window that has a scroll bar."
+        //
+        // ⚠️ THE PATTERN IS COPIED EXACTLY, not approximated: a `Card` whose
+        // `CardContent` is the scroll area, `max-h-[70vh] overflow-auto p-0`,
+        // with `useFitViewportHeight` overriding that max-height once measured.
+        // **The class is the pre-measurement fallback and the inline style is the
+        // real cap**; dropping either one breaks a different case (first paint
+        // vs. a container that starts far down the page). That hook's own file
+        // explains why a plain `max-h-[70vh]` is not enough here.
+        //
+        // 📌 NO ROW CAP ANY MORE. It used to render the first 100 with a
+        // "showing 100 of 526" footer, which existed ONLY because the page grew
+        // to 6432px otherwise. **The window solves that properly**, so all 526
+        // render and you scroll them. The tables next door carry 344 rows of 20
+        // columns this way, so this is well inside what the pattern handles.
+        // ⚠️ ONE CONSEQUENCE WORTH KNOWING: the cap used to depend on the
+        // fewest-missing-first ordering to avoid hiding the finishable rows.
+        // **Nothing is hidden now, so that dependency is gone** - the ordering
+        // is still there, but it is a convenience rather than a correctness
+        // requirement.
+        <Card>
+          <CardContent
+            ref={scrollRef}
+            style={scrollStyle}
+            className="max-h-[70vh] overflow-auto p-0"
+          >
+            <ul className="divide-y">
+              {visible.map((row) => (
+                <ListRow
+                  key={row.id}
+                  row={row}
+                  onEdit={() => setEditing(row)}
+                />
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
       )}
 
       {/* ⚠️ ONE DIALOG FOR THE WHOLE PAGE, keyed by the row's id so it remounts
