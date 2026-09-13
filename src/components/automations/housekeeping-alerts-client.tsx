@@ -1,172 +1,155 @@
 "use client";
 
-// THE EVALUATION QUEUE, the interactive half of the Housekeeping Alerts page.
-// See `@/lib/automations/housekeeping` for what belongs in the queue and why;
-// this file is only about working through it.
+// THE HOUSEKEEPING LIST, the interactive half of the page.
+// The rule for what appears here lives in `@/lib/automations/housekeeping-rule`
+// and the reads in `@/lib/automations/housekeeping`; read the rule first.
 //
-// ⭐⭐ IT IS A QUEUE, NOT A REPORT, and that was the user's explicit choice
-// (2026-09-13, "Set it on the page"): **picking an Evaluation here writes it
-// immediately and the row leaves the list.** The alternative on the table was a
-// list that linked out to each website's table, which would have cost a round
-// trip per decision. 272 rows carry a question mark today, so the difference is
-// between clearing them in one sitting and not clearing them.
+// ⭐⭐ CLICKING A ROW OPENS THE REAL EDIT DIALOG, the same `WorkflowDialog` the
+// website tables use. That was the user's choice (2026-09-13) over inline
+// editors, and it is the right one for a reason worth keeping: **two of the five
+// required columns are free text and one is a multi-select, so "edit inline"
+// would have meant rebuilding that dialog's inputs inside a list row.** 473 of
+// the 526 rows need all five columns anyway, so a dialog per row is the natural
+// unit of work, not a compromise.
 //
-// ⚠️⚠️ THE WRITE GOES THROUGH `PATCH /api/automations/[id]`, THE SAME ENDPOINT
-// THE EDIT DIALOG USES. **Do not add a queue-specific write path.** That route
-// already validates the choice belongs to the `triage` column and already sets
-// `row_updated_at`, which is what keeps the "Row Update" column honest. A
-// bespoke endpoint would have had to re-implement both and would drift.
+// ⚠️ THE ROW LEAVES THE LIST WHEN IT NO LONGER QUALIFIES, decided by re-running
+// the SHARED rule against the row the dialog hands back. **Not by assuming a
+// save means done**: a save that fills three of five columns leaves the row
+// here, with fewer chips, which is exactly right.
 //
-// 📌 OPTIMISTIC, WITH A ROLLBACK. The row disappears on click and comes back if
-// the request fails, because the queue's whole value is rhythm: 272 decisions is
-// only tolerable if each one costs nothing. The failure message follows the
-// app's 5-second auto-fade convention.
+// 📌 NO OPTIMISTIC UPDATE HERE, unlike the version this replaced. The dialog
+// does its own save and returns the saved row, so there is nothing to guess at
+// and nothing to roll back.
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
-import { ExternalLink, Inbox, Loader2 } from "lucide-react";
+import { ExternalLink, Inbox } from "lucide-react";
 
 import { ColorBadge } from "@/components/automations/color-badge";
-import { SingleChoiceCombobox } from "@/components/automations/single-choice-combobox";
+import { WorkflowDialog } from "@/components/automations/workflow-dialog";
+import type { AutomationRow } from "@/components/automations/automations-table-client";
 import { AUTOMATION_SITES } from "@/lib/automations/sites";
-import { TRIAGE_ORDER } from "@/lib/automations/dropdown-config";
-import type {
-  HousekeepingRow,
-  QueueGroup,
-} from "@/lib/automations/housekeeping";
+import {
+  REQUIRED_COLUMNS,
+  missingRequired,
+} from "@/lib/automations/housekeeping-rule";
+import type { RequiredColumn } from "@/lib/automations/housekeeping-rule";
+import type { HousekeepingRow } from "@/lib/automations/housekeeping";
 import { cn } from "@/lib/utils";
 
-interface Option {
+interface ChoiceOption {
   id: string;
   value: string;
-  badgeColor: string | null;
-  textColor: string | null;
+  badgeColor?: string | null;
+  textColor?: string | null;
 }
 
-/** The three sections, in the order a person should work them. See `QueueGroup`
- *  for what each one means; the copy here is what the page actually says. */
-const SECTIONS: {
-  group: QueueGroup;
-  title: string;
-  blurb: string;
-}[] = [
-  {
-    group: "stuck",
-    title: "Stuck",
-    blurb: "Someone looked at these and could not decide.",
-  },
-  {
-    group: "provisional",
-    title: "Awaiting confirmation",
-    blurb: "A tentative answer that still has a question mark on it.",
-  },
-  {
-    group: "untouched",
-    title: "Never evaluated",
-    blurb: "Nobody has looked at these yet.",
-  },
-];
+export interface HousekeepingChoices {
+  authorChoices: ChoiceOption[];
+  triggerEventChoices: ChoiceOption[];
+  triageChoices: ChoiceOption[];
+  automationTagChoices: ChoiceOption[];
+  ghlTagChoices: ChoiceOption[];
+  ghlFormChoices: ChoiceOption[];
+  webhookChoices: ChoiceOption[];
+}
 
-/** How many untouched rows render before the list stops.
+/** How many rows a section renders before it stops.
  *
- *  ⚠️ ONLY THE LAST SECTION IS CAPPED, and only because it is the long tail:
- *  526 rows at build time against 12 stuck and 272 provisional. **The first two
- *  sections are never truncated** — they are the actual work, and hiding any of
- *  it would defeat the page. Use the website filter to cut the tail down; it is
- *  concentrated in three websites, so that works. */
-const UNTOUCHED_LIMIT = 50;
+ *  ⚠️ THE BIG SECTION IS 473 ROWS. Rendering all of them costs a visibly slow
+ *  page for a list nobody scrolls to the bottom of, so it stops here and says
+ *  so. **The website filter is the real answer**: the backlog is entirely n8n,
+ *  GHL and GHL B2B, so picking one turns this into a list you can finish.
+ *
+ *  📌 IT IS 100 RATHER THAN 50 SO THE NEARLY-DONE SECTION IS NEVER TRUNCATED.
+ *  At 50 the 53 rows missing only Evaluation and Notes showed as "showing 50 of
+ *  53", which hides three rows to save nothing and truncates **the one section
+ *  that is actually finishable**. Anything under 100 now renders whole. */
+const SECTION_LIMIT = 100;
+
+/** The GHL websites, the only ones whose Edit dialog shows the GHL Tags and GHL
+ *  Forms pickers. Passing those choices to a Make or n8n row would put two
+ *  fields on the dialog that do not apply to it. */
+const GHL_PLATFORMS = new Set(["ghl", "ghl-b2b"]);
 
 export function HousekeepingAlertsClient({
   initialRows,
-  options,
+  choices,
 }: {
   initialRows: HousekeepingRow[];
-  options: Option[];
+  choices: HousekeepingChoices;
 }) {
   const [rows, setRows] = useState(initialRows);
   const [site, setSite] = useState<string | null>(null);
-  const [saving, setSaving] = useState<Set<string>>(new Set());
-  const [error, setError] = useState<string | null>(null);
-
-  // The app's standing convention for transient inline errors.
-  useEffect(() => {
-    if (!error) return;
-    const t = setTimeout(() => setError(null), 5000);
-    return () => clearTimeout(t);
-  }, [error]);
-
-  /** Options in lifecycle order rather than alphabetical, so the picker reads
-   *  "To Remove ... Keep" the way the column does everywhere else. Anything not
-   *  in `TRIAGE_ORDER` (a state added later on the Dropdown Configuration page)
-   *  sorts after the known ones instead of vanishing. */
-  const orderedOptions = useMemo(() => {
-    const rank = (v: string) => {
-      const i = (TRIAGE_ORDER as readonly string[]).indexOf(v);
-      return i === -1 ? TRIAGE_ORDER.length : i;
-    };
-    return [...options].sort(
-      (a, b) => rank(a.value) - rank(b.value) || a.value.localeCompare(b.value),
-    );
-  }, [options]);
+  const [editing, setEditing] = useState<HousekeepingRow | null>(null);
 
   const visible = useMemo(
     () => (site ? rows.filter((r) => r.platform === site) : rows),
     [rows, site],
   );
 
-  /** Per-website counts for the filter chips, computed off the UNFILTERED rows
-   *  so the numbers do not change as you filter. */
+  /** Per-website counts, computed off the UNFILTERED rows so the numbers do not
+   *  change as you filter. */
   const countsBySite = useMemo(() => {
     const m = new Map<string, number>();
     for (const r of rows) m.set(r.platform, (m.get(r.platform) ?? 0) + 1);
     return m;
   }, [rows]);
 
-  const setEvaluation = useCallback(
-    async (row: HousekeepingRow, choiceId: string) => {
-      const option = options.find((o) => o.id === choiceId);
-      if (!option) return;
+  /** Sections keyed by HOW MANY of the five are missing, fewest first.
+   *
+   *  ⚠️ BUILT FROM THE DATA, NOT HARD-CODED. Today the estate has exactly two
+   *  groups (missing 2, missing 5) and nothing in between, but that is a fact
+   *  about the current backlog, not a rule. **A hard-coded "nearly done" and
+   *  "untouched" pair would silently hide a row missing three.** */
+  const sections = useMemo(() => {
+    const byCount = new Map<number, HousekeepingRow[]>();
+    for (const r of visible) {
+      const n = r.missing.length;
+      if (!byCount.has(n)) byCount.set(n, []);
+      byCount.get(n)!.push(r);
+    }
+    return [...byCount.entries()].sort((a, b) => a[0] - b[0]);
+  }, [visible]);
 
-      setSaving((s) => new Set(s).add(row.id));
-      // Optimistic: drop the row now. `rows` is the source of truth for both
-      // the list and the counts, so removing it here updates everything.
-      setRows((rs) => rs.filter((r) => r.id !== row.id));
-
-      try {
-        const res = await fetch(`/api/automations/${row.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ triageChoiceId: choiceId }),
-        });
-        if (!res.ok) throw new Error(String(res.status));
-      } catch {
-        // Put it back exactly where it was. Sorting is by platform then name,
-        // so re-inserting and re-sorting lands it in its original position.
-        setRows((rs) =>
-          [...rs, row].sort(
-            (a, b) =>
-              a.platform.localeCompare(b.platform) ||
-              a.name.localeCompare(b.name),
-          ),
-        );
-        setError(`Could not save "${row.name}". Nothing was changed.`);
-      } finally {
-        setSaving((s) => {
-          const next = new Set(s);
-          next.delete(row.id);
-          return next;
-        });
-      }
-    },
-    [options],
-  );
+  /** Re-run the shared rule against the row the dialog saved, and either drop
+   *  it, or keep it with its chips updated.
+   *
+   *  ⚠️ THE SAVED FIELDS ARE COPIED ACROSS ONE BY ONE, NOT SPREAD. `AutomationRow`
+   *  types its dates as `string | Date | null` because it crosses the wire, while
+   *  the row this page built from the database has real `Date`s; spreading the
+   *  one into the other widens the type and TypeScript rejects it. Naming the
+   *  fields also documents exactly what the list re-renders from, which is the
+   *  five rule inputs plus what a row displays. */
+  const handleSaved = useCallback((saved: AutomationRow) => {
+    setRows((rs) => {
+      const missing = missingRequired(saved) as RequiredColumn[];
+      if (missing.length === 0) return rs.filter((r) => r.id !== saved.id);
+      return rs.map((r) =>
+        r.id === saved.id
+          ? {
+              ...r,
+              name: saved.name,
+              status: saved.status,
+              purpose: saved.purpose ?? null,
+              notes: saved.notes ?? null,
+              triggerEventChoiceId: saved.triggerEventChoiceId ?? null,
+              triggerEvent: saved.triggerEvent ?? null,
+              triageChoiceId: saved.triageChoiceId ?? null,
+              triage: saved.triage ?? null,
+              triageBadgeColor: saved.triageBadgeColor ?? null,
+              triageTextColor: saved.triageTextColor ?? null,
+              automationTags: saved.automationTags ?? [],
+              missing,
+            }
+          : r,
+      );
+    });
+    setEditing(null);
+  }, []);
 
   return (
     <div className="space-y-4">
-      {/* ⚠️ THE FILTER IS THE ONLY THING THAT MAKES THE TAIL USABLE. The queue is
-          810 rows across five websites, but n8n and GHL B2B have never been
-          evaluated AT ALL and GHL is mostly untouched, so picking one website
-          turns an impossible list into a finishable one. */}
       <div className="flex flex-wrap items-center gap-1.5">
         <FilterChip
           label="All websites"
@@ -185,59 +168,50 @@ export function HousekeepingAlertsClient({
         ))}
       </div>
 
-      {error ? (
-        <p
-          role="alert"
-          className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-600 ring-1 ring-red-200"
-        >
-          {error}
-        </p>
-      ) : null}
-
       {visible.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-2 rounded-lg py-16 text-center ring-1 ring-foreground/10">
           <Inbox className="h-6 w-6 text-zinc-300" />
-          <p className="text-sm font-medium text-zinc-900">Nothing waiting</p>
+          <p className="text-sm font-medium text-zinc-900">
+            Nothing to fill in
+          </p>
           <p className="text-xs text-zinc-500">
-            Every automation here has an Evaluation.
+            Every automation here has all five required columns filled.
           </p>
         </div>
       ) : (
-        SECTIONS.map((section) => {
-          const all = visible.filter((r) => r.group === section.group);
-          if (all.length === 0) return null;
-          const capped =
-            section.group === "untouched" && all.length > UNTOUCHED_LIMIT;
-          const shown = capped ? all.slice(0, UNTOUCHED_LIMIT) : all;
-
+        sections.map(([count, all]) => {
+          const capped = all.length > SECTION_LIMIT;
+          const shown = capped ? all.slice(0, SECTION_LIMIT) : all;
           return (
             <section
-              key={section.group}
+              key={count}
               className="overflow-hidden rounded-lg ring-1 ring-foreground/10"
             >
               <div className="flex items-baseline justify-between gap-3 border-b bg-zinc-50 px-3.5 py-2">
                 <div className="min-w-0">
                   <h2 className="text-sm font-semibold text-zinc-900">
-                    {section.title}
+                    {count === REQUIRED_COLUMNS.length
+                      ? "Nothing filled in yet"
+                      : `Missing ${count} of ${REQUIRED_COLUMNS.length}`}
                   </h2>
                   <p className="mt-0.5 text-xs text-zinc-500">
-                    {section.blurb}
+                    {count === REQUIRED_COLUMNS.length
+                      ? "None of the required columns have been filled."
+                      : `${REQUIRED_COLUMNS.length - count} of the five are already done.`}
                   </p>
                 </div>
                 <span className="shrink-0 text-xs tabular-nums text-zinc-500">
                   {capped
                     ? `showing ${shown.length} of ${all.length}`
-                    : `${all.length}`}
+                    : all.length}
                 </span>
               </div>
               <ul className="divide-y">
                 {shown.map((row) => (
-                  <QueueRow
+                  <ListRow
                     key={row.id}
                     row={row}
-                    options={orderedOptions}
-                    saving={saving.has(row.id)}
-                    onPick={(choiceId) => setEvaluation(row, choiceId)}
+                    onEdit={() => setEditing(row)}
                   />
                 ))}
               </ul>
@@ -251,6 +225,37 @@ export function HousekeepingAlertsClient({
           );
         })
       )}
+
+      {/* ⚠️ ONE DIALOG FOR THE WHOLE PAGE, keyed by the row's id so it remounts
+          with fresh field state each time. Rendering one per row would mount
+          hundreds of dialogs.
+          ⚠️ NO `onDelete`: the dialog hides its delete button when the prop is
+          absent, which is what we want here. This page is for FILLING IN rows,
+          and deleting from a list you are working through is the kind of thing
+          you do by accident. Delete still lives on the website tables. */}
+      {editing ? (
+        <WorkflowDialog
+          key={editing.id}
+          open
+          onOpenChange={(open) => {
+            if (!open) setEditing(null);
+          }}
+          platform={editing.platform}
+          existing={editing as AutomationRow}
+          authorChoices={choices.authorChoices}
+          triggerEventChoices={choices.triggerEventChoices}
+          triageChoices={choices.triageChoices}
+          automationTagChoices={choices.automationTagChoices}
+          ghlTagChoices={
+            GHL_PLATFORMS.has(editing.platform) ? choices.ghlTagChoices : []
+          }
+          ghlFormChoices={
+            GHL_PLATFORMS.has(editing.platform) ? choices.ghlFormChoices : []
+          }
+          webhookChoices={choices.webhookChoices}
+          onSaved={handleSaved}
+        />
+      ) : null}
     </div>
   );
 }
@@ -291,72 +296,80 @@ function FilterChip({
   );
 }
 
-function QueueRow({
+function ListRow({
   row,
-  options,
-  saving,
-  onPick,
+  onEdit,
 }: {
   row: HousekeepingRow;
-  options: Option[];
-  saving: boolean;
-  onPick: (choiceId: string) => void;
+  onEdit: () => void;
 }) {
   const site = AUTOMATION_SITES.find((s) => s.slug === row.platform);
+  const missing = new Set<string>(row.missing);
 
   return (
-    <li className="flex items-center gap-3 px-3.5 py-2.5">
-      {/* The website, as its own mark rather than a word: five glyphs down the
-          left edge are scannable in a way five repeated labels are not. */}
-      <span className="w-5 shrink-0" title={site?.label ?? row.platform}>
-        {site ? <SiteGlyph site={site} className="h-4 w-4" /> : null}
-      </span>
+    <li>
+      {/* ⚠️ THE WHOLE ROW IS THE BUTTON, so the click target is the thing you
+          are looking at. The link out to the website table sits on top of it
+          with `relative z-10` and stops propagation; without that, clicking the
+          link would also open the dialog behind it. */}
+      <button
+        type="button"
+        onClick={onEdit}
+        className="relative flex w-full items-center gap-3 px-3.5 py-2.5 text-left transition-colors hover:bg-zinc-50"
+      >
+        <span className="w-5 shrink-0" title={site?.label ?? row.platform}>
+          {site ? <SiteGlyph site={site} className="h-4 w-4" /> : null}
+        </span>
 
-      <span className="min-w-0 flex-1">
-        {/* ⚠️ LINKS TO THE WEBSITE TABLE WITH THIS ROW SEARCHED, the same
-            `?q=` pattern the hub's panels use. It is an escape hatch for "I need
-            the full record before I can decide", NOT the way to answer: the
-            picker on the right is. */}
-        <Link
-          href={`/automations/${row.platform}?q=${encodeURIComponent(row.name)}`}
-          className="group inline-flex items-center gap-1.5"
-        >
-          <span className="text-sm font-medium text-zinc-900 [overflow-wrap:anywhere] group-hover:underline">
-            {row.name}
+        <span className="min-w-0 flex-1">
+          <span className="flex items-center gap-1.5">
+            <span className="text-sm font-medium text-zinc-900 [overflow-wrap:anywhere]">
+              {row.name}
+            </span>
+            <Link
+              href={`/automations/${row.platform}?q=${encodeURIComponent(row.name)}`}
+              onClick={(e) => e.stopPropagation()}
+              title="Open in the website table"
+              className="relative z-10 shrink-0 text-zinc-300 transition-colors hover:text-zinc-600"
+            >
+              <ExternalLink className="h-3 w-3" />
+            </Link>
           </span>
-          <ExternalLink className="h-3 w-3 shrink-0 text-zinc-300 transition-colors group-hover:text-zinc-500" />
-        </Link>
-        <span className="mt-0.5 flex items-center gap-2 text-[11px] text-zinc-500">
+
+          {/* ⭐ THE CHIPS ARE THE POINT OF THE ROW: which of the five are still
+              blank, in the table's own column order, so the list answers "what
+              do I have to type" without opening anything. Filled ones are shown
+              greyed rather than hidden, so the five always read as a set and a
+              row's progress is visible at a glance. */}
+          <span className="mt-1 flex flex-wrap items-center gap-1">
+            {REQUIRED_COLUMNS.map((col) => (
+              <span
+                key={col}
+                className={cn(
+                  "rounded px-1.5 py-0.5 text-[10px] font-medium",
+                  missing.has(col)
+                    ? "bg-red-50 text-red-600 ring-1 ring-red-200"
+                    : "text-zinc-400",
+                )}
+              >
+                {col}
+              </span>
+            ))}
+          </span>
+        </span>
+
+        <span className="flex shrink-0 items-center gap-2 text-[11px] text-zinc-500">
           <span>{row.status === "active" ? "Active" : "Paused"}</span>
-          {row.evaluation ? (
+          {row.triage ? (
             <ColorBadge
-              value={row.evaluation}
-              badgeColor={row.badgeColor}
-              textColor={row.textColor}
+              value={row.triage}
+              badgeColor={row.triageBadgeColor}
+              textColor={row.triageTextColor}
               truncate
             />
           ) : null}
         </span>
-      </span>
-
-      <span className="flex w-52 shrink-0 items-center gap-2">
-        {saving ? (
-          <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-zinc-400" />
-        ) : null}
-        {/* ⚠️ THE REUSED COMBOBOX, not a bespoke menu: the app has a documented
-            dropdown standard and this is it. `side="left"` because the picker
-            sits at the right edge of a full-width row. */}
-        <span className="min-w-0 flex-1">
-          <SingleChoiceCombobox
-            options={options}
-            value={row.evaluationChoiceId ?? ""}
-            onChange={onPick}
-            emptyLabel="Set Evaluation…"
-            searchPlaceholder="Search Evaluation…"
-            side="left"
-          />
-        </span>
-      </span>
+      </button>
     </li>
   );
 }

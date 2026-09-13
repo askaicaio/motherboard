@@ -1,153 +1,253 @@
 // ---------------------------------------------------------------------------
-// HOUSEKEEPING ALERTS: the Evaluation queue.
+// HOUSEKEEPING ALERTS: the reads behind the page.
 //
-// ⭐ WHAT THE PAGE IS, in the user's original words (2026-09-03): "the page that
-// shows what still needs to be manually evaluated." It sat in the backlog as a
-// name and an intent for ten days, deliberately unbuilt, until the contents were
-// specified on 2026-09-13.
+// ⭐ WHAT THE PAGE IS: every automation with at least one of its five REQUIRED
+// columns unfilled. The rule itself lives in `./housekeeping-rule` (no database
+// import, so the client can share it); read that file first.
 //
-// ⭐⭐ AND THE THING IT TURNED OUT TO BE IS NARROWER THAN THE NAME SUGGESTS. The
-// obvious reading was "every row missing any documentation", and the live
-// numbers killed that: every documentation rule flags 473-526 of the 917 rows.
-// **A worklist with 500 permanent items on it is a report, not a queue.** The
-// user's word "evaluated" pointed at the app's OWN `Evaluation` column instead,
-// which is a real lifecycle with a real end state.
-//
-// 📌 THE MEASUREMENT HALF OF THIS FEATURE ALREADY SHIPPED and is not duplicated
-// here: "Documentation by Field" in the live hub's detail panel ranks how
-// completely each field is filled, per website. **That answers "how complete is
-// our record". This page answers "which specific rows are waiting on me".**
+// 🛑🛑 IT WAS BUILT WRONG THE FIRST TIME AND THIS IS THE CORRECTION. Shipped
+// 2026-09-13 as an EVALUATION-ONLY queue (#532): 810 rows, grouped by the
+// Evaluation lifecycle. **The user's actual rule is five columns, not one**, and
+// they supplied it right after: "these are the five columns that users are
+// required to fill in."
+// 📌 WHY I GOT IT WRONG, because the reasoning looked sound at the time: I
+// measured every "missing field" candidate, saw each one flagged 473-526 of 917
+// rows, concluded a documentation worklist would be a permanent 500-item report,
+// and narrowed to the one column with a lifecycle. **The narrowing was mine, not
+// theirs.** The 500-row objection was also wrong in a way the numbers now show:
+// 473 of those rows are missing ALL FIVE columns, so they are not 500 separate
+// chores, they are one untouched backlog that a person clears a website at a
+// time. ⚠️ **Measuring a candidate rule tells you its SIZE, not whether the user
+// wants it. Ask which columns are required; do not infer it from what the data
+// could support.**
 //
 // ---------------------------------------------------------------------------
-// WHAT COUNTS AS "IN THE QUEUE"
+// THE READ SHAPE
 // ---------------------------------------------------------------------------
-// 🛑 SETTLED IS A CLOSED LIST OF TWO: **"To Remove" and "Keep"**. Everything
-// else is in the queue, INCLUDING a state someone adds later on the Dropdown
-// Configuration page. That direction is deliberate: a new custom state appears
-// in the queue rather than silently vanishing from it, which is the failure that
-// would be invisible.
+// ⚠️ ROWS COME BACK IN THE `AutomationRow` SHAPE THE EDIT DIALOG EXPECTS, not a
+// shape of this page's own. The page's whole interaction is "open the row in the
+// dialog the website tables already use", so anything less than the full row
+// would mean a second, lesser editor. `/automations/all` assembles the same
+// shape across all five websites; this follows that page deliberately.
 //
-// ⚠️ "To Remove" IS SETTLED EVEN THOUGH THE WORK IS NOT DONE, and this was the
-// user's explicit call (2026-09-13). Those 39 rows have had their decision made;
-// somebody still has to go and delete them on the source platform, but that is
-// an ACTION list and this page is a DECISION list. Do not quietly fold them back
-// in. If an action list is ever wanted, it is a second section or a second page.
-//
-// 📊 THE SHAPE OF THE QUEUE AT BUILD TIME (917 rows total, read 2026-09-13):
-//     Unknown            12   someone looked and could not decide
-//     To Remove?        152   provisional
-//     Keep?             120   provisional
-//     never evaluated   526   nobody has looked
-//     ---------------------
-//     in the queue      810   (settled: To Remove 39, Keep 68)
-//
-// **The never-evaluated tail is CONCENTRATED, not spread**: n8n (157) and
-// GHL B2B (105) have never been evaluated at all, GHL is mostly untouched (262
-// of 344), and Make and Zapier are effectively done. That is why the page has a
-// per-website filter: it is the difference between one impossible list and three
-// tractable ones.
+// ⚠️⚠️ THE READ BUDGET, because [[db-pool-max-10-fanout]] exists: an eleven-read
+// page once took the live hub down against a `max: 10` pool, and the rule from
+// it is **keep each concurrent wave at six or fewer.**
+//   `getHousekeepingRows`     1 base query, then 4 selection reads that NEED the
+//                             ids it returns, so the split is forced, not chosen.
+//   `getHousekeepingChoices`  2 reads, independent of both.
+// The page runs the two functions in one `Promise.all`, so the peak is the base
+// query plus the two choice reads (3), then the four selection reads (4).
+// **Never above five concurrent. Do not add a read without re-counting this.**
 // ---------------------------------------------------------------------------
 
-import { asc, eq, inArray, isNull, not, or } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
+import { asc, eq, inArray, isNull, or, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
-import { automationDropdownChoices, automations } from "@/lib/db/schema";
+import {
+  automationDropdownChoices,
+  automationWebhookChoices,
+  automations,
+} from "@/lib/db/schema";
+import {
+  getSelectionsByColumn,
+  getWebhooksByAutomation,
+} from "@/lib/automations/dropdown-selections";
+import {
+  WEBHOOK_SCOPE,
+  sortSpecialFirst,
+} from "@/lib/automations/dropdown-config";
+import { missingRequired } from "@/lib/automations/housekeeping-rule";
+import type { RequiredColumn } from "@/lib/automations/housekeeping-rule";
 
-/** The two states that take a row OUT of the queue. See the header: this list
- *  is closed on purpose, so anything else (including a custom state) stays in. */
-export const SETTLED_EVALUATIONS = ["To Remove", "Keep"] as const;
+/** One row on the page: everything the Edit dialog needs, plus which of the
+ *  five required columns are unfilled and which website it belongs to. */
+export type HousekeepingRow = Awaited<
+  ReturnType<typeof getHousekeepingRows>
+>[number];
 
-/** The queue's own grouping, most-blocked first. **Not the same as
- *  `TRIAGE_ORDER`**, which is the column's lifecycle order for sorting a table;
- *  this is about who is waiting on what:
- *    stuck       someone looked and could not decide. The only group that is
- *                explicitly blocked on a person.
- *    provisional a tentative answer with a question mark, waiting to be
- *                confirmed. The bulk of the real work.
- *    untouched   nobody has looked yet. The long tail. */
-export type QueueGroup = "stuck" | "provisional" | "untouched";
-
-export interface HousekeepingRow {
-  id: string;
-  name: string;
-  platform: string;
-  externalUrl: string;
-  status: string;
-  /** The current Evaluation value, or null when nobody has set one. */
-  evaluation: string | null;
-  evaluationChoiceId: string | null;
-  badgeColor: string | null;
-  textColor: string | null;
-  group: QueueGroup;
-}
-
-/** Every automation still awaiting an Evaluation decision, newest-blocked first.
+/** Every automation with at least one required column unfilled.
  *
- *  ⚠️ ONE QUERY, NOT ONE PER GROUP. The grouping is decided in JS from the value
- *  that comes back, so adding a group later costs nothing at the database. This
- *  page is reached from the hub's toolbar, so it does not share the hub's read
- *  budget, but two round trips would still be two round trips.
- *  📌 SORTED BY PLATFORM THEN NAME so the list is stable between loads and the
- *  website filter carves out contiguous blocks. The GROUP ordering is applied in
- *  the component, not here, because the component renders them as sections. */
-export async function getHousekeepingQueue(): Promise<HousekeepingRow[]> {
-  const rows = await db
+ *  📌 SORTED FEWEST-MISSING FIRST, then by website and name. That ordering is
+ *  the user's ("Nearly done first"): the 53 rows missing only Evaluation and
+ *  Notes are two fields from done, while the 473 missing everything are a
+ *  different kind of job. **Sorting by website first would bury the nearly-done
+ *  rows inside whichever website happened to sort first.** */
+export async function getHousekeepingRows() {
+  const triggerChoices = alias(automationDropdownChoices, "trigger_choices");
+  const triageChoices = alias(automationDropdownChoices, "triage_choices");
+
+  // ⚠️ THE `automation_tags` HALF OF THE RULE IS A `NOT EXISTS`, not a join.
+  // Emptiness is the thing being tested, and a join would drop exactly the rows
+  // that qualify. It also means the flagged set comes back from ONE query
+  // instead of fetching all 917 rows and filtering in JS.
+  const noTags = sql<boolean>`not exists (
+    select 1
+    from automation_dropdown_selections s
+    join automation_dropdown_choices c on c.id = s.choice_id
+    where s.automation_id = ${automations.id} and c.column_key = 'automation_tags'
+  )`;
+  const blankPurpose = sql<boolean>`(${automations.purpose} is null or btrim(${automations.purpose}) = '')`;
+  const blankNotes = sql<boolean>`(${automations.notes} is null or btrim(${automations.notes}) = '')`;
+
+  const baseRows = await db
     .select({
       id: automations.id,
-      name: automations.name,
       platform: automations.platform,
+      name: automations.name,
       externalUrl: automations.externalUrl,
       status: automations.status,
-      evaluation: automationDropdownChoices.value,
-      evaluationChoiceId: automations.triageChoiceId,
-      badgeColor: automationDropdownChoices.badgeColor,
-      textColor: automationDropdownChoices.textColor,
+      purpose: automations.purpose,
+      notes: automations.notes,
+      lastRunAt: automations.lastRunAt,
+      lastEditedAt: automations.lastEditedAt,
+      rowUpdatedAt: automations.rowUpdatedAt,
+      authorChoiceId: automations.authorChoiceId,
+      author: automationDropdownChoices.value,
+      authorBadgeColor: automationDropdownChoices.badgeColor,
+      authorTextColor: automationDropdownChoices.textColor,
+      triggerEventChoiceId: automations.triggerEventChoiceId,
+      triggerEvent: triggerChoices.value,
+      triggerEventBadgeColor: triggerChoices.badgeColor,
+      triggerEventTextColor: triggerChoices.textColor,
+      triageChoiceId: automations.triageChoiceId,
+      triage: triageChoices.value,
+      triageBadgeColor: triageChoices.badgeColor,
+      triageTextColor: triageChoices.textColor,
     })
     .from(automations)
     .leftJoin(
       automationDropdownChoices,
-      eq(automationDropdownChoices.id, automations.triageChoiceId),
+      eq(automations.authorChoiceId, automationDropdownChoices.id),
     )
+    .leftJoin(
+      triggerChoices,
+      eq(automations.triggerEventChoiceId, triggerChoices.id),
+    )
+    .leftJoin(triageChoices, eq(automations.triageChoiceId, triageChoices.id))
     .where(
       or(
+        isNull(automations.triggerEventChoiceId),
         isNull(automations.triageChoiceId),
-        not(inArray(automationDropdownChoices.value, [...SETTLED_EVALUATIONS])),
+        blankPurpose,
+        blankNotes,
+        noTags,
       ),
     )
     .orderBy(asc(automations.platform), asc(automations.name));
 
-  return rows.map((r) => ({
-    ...r,
-    group: groupFor(r.evaluation),
-  }));
-}
+  const ids = baseRows.map((r) => r.id);
 
-/** Which section a row belongs to. Anything with a value that is not "Unknown"
- *  and not settled is PROVISIONAL, which is what makes a custom state land
- *  somewhere sensible instead of nowhere. */
-function groupFor(evaluation: string | null): QueueGroup {
-  if (!evaluation) return "untouched";
-  if (evaluation === "Unknown") return "stuck";
-  return "provisional";
-}
+  // ---- Four selection reads, all needing the ids above. See the header. ---
+  const [
+    tagsByAutomation,
+    ghlTagsByAutomation,
+    ghlFormsByAutomation,
+    webhooksByAutomation,
+  ] = await Promise.all([
+    getSelectionsByColumn("automation_tags", ids),
+    // `withSharedCounts` matches the per-website loader so the dialog's pickers
+    // behave identically here; see that loader's own note.
+    getSelectionsByColumn("ghl_tags", ids, true),
+    getSelectionsByColumn("ghl_forms", ids, true),
+    getWebhooksByAutomation(ids),
+  ]);
 
-/** The Evaluation options for the picker.
- *
- *  ⚠️ THE SETTLED ONES ARE INCLUDED AND MUST BE. They are how a row LEAVES the
- *  queue: picking "Keep" or "To Remove" here is the whole point of the page.
- *  Only the QUEUE excludes them, never the picker.
- *  📌 IT IS THE SAME QUERY THE PER-WEBSITE PAGE RUNS for its Edit dialog, down
- *  to the `asc(value)` ordering, so the two pickers cannot offer different
- *  options. The queue re-sorts into lifecycle order at render. */
-export async function getEvaluationOptions() {
-  return db
-    .select({
-      id: automationDropdownChoices.id,
-      value: automationDropdownChoices.value,
-      badgeColor: automationDropdownChoices.badgeColor,
-      textColor: automationDropdownChoices.textColor,
+  return baseRows
+    .map((r) => {
+      const automationTags = tagsByAutomation.get(r.id) ?? [];
+      return {
+        ...r,
+        automationTags,
+        ghlTags: ghlTagsByAutomation.get(r.id) ?? [],
+        ghlForms: ghlFormsByAutomation.get(r.id) ?? [],
+        webhooks: webhooksByAutomation.get(r.id) ?? [],
+        missing: missingRequired({ ...r, automationTags }) as RequiredColumn[],
+      };
     })
-    .from(automationDropdownChoices)
-    .where(eq(automationDropdownChoices.columnKey, "triage"))
-    .orderBy(asc(automationDropdownChoices.value));
+    .sort(
+      (a, b) =>
+        a.missing.length - b.missing.length ||
+        a.platform.localeCompare(b.platform) ||
+        a.name.localeCompare(b.name),
+    );
+}
+
+/** Every choice list the Edit dialog needs, in the same shape and order the
+ *  per-website loader and `/automations/all` use.
+ *
+ *  ⚠️ ONE QUERY, NOT SEVEN. Six of these live in the same table under different
+ *  `column_key`s, so they come back together and are grouped in JS. The other
+ *  pages issue one query each because they were written before the read budget
+ *  mattered; **this page cannot afford that** alongside its four selection
+ *  reads. Webhook choices are a different table and stay separate.
+ *  📌 `sortSpecialFirst` keeps the built-in placeholders ("No Tag", "No Form")
+ *  at the TOP of their pickers, exactly as the other pages do. */
+export async function getHousekeepingChoices() {
+  const KEYS = [
+    "author",
+    "trigger_event",
+    "triage",
+    "automation_tags",
+    "ghl_tags",
+    "ghl_forms",
+  ] as const;
+
+  const [all, webhookChoices] = await Promise.all([
+    db
+      .select({
+        id: automationDropdownChoices.id,
+        columnKey: automationDropdownChoices.columnKey,
+        value: automationDropdownChoices.value,
+        badgeColor: automationDropdownChoices.badgeColor,
+        textColor: automationDropdownChoices.textColor,
+      })
+      .from(automationDropdownChoices)
+      // ⚠️ `inArray`, NOT a raw `= any(...)`. Drizzle expands a JS array in a
+      // `sql` template into a comma-separated TUPLE, so `any(($1,$2,...))` is a
+      // syntax error Postgres reports as "op ANY/ALL (array) requires array on
+      // right side". **The page still answered 200 while this threw**, because
+      // the failure surfaced as a render error rather than a bad status; that is
+      // why it was caught in the dev log and not by the status code.
+      .where(inArray(automationDropdownChoices.columnKey, [...KEYS]))
+      .orderBy(asc(automationDropdownChoices.value)),
+    getWebhookChoices(),
+  ]);
+
+  const pick = (key: string) =>
+    all
+      .filter((c) => c.columnKey === key)
+      .map(({ id, value, badgeColor, textColor }) => ({
+        id,
+        value,
+        badgeColor,
+        textColor,
+      }));
+
+  return {
+    authorChoices: pick("author"),
+    triggerEventChoices: pick("trigger_event"),
+    triageChoices: pick("triage"),
+    automationTagChoices: pick("automation_tags"),
+    ghlTagChoices: sortSpecialFirst("ghl_tags", pick("ghl_tags")),
+    ghlFormChoices: sortSpecialFirst("ghl_forms", pick("ghl_forms")),
+    webhookChoices,
+  };
+}
+
+/** Webhook Links options. Its own table, so its own read.
+ *
+ *  ⚠️ `sortSpecialFirst` IS NOT OPTIONAL HERE. The built-in "No Path" and
+ *  "No Webhook" sit above hundreds of real URLs, and that placement is the only
+ *  reason they are findable. Mirrors the per-website loader exactly. */
+async function getWebhookChoices() {
+  const rows = await db
+    .select({
+      id: automationWebhookChoices.id,
+      value: automationWebhookChoices.url,
+    })
+    .from(automationWebhookChoices)
+    .orderBy(asc(automationWebhookChoices.url));
+  return sortSpecialFirst(WEBHOOK_SCOPE, rows);
 }
