@@ -73,6 +73,20 @@ const GHL_PLATFORMS = new Set(["ghl", "ghl-b2b"]);
  *  one row and the next - which is the bug this layout exists to prevent. */
 const COLUMN_WIDTHS = ["120px", "110px", "95px", "85px", "75px"] as const;
 
+/** How wide the Name-and-link column is. **400px, TAKEN FROM THE PER WEBSITE
+ *  TABLES**, where the Name cell is `w-[400px] min-w-[400px] max-w-[400px]`.
+ *
+ *  🛑 IT USED TO HAVE NO WIDTH AT ALL, so it absorbed every pixel the fixed
+ *  columns left - 664px by the time the status column went. The user: "This
+ *  section is too wide. pls check the reference again from the per website pages
+ *  to see how it is made 'not so wide'." **The answer there is not a clever
+ *  layout, it is simply a hard 400px**, and the URL truncating inside it is what
+ *  keeps a row one line tall.
+ *  ⚠️ THE NUMBER IS THE POINT, so do not "improve" it to a percentage or a
+ *  `max-w`. It matches the website tables column-for-column, which is what makes
+ *  the two pages read as the same app. */
+const NAME_WIDTH = "400px";
+
 export function HousekeepingAlertsClient({
   initialRows,
   choices,
@@ -267,12 +281,25 @@ export function HousekeepingAlertsClient({
                 you made, were just repositioning them." */}
             <table className="w-full table-fixed border-collapse text-sm">
               <colgroup>
-                {/* Name + link. No width, so it absorbs whatever the fixed
-                    columns leave; it is the only cell that can use the room. */}
-                <col />
+                {/* Name + link, pinned to the website tables' own width. */}
+                <col style={{ width: NAME_WIDTH }} />
                 {COLUMN_WIDTHS.map((w, i) => (
                   <col key={REQUIRED_COLUMNS[i]} style={{ width: w }} />
                 ))}
+                {/* ⭐⭐ THE SLACK COLUMN, AND IT IS LOAD-BEARING. Every real
+                    column now has a fixed width, and they add up to less than
+                    the card. **`table-fixed` shares leftover space out across
+                    the columns that have widths**, so without something to
+                    absorb it the 400px would silently become ~500px and the fix
+                    would undo itself.
+                    📌 IT SITS LAST so the six columns stay ADJACENT, which is
+                    how the website tables read: there every column is fixed and
+                    the table overflows, so no gaps open up between them. Here
+                    the spare width collects at the right edge instead of being
+                    sprayed through the row.
+                    ⚠️ It renders no cell. A `<col>` with no matching `<td>` is
+                    fine - the column simply has no content in any row. */}
+                <col />
                 {/* 🛑 SIX COLUMNS, AND THAT IS THE WHOLE LIST. There was a
                     SEVENTH here, Active / Paused. I kept it in #537 on the
                     argument that it pre-dated the restructure and sat outside
