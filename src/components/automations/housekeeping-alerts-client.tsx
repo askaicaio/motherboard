@@ -22,12 +22,10 @@
 // and nothing to roll back.
 
 import { useCallback, useMemo, useState } from "react";
-import Link from "next/link";
 import { ExternalLink, Inbox } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { useFitViewportHeight } from "@/lib/automations/use-fit-viewport-height";
-import { ColorBadge } from "@/components/automations/color-badge";
 import { WorkflowDialog } from "@/components/automations/workflow-dialog";
 import type { AutomationRow } from "@/components/automations/automations-table-client";
 import { AUTOMATION_SITES } from "@/lib/automations/sites";
@@ -60,6 +58,18 @@ export interface HousekeepingChoices {
  *  Forms pickers. Passing those choices to a Make or n8n row would put two
  *  fields on the dialog that do not apply to it. */
 const GHL_PLATFORMS = new Set(["ghl", "ghl-b2b"]);
+
+/** One fixed width per required column, in `REQUIRED_COLUMNS` order.
+ *
+ *  ⭐ EACH IS SIZED TO ITS OWN LABEL rather than all five being equal, because
+ *  "Automation Tags" is three times the width of "Notes" and equal columns would
+ *  leave the right-hand ones mostly empty. **The chips align on their left edge
+ *  down each column**, which is the whole point of the restructure.
+ *  ⚠️ THEY LIVE IN A `<colgroup>` AND THE TABLE IS `table-fixed`. Without
+ *  `table-fixed` the browser sizes columns from their content, so one long
+ *  automation name would shove the five chip columns out of alignment between
+ *  one row and the next - which is the bug this layout exists to prevent. */
+const COLUMN_WIDTHS = ["120px", "110px", "95px", "85px", "75px"] as const;
 
 export function HousekeepingAlertsClient({
   initialRows,
@@ -186,15 +196,55 @@ export function HousekeepingAlertsClient({
             style={scrollStyle}
             className="max-h-[70vh] overflow-auto p-0"
           >
-            <ul className="divide-y">
-              {visible.map((row) => (
-                <ListRow
-                  key={row.id}
-                  row={row}
-                  onEdit={() => setEditing(row)}
-                />
-              ))}
-            </ul>
+            {/* ⭐⭐ SIX COLUMNS, SPECIFIED BY THE USER 2026-09-15: "Do it this
+                way, each number represents the columns from left to right.
+                1.) Name with Link below it 2.) Automation tags 3.) Trigger
+                Event 4.) Evaluation 5.) Purpose 6.) Notes."
+                The rows were a stacked block before: name on one line, all five
+                chips wrapped underneath it. **Nothing lined up between one row
+                and the next**, which is what "the table structure is not good
+                enough" meant.
+
+                🛑 THERE IS NO `<thead>`, AND THAT IS A DECISION, NOT AN
+                OMISSION. The user was asked and picked it. Every cell already
+                prints its own column's name, so a header row would be a second
+                copy of all five words - **the same argument that removed this
+                page's section headers in #534.** The chips are the labels.
+                ⚠️ SO DO NOT "FIX" THIS BY ADDING A HEADER ROW without also
+                taking the words out of the cells, and that swap was offered and
+                declined: "Keep the functionality of the Gray and red indicator
+                you made, were just repositioning them." */}
+            <table className="w-full table-fixed border-collapse text-sm">
+              <colgroup>
+                {/* Name + link. No width, so it absorbs whatever the fixed
+                    columns leave; it is the only cell that can use the room. */}
+                <col />
+                {COLUMN_WIDTHS.map((w, i) => (
+                  <col key={REQUIRED_COLUMNS[i]} style={{ width: w }} />
+                ))}
+                {/* Active / Paused. ⚠️ A SEVENTH COLUMN, AND THE USER'S LIST HAS
+                    SIX. It is kept because it was already on the row, sat
+                    OUTSIDE the region they marked up, and says something none of
+                    the five do. **The Evaluation colour badge that used to sit
+                    beside it is gone**: that was the Evaluation column's own
+                    value rendered at the opposite end of the row, which is
+                    exactly the disorder this change is undoing. */}
+                <col style={{ width: "76px" }} />
+              </colgroup>
+              {/* ⚠️ `divide-y`, NOT a `border-t` on every row. With no header
+                  above it, a top border on the FIRST row draws a second line
+                  immediately inside the card's own edge, which reads as a
+                  rendering glitch rather than as a divider. */}
+              <tbody className="divide-y">
+                {visible.map((row) => (
+                  <ListRow
+                    key={row.id}
+                    row={row}
+                    onEdit={() => setEditing(row)}
+                  />
+                ))}
+              </tbody>
+            </table>
           </CardContent>
         </Card>
       )}
@@ -280,70 +330,100 @@ function ListRow({
   const missing = new Set<string>(row.missing);
 
   return (
-    <li>
-      {/* ⚠️ THE WHOLE ROW IS THE BUTTON, so the click target is the thing you
-          are looking at. The link out to the website table sits on top of it
-          with `relative z-10` and stops propagation; without that, clicking the
-          link would also open the dialog behind it. */}
-      <button
-        type="button"
-        onClick={onEdit}
-        className="relative flex w-full items-center gap-3 px-3.5 py-2.5 text-left transition-colors hover:bg-zinc-50"
-      >
-        <span className="w-5 shrink-0" title={site?.label ?? row.platform}>
-          {site ? <SiteGlyph site={site} className="h-4 w-4" /> : null}
-        </span>
-
-        <span className="min-w-0 flex-1">
-          <span className="flex items-center gap-1.5">
-            <span className="text-sm font-medium text-zinc-900 [overflow-wrap:anywhere]">
+    // ⚠️ THE WHOLE ROW OPENS THE DIALOG, so the click target is the thing you
+    // are looking at. It was a `<button>` wrapping a `<li>` until the table
+    // landed; a button cannot wrap a `<tr>`, so the handler moved onto the row.
+    // 📌 `tabIndex` AND THE KEY HANDLER ARE NOT DECORATION - they are what the
+    // `<button>` used to give for free. **Dropping them makes every row in this
+    // list unreachable without a mouse.** The website tables' rows have the same
+    // gap; this one is not going to inherit it.
+    // ⚠️ THE LINK STOPS PROPAGATION. Without that, following it would also open
+    // the dialog behind it.
+    <tr
+      onClick={onEdit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onEdit();
+        }
+      }}
+      tabIndex={0}
+      role="button"
+      className="cursor-pointer transition-colors hover:bg-zinc-50 focus-visible:bg-zinc-50 focus-visible:outline-none"
+    >
+      {/* ---- 1. Name, with the automation's own link beneath it. ----
+          ⭐ LIFTED FROM THE PER WEBSITE TABLES' NAME CELL, not invented here:
+          name on top, the URL below it in blue with an icon, truncated on ONE
+          line. **The ellipsis is on the LEFT (`[direction:rtl] text-left`) so
+          the END of the URL stays visible**, which is the half carrying the
+          scenario or workflow id. `min-w-0` is what lets it shrink far enough
+          for the ellipsis to engage inside the fixed column.
+          📌 THE WEBSITE GLYPH RIDES IN THIS CELL rather than owning a column of
+          its own. It is the row's identity, not one of the six, and it only
+          earns its space on the "All websites" view anyway. */}
+      <td className="px-3.5 py-2.5 align-top">
+        <div className="flex items-start gap-2.5">
+          <span
+            className="mt-0.5 w-4 shrink-0"
+            title={site?.label ?? row.platform}
+          >
+            {site ? <SiteGlyph site={site} className="h-4 w-4" /> : null}
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="font-medium text-zinc-900 [overflow-wrap:anywhere]">
               {row.name}
-            </span>
-            <Link
-              href={`/automations/${row.platform}?q=${encodeURIComponent(row.name)}`}
-              onClick={(e) => e.stopPropagation()}
-              title="Open in the website table"
-              className="relative z-10 shrink-0 text-zinc-300 transition-colors hover:text-zinc-600"
-            >
-              <ExternalLink className="h-3 w-3" />
-            </Link>
-          </span>
-
-          {/* ⭐ THE CHIPS ARE THE POINT OF THE ROW: which of the five are still
-              blank, in the table's own column order, so the list answers "what
-              do I have to type" without opening anything. Filled ones are shown
-              greyed rather than hidden, so the five always read as a set and a
-              row's progress is visible at a glance. */}
-          <span className="mt-1 flex flex-wrap items-center gap-1">
-            {REQUIRED_COLUMNS.map((col) => (
-              <span
-                key={col}
-                className={cn(
-                  "rounded px-1.5 py-0.5 text-[10px] font-medium",
-                  missing.has(col)
-                    ? "bg-red-50 text-red-600 ring-1 ring-red-200"
-                    : "text-zinc-400",
-                )}
+            </div>
+            {row.externalUrl ? (
+              <a
+                href={row.externalUrl}
+                target="_blank"
+                rel="noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                title={row.externalUrl}
+                className="mt-0.5 flex items-center gap-1 text-xs text-blue-600 hover:underline"
               >
-                {col}
-              </span>
-            ))}
-          </span>
-        </span>
+                <ExternalLink className="h-3 w-3 shrink-0" />
+                <span className="min-w-0 truncate [direction:rtl] text-left">
+                  {row.externalUrl}
+                </span>
+              </a>
+            ) : null}
+          </div>
+        </div>
+      </td>
 
-        <span className="flex shrink-0 items-center gap-2 text-[11px] text-zinc-500">
-          <span>{row.status === "active" ? "Active" : "Paused"}</span>
-          {row.triage ? (
-            <ColorBadge
-              value={row.triage}
-              badgeColor={row.triageBadgeColor}
-              textColor={row.triageTextColor}
-              truncate
-            />
-          ) : null}
-        </span>
-      </button>
-    </li>
+      {/* ---- 2-6. One column per required column, in `REQUIRED_COLUMNS`
+          order, which is the order the user gave and the order the website
+          tables use.
+          ⭐ THE CHIP IS UNCHANGED FROM THE STACKED LAYOUT - red with a ring when
+          the column is blank, plain grey when it is filled. That was the
+          instruction: "Keep the functionality of the Gray and red indicator you
+          made, were just repositioning them."
+          📌 FILLED ONES STAY VISIBLE IN GREY rather than being blanked out, so
+          the five always read as a set and a row's progress is legible. An empty
+          cell would be ambiguous between "done" and "not applicable".
+          ⚠️ `whitespace-nowrap` MATTERS: the columns are sized to their own
+          labels with very little slack, so "Automation Tags" would wrap to two
+          lines and make that row taller than its neighbours. */}
+      {REQUIRED_COLUMNS.map((col) => (
+        <td key={col} className="px-2 py-2.5 align-top">
+          <span
+            className={cn(
+              "inline-block rounded px-1.5 py-0.5 text-[10px] font-medium whitespace-nowrap",
+              missing.has(col)
+                ? "bg-red-50 text-red-600 ring-1 ring-red-200"
+                : "text-zinc-400",
+            )}
+          >
+            {col}
+          </span>
+        </td>
+      ))}
+
+      <td className="px-3.5 py-2.5 text-right align-top text-[11px] text-zinc-500">
+        {row.status === "active" ? "Active" : "Paused"}
+      </td>
+    </tr>
   );
 }
 
