@@ -319,6 +319,39 @@ function FilterChip({
   );
 }
 
+/** Open the automation on its own platform, UNLESS the click already did.
+ *
+ *  ⚠️ `from` IS THE CLICK'S TARGET, or `null` for a keyboard activation. If it
+ *  sits inside the row's `<a>`, the browser is ALREADY opening the tab as that
+ *  anchor's default action, and opening one here too would give you TWO.
+ *
+ *  🛑🛑 IT CLICKS A SYNTHETIC ANCHOR RATHER THAN CALLING `window.open`, AND THE
+ *  REASON IS NOT STYLE. **`window.open(url, "_blank", features)` can open a
+ *  POPUP WINDOW instead of a tab** - browsers decide from the feature string, and
+ *  the exact rule for which tokens are "safe" varies. Then the row click and the
+ *  link click would land in visibly different kinds of window, which is the
+ *  opposite of the thing being asked for: **"clicking either of the two now does
+ *  both actions at the same time."** An `<a target="_blank">` click is the same
+ *  code path the real link takes, so the two cannot diverge.
+ *  📌 `rel` carries `noopener` so the new tab gets no live handle back into this
+ *  app, matching what a well-formed link would do.
+ *  ⚠️ IT IS APPENDED TO THE DOCUMENT BEFORE CLICKING. A detached anchor's
+ *  `.click()` is not reliably honoured, and this runs once per click so the cost
+ *  is nothing. It is removed again immediately.
+ *  📌 The synthetic anchor lives OUTSIDE the row, so its click cannot bubble back
+ *  into the row handler and re-enter this. */
+function openBoth(url: string | null, from: EventTarget | null) {
+  if (!url) return;
+  if (from instanceof Element && from.closest("a")) return;
+  const a = document.createElement("a");
+  a.href = url;
+  a.target = "_blank";
+  a.rel = "noopener noreferrer";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
 function ListRow({
   row,
   onEdit,
@@ -337,13 +370,35 @@ function ListRow({
     // `<button>` used to give for free. **Dropping them makes every row in this
     // list unreachable without a mouse.** The website tables' rows have the same
     // gap; this one is not going to inherit it.
-    // ⚠️ THE LINK STOPS PROPAGATION. Without that, following it would also open
-    // the dialog behind it.
+    //
+    // ⭐⭐ ONE CLICK DOES BOTH THINGS, 2026-09-15: "clicking a cell and clicking
+    // the automation link are two separate actions. make it so that clicking
+    // either of the two now does both actions at the same time." **Either target
+    // opens the automation on its platform AND opens the edit dialog here.** The
+    // workflow this serves is obvious once stated: you cannot document an
+    // automation you cannot see, so you always wanted both.
+    //
+    // 🛑🛑 THE LINK NO LONGER STOPS PROPAGATION, AND THAT IS THE WHOLE
+    // MECHANISM. A click on the anchor now runs its own default action (the new
+    // tab) and then BUBBLES to this handler (the dialog), so the anchor needs no
+    // code at all for the dialog half.
+    // ⚠️⚠️ WHICH CREATES THE ONE TRAP IN HERE: this handler must NOT open the
+    // URL again when the click came from the anchor, or a link click yields TWO
+    // tabs. `closest("a")` on the event target is the guard. **Remove it and the
+    // duplicate only shows up when you click the link itself**, not the row, so
+    // it is easy to miss.
     <tr
-      onClick={onEdit}
+      onClick={(e) => {
+        openBoth(row.externalUrl, e.target);
+        onEdit();
+      }}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
+          // 📌 Keyboard activation has no anchor to have come from, so it
+          // always opens the URL itself. A keydown is still a user gesture, so
+          // the synthetic anchor click is not treated as an unsolicited popup.
+          openBoth(row.externalUrl, null);
           onEdit();
         }
       }}
@@ -374,11 +429,15 @@ function ListRow({
               {row.name}
             </div>
             {row.externalUrl ? (
+              // ⚠️ NO `stopPropagation` - SEE THE ROW HANDLER. The click is
+              // MEANT to reach the row so the dialog opens too. It stays a real
+              // `<a href>` rather than becoming a span the row handles, because
+              // that is what keeps middle-click, "copy link address" and the
+              // browser's own status-bar preview working.
               <a
                 href={row.externalUrl}
                 target="_blank"
                 rel="noreferrer"
-                onClick={(e) => e.stopPropagation()}
                 title={row.externalUrl}
                 className="mt-0.5 flex items-center gap-1 text-xs text-blue-600 hover:underline"
               >
