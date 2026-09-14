@@ -488,7 +488,25 @@ function ListRow({
 
 /** The website's own mark. **A local copy, like the hub's**: `SiteGlyph` has
  *  never been a shared component, and the two tinted logos need a CSS mask while
- *  the full-colour ones are plain images. */
+ *  the full-colour ones are plain images.
+ *
+ *  🛑🛑 THE MASKED BRANCH MUST CARRY A DISPLAY UTILITY. `<span>` is
+ *  `display: inline` by default, and **width and height DO NOTHING on a
+ *  non-replaced inline element** - so `h-4 w-4` computes to 16px, the box
+ *  measures 0x0, and the icon silently does not exist. Fixed 2026-09-15 after
+ *  the user reported "Some items don't have the logo to the left side of their
+ *  entry": **Make and n8n were invisible on every row while GHL, GHL B2B and
+ *  Zapier were fine.**
+ *  ⭐ THAT SPLIT IS THE TELL, and it is worth recognising: the full-colour sites
+ *  render through `<img>`, **which Tailwind's preflight already sets to
+ *  `display: block`**. Only the two masked spans were affected, so the bug looks
+ *  like "some rows have no logo" rather than "the glyph is broken".
+ *  ⚠️ THE OTHER COPIES OF `SiteGlyph` DO NOT NEED THIS AND ARE NOT WRONG: they
+ *  sit as DIRECT FLEX CHILDREN, and a flex item is blockified by the layout
+ *  itself. **This one is wrapped in a titled `<span>`, so nothing blockifies
+ *  it.** That is exactly why the same component works elsewhere and failed here,
+ *  and why the fix belongs on the glyph rather than on the wrapper - a glyph
+ *  should not depend on what its parent happens to be. */
 function SiteGlyph({
   site,
   className,
@@ -500,7 +518,10 @@ function SiteGlyph({
     return (
       <span
         aria-hidden
-        className={cn("shrink-0", className)}
+        // `block` and not `inline-block`: an inline-block sits on a text
+        // baseline, which adds a few pixels of descender space under it inside
+        // the wrapper. `block` gives exactly the 16x16 the classes ask for.
+        className={cn("block shrink-0", className)}
         style={{
           backgroundColor: site.iconColor,
           maskImage: `url(${site.icon})`,
