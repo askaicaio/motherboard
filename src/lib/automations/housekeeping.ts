@@ -39,6 +39,10 @@
 // The page runs the two functions in one `Promise.all`, so the peak is the base
 // query plus the two choice reads (3), then the four selection reads (4).
 // **Never above five concurrent. Do not add a read without re-counting this.**
+//
+// ⚠️ `getHousekeepingCount` IS A THIRD CALLER AND IT IS NOT FOR THIS PAGE. It
+// is ONE aggregate, and it runs on the LIVE HUB, which has a read budget of its
+// own and a much tighter one. See its note.
 // ---------------------------------------------------------------------------
 
 import { alias } from "drizzle-orm/pg-core";
@@ -74,14 +78,22 @@ export type HousekeepingRow = Awaited<
  *  Notes are two fields from done, while the 473 missing everything are a
  *  different kind of job. **Sorting by website first would bury the nearly-done
  *  rows inside whichever website happened to sort first.** */
-export async function getHousekeepingRows() {
-  const triggerChoices = alias(automationDropdownChoices, "trigger_choices");
-  const triageChoices = alias(automationDropdownChoices, "triage_choices");
-
-  // ⚠️ THE `automation_tags` HALF OF THE RULE IS A `NOT EXISTS`, not a join.
-  // Emptiness is the thing being tested, and a join would drop exactly the rows
-  // that qualify. It also means the flagged set comes back from ONE query
-  // instead of fetching all 917 rows and filtering in JS.
+/** The rule as SQL: at least one of the five required columns unfilled.
+ *
+ *  ⭐⭐ ONE DEFINITION, TWO CALLERS - the list below, and `getHousekeepingCount`
+ *  behind the live hub's toolbar pill. **A second copy of this predicate would
+ *  let the hub advertise a number the page does not show**, and that is the kind
+ *  of discrepancy nobody reports as a bug because it reads as a stale cache.
+ *  📌 The JS half of the rule is `missingRequired` in `./housekeeping-rule`,
+ *  which decides WHICH columns a row is missing once it is here. This decides
+ *  only WHETHER it comes back at all. **They have to agree**, so a change to one
+ *  is a change to both.
+ *
+ *  ⚠️ THE `automation_tags` HALF IS A `NOT EXISTS`, not a join. Emptiness is
+ *  the thing being tested, and a join would drop exactly the rows that qualify.
+ *  It also means the flagged set comes back from ONE query instead of fetching
+ *  all 917 rows and filtering in JS. */
+function flaggedRows() {
   const noTags = sql<boolean>`not exists (
     select 1
     from automation_dropdown_selections s
@@ -90,6 +102,43 @@ export async function getHousekeepingRows() {
   )`;
   const blankPurpose = sql<boolean>`(${automations.purpose} is null or btrim(${automations.purpose}) = '')`;
   const blankNotes = sql<boolean>`(${automations.notes} is null or btrim(${automations.notes}) = '')`;
+
+  return or(
+    isNull(automations.triggerEventChoiceId),
+    isNull(automations.triageChoiceId),
+    blankPurpose,
+    blankNotes,
+    noTags,
+  );
+}
+
+/** How many automations the page would list, and nothing else about them.
+ *
+ *  ⭐⭐ THIS IS THE LIVE HUB'S TOOLBAR PILL, added 2026-09-15: "add a red pill
+ *  with red text to the right side ... the total number of alerts currently in
+ *  the page."
+ *
+ *  🛑 IT IS NOT `(await getHousekeepingRows()).length`, AND THE DIFFERENCE
+ *  MATTERS. That function costs FIVE queries and returns every column the edit
+ *  dialog needs for 526 rows; the hub wants one integer. **The hub is the page
+ *  that went down against the `max: 10` pool** ([[db-pool-max-10-fanout]]), so
+ *  a read added there has to be the cheapest thing that answers the question.
+ *  This is one `count(*)` with no join and no ordering.
+ *
+ *  ⚠️ IT GOES IN WAVE 2 OF THAT PAGE'S TWO WAVES, which had four reads and now
+ *  has five. Wave 1 is at the cap of six. Re-read the wave comment there before
+ *  moving it. */
+export async function getHousekeepingCount() {
+  const [row] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(automations)
+    .where(flaggedRows());
+  return row?.count ?? 0;
+}
+
+export async function getHousekeepingRows() {
+  const triggerChoices = alias(automationDropdownChoices, "trigger_choices");
+  const triageChoices = alias(automationDropdownChoices, "triage_choices");
 
   const baseRows = await db
     .select({
@@ -126,15 +175,7 @@ export async function getHousekeepingRows() {
       eq(automations.triggerEventChoiceId, triggerChoices.id),
     )
     .leftJoin(triageChoices, eq(automations.triageChoiceId, triageChoices.id))
-    .where(
-      or(
-        isNull(automations.triggerEventChoiceId),
-        isNull(automations.triageChoiceId),
-        blankPurpose,
-        blankNotes,
-        noTags,
-      ),
-    )
+    .where(flaggedRows())
     .orderBy(asc(automations.platform), asc(automations.name));
 
   const ids = baseRows.map((r) => r.id);
