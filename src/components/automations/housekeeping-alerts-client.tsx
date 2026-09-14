@@ -273,14 +273,18 @@ export function HousekeepingAlertsClient({
                 {COLUMN_WIDTHS.map((w, i) => (
                   <col key={REQUIRED_COLUMNS[i]} style={{ width: w }} />
                 ))}
-                {/* Active / Paused. ⚠️ A SEVENTH COLUMN, AND THE USER'S LIST HAS
-                    SIX. It is kept because it was already on the row, sat
-                    OUTSIDE the region they marked up, and says something none of
-                    the five do. **The Evaluation colour badge that used to sit
-                    beside it is gone**: that was the Evaluation column's own
-                    value rendered at the opposite end of the row, which is
-                    exactly the disorder this change is undoing. */}
-                <col style={{ width: "76px" }} />
+                {/* 🛑 SIX COLUMNS, AND THAT IS THE WHOLE LIST. There was a
+                    SEVENTH here, Active / Paused. I kept it in #537 on the
+                    argument that it pre-dated the restructure and sat outside
+                    the region the user had marked up; **they removed it on
+                    2026-09-15 ("Remove this column").**
+                    ⚠️ SO THE COUNT IS NOT AN ACCIDENT - the user's numbered list
+                    was exhaustive, and both extras that outlived it have now
+                    been cut: the Evaluation colour badge in #537 and this.
+                    **Do not re-add a status column, or any other "while we are
+                    here" column, without being asked.** `row.status` is still
+                    carried in state because the edit dialog needs it; it just
+                    has nowhere on this page that renders it. */}
               </colgroup>
               {/* ⚠️ `divide-y`, NOT a `border-t` on every row. With no header
                   above it, a top border on the FIRST row draws a second line
@@ -544,10 +548,6 @@ function ListRow({
           </span>
         </td>
       ))}
-
-      <td className="px-3.5 py-2.5 text-right align-top text-[11px] text-zinc-500">
-        {row.status === "active" ? "Active" : "Paused"}
-      </td>
     </tr>
   );
 }
