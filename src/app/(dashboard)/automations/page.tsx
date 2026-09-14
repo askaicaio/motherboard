@@ -161,6 +161,7 @@ import {
 import { platformHasApiKey } from "@/lib/automations/credentials";
 import { getAutoRefreshMap } from "@/lib/automations/autorefresh";
 import { getHealthState } from "@/lib/automations/health";
+import { getHousekeepingCount } from "@/lib/automations/housekeeping";
 import {
   getErrorCountsByPlatform,
   getDaysSinceLastErrorByPlatform,
@@ -425,9 +426,12 @@ export default async function AutomationsPage({
       .limit(PANEL_ROWS),
   ]);
 
-  // ---- WAVE 2 of 2. Four reads. Nothing here depends on wave 1; the split is
+  // ---- WAVE 2 of 2. Five reads. Nothing here depends on wave 1; the split is
   // purely to keep concurrent connections under the pool's `max: 10`.
-  const [trendRows, recentlyEdited, coverageBase, coverageMulti] =
+  // ⚠️ THE HOUSEKEEPING COUNT LANDED HERE AND NOT IN WAVE 1 for one reason:
+  // **wave 1 is at the cap of six.** This wave had four. Adding an eleventh read
+  // to this page means picking the wave with room, never widening the full one.
+  const [trendRows, recentlyEdited, coverageBase, coverageMulti, housekeeping] =
     await Promise.all([
       // Error counts per (platform, UTC day) over the trend window, for the error
       // panel's bar chart. Came back with the live hub's statistics on 2026-09-03.
@@ -527,6 +531,13 @@ export default async function AutomationsPage({
         )
         .where(eq(automations.platform, selected.slug))
         .groupBy(automationDropdownChoices.columnKey),
+      // How many automations the Housekeeping Alerts page would list, for the
+      // count pill in the toolbar strip below. ONE aggregate over the same
+      // predicate that page's list uses, so the pill and the page can't disagree.
+      // ⚠️ WHOLE ESTATE, NOT `selected.slug`. The page it links to opens on
+      // "All websites", so scoping this to the selected site would mean the
+      // toolbar promising 61 and the page showing 526.
+      getHousekeepingCount(),
     ]);
 
   const statsByPlatform = new Map<string, PlatformStats>();
@@ -781,6 +792,26 @@ export default async function AutomationsPage({
             >
               <Brush className="h-4 w-4 text-zinc-500" />
               Housekeeping Alerts
+              {/* ⭐ THE COUNT PILL, 2026-09-15: "add a red pill with red text to
+                  the right side ... the total number of alerts currently in the
+                  page."
+                  ⚠️ THE PALETTE IS NOT A NEW ONE. The user pointed at the "No
+                  API Integration" button in the rail and said to use its red, so
+                  this is `border-red-300 bg-red-50 text-red-600` lifted from
+                  `copy-api-key-button.tsx` unchanged. **If that button's red ever
+                  changes, this is the other place it lives.**
+                  📌 IT SITS INSIDE THE CENTRED FLEX rather than pinned to the
+                  cell's right edge, so it travels with the label instead of
+                  drifting away from it as the strip widens. The segment's own
+                  `gap-2` spaces it, same as the icon.
+                  ⚠️ RENDERED ONLY WHEN THERE IS SOMETHING TO REPORT. A red "0"
+                  is an alert about the absence of alerts; at zero the cell goes
+                  back to reading exactly as the other three do. */}
+              {housekeeping > 0 ? (
+                <span className="rounded-full border border-red-300 bg-red-50 px-2 py-0.5 text-xs font-semibold tabular-nums text-red-600">
+                  {housekeeping}
+                </span>
+              ) : null}
             </Link>
           </div>
 
