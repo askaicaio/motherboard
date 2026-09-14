@@ -23,7 +23,9 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { ExternalLink, Inbox } from "lucide-react";
+import { toast } from "sonner";
 
+import { confirmDialog } from "@/components/ui/confirm";
 import { Card, CardContent } from "@/components/ui/card";
 import { useFitViewportHeight } from "@/lib/automations/use-fit-viewport-height";
 import { WorkflowDialog } from "@/components/automations/workflow-dialog";
@@ -133,6 +135,55 @@ export function HousekeepingAlertsClient({
       );
     });
     setEditing(null);
+  }, []);
+
+  /** Delete the row the dialog is open on. **Lifted from the website table's
+   *  `handleDelete`**, deliberately down to the wording.
+   *
+   *  ⭐⭐ THE USER ASKED FOR *THAT* BUTTON, NOT A DELETE BUTTON: "Check the Per
+   *  Website page's edit/add workflow popup again. Add in the delete button from
+   *  there that you missed." So the confirm title, the name-on-its-own-line body,
+   *  the red "This cannot be undone.", the `destructive` flag, the endpoint and
+   *  both toasts are the same. **A second, subtly different delete confirmation
+   *  for the same destructive action is how a user learns not to trust either.**
+   *
+   *  ⚠️ ONE STEP OF THE WEBSITE TABLE'S VERSION IS NOT HERE, AND IT IS NOT AN
+   *  OVERSIGHT: it finishes with `reconcileRows()`, a refetch of
+   *  `/api/automations?platform=X`. **This list is not one platform and has no
+   *  such endpoint** - its rule spans all five websites. The refetch existed to
+   *  refresh other rows' SHARED-webhook counts, which this page shows only inside
+   *  the dialog's picker labels, so the cost of skipping it is a count that can
+   *  read one high until the next page load. 📌 If that ever matters, the fix is
+   *  an endpoint for this page's rule, not a per-platform refetch.
+   *
+   *  📌 THE FILTER CHIP COUNTS FOLLOW FOR FREE because they are derived from
+   *  `rows`. **The red pill on the hub's toolbar does NOT** - it is server-read
+   *  per render, so it stays one high until you navigate back. */
+  const handleDelete = useCallback(async (row: HousekeepingRow) => {
+    const label = row.name || "This automation";
+    if (
+      !(await confirmDialog({
+        title: "Delete Automation?",
+        body: (
+          <>
+            {label}
+            <br />
+            <span className="text-red-600">This cannot be undone.</span>
+          </>
+        ),
+        confirmLabel: "Delete",
+        destructive: true,
+      }))
+    )
+      return;
+    const res = await fetch(`/api/automations/${row.id}`, { method: "DELETE" });
+    if (!res.ok) {
+      toast.error("Failed to delete");
+      return;
+    }
+    setRows((prev) => prev.filter((r) => r.id !== row.id));
+    setEditing(null);
+    toast.success("Deleted");
   }, []);
 
   return (
@@ -252,10 +303,24 @@ export function HousekeepingAlertsClient({
       {/* ⚠️ ONE DIALOG FOR THE WHOLE PAGE, keyed by the row's id so it remounts
           with fresh field state each time. Rendering one per row would mount
           hundreds of dialogs.
-          ⚠️ NO `onDelete`: the dialog hides its delete button when the prop is
-          absent, which is what we want here. This page is for FILLING IN rows,
-          and deleting from a list you are working through is the kind of thing
-          you do by accident. Delete still lives on the website tables. */}
+
+          🛑🛑 `onDelete` IS PASSED, AND THIS FILE USED TO ARGUE THE OPPOSITE.
+          The original note here said the prop was left off ON PURPOSE - "this
+          page is for FILLING IN rows, and deleting from a list you are working
+          through is the kind of thing you do by accident". **The user overruled
+          that on 2026-09-15**: "You missed a feature in the housekeeping page.
+          the delete button ... Add in the delete button from there that you
+          missed." ⚠️ **So do not take the button back out on the strength of that
+          old reasoning** - it was considered and rejected.
+          📌 AND THE WORRY IT WAS BUILT ON IS ALREADY HANDLED by the dialog
+          itself: the button is icon-only, tucked at the FOOTER'S LEFT EDGE away
+          from Save, and it opens a destructive confirm naming the row. You do
+          not reach it by accident from this list any more than from the website
+          tables.
+          ⚠️ THE TERNARY IS THE WEBSITE TABLE'S EXACT SHAPE. `onDelete` must be
+          UNDEFINED when nothing is being edited, because **the dialog decides
+          whether to render the button from the prop's presence**
+          (`isEdit && onDelete`), not from a disabled state. */}
       {editing ? (
         <WorkflowDialog
           key={editing.id}
@@ -277,6 +342,7 @@ export function HousekeepingAlertsClient({
           }
           webhookChoices={choices.webhookChoices}
           onSaved={handleSaved}
+          onDelete={editing ? () => handleDelete(editing) : undefined}
         />
       ) : null}
     </div>
