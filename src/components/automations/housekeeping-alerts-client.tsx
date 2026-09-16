@@ -22,7 +22,7 @@
 // and nothing to roll back.
 
 import { useCallback, useMemo, useState } from "react";
-import { ExternalLink, Inbox } from "lucide-react";
+import { ExternalLink, Inbox, SquareArrowOutUpRight } from "lucide-react";
 import { toast } from "sonner";
 
 import { confirmDialog } from "@/components/ui/confirm";
@@ -86,6 +86,10 @@ const COLUMN_WIDTHS = ["120px", "110px", "95px", "85px", "75px"] as const;
  *  `max-w`. It matches the website tables column-for-column, which is what makes
  *  the two pages read as the same app. */
 const NAME_WIDTH = "400px";
+
+/** The leftmost column: just the open-both button, so it is sized to the
+ *  control rather than to any content. */
+const ACTION_WIDTH = "48px";
 
 export function HousekeepingAlertsClient({
   initialRows,
@@ -281,6 +285,11 @@ export function HousekeepingAlertsClient({
                 you made, were just repositioning them." */}
             <table className="w-full table-fixed border-collapse text-sm">
               <colgroup>
+                {/* ⭐ THE ACTION COLUMN, 2026-09-16: "Also add that new button
+                    to the leftmost side of the table." It holds the one control
+                    that does BOTH things, and nothing else, so it is sized to
+                    the button rather than to content. */}
+                <col style={{ width: ACTION_WIDTH }} />
                 {/* Name + link, pinned to the website tables' own width. */}
                 <col style={{ width: NAME_WIDTH }} />
                 {COLUMN_WIDTHS.map((w, i) => (
@@ -300,18 +309,21 @@ export function HousekeepingAlertsClient({
                     ⚠️ It renders no cell. A `<col>` with no matching `<td>` is
                     fine - the column simply has no content in any row. */}
                 <col />
-                {/* 🛑 SIX COLUMNS, AND THAT IS THE WHOLE LIST. There was a
-                    SEVENTH here, Active / Paused. I kept it in #537 on the
-                    argument that it pre-dated the restructure and sat outside
-                    the region the user had marked up; **they removed it on
-                    2026-09-15 ("Remove this column").**
+                {/* 🛑 THE SIX DATA COLUMNS ARE THE WHOLE LIST. There was a
+                    SEVENTH, Active / Paused. I kept it in #537 on the argument
+                    that it pre-dated the restructure and sat outside the region
+                    the user had marked up; **they removed it on 2026-09-15
+                    ("Remove this column").**
                     ⚠️ SO THE COUNT IS NOT AN ACCIDENT - the user's numbered list
-                    was exhaustive, and both extras that outlived it have now
-                    been cut: the Evaluation colour badge in #537 and this.
+                    was exhaustive, and both extras that outlived it were cut:
+                    the Evaluation colour badge in #537 and the status column.
                     **Do not re-add a status column, or any other "while we are
                     here" column, without being asked.** `row.status` is still
                     carried in state because the edit dialog needs it; it just
-                    has nowhere on this page that renders it. */}
+                    has nowhere on this page that renders it.
+                    📌 THE ACTION COLUMN ABOVE IS NOT A BREACH OF THAT: it was
+                    asked for by name, and it carries a CONTROL rather than any
+                    of the row's data. */}
               </colgroup>
               {/* ⚠️ `divide-y`, NOT a `border-t` on every row. With no header
                   above it, a top border on the FIRST row draws a second line
@@ -416,11 +428,13 @@ function FilterChip({
   );
 }
 
-/** Open the automation on its own platform, UNLESS the click already did.
+/** Open the automation on its own platform, in a new tab.
  *
- *  ⚠️ `from` IS THE CLICK'S TARGET, or `null` for a keyboard activation. If it
- *  sits inside the row's `<a>`, the browser is ALREADY opening the tab as that
- *  anchor's default action, and opening one here too would give you TWO.
+ *  📌 IT TAKES NO EVENT AND HAS NO GUARD ANY MORE. It used to, because a click
+ *  ANYWHERE on the row opened the tab and it had to avoid doing so a second time
+ *  when the click came from the row's own link. **Only the action button calls
+ *  this now** (#545), and that button stops propagation, so there is exactly one
+ *  caller and nothing to de-duplicate.
  *
  *  🛑🛑 IT CLICKS A SYNTHETIC ANCHOR RATHER THAN CALLING `window.open`, AND THE
  *  REASON IS NOT STYLE. **`window.open(url, "_blank", features)` can open a
@@ -437,9 +451,8 @@ function FilterChip({
  *  is nothing. It is removed again immediately.
  *  📌 The synthetic anchor lives OUTSIDE the row, so its click cannot bubble back
  *  into the row handler and re-enter this. */
-function openBoth(url: string | null, from: EventTarget | null) {
+function openAutomation(url: string | null) {
   if (!url) return;
-  if (from instanceof Element && from.closest("a")) return;
   const a = document.createElement("a");
   a.href = url;
   a.target = "_blank";
@@ -484,34 +497,22 @@ function ListRow({
     // list unreachable without a mouse.** The website tables' rows have the same
     // gap; this one is not going to inherit it.
     //
-    // ⭐⭐ ONE CLICK DOES BOTH THINGS, 2026-09-15: "clicking a cell and clicking
-    // the automation link are two separate actions. make it so that clicking
-    // either of the two now does both actions at the same time." **Either target
-    // opens the automation on its platform AND opens the edit dialog here.** The
-    // workflow this serves is obvious once stated: you cannot document an
-    // automation you cannot see, so you always wanted both.
-    //
-    // 🛑🛑 THE LINK NO LONGER STOPS PROPAGATION, AND THAT IS THE WHOLE
-    // MECHANISM. A click on the anchor now runs its own default action (the new
-    // tab) and then BUBBLES to this handler (the dialog), so the anchor needs no
-    // code at all for the dialog half.
-    // ⚠️⚠️ WHICH CREATES THE ONE TRAP IN HERE: this handler must NOT open the
-    // URL again when the click came from the anchor, or a link click yields TWO
-    // tabs. `closest("a")` on the event target is the guard. **Remove it and the
-    // duplicate only shows up when you click the link itself**, not the row, so
-    // it is easy to miss.
+    // 🛑🛑 THE ROW OPENS THE DIALOG AND NOTHING ELSE. For one day (#538) a click
+    // ANYWHERE on the row also opened the automation in a new tab. **The user
+    // moved that to a dedicated control on 2026-09-16**: "Instead of it
+    // happening when clicking anywhere on the entry, make it so it only happens
+    // when a specific button is clicked."
+    // ⚠️ SO THE THREE TARGETS IN A ROW EACH DO EXACTLY ONE THING NOW:
+    //     the ACTION BUTTON (leftmost)  -> new tab **and** dialog
+    //     the ROW anywhere else         -> dialog
+    //     the URL LINK                  -> new tab
+    // **Do not put the tab back on this handler.** The double action was tried
+    // here and deliberately taken off.
     <tr
-      onClick={(e) => {
-        openBoth(row.externalUrl, e.target);
-        onEdit();
-      }}
+      onClick={onEdit}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          // 📌 Keyboard activation has no anchor to have come from, so it
-          // always opens the URL itself. A keydown is still a user gesture, so
-          // the synthetic anchor click is not treated as an unsolicited popup.
-          openBoth(row.externalUrl, null);
           onEdit();
         }
       }}
@@ -519,7 +520,40 @@ function ListRow({
       role="button"
       className="cursor-pointer transition-colors hover:bg-zinc-50 focus-visible:bg-zinc-50 focus-visible:outline-none"
     >
-      {/* ---- 1. Name, with the automation's own link beneath it. ----
+      {/* ---- The action button. ----
+          ⭐⭐ THE ONLY PLACE THE DOUBLE ACTION LIVES, 2026-09-16: "make it so it
+          only happens when a specific button is clicked. Also add that new
+          button to the leftmost side of the table."
+          ⚠️ `stopPropagation` MATTERS: without it the click also reaches the
+          row, which calls `onEdit` a second time. Harmless today because the
+          dialog keys off one piece of state, but it is the kind of thing that
+          stops being harmless the moment the row handler grows.
+          📌 IT IS A REAL `<button>`, so Enter and Space work on it for free and
+          it takes its own place in the tab order. That is why the row's own key
+          handler was NOT taught to do both - **the keyboard already reaches this
+          control directly.**
+          ⚠️ THE TITLE IS NOT DECORATION. The control is icon-only and it does
+          TWO things, one of which opens a tab; a user is entitled to know that
+          before clicking. `title` rather than the `<Tooltip>` component because
+          this page has no `TooltipProvider` and the rest of this file already
+          labels things this way. */}
+      <td className="py-2.5 pl-3.5 align-top">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            openAutomation(row.externalUrl);
+            onEdit();
+          }}
+          title="Open the automation in a new tab and the edit form here"
+          aria-label="Open the automation in a new tab and the edit form here"
+          className="inline-flex size-7 items-center justify-center rounded-md text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
+        >
+          <SquareArrowOutUpRight className="h-4 w-4" />
+        </button>
+      </td>
+
+      {/* ---- Name, with the automation's own link beneath it. ----
           ⭐ LIFTED FROM THE PER WEBSITE TABLES' NAME CELL, not invented here:
           name on top, the URL below it in blue with an icon, truncated on ONE
           line. **The ellipsis is on the LEFT (`[direction:rtl] text-left`) so
@@ -529,7 +563,7 @@ function ListRow({
           📌 THE WEBSITE GLYPH RIDES IN THIS CELL rather than owning a column of
           its own. It is the row's identity, not one of the six, and it only
           earns its space on the "All websites" view anyway. */}
-      <td className="px-3.5 py-2.5 align-top">
+      <td className="py-2.5 pr-3.5 pl-2 align-top">
         <div className="flex items-start gap-2.5">
           <span
             className="mt-0.5 w-4 shrink-0"
@@ -542,15 +576,18 @@ function ListRow({
               {row.name}
             </div>
             {row.externalUrl ? (
-              // ⚠️ NO `stopPropagation` - SEE THE ROW HANDLER. The click is
-              // MEANT to reach the row so the dialog opens too. It stays a real
-              // `<a href>` rather than becoming a span the row handles, because
-              // that is what keeps middle-click, "copy link address" and the
-              // browser's own status-bar preview working.
+              // ⚠️ `stopPropagation` IS BACK, and it has to be. The row now
+              // opens the dialog, so without this the link would open the tab
+              // AND the dialog - which is the double action the user just asked
+              // to confine to the button beside it.
+              // 📌 It stays a real `<a href>` rather than becoming a span the
+              // row handles, because that is what keeps middle-click, "copy link
+              // address" and the browser's own status-bar preview working.
               <a
                 href={row.externalUrl}
                 target="_blank"
                 rel="noreferrer"
+                onClick={(e) => e.stopPropagation()}
                 title={row.externalUrl}
                 className="mt-0.5 flex items-center gap-1 text-xs text-blue-600 hover:underline"
               >
