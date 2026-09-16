@@ -445,45 +445,23 @@ function openBoth(url: string | null, from: EventTarget | null) {
   a.target = "_blank";
   a.rel = "noopener noreferrer";
   document.body.appendChild(a);
-  // ⭐⭐ THE MODIFIER IS WHAT ASKS FOR A *BACKGROUND* TAB, 2026-09-16: "Is it
-  // possible for the new tab to be opened without the window switching over to
-  // it? like, the user stays looking at the mother board."
-  //
-  // 🛑 A PAGE CANNOT DECIDE THIS DIRECTLY. There is no API for it: foreground vs
-  // background is the BROWSER's call, made from HOW the link was activated.
-  // `window.open` always steals focus and so does a plain left click on
-  // `target="_blank"`. **The one lever a page has is to activate the link the way
-  // a user would when they want a background tab** - ctrl+click, or cmd+click on
-  // a Mac - which is what this dispatch imitates. `a.click()` cannot carry a
-  // modifier, so it had to become an explicit MouseEvent.
-  //
-  // ⚠️⚠️ IT IS BEST-EFFORT AND THAT IS UNDERSTOOD, NOT AN OVERSIGHT. Whether a
-  // browser honours a modifier on a SYNTHETIC (untrusted) click is up to the
-  // browser, and it was **not verifiable in the dev environment: the in-app
-  // browser pane blocks automated window-opening entirely**, so there was no way
-  // to observe a tab at all, let alone which one had focus.
-  // 📌 THE FAILURE MODE IS BENIGN, which is why it shipped unverified: if the
-  // modifier is ignored the link still opens, just in the foreground - exactly
-  // the behaviour this replaced. **There is no case where the tab fails to open.**
-  // 📌 AND THE MANUAL ROUTE STILL WORKS REGARDLESS: ctrl/cmd + clicking the link
-  // itself is a REAL user gesture, always honoured, and it still reaches the row
-  // handler so the dialog opens too. Measured 2026-09-16.
-  // ⚠️ MIDDLE-CLICK IS NOT AN ALTERNATIVE: it backgrounds the tab natively but
-  // fires `auxclick`, which React's `onClick` never sees, so the dialog would not
-  // open. Measured the same day.
-  //
-  // ⚠️ META ON MAC, CTRL EVERYWHERE ELSE. **Not both**: ctrl+click on a Mac is
-  // the context-menu gesture, not the new-tab one.
-  const mac = /Mac|iPhone|iPad|iPod/i.test(navigator.userAgent);
-  a.dispatchEvent(
-    new MouseEvent("click", {
-      bubbles: true,
-      cancelable: true,
-      view: window,
-      ctrlKey: !mac,
-      metaKey: mac,
-    }),
-  );
+  // 🛑🛑 DO NOT TRY TO MAKE THIS TAB OPEN IN THE BACKGROUND. IT WAS TRIED AND
+  // IT DOES NOT WORK. Asked 2026-09-16: "Is it possible for the new tab to be
+  // opened without the window switching over to it?"
+  //   - **A page cannot decide foreground vs background. There is no API.** It is
+  //     the browser's call, made from HOW the link was activated. `window.open`
+  //     always steals focus, and so does a plain left click on `target="_blank"`.
+  //   - The only lever is to imitate the gesture a user makes when they want a
+  //     background tab, so #543 dispatched this click with `ctrlKey` (`metaKey`
+  //     on a Mac). **The user tested it on the real page: Chrome does not honour
+  //     a modifier on a SYNTHETIC click.** Reverted to a plain `.click()` in #544.
+  //   - 📌 WHAT DOES WORK, and needs no code: **ctrl/cmd + clicking the LINK
+  //     itself.** That is a real user gesture, so the browser always honours it,
+  //     and it still reaches the row handler so the dialog opens too.
+  //   - ⚠️ MIDDLE-CLICK IS NOT AN ALTERNATIVE: it backgrounds the tab natively
+  //     but fires `auxclick`, which React's `onClick` never sees, so the dialog
+  //     would not open. Both measured 2026-09-16.
+  a.click();
   a.remove();
 }
 
