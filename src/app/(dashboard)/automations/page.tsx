@@ -245,10 +245,9 @@ const TREND_DAYS = 30;
  *  WEBSITE COULD LEGITIMATELY HAVE IT.** The three that went are CONDITIONAL by
  *  nature: an automation with no webhook has no link to record, and one that
  *  touches no GHL form has no form to name. **Their coverage could never reach
- *  100%, so ranking them thinnest-first told you to go and fill in something
- *  that does not exist** - the exact opposite of this panel's job, which is to
- *  say what is worth documenting next. **Apply that test before adding a row
- *  here.** It is a narrower contract than "every human-filled column", which is
+ *  100%, so listing them at all told you to go and fill in something that does
+ *  not exist** - the exact opposite of this panel's job, which is to say what is
+ *  worth documenting. **Apply that test before adding a row here.** It is a narrower contract than "every human-filled column", which is
  *  what the list started as.
  *
  *  📌 WHAT IT COST, and it is a saving rather than a cost: Webhook Links was the
@@ -271,10 +270,21 @@ const TREND_DAYS = 30;
  *  table uses, so a field that becomes platform-scoped later is handled with no
  *  new code and this statistic cannot quietly disagree with the table.
  *
- *  📌 ONE FIELD ALPHA6 OMITS AND SO DOES THIS: **Evaluation** (`triage`), which
- *  is a real human-filled column on the Per Website table. It passes the test
- *  above and is worth offering as a sixth row; not added because it was not part
- *  of what the user pointed at. */
+ *  ⭐⭐ IT IS NOW EXACTLY THE FIVE REQUIRED COLUMNS, IN THE ORDER THE
+ *  HOUSEKEEPING TABLE SHOWS THEM, 2026-09-17: "you see how there are 5
+ *  categories here right. The statistic in S2 should be counting those 5
+ *  categories instead, and in that order. from left to right, instead being top
+ *  to bottom. Notice the Author does not need to be included in the statistic."
+ *  📌 SO TWO THINGS CHANGED AT ONCE and they are easy to confuse:
+ *    - **Author left** (it is not one of the five a person is required to fill).
+ *    - **Evaluation (`triage`) arrived.** This file had already flagged it as
+ *      the obvious missing row and left it out only because nobody had asked.
+ *  ⚠️ THE ORDER IS NOW FIXED AND MEANINGFUL: it matches `REQUIRED_COLUMNS` in
+ *  `housekeeping-rule.ts`, which is the Housekeeping table's left-to-right
+ *  column order. **Do not re-sort this list** - see the note where the old
+ *  thinnest-first sort used to be.
+ *  📌 THE FIVE ARE THE SAME FIVE THE HOUSEKEEPING PAGE COUNTS, so this panel and
+ *  that page can no longer disagree about what "documented" means. */
 const COVERAGE_FIELDS: {
   /** Matches the key the filled-counts lookup is built under. */
   key: string;
@@ -283,11 +293,11 @@ const COVERAGE_FIELDS: {
    *  gate; a field with no `gate` shows for every website. */
   gate?: DropdownColumnKey;
 }[] = [
+  { key: "automation_tags", label: "Automation Tags", gate: "automation_tags" },
+  { key: "trigger_event", label: "Trigger Event", gate: "trigger_event" },
+  { key: "triage", label: "Evaluation", gate: "triage" },
   { key: "purpose", label: "Purpose" },
   { key: "notes", label: "Notes" },
-  { key: "author", label: "Author", gate: "author" },
-  { key: "trigger_event", label: "Trigger Event", gate: "trigger_event" },
-  { key: "automation_tags", label: "Automation Tags", gate: "automation_tags" },
 ];
 
 interface PlatformStats {
@@ -495,7 +505,7 @@ export default async function AutomationsPage({
           total: sql<number>`count(*)::int`,
           purpose: sql<number>`count(*) filter (where ${automations.purpose} is not null and btrim(${automations.purpose}) <> '')::int`,
           notes: sql<number>`count(*) filter (where ${automations.notes} is not null and btrim(${automations.notes}) <> '')::int`,
-          author: sql<number>`count(*) filter (where ${automations.authorChoiceId} is not null)::int`,
+          triage: sql<number>`count(*) filter (where ${automations.triageChoiceId} is not null)::int`,
           trigger_event: sql<number>`count(*) filter (where ${automations.triggerEventChoiceId} is not null)::int`,
         })
         .from(automations)
@@ -575,35 +585,41 @@ export default async function AutomationsPage({
   // grouped by status and exist for the rail; keeping this self-contained means
   // a change to either one cannot silently move the other's numbers.
   // ⚠️ A `columnKey` that is not in `COVERAGE_FIELDS` is ignored on purpose.
-  // `triage` (shown as Evaluation) comes back from query 2 and has no row here;
-  // see the note on the constant.
+  // ⚠️ `triage` (shown as Evaluation) IS A COLUMN ON THE ROW, so it is counted
+  // by query 1 alongside Purpose and Notes - NOT by the multi-select junction
+  // below. It reads as a dropdown in the UI, which makes it easy to assume
+  // otherwise and then wonder why the row shows 0%.
   const coverageTotal = coverageBase[0]?.total ?? 0;
   const coverageFilled: Record<string, number> = {
     purpose: coverageBase[0]?.purpose ?? 0,
     notes: coverageBase[0]?.notes ?? 0,
-    author: coverageBase[0]?.author ?? 0,
+    triage: coverageBase[0]?.triage ?? 0,
     trigger_event: coverageBase[0]?.trigger_event ?? 0,
   };
   for (const row of coverageMulti) {
     coverageFilled[row.columnKey] = row.filled;
   }
-  // ⚠️ SORTED THINNEST FIRST, which is Alpha6's ordering and is the whole
-  // editorial point: the order IS the recommendation about what to fill in
-  // next. Do not re-sort into table order.
+  // 🛑🛑 NO SORT. The rows render in `COVERAGE_FIELDS` order, which is the
+  // Housekeeping table's left-to-right column order.
+  // ⚠️ THIS FILE USED TO SAY THE OPPOSITE, and said it emphatically: "SORTED
+  // THINNEST FIRST ... the order IS the recommendation about what to fill in
+  // next. Do not re-sort into table order." **That was Alpha6's editorial idea
+  // and the user replaced it on 2026-09-17** ("in that order. from left to
+  // right, instead being top to bottom"). So the panel no longer recommends what
+  // to fill next; it reports the same five columns in the same order everywhere
+  // they appear. **Do not restore the sort on the strength of the old note.**
   const coverageRows = COVERAGE_FIELDS.filter(
     (field) =>
       !field.gate || columnVisibleOnPlatform(field.gate, selected.slug),
-  )
-    .map((field) => {
-      const filled = coverageFilled[field.key] ?? 0;
-      return {
-        key: field.key,
-        label: field.label,
-        filled,
-        pct: coverageTotal ? (filled / coverageTotal) * 100 : 0,
-      };
-    })
-    .sort((a, b) => a.pct - b.pct);
+  ).map((field) => {
+    const filled = coverageFilled[field.key] ?? 0;
+    return {
+      key: field.key,
+      label: field.label,
+      filled,
+      pct: coverageTotal ? (filled / coverageTotal) * 100 : 0,
+    };
+  });
 
   // ⚠️ `portfolioTotal` (the estate-wide sum) and `connected` (how many of
   // the five have an API key) were computed here for the rail's "Sources"
@@ -2441,11 +2457,14 @@ function Panel({
   );
 }
 
-/** One row per field a human fills in, worst coverage first.
+/** One row per REQUIRED column, in the Housekeeping table's column order.
  *
  *  ⭐⭐ COPIED FROM ALPHA6'S "By field" PANEL, 2026-09-09, and kept close to it
  *  on purpose: same row shape (label, bar, percent, filled-over-total), same
- *  thinnest-first ordering, same four-step colour ramp.
+ *  four-step colour ramp.
+ *  ⚠️ THE ORDERING NO LONGER MATCHES ALPHA6. Alpha6 still ranks thinnest-first;
+ *  this panel lists the five required columns in the Housekeeping table's order,
+ *  on the user's instruction (2026-09-17). **The two are meant to differ now.**
  *
  *  ⚠️ TWO PRESENTATION CHANGES, both to fit this panel rather than a full page:
  *    1. THE TITLE IS "Documentation by Field", where Alpha6 says just "By
@@ -2488,8 +2507,11 @@ function CoverageByField({
         <span className="text-xs font-semibold text-zinc-800">
           Documentation by Field
         </span>
+        {/* ⚠️ SAYS WHAT THE ROWS ARE, NOT HOW THEY ARE ORDERED. It read
+            "thinnest first" until 2026-09-17, which stopped being true the
+            moment the sort was dropped for the table's own column order. */}
         <span className="text-[10px] uppercase tracking-wider text-zinc-500">
-          thinnest first
+          required columns
         </span>
       </div>
       {total === 0 ? (
