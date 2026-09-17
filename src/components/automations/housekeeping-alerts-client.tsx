@@ -22,7 +22,7 @@
 // and nothing to roll back.
 
 import { useCallback, useMemo, useState } from "react";
-import { ExternalLink, Inbox, SquareArrowOutUpRight } from "lucide-react";
+import { ExternalLink, Inbox } from "lucide-react";
 import { toast } from "sonner";
 
 import { confirmDialog } from "@/components/ui/confirm";
@@ -86,10 +86,6 @@ const COLUMN_WIDTHS = ["120px", "110px", "95px", "85px", "75px"] as const;
  *  `max-w`. It matches the website tables column-for-column, which is what makes
  *  the two pages read as the same app. */
 const NAME_WIDTH = "400px";
-
-/** The leftmost column: just the open-both button, so it is sized to the
- *  control rather than to any content. */
-const ACTION_WIDTH = "48px";
 
 export function HousekeepingAlertsClient({
   initialRows,
@@ -285,11 +281,6 @@ export function HousekeepingAlertsClient({
                 you made, were just repositioning them." */}
             <table className="w-full table-fixed border-collapse text-sm">
               <colgroup>
-                {/* ⭐ THE ACTION COLUMN, 2026-09-16: "Also add that new button
-                    to the leftmost side of the table." It holds the one control
-                    that does BOTH things, and nothing else, so it is sized to
-                    the button rather than to content. */}
-                <col style={{ width: ACTION_WIDTH }} />
                 {/* Name + link, pinned to the website tables' own width. */}
                 <col style={{ width: NAME_WIDTH }} />
                 {COLUMN_WIDTHS.map((w, i) => (
@@ -428,55 +419,47 @@ function FilterChip({
   );
 }
 
-/** Open the automation on its own platform, in a new tab.
- *
- *  📌 IT TAKES NO EVENT AND HAS NO GUARD ANY MORE. It used to, because a click
- *  ANYWHERE on the row opened the tab and it had to avoid doing so a second time
- *  when the click came from the row's own link. **Only the action button calls
- *  this now** (#545), and that button stops propagation, so there is exactly one
- *  caller and nothing to de-duplicate.
- *
- *  🛑🛑 IT CLICKS A SYNTHETIC ANCHOR RATHER THAN CALLING `window.open`, AND THE
- *  REASON IS NOT STYLE. **`window.open(url, "_blank", features)` can open a
- *  POPUP WINDOW instead of a tab** - browsers decide from the feature string, and
- *  the exact rule for which tokens are "safe" varies. Then the row click and the
- *  link click would land in visibly different kinds of window, which is the
- *  opposite of the thing being asked for: **"clicking either of the two now does
- *  both actions at the same time."** An `<a target="_blank">` click is the same
- *  code path the real link takes, so the two cannot diverge.
- *  📌 `rel` carries `noopener` so the new tab gets no live handle back into this
- *  app, matching what a well-formed link would do.
- *  ⚠️ IT IS APPENDED TO THE DOCUMENT BEFORE CLICKING. A detached anchor's
- *  `.click()` is not reliably honoured, and this runs once per click so the cost
- *  is nothing. It is removed again immediately.
- *  📌 The synthetic anchor lives OUTSIDE the row, so its click cannot bubble back
- *  into the row handler and re-enter this. */
-function openAutomation(url: string | null) {
-  if (!url) return;
-  const a = document.createElement("a");
-  a.href = url;
-  a.target = "_blank";
-  a.rel = "noopener noreferrer";
-  document.body.appendChild(a);
-  // 🛑🛑 DO NOT TRY TO MAKE THIS TAB OPEN IN THE BACKGROUND. IT WAS TRIED AND
-  // IT DOES NOT WORK. Asked 2026-09-16: "Is it possible for the new tab to be
-  // opened without the window switching over to it?"
-  //   - **A page cannot decide foreground vs background. There is no API.** It is
-  //     the browser's call, made from HOW the link was activated. `window.open`
-  //     always steals focus, and so does a plain left click on `target="_blank"`.
-  //   - The only lever is to imitate the gesture a user makes when they want a
-  //     background tab, so #543 dispatched this click with `ctrlKey` (`metaKey`
-  //     on a Mac). **The user tested it on the real page: Chrome does not honour
-  //     a modifier on a SYNTHETIC click.** Reverted to a plain `.click()` in #544.
-  //   - 📌 WHAT DOES WORK, and needs no code: **ctrl/cmd + clicking the LINK
-  //     itself.** That is a real user gesture, so the browser always honours it,
-  //     and it still reaches the row handler so the dialog opens too.
-  //   - ⚠️ MIDDLE-CLICK IS NOT AN ALTERNATIVE: it backgrounds the tab natively
-  //     but fires `auxclick`, which React's `onClick` never sees, so the dialog
-  //     would not open. Both measured 2026-09-16.
-  a.click();
-  a.remove();
-}
+// ---------------------------------------------------------------------------
+// 🛑🛑 THE "OPEN BOTH" ACTION IS PARKED, NOT ABANDONED. KEEP THIS RECIPE.
+//
+// A leftmost column held a button that opened the automation on its platform
+// AND the edit dialog here, in one click (#545). **The user removed it on
+// 2026-09-17** - not because the behaviour was wrong, but because no icon read
+// as "opens two things": "It doesn't seem like there is going to be a good way
+// to show an icon for it the way it is now. Remove that column for now, but
+// remember how it does the dual opening function, we will make a new UI element
+// that does the same thing afterwards."
+//
+// ⭐ SO THE BEHAVIOUR IS WANTED AND ONLY ITS HOUSING IS UNDECIDED. When the new
+// element lands, this is the whole of it:
+//
+//   function openAutomation(url) {
+//     if (!url) return;
+//     const a = document.createElement("a");
+//     a.href = url; a.target = "_blank"; a.rel = "noopener noreferrer";
+//     document.body.appendChild(a); a.click(); a.remove();
+//   }
+//   // on the control:
+//   onClick={(e) => { e.stopPropagation(); openAutomation(row.externalUrl); onEdit(); }}
+//
+// ⚠️ FOUR THINGS THAT WERE LEARNED THE HARD WAY AND ARE NOT OPTIONAL:
+//   1. **A SYNTHETIC ANCHOR CLICK, NEVER `window.open`.** `window.open(url,
+//      "_blank", features)` can produce a POPUP WINDOW rather than a tab
+//      depending on how the browser reads the feature string; an anchor click is
+//      the same code path the row's real link takes, so the two cannot diverge.
+//   2. **APPEND IT BEFORE CLICKING.** A detached anchor's `.click()` is not
+//      reliably honoured. Remove it straight after; keep it OUT of the row so
+//      its click cannot bubble back into the row handler.
+//   3. **`stopPropagation` ON THE CONTROL.** The row opens the dialog, so
+//      without it `onEdit` fires twice.
+//   4. **THE TAB WILL TAKE FOCUS AND THAT CANNOT BE CHANGED.** A page cannot
+//      choose foreground vs background; dispatching the click with ctrl/cmd was
+//      tried (#543) and Chrome ignores a modifier on a synthetic click (#544).
+//      Ctrl/cmd + clicking a real link is the only thing that backgrounds a tab.
+//
+// 📌 A real `<button>` is what gave it keyboard access for free, which is why
+// the row's own key handler was never taught to do both.
+// ---------------------------------------------------------------------------
 
 function ListRow({
   row,
@@ -520,39 +503,6 @@ function ListRow({
       role="button"
       className="cursor-pointer transition-colors hover:bg-zinc-50 focus-visible:bg-zinc-50 focus-visible:outline-none"
     >
-      {/* ---- The action button. ----
-          ⭐⭐ THE ONLY PLACE THE DOUBLE ACTION LIVES, 2026-09-16: "make it so it
-          only happens when a specific button is clicked. Also add that new
-          button to the leftmost side of the table."
-          ⚠️ `stopPropagation` MATTERS: without it the click also reaches the
-          row, which calls `onEdit` a second time. Harmless today because the
-          dialog keys off one piece of state, but it is the kind of thing that
-          stops being harmless the moment the row handler grows.
-          📌 IT IS A REAL `<button>`, so Enter and Space work on it for free and
-          it takes its own place in the tab order. That is why the row's own key
-          handler was NOT taught to do both - **the keyboard already reaches this
-          control directly.**
-          ⚠️ THE TITLE IS NOT DECORATION. The control is icon-only and it does
-          TWO things, one of which opens a tab; a user is entitled to know that
-          before clicking. `title` rather than the `<Tooltip>` component because
-          this page has no `TooltipProvider` and the rest of this file already
-          labels things this way. */}
-      <td className="py-2.5 pl-3.5 align-top">
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            openAutomation(row.externalUrl);
-            onEdit();
-          }}
-          title="Open the automation in a new tab and the edit form here"
-          aria-label="Open the automation in a new tab and the edit form here"
-          className="inline-flex size-7 items-center justify-center rounded-md text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
-        >
-          <SquareArrowOutUpRight className="h-4 w-4" />
-        </button>
-      </td>
-
       {/* ---- Name, with the automation's own link beneath it. ----
           ⭐ LIFTED FROM THE PER WEBSITE TABLES' NAME CELL, not invented here:
           name on top, the URL below it in blue with an icon, truncated on ONE
@@ -563,7 +513,7 @@ function ListRow({
           📌 THE WEBSITE GLYPH RIDES IN THIS CELL rather than owning a column of
           its own. It is the row's identity, not one of the six, and it only
           earns its space on the "All websites" view anyway. */}
-      <td className="py-2.5 pr-3.5 pl-2 align-top">
+      <td className="px-3.5 py-2.5 align-top">
         <div className="flex items-start gap-2.5">
           <span
             className="mt-0.5 w-4 shrink-0"
