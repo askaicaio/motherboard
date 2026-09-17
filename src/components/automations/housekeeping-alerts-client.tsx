@@ -567,10 +567,17 @@ function ListRow({
       {/* ---- 2-6. One column per required column, in `REQUIRED_COLUMNS`
           order, which is the order the user gave and the order the website
           tables use.
-          ⭐ THE CHIP IS UNCHANGED FROM THE STACKED LAYOUT - red with a ring when
-          the column is blank, plain grey when it is filled. That was the
-          instruction: "Keep the functionality of the Gray and red indicator you
-          made, were just repositioning them."
+          ⭐ AMBER WHEN THE COLUMN IS BLANK, plain grey when it is filled.
+          📌 IT WAS RED UNTIL 2026-09-17: "The yellow you chose is good. give the
+          same color scheme to these indicators instead of the current red they
+          are using." **The yellow being matched is the `bg-amber-100` the edit
+          dialog now paints behind an unfilled required field**, so a row and the
+          dialog you open from it say the same thing in the same colour.
+          ⚠️ `text-amber-800` IS THE APP'S EXISTING AMBER-CHIP TEXT, not a new
+          pick - the live hub and Beta3 already use it for their "warn" tone.
+          **The shape of the chip did not change**, only its hue: the earlier
+          instruction still stands, "Keep the functionality of the Gray and red
+          indicator you made, were just repositioning them."
           📌 FILLED ONES STAY VISIBLE IN GREY rather than being blanked out, so
           the five always read as a set and a row's progress is legible. An empty
           cell would be ambiguous between "done" and "not applicable".
@@ -583,7 +590,7 @@ function ListRow({
             className={cn(
               "inline-block rounded px-1.5 py-0.5 text-[10px] font-medium whitespace-nowrap",
               missing.has(col)
-                ? "bg-red-50 text-red-600 ring-1 ring-red-200"
+                ? "bg-amber-100 text-amber-800 ring-1 ring-amber-300"
                 : "text-zinc-400",
             )}
           >
