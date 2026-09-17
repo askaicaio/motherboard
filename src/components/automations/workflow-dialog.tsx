@@ -56,6 +56,7 @@ import {
 } from "@/components/ui/tooltip";
 import { TOOLTIP_DELAY_MS } from "@/lib/automations/tooltips";
 import { missingRequired } from "@/lib/automations/housekeeping-rule";
+import { cn } from "@/lib/utils";
 import { SingleChoiceCombobox } from "./single-choice-combobox";
 import { MultiChoiceCombobox } from "./multi-choice-combobox";
 import {
@@ -301,6 +302,23 @@ export function WorkflowDialog({
     triageChoiceId,
     automationTagChoiceIds,
   ]);
+
+  /** The tint for one required column's control, or `undefined` when it is
+   *  filled in (or when the caller did not opt in).
+   *
+   *  ⭐⭐ IT MARKS THE FIELD, NOT THE LABEL, 2026-09-17: "Instead of marking it
+   *  with a 'Missing' pill, can you instead make the background behind the entry
+   *  yellow?" The pill NAMED the problem; the tint SHOWS it, and the eye lands
+   *  on the thing you have to go and fill rather than on a word beside it.
+   *  📌 `bg-amber-100` REPLACES each control's own `bg-white` rather than
+   *  layering over it, because `cn` is tailwind-merge and this lands LAST. That
+   *  is also why the two comboboxes had to gain a `className` prop: without one
+   *  there was nowhere for the caller's class to land after theirs.
+   *  ⚠️ THE RED "None" INSIDE AN EMPTY DROPDOWN IS A DIFFERENT, OLDER SIGNAL and
+   *  is untouched. That one says "this is empty"; this one says "and it is one
+   *  of the five you are required to fill". */
+  const missingFieldClass = (column: string) =>
+    missingRequiredNow.has(column) ? "bg-amber-100" : undefined;
   // ⭐ WHAT THE USER HAD TYPED IN THAT PICKER'S SEARCH BOX, used to pre-fill the
   // add dialog's value field. User, 2026-09-03: "When the user types a value on
   // the search bar ... Carry over the value ... This feature is so the user does
@@ -829,18 +847,14 @@ export function WorkflowDialog({
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="wf-automation-tags">
-                    Automation Tags
-                    <MissingMark
-                      show={missingRequiredNow.has("Automation Tags")}
-                    />
-                  </Label>
+                  <Label htmlFor="wf-automation-tags">Automation Tags</Label>
                   {/* Multi-select: pick ANY number of Automation Tags from the
                 configured choices (managed on the Dropdown Configuration page).
                 Optional; the trigger shows the selected tags as chips, red
                 "None" when empty. Sits between Author and Trigger Event, matching
                 the table column order. */}
                   <MultiChoiceCombobox
+                    className={missingFieldClass("Automation Tags")}
                     id="wf-automation-tags"
                     options={automationTagChoices}
                     values={automationTagChoiceIds}
@@ -858,16 +872,12 @@ export function WorkflowDialog({
                   </p>
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="wf-trigger-event">
-                    Trigger Event
-                    <MissingMark
-                      show={missingRequiredNow.has("Trigger Event")}
-                    />
-                  </Label>
+                  <Label htmlFor="wf-trigger-event">Trigger Event</Label>
                   {/* Single-select: pick ONE Trigger Event option from the configured
                 choices (managed on the Dropdown Configuration page). Optional;
                 the "None" row clears it. Mirrors the Author dropdown. */}
                   <SingleChoiceCombobox
+                    className={missingFieldClass("Trigger Event")}
                     id="wf-trigger-event"
                     options={triggerEventChoices}
                     value={triggerEventChoiceId}
@@ -885,10 +895,7 @@ export function WorkflowDialog({
                   </p>
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="wf-triage">
-                    Evaluation
-                    <MissingMark show={missingRequiredNow.has("Evaluation")} />
-                  </Label>
+                  <Label htmlFor="wf-triage">Evaluation</Label>
                   {/* Single-select: what should HAPPEN to this automation. Optional;
                 the "None" row clears it back to NOT YET TRIAGED, which is a
                 different thing from the "Unknown" choice.
@@ -899,6 +906,7 @@ export function WorkflowDialog({
                 the RIGHT column, and copying it made this popup cover Purpose
                 and Notes. */}
                   <SingleChoiceCombobox
+                    className={missingFieldClass("Evaluation")}
                     id="wf-triage"
                     options={triageChoices}
                     value={triageChoiceId}
@@ -917,11 +925,12 @@ export function WorkflowDialog({
                 </div>
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="wf-purpose">
-                  Purpose
-                  <MissingMark show={missingRequiredNow.has("Purpose")} />
-                </Label>
+                <Label htmlFor="wf-purpose">Purpose</Label>
                 <Textarea
+                  className={cn(
+                    "border-zinc-300 shadow-sm block resize-none overflow-hidden [overflow-wrap:anywhere]",
+                    missingFieldClass("Purpose"),
+                  )}
                   id="wf-purpose"
                   value={purpose}
                   onChange={(e) => {
@@ -938,17 +947,17 @@ export function WorkflowDialog({
                   // removes the manual resize grip - together they force all growth
                   // into the outer fields scroll area, so there's a single scrollbar.
                   // [overflow-wrap:anywhere] breaks over-long words.
-                  className="border-zinc-300 shadow-sm block resize-none overflow-hidden [overflow-wrap:anywhere]"
                 />
               </div>
               <div className="space-y-1.5">
                 {/* Notes: a second free-text note, mirrors the Purpose field above
                 exactly (same textarea setup), just labelled "Notes". */}
-                <Label htmlFor="wf-notes">
-                  Notes
-                  <MissingMark show={missingRequiredNow.has("Notes")} />
-                </Label>
+                <Label htmlFor="wf-notes">Notes</Label>
                 <Textarea
+                  className={cn(
+                    "border-zinc-300 shadow-sm block resize-none overflow-hidden [overflow-wrap:anywhere]",
+                    missingFieldClass("Notes"),
+                  )}
                   id="wf-notes"
                   value={notes}
                   onChange={(e) => {
@@ -958,7 +967,6 @@ export function WorkflowDialog({
                   maxLength={5000}
                   rows={3}
                   placeholder="Any extra notes…"
-                  className="border-zinc-300 shadow-sm block resize-none overflow-hidden [overflow-wrap:anywhere]"
                 />
               </div>
               {/* GHL Tags + GHL Forms: full-width fields, shown only on the GHL pages
@@ -1142,24 +1150,5 @@ export function WorkflowDialog({
         />
       )}
     </TooltipProvider>
-  );
-}
-
-/** The red "Missing" marker beside a required column's label.
- *
- *  ⭐ THE STYLING IS LIFTED FROM THE HOUSEKEEPING LIST'S RED CHIPS on purpose -
- *  same `bg-red-50 / text-red-600 / ring-red-200`, same 10px type. **A person
- *  arrives here by clicking a row that showed them exactly those chips**, so the
- *  dialog repeating the colour is what makes the two read as one thing.
- *  📌 IT SAYS "Missing", NOT THE COLUMN NAME. The list's chips carry the column
- *  name because they have no label of their own; here the `<Label>` beside it
- *  already does, so repeating it would be the word twice.
- *  📌 `<Label>` is `flex` with a `gap`, so this needs no margin of its own. */
-function MissingMark({ show }: { show: boolean }) {
-  if (!show) return null;
-  return (
-    <span className="rounded bg-red-50 px-1.5 py-0.5 text-[10px] font-medium text-red-600 ring-1 ring-red-200">
-      Missing
-    </span>
   );
 }
