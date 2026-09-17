@@ -795,11 +795,17 @@ export default async function AutomationsPage({
               {/* ⭐ THE COUNT PILL, 2026-09-15: "add a red pill with red text to
                   the right side ... the total number of alerts currently in the
                   page."
-                  ⚠️ THE PALETTE IS NOT A NEW ONE. The user pointed at the "No
-                  API Integration" button in the rail and said to use its red, so
-                  this is `border-red-300 bg-red-50 text-red-600` lifted from
-                  `copy-api-key-button.tsx` unchanged. **If that button's red ever
-                  changes, this is the other place it lives.**
+                  ⚠️⚠️ THE PALETTE MOVED FROM RED TO AMBER ON 2026-09-17, and it
+                  is no longer the "No API Integration" button's. It started as
+                  that button's red because the user pointed at it; then the
+                  Housekeeping page itself went amber (the edit dialog tints an
+                  unfilled required field, and the list's chips match), and the
+                  user asked for this to follow: "Make it amber too."
+                  📌 SO THE REFERENCE IS NOW THE PAGE THIS BUTTON LEADS TO, not a
+                  button in the rail below it. `bg-amber-100` / `text-amber-800`
+                  is the same pair the list chips and the dialog fields use.
+                  **The whole feature is one colour from this button through to
+                  the field you end up typing in.**
                   📌 IT SITS INSIDE THE CENTRED FLEX rather than pinned to the
                   cell's right edge, so it travels with the label instead of
                   drifting away from it as the strip widens. The segment's own
@@ -808,7 +814,7 @@ export default async function AutomationsPage({
                   is an alert about the absence of alerts; at zero the cell goes
                   back to reading exactly as the other three do. */}
               {housekeeping > 0 ? (
-                <span className="rounded-full border border-red-300 bg-red-50 px-2 py-0.5 text-xs font-semibold tabular-nums text-red-600">
+                <span className="rounded-full border border-amber-300 bg-amber-100 px-2 py-0.5 text-xs font-semibold tabular-nums text-amber-800">
                   {housekeeping}
                 </span>
               ) : null}
