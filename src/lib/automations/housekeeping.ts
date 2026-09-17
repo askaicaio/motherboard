@@ -145,10 +145,15 @@ export async function getHousekeepingCount() {
  *  have each one filled, out of that website's total.
  *
  *  ⭐⭐ THIS IS THE HOUSEKEEPING PAGE'S OWN COPY OF THE HUB'S "Documentation by
- *  Field" PANEL, five times over, 2026-09-17: "Use this S1 statistic as a
- *  reference ... One statistic of each per website page, making it 5 total."
- *  **The hub's version is scoped to ONE website; this is grouped by platform**,
- *  which is the only real difference.
+ *  Field" PANEL, across the WHOLE ESTATE. The hub's is scoped to one website;
+ *  this one sums all five.
+ *  🛑 IT WAS FIVE SEPARATE PANELS FOR ONE ROUND (#554, "One statistic of each per
+ *  website page, making it 5 total") and the user replaced them the same day:
+ *  "seeing it now, the proportions are way too small. So instead, just make it
+ *  one statistic that combines all the websites." **Five panels each got a fifth
+ *  of the column, so every bar and label was a fifth the size it could be.**
+ *  ⚠️ Per-website coverage still exists on the LIVE HUB, one website at a time,
+ *  which is where it reads properly. **Do not re-split this one.**
  *
  *  ⚠️⚠️ IT COUNTS EVERY AUTOMATION, NOT THE FLAGGED ONES. `getHousekeepingRows`
  *  returns only rows that are missing something, so it can never supply the
@@ -173,9 +178,8 @@ export async function getHousekeepingCoverage() {
     where s.automation_id = ${automations.id} and c.column_key = 'automation_tags'
   )`;
 
-  const rows = await db
+  const [row] = await db
     .select({
-      platform: automations.platform,
       total: sql<number>`count(*)::int`,
       automationTags: sql<number>`count(*) filter (where ${hasTag})::int`,
       triggerEvent: sql<number>`count(*) filter (where ${automations.triggerEventChoiceId} is not null)::int`,
@@ -183,29 +187,21 @@ export async function getHousekeepingCoverage() {
       purpose: sql<number>`count(*) filter (where ${automations.purpose} is not null and btrim(${automations.purpose}) <> '')::int`,
       notes: sql<number>`count(*) filter (where ${automations.notes} is not null and btrim(${automations.notes}) <> '')::int`,
     })
-    .from(automations)
-    .groupBy(automations.platform);
+    .from(automations);
 
-  const byPlatform: Record<
-    string,
-    { total: number; filled: Record<RequiredColumn, number> }
-  > = {};
-  for (const r of rows) {
-    byPlatform[r.platform] = {
-      total: r.total,
-      filled: {
-        "Automation Tags": r.automationTags,
-        "Trigger Event": r.triggerEvent,
-        Evaluation: r.triage,
-        Purpose: r.purpose,
-        Notes: r.notes,
-      },
-    };
-  }
-  return byPlatform;
+  return {
+    total: row?.total ?? 0,
+    filled: {
+      "Automation Tags": row?.automationTags ?? 0,
+      "Trigger Event": row?.triggerEvent ?? 0,
+      Evaluation: row?.triage ?? 0,
+      Purpose: row?.purpose ?? 0,
+      Notes: row?.notes ?? 0,
+    } as Record<RequiredColumn, number>,
+  };
 }
 
-/** What one website's coverage panel needs. */
+/** What the coverage panel needs. */
 export type HousekeepingCoverage = Awaited<
   ReturnType<typeof getHousekeepingCoverage>
 >;
