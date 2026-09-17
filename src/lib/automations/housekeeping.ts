@@ -43,6 +43,11 @@
 // ⚠️ `getHousekeepingCount` IS A THIRD CALLER AND IT IS NOT FOR THIS PAGE. It
 // is ONE aggregate, and it runs on the LIVE HUB, which has a read budget of its
 // own and a much tighter one. See its note.
+//
+// ⚠️ `getHousekeepingCoverage` IS THE FOURTH, and it DOES run on this page. It
+// is deliberately ONE query rather than the two the hub's equivalent uses, so
+// the opening wave goes to four concurrent (base + two choice reads + this)
+// instead of five. See its note for how the junction count was folded in.
 // ---------------------------------------------------------------------------
 
 import { alias } from "drizzle-orm/pg-core";
@@ -135,6 +140,75 @@ export async function getHousekeepingCount() {
     .where(flaggedRows());
   return row?.count ?? 0;
 }
+
+/** Per-website coverage of the five required columns: how many automations
+ *  have each one filled, out of that website's total.
+ *
+ *  ⭐⭐ THIS IS THE HOUSEKEEPING PAGE'S OWN COPY OF THE HUB'S "Documentation by
+ *  Field" PANEL, five times over, 2026-09-17: "Use this S1 statistic as a
+ *  reference ... One statistic of each per website page, making it 5 total."
+ *  **The hub's version is scoped to ONE website; this is grouped by platform**,
+ *  which is the only real difference.
+ *
+ *  ⚠️⚠️ IT COUNTS EVERY AUTOMATION, NOT THE FLAGGED ONES. `getHousekeepingRows`
+ *  returns only rows that are missing something, so it can never supply the
+ *  DENOMINATOR here - a website with 115 automations and 2 flagged needs the
+ *  115. **Do not try to compute this from the rows the page already has.**
+ *
+ *  🛑 ONE QUERY, NOT TWO, AND THAT IS A READ-BUDGET DECISION. The hub counts the
+ *  multi-select column (Automation Tags) with a separate grouped join against
+ *  the junction. Here it is an `exists` inside a `filter`, the same shape
+ *  `flaggedRows()` already uses for its `not exists`. **That keeps this page's
+ *  opening wave at four concurrent reads instead of five**; see the header.
+ *
+ *  📌 THE RESULT IS KEYED BY THE COLUMN'S DISPLAY LABEL, straight out of
+ *  `REQUIRED_COLUMNS`. It reads oddly for a data structure, and it is on purpose:
+ *  **the panel renders by mapping over `REQUIRED_COLUMNS`, so the order and the
+ *  names come from one place and cannot drift apart.** */
+export async function getHousekeepingCoverage() {
+  const hasTag = sql`exists (
+    select 1
+    from automation_dropdown_selections s
+    join automation_dropdown_choices c on c.id = s.choice_id
+    where s.automation_id = ${automations.id} and c.column_key = 'automation_tags'
+  )`;
+
+  const rows = await db
+    .select({
+      platform: automations.platform,
+      total: sql<number>`count(*)::int`,
+      automationTags: sql<number>`count(*) filter (where ${hasTag})::int`,
+      triggerEvent: sql<number>`count(*) filter (where ${automations.triggerEventChoiceId} is not null)::int`,
+      triage: sql<number>`count(*) filter (where ${automations.triageChoiceId} is not null)::int`,
+      purpose: sql<number>`count(*) filter (where ${automations.purpose} is not null and btrim(${automations.purpose}) <> '')::int`,
+      notes: sql<number>`count(*) filter (where ${automations.notes} is not null and btrim(${automations.notes}) <> '')::int`,
+    })
+    .from(automations)
+    .groupBy(automations.platform);
+
+  const byPlatform: Record<
+    string,
+    { total: number; filled: Record<RequiredColumn, number> }
+  > = {};
+  for (const r of rows) {
+    byPlatform[r.platform] = {
+      total: r.total,
+      filled: {
+        "Automation Tags": r.automationTags,
+        "Trigger Event": r.triggerEvent,
+        Evaluation: r.triage,
+        Purpose: r.purpose,
+        Notes: r.notes,
+      },
+    };
+  }
+  return byPlatform;
+}
+
+/** What one website's coverage panel needs. */
+export type HousekeepingCoverage = Awaited<
+  ReturnType<typeof getHousekeepingCoverage>
+>;
 
 export async function getHousekeepingRows() {
   const triggerChoices = alias(automationDropdownChoices, "trigger_choices");
