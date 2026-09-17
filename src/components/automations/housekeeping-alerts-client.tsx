@@ -354,7 +354,17 @@ export function HousekeepingAlertsClient({
           ⚠️ THE TERNARY IS THE WEBSITE TABLE'S EXACT SHAPE. `onDelete` must be
           UNDEFINED when nothing is being edited, because **the dialog decides
           whether to render the button from the prop's presence**
-          (`isEdit && onDelete`), not from a disabled state. */}
+          (`isEdit && onDelete`), not from a disabled state.
+
+          ⭐⭐ `flagMissingRequired` MAKES THIS THE ONLY CALLER THAT MARKS THE
+          FIVE, 2026-09-17: "in S1 it currently highlights which section is
+          missing, but the edit popup in S2 doesn't highlight it. Make it so
+          that in S2, the user can easily tell which section needs to be filled
+          up."
+          🛑 THE USER WAS ASKED WHETHER IT SHOULD APPLY TO EVERY EDIT POPUP AND
+          CHOSE **ONLY THIS PAGE**, so the website tables and
+          `/automations/all` deliberately leave it off. **Do not pass it from
+          them without asking again** - the dialog is shared by four surfaces. */}
       {editing ? (
         <WorkflowDialog
           key={editing.id}
@@ -377,6 +387,7 @@ export function HousekeepingAlertsClient({
           webhookChoices={choices.webhookChoices}
           onSaved={handleSaved}
           onDelete={editing ? () => handleDelete(editing) : undefined}
+          flagMissingRequired
         />
       ) : null}
     </div>
