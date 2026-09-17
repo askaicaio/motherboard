@@ -440,56 +440,72 @@ export function HousekeepingAlertsClient({
  *  percentage was a fifth of the size it could be.** With one panel the row can
  *  be the hub's full shape.
  *
- *  ⭐ SO THE ROW IS NOW THE HUB'S ROW, fraction included: label, bar, percent,
+ *  ⭐⭐ EVERY SIZE HERE IS THE HUB'S, COPIED RATHER THAN CHOSEN, 2026-09-18:
+ *  "This statistic is too large now, check the reference in the main page and
+ *  try to copy its exact size." **`px-3.5 py-2`, `text-xs` label in `w-28`, an
+ *  `h-1.5` bar, `w-10` percent, `w-16` counts at `text-[11px]`** - the same
+ *  values as `CoverageByField` in `automations/page.tsx`.
+ *  🛑 I SIZED IT UP ONCE (text-sm, py-4, h-2) on the theory that a panel alone in
+ *  a tall column should be more generous than one stacked with siblings in a
+ *  detail pane. **The user overruled it the same day.** So do not scale it again
+ *  to "fill" the column: the leftover space below is known and accepted.
+ *  ⭐ THE ROW IS THE HUB'S ROW, fraction included: label, bar, percent,
  *  filled-over-total. The five-panel version had to drop the fraction to a
- *  `title` because 263px could not hold it; **one panel has the room, so the
- *  number is back on the row where the reference puts it.**
- *  📌 IT IS SIZED LARGER THAN THE HUB'S (text-sm, py-4, a thicker bar) because
- *  this panel is alone in a tall column rather than stacked with two siblings in
- *  a detail pane. **The proportions ARE the fix here, so do not shrink them back
- *  to the hub's without a reason.**
+ *  `title` because 263px could not hold it; one panel has the room.
+ *  ⚠️ IF THE HUB'S PANEL IS RESTYLED, THIS IS THE OTHER PLACE IT LIVES. Only two
+ *  things are deliberately different, and neither is a size: the hint reads "all
+ *  websites" instead of "required columns" (this one sums the estate rather than
+ *  scoping to one site), and the rows come from `REQUIRED_COLUMNS` instead of
+ *  `COVERAGE_FIELDS`.
  *  📌 Rows map over `REQUIRED_COLUMNS`, so the order and the names match the
  *  table beside it and the hub's panel, with no third list to keep in step. */
 function CoveragePanel({ coverage }: { coverage: HousekeepingCoverage }) {
   const { total, filled } = coverage;
   return (
     <div className="min-w-0 flex-1">
-      <div className="overflow-hidden rounded-lg bg-card ring-1 ring-foreground/10">
-        <div className="flex items-center justify-between gap-2 border-b bg-muted/40 px-4 py-2.5">
-          <span className="text-sm font-semibold text-zinc-800">
+      {/* ⚠️ The panel sizes to its content and stops. It does NOT stretch to the
+          table's height - a five-row card spread over 700px puts ~140px between
+          rows, which reads worse than the whitespace below it. */}
+      <div className="min-w-0 overflow-hidden rounded-lg bg-card ring-1 ring-foreground/10">
+        <div className="flex items-center justify-between gap-2 border-b bg-muted/40 px-3.5 py-2">
+          <span className="text-xs font-semibold text-zinc-800">
             Documentation by Field
           </span>
-          {/* The denominator, once. Every row shares it. */}
-          <span className="text-[11px] tracking-wider text-zinc-500 uppercase">
+          {/* ⚠️ The one wording difference from the hub: that panel is scoped to
+              the selected website and says "required columns"; this one sums all
+              five, so it says which websites rather than which columns. */}
+          <span className="text-[10px] tracking-wider text-zinc-500 uppercase">
             all websites
           </span>
         </div>
         {total === 0 ? (
           // ⚠️ Handled rather than dividing by zero into five 0% bars, which
-          // would read as a real measurement of an empty estate.
-          <p className="px-4 py-8 text-center text-xs text-zinc-400">
-            No automations recorded.
-          </p>
+          // would read as a real measurement of an empty estate. Same shape as
+          // the hub's empty state, icon included.
+          <div className="flex flex-col items-center justify-center gap-2 px-4 py-8 text-center">
+            <Inbox className="h-5 w-5 text-zinc-300" />
+            <p className="text-xs text-zinc-500">No automations recorded.</p>
+          </div>
         ) : (
           <ul className="divide-y">
             {REQUIRED_COLUMNS.map((col) => {
               const n = filled[col] ?? 0;
               const pct = (n / total) * 100;
               return (
-                <li key={col} className="flex items-center gap-3 px-4 py-4">
-                  <span className="w-32 shrink-0 truncate text-sm font-medium text-zinc-700">
+                <li key={col} className="flex items-center gap-3 px-3.5 py-2">
+                  <span className="w-28 shrink-0 truncate text-xs font-medium text-zinc-700">
                     {col}
                   </span>
-                  <div className="flex h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-zinc-100">
+                  <div className="flex h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-zinc-100">
                     <span
                       className={cn("rounded-full", barClass(pct))}
                       style={{ width: `${Math.min(100, pct)}%` }}
                     />
                   </div>
-                  <span className="w-11 shrink-0 text-right text-sm font-semibold tabular-nums text-zinc-900">
+                  <span className="w-10 shrink-0 text-right text-xs font-semibold tabular-nums text-zinc-900">
                     {Math.round(pct)}%
                   </span>
-                  <span className="w-20 shrink-0 text-right text-xs tabular-nums text-zinc-400">
+                  <span className="w-16 shrink-0 text-right text-[11px] tabular-nums text-zinc-400">
                     {n}/{total}
                   </span>
                 </li>
