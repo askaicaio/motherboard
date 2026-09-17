@@ -26,7 +26,10 @@ import {
 } from "@/components/ui/command";
 import { Check, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { choiceColorHex, type ChoiceOption } from "@/lib/automations/dropdown-config";
+import {
+  choiceColorHex,
+  type ChoiceOption,
+} from "@/lib/automations/dropdown-config";
 import { ColorBadge } from "./color-badge";
 
 export function SingleChoiceCombobox({
@@ -38,6 +41,7 @@ export function SingleChoiceCombobox({
   emptyLabel = "None",
   noResultsLabel = "No options found.",
   side = "right",
+  className,
 }: {
   options: ChoiceOption[];
   /** Selected choice id, or "" for nothing selected. */
@@ -52,13 +56,28 @@ export function SingleChoiceCombobox({
   /** Which side the popover opens on (default right). Pass "left" for a
    *  left-column field so the menu opens away from the dialog. */
   side?: "left" | "right" | "top" | "bottom";
+  /** Extra classes for the TRIGGER button.
+   *
+   *  📌 Appended LAST inside `cn()`, and `cn` is tailwind-merge, so a caller's
+   *  `bg-…` cleanly REPLACES the trigger's own `bg-white` instead of fighting it
+   *  on CSS order. That is what lets the Housekeeping edit dialog tint an
+   *  unfilled required field without this component knowing why.
+   *  ⚠️ Optional, and no other caller passes it, so it changes nothing unless
+   *  used. */
+  className?: string;
 }) {
   // Open state + resolved orientation. `side` (the prop) is the PREFERRED side;
   // the hook opens vertically instead when that side is too narrow, and hands
   // back the collisionAvoidance to match (pinned when horizontal).
-  const { triggerRef, open, setOpen, side: resolvedSide, collisionAvoidance } =
-    usePopoverSide(side);
-  const selected = value === "" ? null : options.find((o) => o.id === value) ?? null;
+  const {
+    triggerRef,
+    open,
+    setOpen,
+    side: resolvedSide,
+    collisionAvoidance,
+  } = usePopoverSide(side);
+  const selected =
+    value === "" ? null : (options.find((o) => o.id === value) ?? null);
   // Colour-bearing option (Trigger Event) → show its pill on the closed trigger.
   // Author options have no badge colour, so this is null and they stay plain.
   const selectedHex = selected ? choiceColorHex(selected.badgeColor) : null;
@@ -80,6 +99,7 @@ export function SingleChoiceCombobox({
           // Empty = the red "None" treatment, matching the table cell's red
           // "None" for an unset value.
           value === "" && "font-medium text-red-600",
+          className,
         )}
       >
         {selected && selectedHex ? (

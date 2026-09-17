@@ -31,7 +31,10 @@ import {
 } from "@/components/ui/command";
 import { Check, ChevronDown, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { choiceColorHex, type ChoiceOption } from "@/lib/automations/dropdown-config";
+import {
+  choiceColorHex,
+  type ChoiceOption,
+} from "@/lib/automations/dropdown-config";
 import { ColorBadge } from "./color-badge";
 
 export function MultiChoiceCombobox({
@@ -46,6 +49,7 @@ export function MultiChoiceCombobox({
   showFullValueOnHover = false,
   onAddOption,
   addOptionLabel = "New option",
+  className,
 }: {
   options: ChoiceOption[];
   /** Selected choice ids (order preserved as given). */
@@ -93,12 +97,26 @@ export function MultiChoiceCombobox({
   onAddOption?: (searchText: string) => void;
   /** Button label. Kept short: it shares a capped-width row with the search box. */
   addOptionLabel?: string;
+  /** Extra classes for the TRIGGER button.
+   *
+   *  📌 Appended LAST inside `cn()`, and `cn` is tailwind-merge, so a caller's
+   *  `bg-…` cleanly REPLACES the trigger's own `bg-white` instead of fighting it
+   *  on CSS order. That is what lets the Housekeeping edit dialog tint an
+   *  unfilled required field without this component knowing why.
+   *  ⚠️ Optional, and no other caller passes it, so it changes nothing unless
+   *  used. */
+  className?: string;
 }) {
   // Open state + resolved orientation. `side` (the prop) is the PREFERRED side;
   // the hook opens vertically instead when that side is too narrow, and hands
   // back the collisionAvoidance to match (pinned when horizontal).
-  const { triggerRef, open, setOpen, side: resolvedSide, collisionAvoidance } =
-    usePopoverSide(side);
+  const {
+    triggerRef,
+    open,
+    setOpen,
+    side: resolvedSide,
+    collisionAvoidance,
+  } = usePopoverSide(side);
   // The search box's text, held here ONLY so the "New option" button can hand it
   // to the caller (see `onAddOption`). cmdk manages this itself otherwise.
   // ⚠️ IT MUST BE CLEARED WHEN THE POPOVER CLOSES. Base UI unmounts the popup on
@@ -130,7 +148,9 @@ export function MultiChoiceCombobox({
         <span
           className={cn(
             "mr-2 flex h-4 w-4 shrink-0 items-center justify-center rounded border",
-            checked ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-300",
+            checked
+              ? "border-zinc-900 bg-zinc-900 text-white"
+              : "border-zinc-300",
           )}
         >
           {checked && <Check className="h-3 w-3" />}
@@ -173,6 +193,7 @@ export function MultiChoiceCombobox({
           // Empty = the red "None" treatment, matching the table cell's red
           // "None" for an unset value (same as the single-select combobox).
           selected.length === 0 && "font-medium text-red-600",
+          className,
         )}
       >
         {selected.length === 0 ? (
