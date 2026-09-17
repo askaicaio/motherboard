@@ -420,45 +420,31 @@ function FilterChip({
 }
 
 // ---------------------------------------------------------------------------
-// 🛑🛑 THE "OPEN BOTH" ACTION IS PARKED, NOT ABANDONED. KEEP THIS RECIPE.
+// 📌 HOW "OPEN BOTH" ENDED UP ON THE LINK, because the route matters more than
+// the two lines it took.
 //
-// A leftmost column held a button that opened the automation on its platform
-// AND the edit dialog here, in one click (#545). **The user removed it on
-// 2026-09-17** - not because the behaviour was wrong, but because no icon read
-// as "opens two things": "It doesn't seem like there is going to be a good way
-// to show an icon for it the way it is now. Remove that column for now, but
-// remember how it does the dual opening function, we will make a new UI element
-// that does the same thing afterwards."
+// It shipped three ways in three days. A click ANYWHERE on the row did both
+// (#538); the user confined that to a dedicated leftmost icon BUTTON (#545);
+// **that button was parked because no icon reads as "opens two things"** (#546)
+// - nine candidates were drawn at their real 16px and none carried it, and the
+// one in use was a near-duplicate of the blue link icon in the same row. The
+// user then picked the option that needs no icon at all (2026-09-17): put it on
+// the URL link, which is already the thing you would click to see the
+// automation.
 //
-// ⭐ SO THE BEHAVIOUR IS WANTED AND ONLY ITS HOUSING IS UNDECIDED. When the new
-// element lands, this is the whole of it:
+// ⭐⭐ THE LESSON WORTH KEEPING: the button version needed a synthetic anchor,
+// a `document.body` append, a `stopPropagation` guard and a `window.open`
+// popup-vs-tab caveat. **The link version needs NONE of it**, because a real
+// `<a target="_blank">` already opens tabs reliably and its click already
+// bubbles. When a behaviour needs that much machinery, check whether an element
+// that does it natively is already sitting in the row.
 //
-//   function openAutomation(url) {
-//     if (!url) return;
-//     const a = document.createElement("a");
-//     a.href = url; a.target = "_blank"; a.rel = "noopener noreferrer";
-//     document.body.appendChild(a); a.click(); a.remove();
-//   }
-//   // on the control:
-//   onClick={(e) => { e.stopPropagation(); openAutomation(row.externalUrl); onEdit(); }}
-//
-// ⚠️ FOUR THINGS THAT WERE LEARNED THE HARD WAY AND ARE NOT OPTIONAL:
-//   1. **A SYNTHETIC ANCHOR CLICK, NEVER `window.open`.** `window.open(url,
-//      "_blank", features)` can produce a POPUP WINDOW rather than a tab
-//      depending on how the browser reads the feature string; an anchor click is
-//      the same code path the row's real link takes, so the two cannot diverge.
-//   2. **APPEND IT BEFORE CLICKING.** A detached anchor's `.click()` is not
-//      reliably honoured. Remove it straight after; keep it OUT of the row so
-//      its click cannot bubble back into the row handler.
-//   3. **`stopPropagation` ON THE CONTROL.** The row opens the dialog, so
-//      without it `onEdit` fires twice.
-//   4. **THE TAB WILL TAKE FOCUS AND THAT CANNOT BE CHANGED.** A page cannot
-//      choose foreground vs background; dispatching the click with ctrl/cmd was
-//      tried (#543) and Chrome ignores a modifier on a synthetic click (#544).
-//      Ctrl/cmd + clicking a real link is the only thing that backgrounds a tab.
-//
-// 📌 A real `<button>` is what gave it keyboard access for free, which is why
-// the row's own key handler was never taught to do both.
+// ⚠️ THE ONE CONSTRAINT THAT SURVIVES ALL THREE VERSIONS: **the new tab takes
+// focus and no page code can change that.** Foreground vs background is the
+// browser's call, decided by HOW the link was activated. Dispatching a click
+// with ctrl/cmd was tried (#543) and Chrome ignores a modifier on a SYNTHETIC
+// click (#544). **Ctrl/cmd + clicking this link is a real gesture and does
+// background the tab**, and it still opens the dialog.
 // ---------------------------------------------------------------------------
 
 function ListRow({
@@ -481,16 +467,15 @@ function ListRow({
     // gap; this one is not going to inherit it.
     //
     // 🛑🛑 THE ROW OPENS THE DIALOG AND NOTHING ELSE. For one day (#538) a click
-    // ANYWHERE on the row also opened the automation in a new tab. **The user
-    // moved that to a dedicated control on 2026-09-16**: "Instead of it
-    // happening when clicking anywhere on the entry, make it so it only happens
-    // when a specific button is clicked."
-    // ⚠️ SO THE THREE TARGETS IN A ROW EACH DO EXACTLY ONE THING NOW:
-    //     the ACTION BUTTON (leftmost)  -> new tab **and** dialog
-    //     the ROW anywhere else         -> dialog
-    //     the URL LINK                  -> new tab
-    // **Do not put the tab back on this handler.** The double action was tried
-    // here and deliberately taken off.
+    // ANYWHERE on the row also opened the automation in a new tab, and **the
+    // user took that off** (2026-09-16): "Instead of it happening when clicking
+    // anywhere on the entry, make it so it only happens when a specific button
+    // is clicked." **Do not put the tab back on this handler.**
+    // ⚠️ WHERE IT SETTLED, after a leftmost icon button was tried and parked:
+    //     the URL LINK           -> new tab **and** dialog  (the dual action)
+    //     the ROW anywhere else  -> dialog only
+    // 📌 The link half is not a handler, it is the anchor's default action plus
+    // this one bubbling up. See the anchor's own note.
     <tr
       onClick={onEdit}
       onKeyDown={(e) => {
@@ -526,18 +511,35 @@ function ListRow({
               {row.name}
             </div>
             {row.externalUrl ? (
-              // ⚠️ `stopPropagation` IS BACK, and it has to be. The row now
-              // opens the dialog, so without this the link would open the tab
-              // AND the dialog - which is the double action the user just asked
-              // to confine to the button beside it.
-              // 📌 It stays a real `<a href>` rather than becoming a span the
-              // row handles, because that is what keeps middle-click, "copy link
-              // address" and the browser's own status-bar preview working.
+              // ⭐⭐ THIS LINK IS THE DUAL ACTION, 2026-09-17: "number 4 sounds
+              // good. So the URL will now be the dual action. and the simply
+              // clicking the entry will just open the edit dialog instead."
+              //
+              // 🛑 THE MECHANISM IS AN ABSENCE. There is no handler here: the
+              // anchor's OWN default action opens the tab, and the click then
+              // BUBBLES to the row, whose handler opens the dialog. **Adding
+              // `stopPropagation` back is what would break it**, which is exactly
+              // what this line used to be.
+              // ⚠️ SO DO NOT "TIDY" THIS BY GIVING THE ANCHOR AN onClick. The
+              // page went the other way first: a leftmost icon BUTTON did both
+              // (#545) and was parked (#546) because no icon reads as "opens two
+              // things". **The link carries it precisely because it needs no icon
+              // and no code** - the URL is already the thing you would click to
+              // see the automation.
+              // 📌 AND IT NEEDS NONE OF THE SYNTHETIC-ANCHOR MACHINERY a button
+              // needed: no `document.createElement`, no `window.open` popup-vs-tab
+              // question, nothing to append or remove. A real link was always the
+              // reliable way to open a tab; this just stops hiding it.
+              // 📌 It stays a real `<a href>`, which is also what keeps
+              // middle-click, "copy link address" and the browser's own
+              // status-bar preview working. ⚠️ Middle-click opens only the tab,
+              // because browsers fire `auxclick` for it and React's `onClick`
+              // never sees that; ctrl/cmd + click opens a BACKGROUND tab and the
+              // dialog, which is the only way to get the tab off-focus at all.
               <a
                 href={row.externalUrl}
                 target="_blank"
                 rel="noreferrer"
-                onClick={(e) => e.stopPropagation()}
                 title={row.externalUrl}
                 className="mt-0.5 flex items-center gap-1 text-xs text-blue-600 hover:underline"
               >
