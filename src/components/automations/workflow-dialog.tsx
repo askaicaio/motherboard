@@ -165,7 +165,10 @@ const ADD_TARGETS: Record<AddKind, AddTarget> = {
  *  new row. A new option is auto-selected anyway, so it shows in the picker's
  *  pinned selected block at the top regardless of where it sits in the list
  *  below; `router.refresh()` then puts it in its proper place. */
-function mergeExtras(base: ChoiceOption[], extra?: ChoiceOption[]): ChoiceOption[] {
+function mergeExtras(
+  base: ChoiceOption[],
+  extra?: ChoiceOption[],
+): ChoiceOption[] {
   if (!extra || extra.length === 0) return base;
   const known = new Set(base.map((o) => o.id));
   const missing = extra.filter((o) => !known.has(o.id));
@@ -251,7 +254,9 @@ export function WorkflowDialog({
   const [triageChoiceId, setTriageChoiceId] = useState("");
 
   // Automation Tags: the selected tag choice ids (multi-select). Empty = none.
-  const [automationTagChoiceIds, setAutomationTagChoiceIds] = useState<string[]>([]);
+  const [automationTagChoiceIds, setAutomationTagChoiceIds] = useState<
+    string[]
+  >([]);
   // GHL Tags + GHL Forms: selected choice ids (multi-select, GHL pages only).
   const [ghlTagChoiceIds, setGhlTagChoiceIds] = useState<string[]>([]);
   const [ghlFormChoiceIds, setGhlFormChoiceIds] = useState<string[]>([]);
@@ -404,7 +409,8 @@ export function WorkflowDialog({
       [kind]: [...(prev[kind] ?? []), option],
     }));
     if (kind === "ghl_tags") setGhlTagChoiceIds((v) => [...v, option.id]);
-    else if (kind === "ghl_forms") setGhlFormChoiceIds((v) => [...v, option.id]);
+    else if (kind === "ghl_forms")
+      setGhlFormChoiceIds((v) => [...v, option.id]);
     else setWebhookChoiceIds((v) => [...v, option.id]);
     // Clear any stale form error: the dialog is usable again.
     setError(null);
@@ -437,7 +443,9 @@ export function WorkflowDialog({
     setTriggerEventChoiceId(existing?.triggerEventChoiceId ?? "");
     setTriageChoiceId(existing?.triageChoiceId ?? "");
 
-    setAutomationTagChoiceIds((existing?.automationTags ?? []).map((t) => t.id));
+    setAutomationTagChoiceIds(
+      (existing?.automationTags ?? []).map((t) => t.id),
+    );
     setGhlTagChoiceIds((existing?.ghlTags ?? []).map((t) => t.id));
     setGhlFormChoiceIds((existing?.ghlForms ?? []).map((f) => f.id));
     setWebhookChoiceIds((existing?.webhooks ?? []).map((w) => w.id));
@@ -471,9 +479,33 @@ export function WorkflowDialog({
         ...(showGhlForms ? { ghlFormChoiceIds } : {}),
       };
       const body = isEdit
-        ? { name: name.trim(), externalUrl: externalUrl.trim(), status, purpose: purpose.trim(), notes: notes.trim(), authorChoiceId: authorPayload, triggerEventChoiceId: triggerEventPayload, triageChoiceId: triagePayload, automationTagChoiceIds, webhookChoiceIds, ...ghlFields }
-        : { platform, name: name.trim(), externalUrl: externalUrl.trim(), status, purpose: purpose.trim(), notes: notes.trim(), authorChoiceId: authorPayload, triggerEventChoiceId: triggerEventPayload, triageChoiceId: triagePayload, automationTagChoiceIds, webhookChoiceIds, ...ghlFields };
-
+        ? {
+            name: name.trim(),
+            externalUrl: externalUrl.trim(),
+            status,
+            purpose: purpose.trim(),
+            notes: notes.trim(),
+            authorChoiceId: authorPayload,
+            triggerEventChoiceId: triggerEventPayload,
+            triageChoiceId: triagePayload,
+            automationTagChoiceIds,
+            webhookChoiceIds,
+            ...ghlFields,
+          }
+        : {
+            platform,
+            name: name.trim(),
+            externalUrl: externalUrl.trim(),
+            status,
+            purpose: purpose.trim(),
+            notes: notes.trim(),
+            authorChoiceId: authorPayload,
+            triggerEventChoiceId: triggerEventPayload,
+            triageChoiceId: triagePayload,
+            automationTagChoiceIds,
+            webhookChoiceIds,
+            ...ghlFields,
+          };
 
       const res = await fetch(endpoint, {
         method,
@@ -500,7 +532,9 @@ export function WorkflowDialog({
       // + colours) from the loaded choices so the table cell updates (as its
       // coloured pill) without a reload.
       const savedAuthorChoiceId = saved.authorChoiceId ?? null;
-      const savedAuthor = authorChoices.find((c) => c.id === savedAuthorChoiceId);
+      const savedAuthor = authorChoices.find(
+        (c) => c.id === savedAuthorChoiceId,
+      );
       // Trigger Event: resolve the chosen option (value + colours) the same way.
       const savedTriggerEvent = triggerEventChoices.find(
         (c) => c.id === saved.triggerEventChoiceId,
@@ -612,229 +646,250 @@ export function WorkflowDialog({
     // dialog. Owning one keeps the delete button's tooltip working wherever the
     // dialog is mounted, rather than depending on the caller.
     <TooltipProvider delay={TOOLTIP_DELAY_MS}>
-    <Dialog
-      open={open}
-      onOpenChange={(isOpen, eventDetails) => {
-        // Don't dismiss on an outside/backdrop click or focus loss, that
-        // would lose typed work on a misclick. Esc, the ✕, Cancel, and a
-        // successful save still close the dialog.
-        if (
-          !isOpen &&
-          (eventDetails?.reason === "outside-press" ||
-            eventDetails?.reason === "focus-out")
-        ) {
-          return;
-        }
-        onOpenChange(isOpen);
-      }}
-    >
-      <DialogContent
-        className="flex max-h-[85vh] flex-col sm:max-w-lg"
-        overlayClassName="bg-black/70"
+      <Dialog
+        open={open}
+        onOpenChange={(isOpen, eventDetails) => {
+          // Don't dismiss on an outside/backdrop click or focus loss, that
+          // would lose typed work on a misclick. Esc, the ✕, Cancel, and a
+          // successful save still close the dialog.
+          if (
+            !isOpen &&
+            (eventDetails?.reason === "outside-press" ||
+              eventDetails?.reason === "focus-out")
+          ) {
+            return;
+          }
+          onOpenChange(isOpen);
+        }}
       >
-        <DialogHeader>
-          <DialogTitle>{isEdit ? "Edit Workflow" : "Add New Workflow"}</DialogTitle>
-          <DialogDescription>
-            {isEdit
-              ? "Update any field. Only changed values are saved."
-              : "Adds a new automation entry to the ledger."}
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
-          {/* All fields scroll together when the dialog gets tall; the header
+        <DialogContent
+          className="flex max-h-[85vh] flex-col sm:max-w-lg"
+          overlayClassName="bg-black/70"
+        >
+          <DialogHeader>
+            <DialogTitle>
+              {isEdit ? "Edit Workflow" : "Add New Workflow"}
+            </DialogTitle>
+            <DialogDescription>
+              {isEdit
+                ? "Update any field. Only changed values are saved."
+                : "Adds a new automation entry to the ledger."}
+            </DialogDescription>
+          </DialogHeader>
+          <form
+            onSubmit={handleSubmit}
+            className="flex min-h-0 flex-1 flex-col"
+          >
+            {/* All fields scroll together when the dialog gets tall; the header
               and footer stay pinned. (-mx-1/px-1 gives focus rings room so they
               don't trigger a horizontal scrollbar.) */}
-          <div className="-mx-1 min-h-0 flex-1 space-y-3 overflow-y-auto px-1 pb-3">
-          <div className="space-y-1.5">
-            <Label htmlFor="wf-name">Name</Label>
-            <Textarea
-              id="wf-name"
-              value={name}
-              onChange={(e) => {
-                setName(e.target.value);
-                setError(null);
-              }}
-              maxLength={300}
-              rows={1}
-              placeholder="e.g. New lead → Slack alert"
-              // Grows with content (long names no longer get cut off), same
-              // setup as the Purpose field: `block` overrides the shared
-              // Textarea's base display:flex so `field-sizing-content` works;
-              // `overflow-hidden` + `resize-none` push all growth into the
-              // outer fields scroll area (single scrollbar, no manual grip).
-              // [overflow-wrap:anywhere] breaks over-long unbroken strings.
-              // `min-h-9` overrides the shared Textarea's tall `min-h-16` floor
-              // so a short name starts at single-line height (like the old
-              // Input) and only grows when the text actually needs it.
-              className="border-zinc-300 shadow-sm block min-h-9 resize-none overflow-hidden [overflow-wrap:anywhere]"
-            />
-            <p className="text-[10px] text-zinc-500">
-              The exact name of the automation as seen from its home website.
-            </p>
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="wf-url">
-              {/* Wrapped in one element so the Label's flex `gap` doesn't
+            <div className="-mx-1 min-h-0 flex-1 space-y-3 overflow-y-auto px-1 pb-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="wf-name">Name</Label>
+                <Textarea
+                  id="wf-name"
+                  value={name}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    setError(null);
+                  }}
+                  maxLength={300}
+                  rows={1}
+                  placeholder="e.g. New lead → Slack alert"
+                  // Grows with content (long names no longer get cut off), same
+                  // setup as the Purpose field: `block` overrides the shared
+                  // Textarea's base display:flex so `field-sizing-content` works;
+                  // `overflow-hidden` + `resize-none` push all growth into the
+                  // outer fields scroll area (single scrollbar, no manual grip).
+                  // [overflow-wrap:anywhere] breaks over-long unbroken strings.
+                  // `min-h-9` overrides the shared Textarea's tall `min-h-16` floor
+                  // so a short name starts at single-line height (like the old
+                  // Input) and only grows when the text actually needs it.
+                  className="border-zinc-300 shadow-sm block min-h-9 resize-none overflow-hidden [overflow-wrap:anywhere]"
+                />
+                <p className="text-[10px] text-zinc-500">
+                  The exact name of the automation as seen from its home
+                  website.
+                </p>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="wf-url">
+                  {/* Wrapped in one element so the Label's flex `gap` doesn't
                   push the asterisk away from the word, keeps "Link*" tight. */}
-              <span>
-                Link<span className="text-red-600">*</span>
-              </span>
-            </Label>
-            <Input
-              id="wf-url"
-              type="url"
-              value={externalUrl}
-              onChange={(e) => {
-                setExternalUrl(e.target.value);
-                setError(null);
-              }}
-              required
-              maxLength={1000}
-              placeholder="https://…"
-              className="border-zinc-300 shadow-sm"
-            />
-            <p className="text-[10px] text-zinc-500">
-              The link that leads directly to the editor view of the automation.
-            </p>
-          </div>
-          {/* The four dropdowns in a 2-col grid: Status | Author (row 1),
+                  <span>
+                    Link<span className="text-red-600">*</span>
+                  </span>
+                </Label>
+                <Input
+                  id="wf-url"
+                  type="url"
+                  value={externalUrl}
+                  onChange={(e) => {
+                    setExternalUrl(e.target.value);
+                    setError(null);
+                  }}
+                  required
+                  maxLength={1000}
+                  placeholder="https://…"
+                  className="border-zinc-300 shadow-sm"
+                />
+                <p className="text-[10px] text-zinc-500">
+                  The link that leads directly to the editor view of the
+                  automation.
+                </p>
+              </div>
+              {/* The four dropdowns in a 2-col grid: Status | Author (row 1),
               Automation Tags | Trigger Event (row 2). Left-column fields (Status,
               Automation Tags) open their menus to the LEFT; right-column (Author,
               Trigger Event) to the RIGHT — menus open outward from the dialog.
               items-start so a taller field (e.g. Tags with many chips) doesn't
               stretch its row-mate. */}
-          <div className="grid grid-cols-2 items-start gap-3">
-          <div className="space-y-1.5">
-            <Label htmlFor="wf-status">Status</Label>
-            <Select
-              value={status}
-              onValueChange={(v) => setStatus(v ?? "paused")}
-              open={statusOpen}
-              onOpenChange={(o) => setStatusOpen(o)}
-            >
-              {/* Trigger + list items render the value as COLOURED TEXT (green
+              <div className="grid grid-cols-2 items-start gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="wf-status">Status</Label>
+                  <Select
+                    value={status}
+                    onValueChange={(v) => setStatus(v ?? "paused")}
+                    open={statusOpen}
+                    onOpenChange={(o) => setStatusOpen(o)}
+                  >
+                    {/* Trigger + list items render the value as COLOURED TEXT (green
                   Active / neutral Paused), mirroring the GHL Forms Status
                   dropdown. SelectValue's function child formats the closed
                   trigger; status always has a value ("paused" default), so the
                   fallback is just defensive. */}
-              {/* Clearer field look (matches the other Add/Edit fields): zinc-300
+                    {/* Clearer field look (matches the other Add/Edit fields): zinc-300
                   resting border + shadow-sm. Keeps the shared SelectTrigger's
                   built-in focus ring AND shows it while the menu is open
                   (data-popup-open), so a click activates the ring like the other
                   dropdowns. Per-instance override so selects elsewhere are
                   unaffected. */}
-              <SelectTrigger
-                ref={statusTriggerRef}
-                id="wf-status"
-                className="w-full border-zinc-300 shadow-sm data-[popup-open]:border-ring data-[popup-open]:ring-3 data-[popup-open]:ring-ring/50"
-              >
-                <SelectValue placeholder="Status">
-                  {(v) => {
-                    const o = WF_STATUS_OPTIONS.find((x) => x.value === v);
-                    return <span className={o?.text}>{o?.label ?? "Paused"}</span>;
-                  }}
-                </SelectValue>
-              </SelectTrigger>
-              {/* Standard dropdown behaviour (via usePopoverSide): Status opens
+                    <SelectTrigger
+                      ref={statusTriggerRef}
+                      id="wf-status"
+                      className="w-full border-zinc-300 shadow-sm data-[popup-open]:border-ring data-[popup-open]:ring-3 data-[popup-open]:ring-ring/50"
+                    >
+                      <SelectValue placeholder="Status">
+                        {(v) => {
+                          const o = WF_STATUS_OPTIONS.find(
+                            (x) => x.value === v,
+                          );
+                          return (
+                            <span className={o?.text}>
+                              {o?.label ?? "Paused"}
+                            </span>
+                          );
+                        }}
+                      </SelectValue>
+                    </SelectTrigger>
+                    {/* Standard dropdown behaviour (via usePopoverSide): Status opens
                   LEFT pinned (outward from the dialog), or vertically when that
                   side is too narrow. alignItemWithTrigger={false} is required for
                   `side` to take effect on a Base UI Select (its default native-like
                   item-over-trigger alignment ignores side). w-44 pins the popup to
                   the GHL Forms Status dropdown's width (the reference), instead of
                   matching the full-width trigger. */}
-              <SelectContent
-                side={statusSide}
-                align="start"
-                sideOffset={8}
-                alignItemWithTrigger={false}
-                collisionAvoidance={statusCollisionAvoidance}
-                className="w-44"
-              >
-                {WF_STATUS_OPTIONS.map((o) => (
-                  <SelectItem key={o.value} value={o.value} className={o.text}>
-                    {o.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="wf-author">Author</Label>
-            {/* Single-select: pick ONE Author option from the configured
+                    <SelectContent
+                      side={statusSide}
+                      align="start"
+                      sideOffset={8}
+                      alignItemWithTrigger={false}
+                      collisionAvoidance={statusCollisionAvoidance}
+                      className="w-44"
+                    >
+                      {WF_STATUS_OPTIONS.map((o) => (
+                        <SelectItem
+                          key={o.value}
+                          value={o.value}
+                          className={o.text}
+                        >
+                          {o.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="wf-author">Author</Label>
+                  {/* Single-select: pick ONE Author option from the configured
                 choices (managed on the Dropdown Configuration page). Optional;
                 the "None" row clears it. Searchable because the list can grow. */}
-            <SingleChoiceCombobox
-              id="wf-author"
-              options={authorChoices}
-              value={authorChoiceId}
-              onChange={(v) => {
-                setAuthorChoiceId(v);
-                setError(null);
-              }}
-              searchPlaceholder="Search authors…"
-              emptyLabel="None"
-              noResultsLabel="No authors found."
-              side="right"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="wf-automation-tags">
-              Automation Tags
-              <MissingMark show={missingRequiredNow.has("Automation Tags")} />
-            </Label>
-            {/* Multi-select: pick ANY number of Automation Tags from the
+                  <SingleChoiceCombobox
+                    id="wf-author"
+                    options={authorChoices}
+                    value={authorChoiceId}
+                    onChange={(v) => {
+                      setAuthorChoiceId(v);
+                      setError(null);
+                    }}
+                    searchPlaceholder="Search authors…"
+                    emptyLabel="None"
+                    noResultsLabel="No authors found."
+                    side="right"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="wf-automation-tags">
+                    Automation Tags
+                    <MissingMark
+                      show={missingRequiredNow.has("Automation Tags")}
+                    />
+                  </Label>
+                  {/* Multi-select: pick ANY number of Automation Tags from the
                 configured choices (managed on the Dropdown Configuration page).
                 Optional; the trigger shows the selected tags as chips, red
                 "None" when empty. Sits between Author and Trigger Event, matching
                 the table column order. */}
-            <MultiChoiceCombobox
-              id="wf-automation-tags"
-              options={automationTagChoices}
-              values={automationTagChoiceIds}
-              onChange={(v) => {
-                setAutomationTagChoiceIds(v);
-                setError(null);
-              }}
-              searchPlaceholder="Search tags…"
-              emptyLabel="None"
-              noResultsLabel="No tags found."
-              side="left"
-            />
-            <p className="text-[10px] text-zinc-500">
-              Short labels regarding the automation&apos;s scope.
-            </p>
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="wf-trigger-event">
-              Trigger Event
-              <MissingMark show={missingRequiredNow.has("Trigger Event")} />
-            </Label>
-            {/* Single-select: pick ONE Trigger Event option from the configured
+                  <MultiChoiceCombobox
+                    id="wf-automation-tags"
+                    options={automationTagChoices}
+                    values={automationTagChoiceIds}
+                    onChange={(v) => {
+                      setAutomationTagChoiceIds(v);
+                      setError(null);
+                    }}
+                    searchPlaceholder="Search tags…"
+                    emptyLabel="None"
+                    noResultsLabel="No tags found."
+                    side="left"
+                  />
+                  <p className="text-[10px] text-zinc-500">
+                    Short labels regarding the automation&apos;s scope.
+                  </p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="wf-trigger-event">
+                    Trigger Event
+                    <MissingMark
+                      show={missingRequiredNow.has("Trigger Event")}
+                    />
+                  </Label>
+                  {/* Single-select: pick ONE Trigger Event option from the configured
                 choices (managed on the Dropdown Configuration page). Optional;
                 the "None" row clears it. Mirrors the Author dropdown. */}
-            <SingleChoiceCombobox
-              id="wf-trigger-event"
-              options={triggerEventChoices}
-              value={triggerEventChoiceId}
-              onChange={(v) => {
-                setTriggerEventChoiceId(v);
-                setError(null);
-              }}
-              searchPlaceholder="Search trigger events…"
-              emptyLabel="None"
-              noResultsLabel="No trigger events found."
-              side="right"
-            />
-            <p className="text-[10px] text-zinc-500">
-              This is how the automation is activated.
-            </p>
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="wf-triage">
-              Evaluation
-              <MissingMark show={missingRequiredNow.has("Evaluation")} />
-            </Label>
-            {/* Single-select: what should HAPPEN to this automation. Optional;
+                  <SingleChoiceCombobox
+                    id="wf-trigger-event"
+                    options={triggerEventChoices}
+                    value={triggerEventChoiceId}
+                    onChange={(v) => {
+                      setTriggerEventChoiceId(v);
+                      setError(null);
+                    }}
+                    searchPlaceholder="Search trigger events…"
+                    emptyLabel="None"
+                    noResultsLabel="No trigger events found."
+                    side="right"
+                  />
+                  <p className="text-[10px] text-zinc-500">
+                    This is how the automation is activated.
+                  </p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="wf-triage">
+                    Evaluation
+                    <MissingMark show={missingRequiredNow.has("Evaluation")} />
+                  </Label>
+                  {/* Single-select: what should HAPPEN to this automation. Optional;
                 the "None" row clears it back to NOT YET TRIAGED, which is a
                 different thing from the "Unknown" choice.
                 Opens LEFT: this is a LEFT-column field (the grid runs
@@ -843,158 +898,157 @@ export function WorkflowDialog({
                 copy the side="right" from Trigger Event above — that one sits in
                 the RIGHT column, and copying it made this popup cover Purpose
                 and Notes. */}
-            <SingleChoiceCombobox
-              id="wf-triage"
-              options={triageChoices}
-              value={triageChoiceId}
-              onChange={(v) => {
-                setTriageChoiceId(v);
-                setError(null);
-              }}
-              searchPlaceholder="Search evaluations…"
-              emptyLabel="None"
-              noResultsLabel="No evaluations found."
-              side="left"
-            />
-            <p className="text-[10px] text-zinc-500">
-              What should happen to this automation.
-            </p>
-          </div>
-
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="wf-purpose">
-              Purpose
-              <MissingMark show={missingRequiredNow.has("Purpose")} />
-            </Label>
-            <Textarea
-              id="wf-purpose"
-              value={purpose}
-              onChange={(e) => {
-                setPurpose(e.target.value);
-                setError(null);
-              }}
-              maxLength={5000}
-              rows={3}
-              placeholder="What this automation is for…"
-              // `block` overrides the shared Textarea's base `display:flex`, which
-              // was defeating its `field-sizing-content` (so it capped at the
-              // available height and showed its OWN scrollbar). `overflow-hidden`
-              // stops the textarea from ever scrolling itself, and `resize-none`
-              // removes the manual resize grip - together they force all growth
-              // into the outer fields scroll area, so there's a single scrollbar.
-              // [overflow-wrap:anywhere] breaks over-long words.
-              className="border-zinc-300 shadow-sm block resize-none overflow-hidden [overflow-wrap:anywhere]"
-            />
-          </div>
-          <div className="space-y-1.5">
-            {/* Notes: a second free-text note, mirrors the Purpose field above
+                  <SingleChoiceCombobox
+                    id="wf-triage"
+                    options={triageChoices}
+                    value={triageChoiceId}
+                    onChange={(v) => {
+                      setTriageChoiceId(v);
+                      setError(null);
+                    }}
+                    searchPlaceholder="Search evaluations…"
+                    emptyLabel="None"
+                    noResultsLabel="No evaluations found."
+                    side="left"
+                  />
+                  <p className="text-[10px] text-zinc-500">
+                    What should happen to this automation.
+                  </p>
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="wf-purpose">
+                  Purpose
+                  <MissingMark show={missingRequiredNow.has("Purpose")} />
+                </Label>
+                <Textarea
+                  id="wf-purpose"
+                  value={purpose}
+                  onChange={(e) => {
+                    setPurpose(e.target.value);
+                    setError(null);
+                  }}
+                  maxLength={5000}
+                  rows={3}
+                  placeholder="What this automation is for…"
+                  // `block` overrides the shared Textarea's base `display:flex`, which
+                  // was defeating its `field-sizing-content` (so it capped at the
+                  // available height and showed its OWN scrollbar). `overflow-hidden`
+                  // stops the textarea from ever scrolling itself, and `resize-none`
+                  // removes the manual resize grip - together they force all growth
+                  // into the outer fields scroll area, so there's a single scrollbar.
+                  // [overflow-wrap:anywhere] breaks over-long words.
+                  className="border-zinc-300 shadow-sm block resize-none overflow-hidden [overflow-wrap:anywhere]"
+                />
+              </div>
+              <div className="space-y-1.5">
+                {/* Notes: a second free-text note, mirrors the Purpose field above
                 exactly (same textarea setup), just labelled "Notes". */}
-            <Label htmlFor="wf-notes">
-              Notes
-              <MissingMark show={missingRequiredNow.has("Notes")} />
-            </Label>
-            <Textarea
-              id="wf-notes"
-              value={notes}
-              onChange={(e) => {
-                setNotes(e.target.value);
-                setError(null);
-              }}
-              maxLength={5000}
-              rows={3}
-              placeholder="Any extra notes…"
-              className="border-zinc-300 shadow-sm block resize-none overflow-hidden [overflow-wrap:anywhere]"
-            />
-          </div>
-          {/* GHL Tags + GHL Forms: full-width fields, shown only on the GHL pages
+                <Label htmlFor="wf-notes">
+                  Notes
+                  <MissingMark show={missingRequiredNow.has("Notes")} />
+                </Label>
+                <Textarea
+                  id="wf-notes"
+                  value={notes}
+                  onChange={(e) => {
+                    setNotes(e.target.value);
+                    setError(null);
+                  }}
+                  maxLength={5000}
+                  rows={3}
+                  placeholder="Any extra notes…"
+                  className="border-zinc-300 shadow-sm block resize-none overflow-hidden [overflow-wrap:anywhere]"
+                />
+              </div>
+              {/* GHL Tags + GHL Forms: full-width fields, shown only on the GHL pages
               (same gate as the table columns). Sit between Notes and Webhook Links
               to match the table column order (user-set 2026-07-31). Full width
               (not the old cramped 2-col grid row) so the many selected values have
               room. Multi-select; plain options (no colours). */}
-          {showGhlTags && (
-            <div className="space-y-1.5">
-              <Label htmlFor="wf-ghl-tags">GHL Tags</Label>
-              <MultiChoiceCombobox
-                id="wf-ghl-tags"
-                options={ghlTagOptions}
-                values={ghlTagChoiceIds}
-                onChange={(v) => {
-                  setGhlTagChoiceIds(v);
-                  setError(null);
-                }}
-                searchPlaceholder="Search GHL tags…"
-                emptyLabel="None"
-                noResultsLabel="No GHL tags found."
-                side="right"
-                // One of the THREE pickers that can create their own options
-                // (see the AddKind block at the top of this file). The label is
-                // deliberately short: it shares a width-capped row with the
-                // search box.
-                onAddOption={(seed) => openAdd("ghl_tags", seed)}
-                addOptionLabel="New tag"
-              />
-            </div>
-          )}
-          {showGhlForms && (
-            <div className="space-y-1.5">
-              <Label htmlFor="wf-ghl-forms">GHL Forms</Label>
-              <MultiChoiceCombobox
-                id="wf-ghl-forms"
-                options={ghlFormOptions}
-                values={ghlFormChoiceIds}
-                onChange={(v) => {
-                  setGhlFormChoiceIds(v);
-                  setError(null);
-                }}
-                searchPlaceholder="Search GHL forms…"
-                emptyLabel="None"
-                noResultsLabel="No GHL forms found."
-                side="right"
-                onAddOption={(seed) => openAdd("ghl_forms", seed)}
-                addOptionLabel="New form"
-              />
-            </div>
-          )}
-          <div className="space-y-1.5">
-            <Label htmlFor="wf-webhook-links">Webhook Links</Label>
-            {/* Multi-select: pick ANY number of Webhook Links from the configured
+              {showGhlTags && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="wf-ghl-tags">GHL Tags</Label>
+                  <MultiChoiceCombobox
+                    id="wf-ghl-tags"
+                    options={ghlTagOptions}
+                    values={ghlTagChoiceIds}
+                    onChange={(v) => {
+                      setGhlTagChoiceIds(v);
+                      setError(null);
+                    }}
+                    searchPlaceholder="Search GHL tags…"
+                    emptyLabel="None"
+                    noResultsLabel="No GHL tags found."
+                    side="right"
+                    // One of the THREE pickers that can create their own options
+                    // (see the AddKind block at the top of this file). The label is
+                    // deliberately short: it shares a width-capped row with the
+                    // search box.
+                    onAddOption={(seed) => openAdd("ghl_tags", seed)}
+                    addOptionLabel="New tag"
+                  />
+                </div>
+              )}
+              {showGhlForms && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="wf-ghl-forms">GHL Forms</Label>
+                  <MultiChoiceCombobox
+                    id="wf-ghl-forms"
+                    options={ghlFormOptions}
+                    values={ghlFormChoiceIds}
+                    onChange={(v) => {
+                      setGhlFormChoiceIds(v);
+                      setError(null);
+                    }}
+                    searchPlaceholder="Search GHL forms…"
+                    emptyLabel="None"
+                    noResultsLabel="No GHL forms found."
+                    side="right"
+                    onAddOption={(seed) => openAdd("ghl_forms", seed)}
+                    addOptionLabel="New form"
+                  />
+                </div>
+              )}
+              <div className="space-y-1.5">
+                <Label htmlFor="wf-webhook-links">Webhook Links</Label>
+                {/* Multi-select: pick ANY number of Webhook Links from the configured
                 choices (managed on the Dropdown Configuration page). Optional; the
                 trigger shows the selected URLs as chips, red "None" when empty.
                 Sits after Notes, matching the table column order. */}
-            <MultiChoiceCombobox
-              id="wf-webhook-links"
-              options={webhookOptions}
-              values={webhookChoiceIds}
-              onChange={(v) => {
-                setWebhookChoiceIds(v);
-                setError(null);
-              }}
-              searchPlaceholder="Search webhooks…"
-              emptyLabel="None"
-              noResultsLabel="No webhooks found."
-              side="right"
-              onAddOption={(seed) => openAdd(WEBHOOK_SCOPE, seed)}
-              addOptionLabel="New link"
-              // Webhook URLs truncate (intended: they are far wider than the
-              // popover cap), but the truncated head is not enough to tell one
-              // link from another, so hovering a row reveals the whole thing.
-              // ONLY here: the tag/form pickers show short values whose visible
-              // text is already the whole meaning.
-              showFullValueOnHover
-            />
-            <p className="text-[10px] text-zinc-500">
-              These are links used by Webhook nodes in the automation.
-            </p>
-          </div>
-          {error && (
-            <p className="text-sm font-medium text-red-600" role="alert">
-              {error}
-            </p>
-          )}
-          </div>
-          <DialogFooter className="shrink-0">
-            {/* Delete (edit mode only). Same trash icon the removed per-row
+                <MultiChoiceCombobox
+                  id="wf-webhook-links"
+                  options={webhookOptions}
+                  values={webhookChoiceIds}
+                  onChange={(v) => {
+                    setWebhookChoiceIds(v);
+                    setError(null);
+                  }}
+                  searchPlaceholder="Search webhooks…"
+                  emptyLabel="None"
+                  noResultsLabel="No webhooks found."
+                  side="right"
+                  onAddOption={(seed) => openAdd(WEBHOOK_SCOPE, seed)}
+                  addOptionLabel="New link"
+                  // Webhook URLs truncate (intended: they are far wider than the
+                  // popover cap), but the truncated head is not enough to tell one
+                  // link from another, so hovering a row reveals the whole thing.
+                  // ONLY here: the tag/form pickers show short values whose visible
+                  // text is already the whole meaning.
+                  showFullValueOnHover
+                />
+                <p className="text-[10px] text-zinc-500">
+                  These are links used by Webhook nodes in the automation.
+                </p>
+              </div>
+              {error && (
+                <p className="text-sm font-medium text-red-600" role="alert">
+                  {error}
+                </p>
+              )}
+            </div>
+            <DialogFooter className="shrink-0">
+              {/* Delete (edit mode only). Same trash icon the removed per-row
                 Actions column used, but RED at rest instead of gray-until-hover.
                 size-8 matches the h-8 of the Cancel / Save changes buttons beside
                 it, so all three footer controls are the same height (the icon
@@ -1002,48 +1056,50 @@ export function WorkflowDialog({
                 leaving Cancel + Save changes right-aligned. type="button" so it
                 never submits the form; the confirm + request live in the caller's
                 handleDelete. */}
-            {isEdit && onDelete && (
-              // Icon-only, and the most destructive control in the dialog, so it
-              // had nothing a sighted user could read. The tooltip also says the
-              // part that decides whether you press it: a synced website will
-              // put the row back, everything typed here will not come back.
-              <Tooltip disableHoverablePopup>
-                <TooltipTrigger
-                  render={
-                    <button
-                      type="button"
-                      onClick={onDelete}
-                      disabled={submitting}
-                      aria-label="Delete this automation"
-                      className="inline-flex size-8 shrink-0 items-center justify-center self-center rounded-md text-red-600 transition-colors hover:bg-red-50 hover:text-red-700 disabled:pointer-events-none disabled:opacity-50 sm:mr-auto"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  }
-                />
-                <TooltipContent className="max-w-xs">
-                  Removes this row from the Motherboard app. A later Refresh List
-                  can add the row back.
-                </TooltipContent>
-              </Tooltip>
-            )}
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={submitting}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={submitting}>
-              {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isEdit ? "Save changes" : "Add Workflow"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-    {/* ⭐ THE "New option" DIALOG, stacked ON TOP of this one, 2026-09-03.
+              {isEdit && onDelete && (
+                // Icon-only, and the most destructive control in the dialog, so it
+                // had nothing a sighted user could read. The tooltip also says the
+                // part that decides whether you press it: a synced website will
+                // put the row back, everything typed here will not come back.
+                <Tooltip disableHoverablePopup>
+                  <TooltipTrigger
+                    render={
+                      <button
+                        type="button"
+                        onClick={onDelete}
+                        disabled={submitting}
+                        aria-label="Delete this automation"
+                        className="inline-flex size-8 shrink-0 items-center justify-center self-center rounded-md text-red-600 transition-colors hover:bg-red-50 hover:text-red-700 disabled:pointer-events-none disabled:opacity-50 sm:mr-auto"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    }
+                  />
+                  <TooltipContent className="max-w-xs">
+                    Removes this row from the Motherboard app. A later Refresh
+                    List can add the row back.
+                  </TooltipContent>
+                </Tooltip>
+              )}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                disabled={submitting}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={submitting}>
+                {submitting && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                {isEdit ? "Save changes" : "Add Workflow"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+      {/* ⭐ THE "New option" DIALOG, stacked ON TOP of this one, 2026-09-03.
         Reuses the Dropdown Configuration page's own ChoiceDialog in its ADD
         mode (`initialValue=""`, no `onDelete`), so the fields, the validation
         and the wording are the page's, not a second implementation.
@@ -1059,32 +1115,32 @@ export function WorkflowDialog({
         seeds its fields from props in an `open`-gated effect, so a fresh mount
         per table is what guarantees no value, status or note leaks from the
         last table's add into the next one's. */}
-    {addKind && (
-      <ChoiceDialog
-        key={addKind}
-        open
-        onOpenChange={(o) => {
-          if (!o) setAddKind(null);
-        }}
-        heading={`Add ${ADD_TARGETS[addKind].singular}`}
-        description={`Add a new option to ${ADD_TARGETS[addKind].title}. It will be selected on this workflow.`}
-        fieldLabel={ADD_TARGETS[addKind].fieldLabel}
-        placeholder={ADD_TARGETS[addKind].placeholder}
-        isUrl={ADD_TARGETS[addKind].isUrl}
-        // Pre-filled with the picker's search text, empty when there was none.
-        // ⚠️ A NON-EMPTY `initialValue` DOES NOT MEAN EDIT MODE. What makes
-        // ChoiceDialog an editor is `onDelete` and `valueLocked`, neither of
-        // which is passed here, so this stays a create.
-        initialValue={addSeed}
-        submitLabel="Add option"
-        showStatus={ADD_TARGETS[addKind].hasStatus}
-        statusOptions={ADD_TARGETS[addKind].statusOptions}
-        initialStatus={ADD_TARGETS[addKind].defaultStatus}
-        showNotes={ADD_TARGETS[addKind].hasNotes}
-        initialNotes=""
-        onSubmit={(payload) => createOption(addKind, payload)}
-      />
-    )}
+      {addKind && (
+        <ChoiceDialog
+          key={addKind}
+          open
+          onOpenChange={(o) => {
+            if (!o) setAddKind(null);
+          }}
+          heading={`Add ${ADD_TARGETS[addKind].singular}`}
+          description={`Add a new option to ${ADD_TARGETS[addKind].title}. It will be selected on this workflow.`}
+          fieldLabel={ADD_TARGETS[addKind].fieldLabel}
+          placeholder={ADD_TARGETS[addKind].placeholder}
+          isUrl={ADD_TARGETS[addKind].isUrl}
+          // Pre-filled with the picker's search text, empty when there was none.
+          // ⚠️ A NON-EMPTY `initialValue` DOES NOT MEAN EDIT MODE. What makes
+          // ChoiceDialog an editor is `onDelete` and `valueLocked`, neither of
+          // which is passed here, so this stays a create.
+          initialValue={addSeed}
+          submitLabel="Add option"
+          showStatus={ADD_TARGETS[addKind].hasStatus}
+          statusOptions={ADD_TARGETS[addKind].statusOptions}
+          initialStatus={ADD_TARGETS[addKind].defaultStatus}
+          showNotes={ADD_TARGETS[addKind].hasNotes}
+          initialNotes=""
+          onSubmit={(payload) => createOption(addKind, payload)}
+        />
+      )}
     </TooltipProvider>
   );
 }
