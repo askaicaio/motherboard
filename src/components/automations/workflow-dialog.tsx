@@ -25,7 +25,7 @@
 // cannot create AUTOMATIONS; creating a dropdown OPTION there is a different
 // thing and is allowed.
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -55,6 +55,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { TOOLTIP_DELAY_MS } from "@/lib/automations/tooltips";
+import { missingRequired } from "@/lib/automations/housekeeping-rule";
 import { SingleChoiceCombobox } from "./single-choice-combobox";
 import { MultiChoiceCombobox } from "./multi-choice-combobox";
 import {
@@ -199,6 +200,18 @@ interface Props {
    *  toast live in the caller, which also closes this dialog on success). Omit
    *  in add mode — there is nothing to delete yet — and the button is hidden. */
   onDelete?: () => void;
+  /** Mark the five REQUIRED columns that are still empty, so someone filling a
+   *  row in can see at a glance what is left.
+   *
+   *  🛑 OPT-IN, AND DELIBERATELY OFF EVERYWHERE BUT HOUSEKEEPING ALERTS. The
+   *  user was asked "every edit popup, or only the one opened from Housekeeping
+   *  Alerts?" and chose **only Housekeeping** (2026-09-17). **Do not flip this
+   *  on by default**, and do not pass it from the website tables or
+   *  `/automations/all` without asking again.
+   *  ⚠️ KEEP IT OFF IN ADD MODE TOO. A brand-new automation has all five empty
+   *  by definition, so the form would open shouting at someone who has not had
+   *  a chance to type anything yet. */
+  flagMissingRequired?: boolean;
 }
 
 export function WorkflowDialog({
@@ -217,6 +230,7 @@ export function WorkflowDialog({
   onCreated,
   onSaved,
   onDelete,
+  flagMissingRequired = false,
 }: Props) {
   const isEdit = !!existing;
   const [submitting, setSubmitting] = useState(false);
@@ -248,6 +262,40 @@ export function WorkflowDialog({
   // Which picker's "New option" button was pressed, i.e. which table the
   // stacked ChoiceDialog is adding to. null = that dialog is closed.
   const [addKind, setAddKind] = useState<AddKind | null>(null);
+
+  /** Which of the five required columns are still empty, for the "Missing"
+   *  markers. An empty set unless the caller opted in.
+   *
+   *  ⭐⭐ IT RUNS THE SHARED RULE, `missingRequired`, NOT A LOCAL COPY. That is
+   *  the same function the Housekeeping list uses to decide a row's red chips
+   *  and whether the row leaves the list at all, and the same logic the server
+   *  query mirrors. **Three surfaces, one definition** - a second copy here
+   *  would let this dialog call a row finished while the list still showed it,
+   *  which reads as a broken page rather than as a disagreement.
+   *  📌 COMPUTED FROM LIVE FORM STATE, not from `existing`, so a marker clears
+   *  the moment you pick an option or type a character. Marking from the saved
+   *  row would leave all five showing until the dialog was reopened.
+   *  📌 `|| null` because the pickers hold "" for "nothing selected" while the
+   *  rule (and the database) speak in nulls. */
+  const missingRequiredNow = useMemo(() => {
+    if (!flagMissingRequired) return new Set<string>();
+    return new Set<string>(
+      missingRequired({
+        purpose,
+        notes,
+        triggerEventChoiceId: triggerEventChoiceId || null,
+        triageChoiceId: triageChoiceId || null,
+        automationTags: automationTagChoiceIds.map((id) => ({ id })),
+      }),
+    );
+  }, [
+    flagMissingRequired,
+    purpose,
+    notes,
+    triggerEventChoiceId,
+    triageChoiceId,
+    automationTagChoiceIds,
+  ]);
   // ⭐ WHAT THE USER HAD TYPED IN THAT PICKER'S SEARCH BOX, used to pre-fill the
   // add dialog's value field. User, 2026-09-03: "When the user types a value on
   // the search bar ... Carry over the value ... This feature is so the user does
@@ -730,7 +778,10 @@ export function WorkflowDialog({
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="wf-automation-tags">Automation Tags</Label>
+            <Label htmlFor="wf-automation-tags">
+              Automation Tags
+              <MissingMark show={missingRequiredNow.has("Automation Tags")} />
+            </Label>
             {/* Multi-select: pick ANY number of Automation Tags from the
                 configured choices (managed on the Dropdown Configuration page).
                 Optional; the trigger shows the selected tags as chips, red
@@ -754,7 +805,10 @@ export function WorkflowDialog({
             </p>
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="wf-trigger-event">Trigger Event</Label>
+            <Label htmlFor="wf-trigger-event">
+              Trigger Event
+              <MissingMark show={missingRequiredNow.has("Trigger Event")} />
+            </Label>
             {/* Single-select: pick ONE Trigger Event option from the configured
                 choices (managed on the Dropdown Configuration page). Optional;
                 the "None" row clears it. Mirrors the Author dropdown. */}
@@ -776,7 +830,10 @@ export function WorkflowDialog({
             </p>
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="wf-triage">Evaluation</Label>
+            <Label htmlFor="wf-triage">
+              Evaluation
+              <MissingMark show={missingRequiredNow.has("Evaluation")} />
+            </Label>
             {/* Single-select: what should HAPPEN to this automation. Optional;
                 the "None" row clears it back to NOT YET TRIAGED, which is a
                 different thing from the "Unknown" choice.
@@ -806,7 +863,10 @@ export function WorkflowDialog({
 
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="wf-purpose">Purpose</Label>
+            <Label htmlFor="wf-purpose">
+              Purpose
+              <MissingMark show={missingRequiredNow.has("Purpose")} />
+            </Label>
             <Textarea
               id="wf-purpose"
               value={purpose}
@@ -830,7 +890,10 @@ export function WorkflowDialog({
           <div className="space-y-1.5">
             {/* Notes: a second free-text note, mirrors the Purpose field above
                 exactly (same textarea setup), just labelled "Notes". */}
-            <Label htmlFor="wf-notes">Notes</Label>
+            <Label htmlFor="wf-notes">
+              Notes
+              <MissingMark show={missingRequiredNow.has("Notes")} />
+            </Label>
             <Textarea
               id="wf-notes"
               value={notes}
@@ -1023,5 +1086,24 @@ export function WorkflowDialog({
       />
     )}
     </TooltipProvider>
+  );
+}
+
+/** The red "Missing" marker beside a required column's label.
+ *
+ *  ⭐ THE STYLING IS LIFTED FROM THE HOUSEKEEPING LIST'S RED CHIPS on purpose -
+ *  same `bg-red-50 / text-red-600 / ring-red-200`, same 10px type. **A person
+ *  arrives here by clicking a row that showed them exactly those chips**, so the
+ *  dialog repeating the colour is what makes the two read as one thing.
+ *  📌 IT SAYS "Missing", NOT THE COLUMN NAME. The list's chips carry the column
+ *  name because they have no label of their own; here the `<Label>` beside it
+ *  already does, so repeating it would be the word twice.
+ *  📌 `<Label>` is `flex` with a `gap`, so this needs no margin of its own. */
+function MissingMark({ show }: { show: boolean }) {
+  if (!show) return null;
+  return (
+    <span className="rounded bg-red-50 px-1.5 py-0.5 text-[10px] font-medium text-red-600 ring-1 ring-red-200">
+      Missing
+    </span>
   );
 }
