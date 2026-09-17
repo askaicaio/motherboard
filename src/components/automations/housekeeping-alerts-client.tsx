@@ -36,7 +36,10 @@ import {
   missingRequired,
 } from "@/lib/automations/housekeeping-rule";
 import type { RequiredColumn } from "@/lib/automations/housekeeping-rule";
-import type { HousekeepingRow } from "@/lib/automations/housekeeping";
+import type {
+  HousekeepingCoverage,
+  HousekeepingRow,
+} from "@/lib/automations/housekeeping";
 import { cn } from "@/lib/utils";
 
 interface ChoiceOption {
@@ -87,12 +90,31 @@ const COLUMN_WIDTHS = ["120px", "110px", "95px", "85px", "75px"] as const;
  *  the two pages read as the same app. */
 const NAME_WIDTH = "400px";
 
+/** How wide the table's column holds, in pixels.
+ *
+ *  ⭐⭐ THE SIX COLUMNS ADD UP TO 885 (400 + 120 + 110 + 95 + 85 + 75). The card
+ *  gets 902: **885 of columns, ~15 for the scroll window's own scrollbar, 2 for
+ *  the card's border.** Anything left over lands in the trailing slack `<col>`,
+ *  which is why that column still exists even though the table no longer
+ *  stretches.
+ *
+ *  🛑 IT IS FIXED SO THE TABLE STOPS EATING THE WHOLE ROW. Until 2026-09-17 the
+ *  card was full width and the slack column swallowed ~264px of nothing: "we
+ *  have this large empty spot here ... looks weird having it there." **The fix
+ *  was not to widen a column** - it was to stop the table taking space it had no
+ *  content for, and give that space to the coverage panels.
+ *  ⚠️ SO A NEW COLUMN MEANS UPDATING THIS NUMBER TOO, or the slack column
+ *  silently absorbs it and the panels never notice. */
+const TABLE_CARD_WIDTH = 902;
+
 export function HousekeepingAlertsClient({
   initialRows,
   choices,
+  coverage,
 }: {
   initialRows: HousekeepingRow[];
   choices: HousekeepingChoices;
+  coverage: HousekeepingCoverage;
 }) {
   const [rows, setRows] = useState(initialRows);
   const [site, setSite] = useState<string | null>(null);
@@ -220,48 +242,55 @@ export function HousekeepingAlertsClient({
         ))}
       </div>
 
-      {visible.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-2 rounded-lg py-16 text-center ring-1 ring-foreground/10">
-          <Inbox className="h-6 w-6 text-zinc-300" />
-          <p className="text-sm font-medium text-zinc-900">
-            Nothing to fill in
-          </p>
-          <p className="text-xs text-zinc-500">
-            Every automation here has all five required columns filled.
-          </p>
-        </div>
-      ) : (
-        // ⭐⭐ A BOUNDED SCROLL WINDOW, THE SAME ONE THE PER WEBSITE TABLES USE,
-        // 2026-09-13: "I want the table in Housekeeping to have the same width
-        // limits, and scrolling feature. Displaying everything in a tall window
-        // isnt the way to go. We should be displaying everything in a small
-        // window that has a scroll bar."
-        //
-        // ⚠️ THE PATTERN IS COPIED EXACTLY, not approximated: a `Card` whose
-        // `CardContent` is the scroll area, `max-h-[70vh] overflow-auto p-0`,
-        // with `useFitViewportHeight` overriding that max-height once measured.
-        // **The class is the pre-measurement fallback and the inline style is the
-        // real cap**; dropping either one breaks a different case (first paint
-        // vs. a container that starts far down the page). That hook's own file
-        // explains why a plain `max-h-[70vh]` is not enough here.
-        //
-        // 📌 NO ROW CAP ANY MORE. It used to render the first 100 with a
-        // "showing 100 of 526" footer, which existed ONLY because the page grew
-        // to 6432px otherwise. **The window solves that properly**, so all 526
-        // render and you scroll them. The tables next door carry 344 rows of 20
-        // columns this way, so this is well inside what the pattern handles.
-        // ⚠️ ONE CONSEQUENCE WORTH KNOWING: the cap used to depend on the
-        // fewest-missing-first ordering to avoid hiding the finishable rows.
-        // **Nothing is hidden now, so that dependency is gone** - the ordering
-        // is still there, but it is a convenience rather than a correctness
-        // requirement.
-        <Card>
-          <CardContent
-            ref={scrollRef}
-            style={scrollStyle}
-            className="max-h-[70vh] overflow-auto p-0"
-          >
-            {/* ⭐⭐ SIX COLUMNS, SPECIFIED BY THE USER 2026-09-15: "Do it this
+      {/* ⭐⭐ TABLE LEFT, COVERAGE PANELS RIGHT, 2026-09-17: "Shrink the table
+          in S2 to remove this empty space, and put the statistic there."
+          ⚠️ `items-start` MATTERS. Without it the panels column stretches to the
+          table's height and the last panel floats away from the fourth; the
+          panels are meant to stack from the top and stop. */}
+      <div className="flex items-start gap-4">
+        <div className="shrink-0" style={{ width: TABLE_CARD_WIDTH }}>
+          {visible.length === 0 ? (
+            <div className="flex flex-col items-center justify-center gap-2 rounded-lg py-16 text-center ring-1 ring-foreground/10">
+              <Inbox className="h-6 w-6 text-zinc-300" />
+              <p className="text-sm font-medium text-zinc-900">
+                Nothing to fill in
+              </p>
+              <p className="text-xs text-zinc-500">
+                Every automation here has all five required columns filled.
+              </p>
+            </div>
+          ) : (
+            // ⭐⭐ A BOUNDED SCROLL WINDOW, THE SAME ONE THE PER WEBSITE TABLES USE,
+            // 2026-09-13: "I want the table in Housekeeping to have the same width
+            // limits, and scrolling feature. Displaying everything in a tall window
+            // isnt the way to go. We should be displaying everything in a small
+            // window that has a scroll bar."
+            //
+            // ⚠️ THE PATTERN IS COPIED EXACTLY, not approximated: a `Card` whose
+            // `CardContent` is the scroll area, `max-h-[70vh] overflow-auto p-0`,
+            // with `useFitViewportHeight` overriding that max-height once measured.
+            // **The class is the pre-measurement fallback and the inline style is the
+            // real cap**; dropping either one breaks a different case (first paint
+            // vs. a container that starts far down the page). That hook's own file
+            // explains why a plain `max-h-[70vh]` is not enough here.
+            //
+            // 📌 NO ROW CAP ANY MORE. It used to render the first 100 with a
+            // "showing 100 of 526" footer, which existed ONLY because the page grew
+            // to 6432px otherwise. **The window solves that properly**, so all 526
+            // render and you scroll them. The tables next door carry 344 rows of 20
+            // columns this way, so this is well inside what the pattern handles.
+            // ⚠️ ONE CONSEQUENCE WORTH KNOWING: the cap used to depend on the
+            // fewest-missing-first ordering to avoid hiding the finishable rows.
+            // **Nothing is hidden now, so that dependency is gone** - the ordering
+            // is still there, but it is a convenience rather than a correctness
+            // requirement.
+            <Card>
+              <CardContent
+                ref={scrollRef}
+                style={scrollStyle}
+                className="max-h-[70vh] overflow-auto p-0"
+              >
+                {/* ⭐⭐ SIX COLUMNS, SPECIFIED BY THE USER 2026-09-15: "Do it this
                 way, each number represents the columns from left to right.
                 1.) Name with Link below it 2.) Automation tags 3.) Trigger
                 Event 4.) Evaluation 5.) Purpose 6.) Notes."
@@ -279,14 +308,14 @@ export function HousekeepingAlertsClient({
                 taking the words out of the cells, and that swap was offered and
                 declined: "Keep the functionality of the Gray and red indicator
                 you made, were just repositioning them." */}
-            <table className="w-full table-fixed border-collapse text-sm">
-              <colgroup>
-                {/* Name + link, pinned to the website tables' own width. */}
-                <col style={{ width: NAME_WIDTH }} />
-                {COLUMN_WIDTHS.map((w, i) => (
-                  <col key={REQUIRED_COLUMNS[i]} style={{ width: w }} />
-                ))}
-                {/* ⭐⭐ THE SLACK COLUMN, AND IT IS LOAD-BEARING. Every real
+                <table className="w-full table-fixed border-collapse text-sm">
+                  <colgroup>
+                    {/* Name + link, pinned to the website tables' own width. */}
+                    <col style={{ width: NAME_WIDTH }} />
+                    {COLUMN_WIDTHS.map((w, i) => (
+                      <col key={REQUIRED_COLUMNS[i]} style={{ width: w }} />
+                    ))}
+                    {/* ⭐⭐ THE SLACK COLUMN, AND IT IS LOAD-BEARING. Every real
                     column now has a fixed width, and they add up to less than
                     the card. **`table-fixed` shares leftover space out across
                     the columns that have widths**, so without something to
@@ -299,8 +328,8 @@ export function HousekeepingAlertsClient({
                     sprayed through the row.
                     ⚠️ It renders no cell. A `<col>` with no matching `<td>` is
                     fine - the column simply has no content in any row. */}
-                <col />
-                {/* 🛑 THE SIX DATA COLUMNS ARE THE WHOLE LIST. There was a
+                    <col />
+                    {/* 🛑 THE SIX DATA COLUMNS ARE THE WHOLE LIST. There was a
                     SEVENTH, Active / Paused. I kept it in #537 on the argument
                     that it pre-dated the restructure and sat outside the region
                     the user had marked up; **they removed it on 2026-09-15
@@ -315,24 +344,34 @@ export function HousekeepingAlertsClient({
                     📌 THE ACTION COLUMN ABOVE IS NOT A BREACH OF THAT: it was
                     asked for by name, and it carries a CONTROL rather than any
                     of the row's data. */}
-              </colgroup>
-              {/* ⚠️ `divide-y`, NOT a `border-t` on every row. With no header
+                  </colgroup>
+                  {/* ⚠️ `divide-y`, NOT a `border-t` on every row. With no header
                   above it, a top border on the FIRST row draws a second line
                   immediately inside the card's own edge, which reads as a
                   rendering glitch rather than as a divider. */}
-              <tbody className="divide-y">
-                {visible.map((row) => (
-                  <ListRow
-                    key={row.id}
-                    row={row}
-                    onEdit={() => setEditing(row)}
-                  />
-                ))}
-              </tbody>
-            </table>
-          </CardContent>
-        </Card>
-      )}
+                  <tbody className="divide-y">
+                    {visible.map((row) => (
+                      <ListRow
+                        key={row.id}
+                        row={row}
+                        onEdit={() => setEditing(row)}
+                      />
+                    ))}
+                  </tbody>
+                </table>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* ⚠️ THE PANELS DO NOT FOLLOW THE WEBSITE FILTER. The chips above filter
+            the TABLE; these five always show all five websites, because the ask
+            was "One statistic of each per website page, making it 5 total" and
+            because the point of them is to compare websites against each other.
+            Filtering to n8n and seeing one panel would answer a question nobody
+            asked. */}
+        <CoveragePanels coverage={coverage} />
+      </div>
 
       {/* ⚠️ ONE DIALOG FOR THE WHOLE PAGE, keyed by the row's id so it remounts
           with fresh field state each time. Rendering one per row would mount
@@ -392,6 +431,100 @@ export function HousekeepingAlertsClient({
       ) : null}
     </div>
   );
+}
+
+/** One compact "Documentation by Field" panel per website.
+ *
+ *  ⭐ THE HUB'S PANEL IS THE REFERENCE and the row shape is deliberately the
+ *  same: label, bar, percent, with the four-step colour ramp. **The user pointed
+ *  at it**: "Use this S1 statistic as a reference."
+ *
+ *  ⚠️⚠️ ONE DELIBERATE DEVIATION, AND IT IS THE DENOMINATOR. The hub prints
+ *  `113/115` on EVERY row; here the total sits ONCE in the panel header.
+ *  **Within a panel the denominator is the same for all five rows, so repeating
+ *  it five times is five copies of one fact** - and this column is ~263px, where
+ *  the hub's is over 500. The hub's own note argues its counts column must never
+ *  be hidden behind a viewport query; this is not that. It is a different,
+ *  narrower component that shows the number once instead of not at all.
+ *
+ *  📌 ROWS COME FROM `REQUIRED_COLUMNS`, so the order matches the table's
+ *  columns and the hub's panel without a third list to keep in step. */
+function CoveragePanels({ coverage }: { coverage: HousekeepingCoverage }) {
+  return (
+    <div className="min-w-0 flex-1 space-y-2">
+      {AUTOMATION_SITES.map((site) => {
+        const data = coverage[site.slug];
+        const total = data?.total ?? 0;
+        return (
+          <div
+            key={site.slug}
+            className="overflow-hidden rounded-lg bg-card ring-1 ring-foreground/10"
+          >
+            <div className="flex items-center gap-1.5 border-b bg-muted/40 px-2.5 py-1">
+              <SiteGlyph site={site} className="h-3.5 w-3.5" />
+              <span className="min-w-0 flex-1 truncate text-[11px] font-semibold text-zinc-800">
+                {site.label}
+              </span>
+              {/* The denominator, once per panel. See the note above. */}
+              <span className="shrink-0 text-[10px] tabular-nums text-zinc-500">
+                {total}
+              </span>
+            </div>
+            {total === 0 ? (
+              // ⚠️ Handled rather than dividing by zero into five 0% bars, which
+              // would read as a real measurement of an empty website.
+              <p className="px-2.5 py-3 text-center text-[10px] text-zinc-400">
+                No automations recorded.
+              </p>
+            ) : (
+              <ul className="divide-y">
+                {REQUIRED_COLUMNS.map((col) => {
+                  const filled = data?.filled[col] ?? 0;
+                  const pct = (filled / total) * 100;
+                  return (
+                    <li
+                      key={col}
+                      className="flex items-center gap-2 px-2.5 py-0.5"
+                      // The fraction the hub prints inline still exists, just on
+                      // hover rather than taking a column this panel cannot spare.
+                      title={`${col}: ${filled} of ${total}`}
+                    >
+                      <span className="w-[86px] shrink-0 truncate text-[10px] font-medium text-zinc-600">
+                        {col}
+                      </span>
+                      <div className="flex h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-zinc-100">
+                        <span
+                          className={cn("rounded-full", barClass(pct))}
+                          style={{ width: `${Math.min(100, pct)}%` }}
+                        />
+                      </div>
+                      <span className="w-8 shrink-0 text-right text-[10px] font-semibold tabular-nums text-zinc-900">
+                        {Math.round(pct)}%
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** The coverage bar's colour ramp.
+ *
+ *  ⚠️ A LOCAL COPY OF THE LIVE HUB'S `barClass`, thresholds unchanged, so the
+ *  two panels grade identically. It is four steps and not a gradient on purpose:
+ *  a glance should sort rows into "nobody has touched this", "half done" and
+ *  "done", which a continuous scale cannot do. **If the hub's ramp changes, this
+ *  is the other place it lives.** */
+function barClass(p: number): string {
+  if (p < 20) return "bg-red-400";
+  if (p < 45) return "bg-amber-400";
+  if (p < 70) return "bg-emerald-400";
+  return "bg-emerald-600";
 }
 
 function FilterChip({

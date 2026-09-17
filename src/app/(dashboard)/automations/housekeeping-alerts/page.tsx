@@ -26,6 +26,7 @@ import { requireAuth } from "@/lib/auth/guard";
 import { HousekeepingAlertsClient } from "@/components/automations/housekeeping-alerts-client";
 import {
   getHousekeepingChoices,
+  getHousekeepingCoverage,
   getHousekeepingRows,
 } from "@/lib/automations/housekeeping";
 import { REQUIRED_COLUMNS } from "@/lib/automations/housekeeping-rule";
@@ -36,11 +37,15 @@ export default async function AutomationsHousekeepingAlertsPage() {
   await requireAuth();
 
   // ⚠️ SEE THE READ-BUDGET NOTE in `housekeeping.ts` before adding anything
-  // here. These two together peak at five concurrent reads against a `max: 10`
+  // here. These three together peak at FIVE concurrent reads against a `max: 10`
   // pool, and the margin is deliberate.
-  const [rows, choices] = await Promise.all([
+  // 📌 `getHousekeepingCoverage` is ONE query precisely so it can join this wave
+  // without pushing the peak higher; it folds its junction count into an
+  // `exists` rather than taking a second read. Its own note explains why.
+  const [rows, choices, coverage] = await Promise.all([
     getHousekeepingRows(),
     getHousekeepingChoices(),
+    getHousekeepingCoverage(),
   ]);
 
   return (
@@ -68,7 +73,11 @@ export default async function AutomationsHousekeepingAlertsPage() {
         </p>
       </div>
 
-      <HousekeepingAlertsClient initialRows={rows} choices={choices} />
+      <HousekeepingAlertsClient
+        initialRows={rows}
+        choices={choices}
+        coverage={coverage}
+      />
     </div>
   );
 }
