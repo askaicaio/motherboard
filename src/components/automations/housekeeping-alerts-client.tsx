@@ -364,13 +364,10 @@ export function HousekeepingAlertsClient({
           )}
         </div>
 
-        {/* ⚠️ THE PANELS DO NOT FOLLOW THE WEBSITE FILTER. The chips above filter
-            the TABLE; these five always show all five websites, because the ask
-            was "One statistic of each per website page, making it 5 total" and
-            because the point of them is to compare websites against each other.
-            Filtering to n8n and seeing one panel would answer a question nobody
-            asked. */}
-        <CoveragePanels coverage={coverage} />
+        {/* ⚠️ IT DOES NOT FOLLOW THE WEBSITE FILTER. The chips above filter the
+            TABLE; this counts the whole estate either way. It is one figure about
+            how documented the estate is, not a second view of the list. */}
+        <CoveragePanel coverage={coverage} />
       </div>
 
       {/* ⚠️ ONE DIALOG FOR THE WHOLE PAGE, keyed by the row's id so it remounts
@@ -433,82 +430,74 @@ export function HousekeepingAlertsClient({
   );
 }
 
-/** One compact "Documentation by Field" panel per website.
+/** "Documentation by Field" for the whole estate, in the space the table
+ *  gave back.
  *
- *  ⭐ THE HUB'S PANEL IS THE REFERENCE and the row shape is deliberately the
- *  same: label, bar, percent, with the four-step colour ramp. **The user pointed
- *  at it**: "Use this S1 statistic as a reference."
+ *  🛑 IT WAS FIVE PANELS, ONE PER WEBSITE, FOR ONE ROUND (#554). The user
+ *  replaced them the same day: "seeing it now, the proportions are way too
+ *  small. So instead, just make it one statistic that combines all the
+ *  websites." **Five panels split the column five ways, so every bar, label and
+ *  percentage was a fifth of the size it could be.** With one panel the row can
+ *  be the hub's full shape.
  *
- *  ⚠️⚠️ ONE DELIBERATE DEVIATION, AND IT IS THE DENOMINATOR. The hub prints
- *  `113/115` on EVERY row; here the total sits ONCE in the panel header.
- *  **Within a panel the denominator is the same for all five rows, so repeating
- *  it five times is five copies of one fact** - and this column is ~263px, where
- *  the hub's is over 500. The hub's own note argues its counts column must never
- *  be hidden behind a viewport query; this is not that. It is a different,
- *  narrower component that shows the number once instead of not at all.
- *
- *  📌 ROWS COME FROM `REQUIRED_COLUMNS`, so the order matches the table's
- *  columns and the hub's panel without a third list to keep in step. */
-function CoveragePanels({ coverage }: { coverage: HousekeepingCoverage }) {
+ *  ⭐ SO THE ROW IS NOW THE HUB'S ROW, fraction included: label, bar, percent,
+ *  filled-over-total. The five-panel version had to drop the fraction to a
+ *  `title` because 263px could not hold it; **one panel has the room, so the
+ *  number is back on the row where the reference puts it.**
+ *  📌 IT IS SIZED LARGER THAN THE HUB'S (text-sm, py-4, a thicker bar) because
+ *  this panel is alone in a tall column rather than stacked with two siblings in
+ *  a detail pane. **The proportions ARE the fix here, so do not shrink them back
+ *  to the hub's without a reason.**
+ *  📌 Rows map over `REQUIRED_COLUMNS`, so the order and the names match the
+ *  table beside it and the hub's panel, with no third list to keep in step. */
+function CoveragePanel({ coverage }: { coverage: HousekeepingCoverage }) {
+  const { total, filled } = coverage;
   return (
-    <div className="min-w-0 flex-1 space-y-2">
-      {AUTOMATION_SITES.map((site) => {
-        const data = coverage[site.slug];
-        const total = data?.total ?? 0;
-        return (
-          <div
-            key={site.slug}
-            className="overflow-hidden rounded-lg bg-card ring-1 ring-foreground/10"
-          >
-            <div className="flex items-center gap-1.5 border-b bg-muted/40 px-2.5 py-1">
-              <SiteGlyph site={site} className="h-3.5 w-3.5" />
-              <span className="min-w-0 flex-1 truncate text-[11px] font-semibold text-zinc-800">
-                {site.label}
-              </span>
-              {/* The denominator, once per panel. See the note above. */}
-              <span className="shrink-0 text-[10px] tabular-nums text-zinc-500">
-                {total}
-              </span>
-            </div>
-            {total === 0 ? (
-              // ⚠️ Handled rather than dividing by zero into five 0% bars, which
-              // would read as a real measurement of an empty website.
-              <p className="px-2.5 py-3 text-center text-[10px] text-zinc-400">
-                No automations recorded.
-              </p>
-            ) : (
-              <ul className="divide-y">
-                {REQUIRED_COLUMNS.map((col) => {
-                  const filled = data?.filled[col] ?? 0;
-                  const pct = (filled / total) * 100;
-                  return (
-                    <li
-                      key={col}
-                      className="flex items-center gap-2 px-2.5 py-0.5"
-                      // The fraction the hub prints inline still exists, just on
-                      // hover rather than taking a column this panel cannot spare.
-                      title={`${col}: ${filled} of ${total}`}
-                    >
-                      <span className="w-[86px] shrink-0 truncate text-[10px] font-medium text-zinc-600">
-                        {col}
-                      </span>
-                      <div className="flex h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-zinc-100">
-                        <span
-                          className={cn("rounded-full", barClass(pct))}
-                          style={{ width: `${Math.min(100, pct)}%` }}
-                        />
-                      </div>
-                      <span className="w-8 shrink-0 text-right text-[10px] font-semibold tabular-nums text-zinc-900">
-                        {Math.round(pct)}%
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
-        );
-      })}
+    <div className="min-w-0 flex-1">
+      <div className="overflow-hidden rounded-lg bg-card ring-1 ring-foreground/10">
+        <div className="flex items-center justify-between gap-2 border-b bg-muted/40 px-4 py-2.5">
+          <span className="text-sm font-semibold text-zinc-800">
+            Documentation by Field
+          </span>
+          {/* The denominator, once. Every row shares it. */}
+          <span className="text-[11px] tracking-wider text-zinc-500 uppercase">
+            all websites
+          </span>
+        </div>
+        {total === 0 ? (
+          // ⚠️ Handled rather than dividing by zero into five 0% bars, which
+          // would read as a real measurement of an empty estate.
+          <p className="px-4 py-8 text-center text-xs text-zinc-400">
+            No automations recorded.
+          </p>
+        ) : (
+          <ul className="divide-y">
+            {REQUIRED_COLUMNS.map((col) => {
+              const n = filled[col] ?? 0;
+              const pct = (n / total) * 100;
+              return (
+                <li key={col} className="flex items-center gap-3 px-4 py-4">
+                  <span className="w-32 shrink-0 truncate text-sm font-medium text-zinc-700">
+                    {col}
+                  </span>
+                  <div className="flex h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-zinc-100">
+                    <span
+                      className={cn("rounded-full", barClass(pct))}
+                      style={{ width: `${Math.min(100, pct)}%` }}
+                    />
+                  </div>
+                  <span className="w-11 shrink-0 text-right text-sm font-semibold tabular-nums text-zinc-900">
+                    {Math.round(pct)}%
+                  </span>
+                  <span className="w-20 shrink-0 text-right text-xs tabular-nums text-zinc-400">
+                    {n}/{total}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }
