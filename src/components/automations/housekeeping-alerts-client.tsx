@@ -520,15 +520,27 @@ function CoveragePanel({ coverage }: { coverage: HousekeepingCoverage }) {
 
 /** The coverage bar's colour ramp.
  *
- *  ⚠️ A LOCAL COPY OF THE LIVE HUB'S `barClass`, thresholds unchanged, so the
- *  two panels grade identically. It is four steps and not a gradient on purpose:
- *  a glance should sort rows into "nobody has touched this", "half done" and
- *  "done", which a continuous scale cannot do. **If the hub's ramp changes, this
- *  is the other place it lives.** */
+ *  ⚠️ A LOCAL COPY OF THE LIVE HUB'S `barClass`, kept identical so the two
+ *  panels grade the same. **If one changes, change both** - that is the user's
+ *  explicit choice (asked 2026-09-18), not an assumption.
+ *
+ *  ⭐⭐ THREE STEPS AT 30 AND 70, SET BY THE USER 2026-09-18: "Remove the
+ *  conditional for Emerald 400. Stretch the amber conditional to also fit in the
+ *  conditional that got removed ... Under 30% / 30%-70% / 70% and above."
+ *      **under 30%  -> red-400**      nobody has really started
+ *      **30% to 70% -> amber-400**    in progress
+ *      **70% and up -> emerald-600**  done enough
+ *  🛑 IT WAS FOUR STEPS AT 20/45/70 (red, amber, emerald-400, emerald-600),
+ *  inherited from Alpha6 and never chosen for this app. **emerald-400 is gone and
+ *  amber absorbed its band**, which is why the middle step is now much wider than
+ *  the other two.
+ *  ⚠️ NOT A GRADIENT, AND STILL FOR THE SAME REASON: a glance should sort rows
+ *  into "nobody has touched this", "in progress" and "done", which a continuous
+ *  scale cannot do. **Three steps says that more plainly than four did** - the old
+ *  pair of greens split "done" in two for no stated reason. */
 function barClass(p: number): string {
-  if (p < 20) return "bg-red-400";
-  if (p < 45) return "bg-amber-400";
-  if (p < 70) return "bg-emerald-400";
+  if (p < 30) return "bg-red-400";
+  if (p < 70) return "bg-amber-400";
   return "bg-emerald-600";
 }
 

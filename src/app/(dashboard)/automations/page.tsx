@@ -2548,15 +2548,29 @@ function CoverageByField({
   );
 }
 
-/** The coverage bar's colour ramp. Alpha6's thresholds, unchanged.
+/** The coverage bar's colour ramp.
  *
- *  ⚠️ FOUR STEPS AND NOT A GRADIENT: the point is that a glance sorts the rows
- *  into "nobody has touched this", "half done" and "done", which a continuous
- *  scale cannot do. */
+ *  ⭐⭐ THREE STEPS AT 30 AND 70, SET BY THE USER 2026-09-18: "Remove the
+ *  conditional for Emerald 400. Stretch the amber conditional to also fit in the
+ *  conditional that got removed ... Under 30% / 30%-70% / 70% and above."
+ *      **under 30%  -> red-400**      nobody has really started
+ *      **30% to 70% -> amber-400**    in progress
+ *      **70% and up -> emerald-600**  done enough
+ *  🛑 IT WAS FOUR STEPS AT 20/45/70 (red, amber, emerald-400, emerald-600),
+ *  inherited from Alpha6 and never chosen for this app. **emerald-400 is gone and
+ *  amber absorbed its band**, which is why the middle step is now much wider than
+ *  the other two.
+ *  ⚠️ NOT A GRADIENT, AND STILL FOR THE SAME REASON: a glance should sort rows
+ *  into "nobody has touched this", "in progress" and "done", which a continuous
+ *  scale cannot do. **Three steps says that more plainly than four did** - the old
+ *  pair of greens split "done" in two for no stated reason.
+ *
+ *  ⚠️ THE HOUSEKEEPING PAGE HAS THE OTHER COPY of this function and the two must
+ *  stay in step: the user was asked and chose to change both, so **the same
+ *  percentage renders the same colour on both pages.** */
 function barClass(p: number): string {
-  if (p < 20) return "bg-red-400";
-  if (p < 45) return "bg-amber-400";
-  if (p < 70) return "bg-emerald-400";
+  if (p < 30) return "bg-red-400";
+  if (p < 70) return "bg-amber-400";
   return "bg-emerald-600";
 }
 
