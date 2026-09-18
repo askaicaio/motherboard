@@ -1,5 +1,15 @@
-// Automations "Housekeeping Alerts" page, reached from the FOURTH button in the
-// Main Page toolbar strip.
+// Automations "Housekeeping" page, reached from the FOURTH button in the Main
+// Page toolbar strip.
+//
+// ⚠️⚠️ THE ROUTE IS STILL `/automations/housekeeping-alerts` AND THAT IS
+// DELIBERATE. Only the LABEL changed (2026-09-18): "Alerts" was the weak half -
+// nothing on this page alerts, it lists records nobody has finished typing, and
+// the tab already uses "alerts" for Error History and Latest Errors, which are
+// about automations that genuinely broke. **Reusing the word for "someone has
+// not written a Purpose yet" made the real one quieter.**
+// 📌 The folder, the component name and every `getHousekeeping*` identifier keep
+// the old spelling so no link, bookmark or import breaks. **Do not rename the
+// route to match the label** without a redirect.
 //
 // ⭐ THE ASK, 2026-09-03: "the page that shows what still needs to be manually
 // evaluated." The RULE, given 2026-09-13: "these are the five columns that users
@@ -60,7 +70,7 @@ export default async function AutomationsHousekeepingAlertsPage() {
 
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">
-          Housekeeping Alerts
+          Housekeeping
         </h1>
         {/* ⚠️ THE SUBTITLE NAMES THE FIVE COLUMNS rather than saying "incomplete
             records". The page's whole contract is those five and nothing else,

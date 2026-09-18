@@ -128,7 +128,7 @@ import Link from "next/link";
 // the cards' Error History button uses it rather than introducing a second one.
 import {
   AlertTriangle,
-  // Housekeeping Alerts, added 2026-09-13. A broom reads as tidying-up work,
+  // Housekeeping, added 2026-09-13. A broom reads as tidying-up work,
   // which is what that page is; the app has no other cleanup surface to
   // collide with.
   Brush,
@@ -541,7 +541,7 @@ export default async function AutomationsPage({
         )
         .where(eq(automations.platform, selected.slug))
         .groupBy(automationDropdownChoices.columnKey),
-      // How many automations the Housekeeping Alerts page would list, for the
+      // How many automations the Housekeeping page would list, for the
       // count pill in the toolbar strip below. ONE aggregate over the same
       // predicate that page's list uses, so the pill and the page can't disagree.
       // ⚠️ WHOLE ESTATE, NOT `selected.slug`. The page it links to opens on
@@ -807,7 +807,13 @@ export default async function AutomationsPage({
               className={cn(TOOL_SEGMENT, "border-l")}
             >
               <Brush className="h-4 w-4 text-zinc-500" />
-              Housekeeping Alerts
+              Housekeeping
+              {/* ⚠️ THE LABEL LOST "Alerts" ON 2026-09-18 and the ROUTE did not:
+                  it is still `/automations/housekeeping-alerts`. Nothing here
+                  alerts - it lists records nobody has finished typing - and this
+                  tab already uses "alerts" for Error History and Latest Errors,
+                  which are about automations that actually broke. **Do not
+                  rename the route to match** without a redirect. */}
               {/* ⭐ THE COUNT PILL, 2026-09-15: "add a red pill with red text to
                   the right side ... the total number of alerts currently in the
                   page."
