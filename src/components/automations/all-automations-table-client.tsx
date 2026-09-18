@@ -104,6 +104,24 @@ function websiteLabelFor(slug: string): string {
   return SITE_BY_SLUG.get(slug)?.label ?? slug;
 }
 
+/** platform slug -> its index in `AUTOMATION_SITES`: the canonical website
+ *  order, Make, n8n, GHL, GHL B2B, Zapier.
+ *
+ *  ⭐⭐ THE WEBSITE COLUMN SORTS BY THIS AND NOT ALPHABETICALLY (user, 2026-09-18).
+ *  Alphabetical put both GHLs above Make and n8n, which is a DIFFERENT ORDER
+ *  from the one every other surface shows - the hub's rail, the Housekeeping
+ *  filter chips, the Feature Integration columns and the Housekeeping list all
+ *  map `AUTOMATION_SITES` directly. **That array is the app's one website
+ *  order, so reordering it in `sites.ts` moves this column too.**
+ *  📌 AN UNKNOWN SLUG RANKS LAST, not 0: a platform that exists in the database
+ *  but not in `AUTOMATION_SITES` must not silently take the top of the table. */
+const SITE_RANK = new Map(AUTOMATION_SITES.map((s, i) => [s.slug, i] as const));
+
+/** Canonical position of a platform slug; unknown slugs sort after all known. */
+function websiteRankFor(slug: string): number {
+  return SITE_RANK.get(slug) ?? AUTOMATION_SITES.length;
+}
+
 type SortKey =
   | "name"
   | "website"
@@ -665,13 +683,12 @@ export function AllAutomationsTableClient({
             a.name.localeCompare(b.name, undefined, { sensitivity: "base" })
           );
         case "website":
+          // ⚠️ CANONICAL ORDER, NOT A-Z. ▲ runs Make -> Zapier exactly as
+          // `sites.ts` lists them, and ▼ reverses it. **Equal ranks keep the
+          // base order, which is name-ascending from the loader**, so each
+          // website's block is still alphabetical inside itself.
           return (
-            dir *
-            websiteLabelFor(a.platform).localeCompare(
-              websiteLabelFor(b.platform),
-              undefined,
-              { sensitivity: "base" },
-            )
+            dir * (websiteRankFor(a.platform) - websiteRankFor(b.platform))
           );
         case "status": {
           const rank = (s: string) => (s === "active" ? 0 : 1);
