@@ -69,17 +69,22 @@ export default async function AutomationsHousekeepingAlertsPage() {
       </Link>
 
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Housekeeping
-        </h1>
-        {/* ⚠️ THE SUBTITLE NAMES THE FIVE COLUMNS rather than saying "incomplete
-            records". The page's whole contract is those five and nothing else,
-            and a reader who does not know that cannot tell why a row they think
-            is finished is still listed. */}
+        <h1 className="text-2xl font-semibold tracking-tight">Housekeeping</h1>
+        {/* ⚠️ IT USED TO NAME THE FIVE COLUMNS HERE and the user cut that list
+            on 2026-09-18, replacing "Click a row to fill it in" with what
+            actually clears a row.
+            📌 The old argument was that a reader who does not know the contract
+            cannot tell why a row they think is finished is still listed. It
+            lost because **the names are already on screen twice** - the table
+            headers spell them out left to right and the coverage panel lists
+            all five - so the sentence was repeating the screen instead of
+            telling the reader what to DO.
+            ⚠️ THE COUNT IS STILL COMPUTED, not typed, so it cannot drift from
+            the rule if a sixth column is ever required. */}
         <p className="mt-1 text-sm text-zinc-500">
           Automations missing at least one of the {REQUIRED_COLUMNS.length}{" "}
-          required columns: {REQUIRED_COLUMNS.join(", ")}. Click a row to fill
-          it in.
+          required columns. Fill out the required information to clear the entry
+          off the list.
         </p>
       </div>
 
