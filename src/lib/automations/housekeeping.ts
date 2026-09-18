@@ -68,6 +68,7 @@ import {
   sortSpecialFirst,
 } from "@/lib/automations/dropdown-config";
 import { missingRequired } from "@/lib/automations/housekeeping-rule";
+import { AUTOMATION_SITES } from "@/lib/automations/sites";
 import type { RequiredColumn } from "@/lib/automations/housekeeping-rule";
 
 /** One row on the page: everything the Edit dialog needs, plus which of the
@@ -76,13 +77,6 @@ export type HousekeepingRow = Awaited<
   ReturnType<typeof getHousekeepingRows>
 >[number];
 
-/** Every automation with at least one required column unfilled.
- *
- *  📌 SORTED FEWEST-MISSING FIRST, then by website and name. That ordering is
- *  the user's ("Nearly done first"): the 53 rows missing only Evaluation and
- *  Notes are two fields from done, while the 473 missing everything are a
- *  different kind of job. **Sorting by website first would bury the nearly-done
- *  rows inside whichever website happened to sort first.** */
 /** The rule as SQL: at least one of the five required columns unfilled.
  *
  *  ⭐⭐ ONE DEFINITION, TWO CALLERS - the list below, and `getHousekeepingCount`
@@ -206,6 +200,30 @@ export type HousekeepingCoverage = Awaited<
   ReturnType<typeof getHousekeepingCoverage>
 >;
 
+/** Canonical position of a platform in `AUTOMATION_SITES` (Make, n8n, GHL,
+ *  GHL B2B, Zapier). Unknown slugs sort last so a platform missing from that
+ *  array cannot take the top of the list. */
+function siteRank(slug: string): number {
+  const i = AUTOMATION_SITES.findIndex((s) => s.slug === slug);
+  return i === -1 ? AUTOMATION_SITES.length : i;
+}
+
+/** Every automation with at least one required column unfilled.
+ *
+ *  ⭐⭐ SORTED BY WEBSITE IN CANONICAL ORDER, THEN BY NAME (user, 2026-09-18:
+ *  "the entries should be sorted using that same order"). The list now matches
+ *  the filter chips above it and the website order every other surface uses.
+ *
+ *  🛑 IT USED TO SORT FEWEST-MISSING FIRST, and that was ALSO the user's call
+ *  ("Nearly done first"), so this reverses an earlier decision rather than
+ *  fixing a mistake. **The argument that lost:** the 53 rows missing only
+ *  Evaluation and Notes are two fields from done, while the 477 missing all
+ *  five are a different kind of job, so fewest-missing surfaced the quick wins
+ *  and website-first buries them inside their own block.
+ *  ⚠️ CONSEQUENCE, so nobody reports it as a bug: those 53 rows (measured
+ *  2026-09-18: **27 n8n and 26 GHL B2B**) now sit inside their own website's
+ *  block instead of at the top. **The five `missing` chips on each row are the
+ *  only remaining signal of how far along a row is.** */
 export async function getHousekeepingRows() {
   const triggerChoices = alias(automationDropdownChoices, "trigger_choices");
   const triageChoices = alias(automationDropdownChoices, "triage_choices");
@@ -246,6 +264,9 @@ export async function getHousekeepingRows() {
     )
     .leftJoin(triageChoices, eq(automations.triageChoiceId, triageChoices.id))
     .where(flaggedRows())
+    // 📌 A DETERMINISTIC BASE ONLY. The JS `.sort` at the end of this function
+    // is what the page sees, because canonical website order is an array index
+    // rather than anything SQL can express without a CASE ladder.
     .orderBy(asc(automations.platform), asc(automations.name));
 
   const ids = baseRows.map((r) => r.id);
@@ -279,8 +300,7 @@ export async function getHousekeepingRows() {
     })
     .sort(
       (a, b) =>
-        a.missing.length - b.missing.length ||
-        a.platform.localeCompare(b.platform) ||
+        siteRank(a.platform) - siteRank(b.platform) ||
         a.name.localeCompare(b.name),
     );
 }
