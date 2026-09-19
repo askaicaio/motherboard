@@ -358,8 +358,9 @@ export function SubscriptionsPageClient({
     return Array.from(set).sort();
   }, [rows]);
 
-  // Options offered by the inline status dropdown — whatever already exists in
-  // the data, plus the standard lifecycle values so a fresh DB still has them.
+  // Options offered by the status pickers (inline row dropdown + the Add/Edit
+  // dialog): whatever already exists in the data, plus the standard lifecycle
+  // values so a fresh DB still has them.
   const statusOptions = useMemo(() => {
     const set = new Set<string>([
       ...allStatuses,
@@ -927,7 +928,7 @@ export function SubscriptionsPageClient({
         existing={editing ?? undefined}
         onSaved={handleSaved}
         knownDepartments={allDepartments}
-        knownStatuses={allStatuses}
+        knownStatuses={statusOptions}
         possibleParents={topLevelRows}
         readOnly={!editMode}
       />
@@ -939,7 +940,7 @@ export function SubscriptionsPageClient({
         }}
         onCreated={handleCreated}
         knownDepartments={allDepartments}
-        knownStatuses={allStatuses}
+        knownStatuses={statusOptions}
         possibleParents={topLevelRows}
         initialParentId={addParentId || undefined}
       />
