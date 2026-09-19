@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -24,7 +24,8 @@ interface Props {
   onSaved?: (row: SubscriptionRow) => void;
   onCreated?: (row: SubscriptionRow) => void;
   knownDepartments?: string[];
-  /** Universe of statuses pulled from the live data — drives the dropdown. */
+  /** Statuses offered by the picker: the live data's values plus the standard
+   *  lifecycle set. Same list the inline row dropdown uses. */
   knownStatuses?: string[];
   /** Top-level rows the user can nest this one under (parent dropdown). */
   possibleParents?: SubscriptionRow[];
@@ -123,6 +124,17 @@ export function EditSubscriptionDialog({
     }
     setDeptInput("");
   }, [open, existing, initialParentId]);
+
+  // Every status is offered on every open. (This was a <datalist>, which the
+  // browser filters against whatever is already in the box: with "active"
+  // typed, "archived"/"cancelled"/"paused" were hidden and the list looked
+  // one-item long.) A row's own status is folded in so an unrecognised value
+  // can't be silently swapped for something else.
+  const statusChoices = useMemo(() => {
+    const set = new Set<string>(knownStatuses);
+    if (status) set.add(status);
+    return Array.from(set).sort();
+  }, [knownStatuses, status]);
 
   function addDeptFromInput() {
     const raw = deptInput.trim();
@@ -525,21 +537,18 @@ export function EditSubscriptionDialog({
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="sub-status">Status</Label>
-              <Input
+              <select
                 id="sub-status"
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
-                list="known-statuses"
-                placeholder="e.g. subscription, free account"
-                maxLength={100}
-              />
-              {knownStatuses.length > 0 && (
-                <datalist id="known-statuses">
-                  {knownStatuses.map((s) => (
-                    <option key={s} value={s} />
-                  ))}
-                </datalist>
-              )}
+                className="block w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-zinc-400 focus:outline-none"
+              >
+                {statusChoices.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
