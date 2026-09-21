@@ -2489,18 +2489,43 @@ function Sparkline({
           0 errors": a website with a quiet month should not be handed a
           statistic that only says nothing happened. The axis caption still has
           to be there, which is why this is one element and not two. */}
-      <div className="mt-1.5 text-[10px] uppercase tracking-wider text-zinc-400">
-        {max > 0 ? (
-          <>
-            Peak{" "}
-            <span className="font-semibold tabular-nums text-red-600">
-              {max}
-            </span>{" "}
-            {max === 1 ? "error" : "errors"} in the last {dayKeys.length} days
-          </>
-        ) : (
-          <>Last {dayKeys.length} days</>
-        )}
+      {/* ⭐⭐ THE FOOTER IS AN AXIS NOW, 2026-09-21: ends marking where the
+          window starts and finishes, peak in the middle. **The chart finally
+          says WHEN as well as how much** - before this the bars were 30
+          anonymous columns whose only date lived in a native browser tooltip.
+          ⚠️ `grid-cols-3` AND NOT `justify-between`, AND THE REASON IS THE
+          CENTRE. With `justify-between` the middle text is pushed off-centre by
+          however much the two ends differ in width ("30 days ago" is twice
+          "today"), which is visible on a label this small. Three equal columns
+          put the middle one in the middle of the CARD, and
+          `justify-self-center` + `whitespace-nowrap` lets the peak text overrun
+          its own column SYMMETRICALLY when it is longer than a third.
+          📌 THE RIGHT END IS "TODAY" BECAUSE THE LAST BAR IS TODAY: `dayKeys`
+          is built forward to `i === 0`, which is today in UTC.
+          ⚠️ THE LEFT END NAMES THE WINDOW, NOT THAT BAR. The oldest bar is
+          `dayKeys.length - 1` days old (29, not 30), because the window counts
+          today as one of its days. **The user asked for "30 days ago" and it
+          matches "the last 30 days" beside it**; the exact-date alternative was
+          offered. Do not "fix" it to 29 without asking - it would then disagree
+          with both the centre label and the SQL window.
+          📌 BOTH ENDS ARE DERIVED from `dayKeys.length`, so changing
+          `TREND_DAYS` relabels them. */}
+      <div className="mt-1.5 grid grid-cols-3 items-baseline text-[10px] uppercase tracking-wider text-zinc-400">
+        <span>{dayKeys.length} days ago</span>
+        <span className="justify-self-center whitespace-nowrap">
+          {max > 0 ? (
+            <>
+              Peak{" "}
+              <span className="font-semibold tabular-nums text-red-600">
+                {max}
+              </span>{" "}
+              {max === 1 ? "error" : "errors"} in the last {dayKeys.length} days
+            </>
+          ) : (
+            <>Last {dayKeys.length} days</>
+          )}
+        </span>
+        <span className="justify-self-end">Today</span>
       </div>
     </div>
   );
