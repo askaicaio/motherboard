@@ -645,6 +645,28 @@ export default async function AutomationsPage({
   // This site's per-day error counts over the window. `{}` for a platform that
   // has captured nothing, which draws a flat baseline.
   const trend = trendByPlatform[selected.slug] ?? {};
+  /** The most recent day in the chart's window that captured anything, and how
+   *  many it captured. `null` when this website's last error predates the
+   *  window, or when it has never captured one.
+   *
+   *  ⭐⭐ IT READS THE CHART'S OWN DATA rather than taking a sixth read, so the
+   *  sentence beside the count and the last red bar underneath it **cannot
+   *  disagree**. The hub is the page that went down against the `max: 10` pool
+   *  ([[db-pool-max-10-fanout]]); a statistic that can be derived does not get
+   *  a query.
+   *  ⚠️ SO "DAYS AGO" HERE MEANS CALENDAR DAYS, counted along the same UTC day
+   *  keys the bars use. The older wording used `days`, which is ELAPSED time
+   *  floored to whole days, so the two can differ by one around midnight.
+   *  **Calendar days are the right unit next to a daily chart**: "1 day ago"
+   *  should point at the bar one place left, not at "somewhere between 24 and
+   *  48 hours". */
+  const lastErrorDay = (() => {
+    for (let i = dayKeys.length - 1; i >= 0; i--) {
+      const count = trend[dayKeys[i]] ?? 0;
+      if (count > 0) return { count, daysAgo: dayKeys.length - 1 - i };
+    }
+    return null;
+  })();
   // NOTE: `refreshOn` (this site's stored auto-refresh setting) and `status`
   // (`siteStatus(hasKey, days)`) were read here for the detail header's pill and
   // auto-refresh indicator. Both went with those on 2026-09-04; see the note in
@@ -1987,10 +2009,12 @@ export default async function AutomationsPage({
                         beside it**, and `flex flex-1 flex-col` makes it fill
                         the left column. **THE TWO CARDS ARE MEANT TO MATCH NOW,
                         so a change to either one's frame belongs on both.**
-                        ⚠️ THE LIVE HUB STILL HAS THE GREY VERSION. This is a
-                        bench divergence, not a bug to reconcile: `bg-zinc-50`
-                        worked there because that block sits on plain white, and
-                        here it sits on the header's tint beside a ringed card. It brought the per-(platform, day) trend
+                        📌 THE "THE LIVE HUB STILL HAS THE GREY VERSION" NOTE THAT
+                        USED TO SIT HERE IS GONE: it came across from the bench
+                        with the block, and **this file IS the live hub**, so it
+                        described nothing. `bg-zinc-50` was right when the block
+                        sat on plain white; the ring is right here, on the
+                        header's tint beside a ringed card. It brought the per-(platform, day) trend
                         query, `TREND_DAYS` and the `Sparkline` component back to
                         this page; Alpha3's layout had no home for any of them.
                         THE POINT OF IT: a big number that stopped growing reads
@@ -2016,16 +2040,41 @@ export default async function AutomationsPage({
                             {errors === 1 ? "error" : "errors"} captured
                           </span>
                         </div>
-                        {/* User-set wording. Singular at 1, "today" at 0 because
-                            the day count is FLOORED, and "not tracked yet" when the
-                            platform has captured nothing ever (permanent for GHL,
-                            GHL b2b and Zapier). */}
+                        {/* ⭐⭐ THE LATEST ERROR DAY, NOT JUST ITS DATE, 2026-09-21:
+                            "Instead of it mentioning when the last error happened,
+                            do something like 'X errors Y days ago'. The X being a
+                            red number." **Same subject as before, reworded**: it
+                            still points at the most recent day that captured
+                            anything, but it now says HOW BAD that day was.
+                            📌 WHY THAT IS WORTH A NUMBER: "Last Error today" reads
+                            identically whether today brought one error or fifty.
+                            The count is the part that decides whether you go and
+                            look.
+                            📌 "today" AT 0 rather than "0 days ago", and the
+                            singular at 1, matching the wording this replaces.
+                            ⚠️ THE FALLBACK IS THE OLD SENTENCE, for a website whose
+                            last error is OLDER than the chart's window: the per-day
+                            data cannot supply a count there, and inventing one from
+                            `days` would mean two different definitions of a day in
+                            one line. "not tracked yet" still covers a website that
+                            has never captured one (permanent for GHL, GHL b2b and
+                            Zapier). */}
                         <span className="text-[11px] text-zinc-500">
-                          {days === undefined
-                            ? "not tracked yet"
-                            : days === 0
-                              ? "Last Error today"
-                              : `Last Error ${days} day${days === 1 ? "" : "s"} ago`}
+                          {days === undefined ? (
+                            "not tracked yet"
+                          ) : lastErrorDay ? (
+                            <>
+                              <span className="font-semibold tabular-nums text-red-600">
+                                {lastErrorDay.count}
+                              </span>{" "}
+                              {lastErrorDay.count === 1 ? "error" : "errors"}{" "}
+                              {lastErrorDay.daysAgo === 0
+                                ? "today"
+                                : `${lastErrorDay.daysAgo} day${lastErrorDay.daysAgo === 1 ? "" : "s"} ago`}
+                            </>
+                          ) : (
+                            `Last Error ${days} day${days === 1 ? "" : "s"} ago`
+                          )}
                         </span>
                       </div>
                       <Sparkline dayKeys={dayKeys} counts={trend} />
@@ -2424,8 +2473,34 @@ function Sparkline({
           />
         ))}
       </div>
+      {/* ⭐⭐ THE WINDOW LABEL CARRIES THE PEAK, 2026-09-21. Asked for as a
+          separate statistic at the bottom right and merged into this label at
+          the user's direction: "make it seems better to integrate it with the
+          'Last 30 days' text. so it reads as 'Peak 51 Errors in the Last 30
+          Days' with the 51 statistic being red text."
+          ⭐ **IT GIVES THE BARS THE SCALE THEY NEVER HAD.** Every chart is
+          normalised to its OWN maximum, so the tallest bar is full height
+          whether it stands for 1 error or 51, and nothing on screen said which.
+          This names that maximum, so the shape can finally be read as
+          quantities.
+          📌 THE COUNT COMES FROM `max`, the same number the heights are scaled
+          against, so the label and the tallest bar are the same fact.
+          ⚠️ AT ZERO IT FALLS BACK TO THE PLAIN LABEL rather than printing "Peak
+          0 errors": a website with a quiet month should not be handed a
+          statistic that only says nothing happened. The axis caption still has
+          to be there, which is why this is one element and not two. */}
       <div className="mt-1.5 text-[10px] uppercase tracking-wider text-zinc-400">
-        Last {dayKeys.length} days
+        {max > 0 ? (
+          <>
+            Peak{" "}
+            <span className="font-semibold tabular-nums text-red-600">
+              {max}
+            </span>{" "}
+            {max === 1 ? "error" : "errors"} in the last {dayKeys.length} days
+          </>
+        ) : (
+          <>Last {dayKeys.length} days</>
+        )}
       </div>
     </div>
   );
