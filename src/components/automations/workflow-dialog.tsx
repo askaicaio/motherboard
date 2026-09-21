@@ -212,7 +212,7 @@ interface Props {
    *  Alerts?" and chose **only Housekeeping** (2026-09-17). **Do not flip this
    *  on by default**, and do not pass it from the website tables or
    *  `/automations/all` without asking again.
-   *  ⚠️ KEEP IT OFF IN ADD MODE TOO. A brand-new automation has all five empty
+   *  ⚠️ KEEP IT OFF IN ADD MODE TOO. A brand-new automation has all four empty
    *  by definition, so the form would open shouting at someone who has not had
    *  a chance to type anything yet. */
   flagMissingRequired?: boolean;
@@ -269,7 +269,7 @@ export function WorkflowDialog({
   // stacked ChoiceDialog is adding to. null = that dialog is closed.
   const [addKind, setAddKind] = useState<AddKind | null>(null);
 
-  /** Which of the five required columns are still empty, for the "Missing"
+  /** Which of the four required columns are still empty, for the "Missing"
    *  markers. An empty set unless the caller opted in.
    *
    *  ⭐⭐ IT RUNS THE SHARED RULE, `missingRequired`, NOT A LOCAL COPY. That is
@@ -288,7 +288,8 @@ export function WorkflowDialog({
     return new Set<string>(
       missingRequired({
         purpose,
-        notes,
+        // ⚠️ NO `notes`: it stopped being required on 2026-09-21 and the rule's
+        // input type no longer accepts it.
         triggerEventChoiceId: triggerEventChoiceId || null,
         triageChoiceId: triageChoiceId || null,
         automationTags: automationTagChoiceIds.map((id) => ({ id })),
@@ -297,7 +298,6 @@ export function WorkflowDialog({
   }, [
     flagMissingRequired,
     purpose,
-    notes,
     triggerEventChoiceId,
     triageChoiceId,
     automationTagChoiceIds,
@@ -953,11 +953,12 @@ export function WorkflowDialog({
                 {/* Notes: a second free-text note, mirrors the Purpose field above
                 exactly (same textarea setup), just labelled "Notes". */}
                 <Label htmlFor="wf-notes">Notes</Label>
+                {/* ⚠️ NO `missingFieldClass` HERE, unlike Purpose above: Notes
+                stopped being a required column on 2026-09-21 and is now the
+                "other supporting information" the Housekeeping subtitle asks
+                for, so an empty one is not something to flag. */}
                 <Textarea
-                  className={cn(
-                    "border-zinc-300 shadow-sm block resize-none overflow-hidden [overflow-wrap:anywhere]",
-                    missingFieldClass("Notes"),
-                  )}
+                  className="border-zinc-300 shadow-sm block resize-none overflow-hidden [overflow-wrap:anywhere]"
                   id="wf-notes"
                   value={notes}
                   onChange={(e) => {

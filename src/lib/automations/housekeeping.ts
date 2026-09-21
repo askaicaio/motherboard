@@ -1,8 +1,8 @@
 // ---------------------------------------------------------------------------
 // HOUSEKEEPING ALERTS: the reads behind the page.
 //
-// ⭐ WHAT THE PAGE IS: every automation with at least one of its five REQUIRED
-// columns unfilled. The rule itself lives in `./housekeeping-rule` (no database
+// ⭐ WHAT THE PAGE IS: every automation with at least one of its four REQUIRED
+// columns unfilled (five until 2026-09-21, when Notes became optional). The rule itself lives in `./housekeeping-rule` (no database
 // import, so the client can share it); read that file first.
 //
 // 🛑🛑 IT WAS BUILT WRONG THE FIRST TIME AND THIS IS THE CORRECTION. Shipped
@@ -15,7 +15,7 @@
 // rows, concluded a documentation worklist would be a permanent 500-item report,
 // and narrowed to the one column with a lifecycle. **The narrowing was mine, not
 // theirs.** The 500-row objection was also wrong in a way the numbers now show:
-// 473 of those rows are missing ALL FIVE columns, so they are not 500 separate
+// 483 of those rows are missing EVERY required column, so they are not 500 separate
 // chores, they are one untouched backlog that a person clears a website at a
 // time. ⚠️ **Measuring a candidate rule tells you its SIZE, not whether the user
 // wants it. Ask which columns are required; do not infer it from what the data
@@ -72,12 +72,12 @@ import { AUTOMATION_SITES } from "@/lib/automations/sites";
 import type { RequiredColumn } from "@/lib/automations/housekeeping-rule";
 
 /** One row on the page: everything the Edit dialog needs, plus which of the
- *  five required columns are unfilled and which website it belongs to. */
+ *  four required columns are unfilled and which website it belongs to. */
 export type HousekeepingRow = Awaited<
   ReturnType<typeof getHousekeepingRows>
 >[number];
 
-/** The rule as SQL: at least one of the five required columns unfilled.
+/** The rule as SQL: at least one of the four required columns unfilled.
  *
  *  ⭐⭐ ONE DEFINITION, TWO CALLERS - the list below, and `getHousekeepingCount`
  *  behind the live hub's toolbar pill. **A second copy of this predicate would
@@ -100,13 +100,15 @@ function flaggedRows() {
     where s.automation_id = ${automations.id} and c.column_key = 'automation_tags'
   )`;
   const blankPurpose = sql<boolean>`(${automations.purpose} is null or btrim(${automations.purpose}) = '')`;
-  const blankNotes = sql<boolean>`(${automations.notes} is null or btrim(${automations.notes}) = '')`;
 
+  // ⚠️ NO `notes` CLAUSE SINCE 2026-09-21, when Notes stopped being required.
+  // **This predicate is the SQL twin of `missingRequired` and NOTHING derives
+  // one from the other**, so a column joining or leaving the required set has
+  // to be edited in both or the list and the chips disagree.
   return or(
     isNull(automations.triggerEventChoiceId),
     isNull(automations.triageChoiceId),
     blankPurpose,
-    blankNotes,
     noTags,
   );
 }
@@ -135,7 +137,7 @@ export async function getHousekeepingCount() {
   return row?.count ?? 0;
 }
 
-/** Per-website coverage of the five required columns: how many automations
+/** Per-website coverage of the four required columns: how many automations
  *  have each one filled, out of that website's total.
  *
  *  ⭐⭐ THIS IS THE HOUSEKEEPING PAGE'S OWN COPY OF THE HUB'S "Documentation by
@@ -179,7 +181,6 @@ export async function getHousekeepingCoverage() {
       triggerEvent: sql<number>`count(*) filter (where ${automations.triggerEventChoiceId} is not null)::int`,
       triage: sql<number>`count(*) filter (where ${automations.triageChoiceId} is not null)::int`,
       purpose: sql<number>`count(*) filter (where ${automations.purpose} is not null and btrim(${automations.purpose}) <> '')::int`,
-      notes: sql<number>`count(*) filter (where ${automations.notes} is not null and btrim(${automations.notes}) <> '')::int`,
     })
     .from(automations);
 
@@ -190,7 +191,6 @@ export async function getHousekeepingCoverage() {
       "Trigger Event": row?.triggerEvent ?? 0,
       Evaluation: row?.triage ?? 0,
       Purpose: row?.purpose ?? 0,
-      Notes: row?.notes ?? 0,
     } as Record<RequiredColumn, number>,
   };
 }
@@ -217,12 +217,12 @@ function siteRank(slug: string): number {
  *  🛑 IT USED TO SORT FEWEST-MISSING FIRST, and that was ALSO the user's call
  *  ("Nearly done first"), so this reverses an earlier decision rather than
  *  fixing a mistake. **The argument that lost:** the 53 rows missing only
- *  Evaluation and Notes are two fields from done, while the 477 missing all
- *  five are a different kind of job, so fewest-missing surfaced the quick wins
- *  and website-first buries them inside their own block.
+ *  Evaluation are one field from done, while the 483 missing all four are a
+ *  different kind of job, so fewest-missing surfaced the quick wins and
+ *  website-first buries them inside their own block.
  *  ⚠️ CONSEQUENCE, so nobody reports it as a bug: those 53 rows (measured
  *  2026-09-18: **27 n8n and 26 GHL B2B**) now sit inside their own website's
- *  block instead of at the top. **The five `missing` chips on each row are the
+ *  block instead of at the top. **The four `missing` chips on each row are the
  *  only remaining signal of how far along a row is.** */
 export async function getHousekeepingRows() {
   const triggerChoices = alias(automationDropdownChoices, "trigger_choices");

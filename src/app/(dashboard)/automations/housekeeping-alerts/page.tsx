@@ -16,6 +16,9 @@
 // are required to fill in. Automations show up in the housekeeping page when any
 // of the following are true: Trigger Event, Automation Tags, and Evaluation
 // containing 'None'. Purpose and Notes being blank."
+// ⚠️ IT IS FOUR NOW: **Notes left the required set on 2026-09-21** and became
+// optional supporting information. The quote above is kept as the original
+// instruction; `housekeeping-rule.ts` carries the change and the reasoning.
 //
 // 📌 THE RULE LIVES IN `@/lib/automations/housekeeping-rule` and the reads in
 // `@/lib/automations/housekeeping`. Both carry the reasoning; this file is just
@@ -70,21 +73,23 @@ export default async function AutomationsHousekeepingAlertsPage() {
 
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Housekeeping</h1>
-        {/* ⚠️ IT USED TO NAME THE FIVE COLUMNS HERE and the user cut that list
-            on 2026-09-18, replacing "Click a row to fill it in" with what
-            actually clears a row.
-            📌 The old argument was that a reader who does not know the contract
-            cannot tell why a row they think is finished is still listed. It
-            lost because **the names are already on screen twice** - the table
-            headers spell them out left to right and the coverage panel lists
-            all five - so the sentence was repeating the screen instead of
-            telling the reader what to DO.
-            ⚠️ THE COUNT IS STILL COMPUTED, not typed, so it cannot drift from
-            the rule if a sixth column is ever required. */}
+        {/* ⭐⭐ THE USER'S OWN WORDING, 2026-09-21, replacing the shorter
+            version from three days earlier. Three sentences doing three jobs:
+            why the row is here, what to DO about it (read the automation first,
+            by following its link), and what to add beyond the minimum.
+            📌 IT NAMES NO COLUMNS. That list was cut on 2026-09-18 because the
+            names are already on screen twice, in the chips down each row and in
+            the coverage panel.
+            ⚠️ THE COUNT IS COMPUTED, NEVER TYPED. It printed 5 until Notes left
+            the required set on 2026-09-21 and became the "other supporting
+            information" this sentence asks for; it printed 4 the moment
+            `REQUIRED_COLUMNS` lost an entry, with no edit here. */}
         <p className="mt-1 text-sm text-zinc-500">
-          Automations missing at least one of the {REQUIRED_COLUMNS.length}{" "}
-          required columns. Fill out the required information to clear the entry
-          off the list.
+          Automations that show up here are missing at least one of the{" "}
+          {REQUIRED_COLUMNS.length} required columns. Review the automation by
+          clicking the link, then fill out the required information to clear the
+          entry off the list. Please add any other supporting information to the
+          entry when possible.
         </p>
       </div>
 
