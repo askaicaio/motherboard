@@ -270,8 +270,8 @@ const TREND_DAYS = 30;
  *  table uses, so a field that becomes platform-scoped later is handled with no
  *  new code and this statistic cannot quietly disagree with the table.
  *
- *  ⭐⭐ IT IS NOW EXACTLY THE FIVE REQUIRED COLUMNS, IN THE ORDER THE
- *  HOUSEKEEPING TABLE SHOWS THEM, 2026-09-17: "you see how there are 5
+ *  ⭐⭐ IT IS EXACTLY THE REQUIRED COLUMNS, IN THE ORDER THE HOUSEKEEPING
+ *  TABLE SHOWS THEM, 2026-09-17: "you see how there are 5
  *  categories here right. The statistic in S2 should be counting those 5
  *  categories instead, and in that order. from left to right, instead being top
  *  to bottom. Notice the Author does not need to be included in the statistic."
@@ -283,8 +283,16 @@ const TREND_DAYS = 30;
  *  `housekeeping-rule.ts`, which is the Housekeeping table's left-to-right
  *  column order. **Do not re-sort this list** - see the note where the old
  *  thinnest-first sort used to be.
- *  📌 THE FIVE ARE THE SAME FIVE THE HOUSEKEEPING PAGE COUNTS, so this panel and
- *  that page can no longer disagree about what "documented" means. */
+ *  📌 THEY ARE THE SAME COLUMNS THE HOUSEKEEPING PAGE COUNTS, so this panel and
+ *  that page cannot disagree about what "documented" means.
+ *  🛑🛑 WHICH IS WHY NOTES CAME OUT ON 2026-09-21. It stopped being required
+ *  (see `housekeeping-rule.ts`) and **the user was asked whether this panel
+ *  should follow, and said yes**, so both panels show the same four fields.
+ *  ⚠️ THIS LIST IS NOT DERIVED FROM `REQUIRED_COLUMNS` and cannot easily be:
+ *  each entry also carries the `key` its count arrives under and the platform
+ *  `gate`. **So a column joining or leaving the required set is a manual edit
+ *  HERE as well as there** - this list, the count query below, and the
+ *  `coverageFilled` lookup it feeds. */
 const COVERAGE_FIELDS: {
   /** Matches the key the filled-counts lookup is built under. */
   key: string;
@@ -297,7 +305,6 @@ const COVERAGE_FIELDS: {
   { key: "trigger_event", label: "Trigger Event", gate: "trigger_event" },
   { key: "triage", label: "Evaluation", gate: "triage" },
   { key: "purpose", label: "Purpose" },
-  { key: "notes", label: "Notes" },
 ];
 
 interface PlatformStats {
@@ -504,7 +511,6 @@ export default async function AutomationsPage({
         .select({
           total: sql<number>`count(*)::int`,
           purpose: sql<number>`count(*) filter (where ${automations.purpose} is not null and btrim(${automations.purpose}) <> '')::int`,
-          notes: sql<number>`count(*) filter (where ${automations.notes} is not null and btrim(${automations.notes}) <> '')::int`,
           triage: sql<number>`count(*) filter (where ${automations.triageChoiceId} is not null)::int`,
           trigger_event: sql<number>`count(*) filter (where ${automations.triggerEventChoiceId} is not null)::int`,
         })
@@ -586,13 +592,12 @@ export default async function AutomationsPage({
   // a change to either one cannot silently move the other's numbers.
   // ⚠️ A `columnKey` that is not in `COVERAGE_FIELDS` is ignored on purpose.
   // ⚠️ `triage` (shown as Evaluation) IS A COLUMN ON THE ROW, so it is counted
-  // by query 1 alongside Purpose and Notes - NOT by the multi-select junction
+  // by query 1 alongside Purpose - NOT by the multi-select junction
   // below. It reads as a dropdown in the UI, which makes it easy to assume
   // otherwise and then wonder why the row shows 0%.
   const coverageTotal = coverageBase[0]?.total ?? 0;
   const coverageFilled: Record<string, number> = {
     purpose: coverageBase[0]?.purpose ?? 0,
-    notes: coverageBase[0]?.notes ?? 0,
     triage: coverageBase[0]?.triage ?? 0,
     trigger_event: coverageBase[0]?.trigger_event ?? 0,
   };

@@ -6,15 +6,15 @@
 //
 // ⭐⭐ CLICKING A ROW OPENS THE REAL EDIT DIALOG, the same `WorkflowDialog` the
 // website tables use. That was the user's choice (2026-09-13) over inline
-// editors, and it is the right one for a reason worth keeping: **two of the five
-// required columns are free text and one is a multi-select, so "edit inline"
-// would have meant rebuilding that dialog's inputs inside a list row.** 473 of
-// the 526 rows need all five columns anyway, so a dialog per row is the natural
+// editors, and it is the right one for a reason worth keeping: **one of the four
+// required columns is free text and one is a multi-select, so "edit inline"
+// would have meant rebuilding that dialog's inputs inside a list row.** 483 of
+// the 536 rows need all four columns anyway, so a dialog per row is the natural
 // unit of work, not a compromise.
 //
 // ⚠️ THE ROW LEAVES THE LIST WHEN IT NO LONGER QUALIFIES, decided by re-running
 // the SHARED rule against the row the dialog hands back. **Not by assuming a
-// save means done**: a save that fills three of five columns leaves the row
+// save means done**: a save that fills three of four columns leaves the row
 // here, with fewer chips, which is exactly right.
 //
 // 📌 NO OPTIMISTIC UPDATE HERE, unlike the version this replaced. The dialog
@@ -66,15 +66,19 @@ const GHL_PLATFORMS = new Set(["ghl", "ghl-b2b"]);
 
 /** One fixed width per required column, in `REQUIRED_COLUMNS` order.
  *
- *  ⭐ EACH IS SIZED TO ITS OWN LABEL rather than all five being equal, because
- *  "Automation Tags" is three times the width of "Notes" and equal columns would
+ *  ⭐ EACH IS SIZED TO ITS OWN LABEL rather than all four being equal, because
+ *  "Automation Tags" is twice the width of "Purpose" and equal columns would
  *  leave the right-hand ones mostly empty. **The chips align on their left edge
  *  down each column**, which is the whole point of the restructure.
+ *  🛑 THERE WERE FIVE UNTIL 2026-09-21. The 75px entry was Notes', and it went
+ *  when Notes stopped being required. **THIS ARRAY IS INDEXED AGAINST
+ *  `REQUIRED_COLUMNS`**, so the two lengths have to match or the last column
+ *  renders without a width.
  *  ⚠️ THEY LIVE IN A `<colgroup>` AND THE TABLE IS `table-fixed`. Without
  *  `table-fixed` the browser sizes columns from their content, so one long
- *  automation name would shove the five chip columns out of alignment between
+ *  automation name would shove the four chip columns out of alignment between
  *  one row and the next - which is the bug this layout exists to prevent. */
-const COLUMN_WIDTHS = ["120px", "110px", "95px", "85px", "75px"] as const;
+const COLUMN_WIDTHS = ["120px", "110px", "95px", "85px"] as const;
 
 /** How wide the Name-and-link column is. **400px, TAKEN FROM THE PER WEBSITE
  *  TABLES**, where the Name cell is `w-[400px] min-w-[400px] max-w-[400px]`.
@@ -92,11 +96,15 @@ const NAME_WIDTH = "400px";
 
 /** How wide the table's column holds, in pixels.
  *
- *  ⭐⭐ THE SIX COLUMNS ADD UP TO 885 (400 + 120 + 110 + 95 + 85 + 75). The card
- *  gets 902: **885 of columns, ~15 for the scroll window's own scrollbar, 2 for
+ *  ⭐⭐ THE FIVE COLUMNS ADD UP TO 810 (400 + 120 + 110 + 95 + 85). The card
+ *  gets 827: **810 of columns, ~15 for the scroll window's own scrollbar, 2 for
  *  the card's border.** Anything left over lands in the trailing slack `<col>`,
  *  which is why that column still exists even though the table no longer
  *  stretches.
+ *  📌 IT WAS 902 UNTIL 2026-09-21, when Notes left the required set and took its
+ *  75px column with it. **The card shrank rather than the other columns
+ *  growing**: each width is sized to its own label, so widening them would only
+ *  put air between a chip and the next column.
  *
  *  🛑 IT IS FIXED SO THE TABLE STOPS EATING THE WHOLE ROW. Until 2026-09-17 the
  *  card was full width and the slack column swallowed ~264px of nothing: "we
@@ -105,7 +113,7 @@ const NAME_WIDTH = "400px";
  *  content for, and give that space to the coverage panels.
  *  ⚠️ SO A NEW COLUMN MEANS UPDATING THIS NUMBER TOO, or the slack column
  *  silently absorbs it and the panels never notice. */
-const TABLE_CARD_WIDTH = 902;
+const TABLE_CARD_WIDTH = 827;
 
 export function HousekeepingAlertsClient({
   initialRows,
@@ -145,7 +153,7 @@ export function HousekeepingAlertsClient({
    *  the row this page built from the database has real `Date`s; spreading the
    *  one into the other widens the type and TypeScript rejects it. Naming the
    *  fields also documents exactly what the list re-renders from, which is the
-   *  five rule inputs plus what a row displays. */
+   *  rule inputs plus what a row displays. */
   const handleSaved = useCallback((saved: AutomationRow) => {
     setRows((rs) => {
       const missing = missingRequired(saved) as RequiredColumn[];
@@ -256,7 +264,7 @@ export function HousekeepingAlertsClient({
                 Nothing to fill in
               </p>
               <p className="text-xs text-zinc-500">
-                Every automation here has all five required columns filled.
+                Every automation here has all four required columns filled.
               </p>
             </div>
           ) : (
@@ -290,11 +298,14 @@ export function HousekeepingAlertsClient({
                 style={scrollStyle}
                 className="max-h-[70vh] overflow-auto p-0"
               >
-                {/* ⭐⭐ SIX COLUMNS, SPECIFIED BY THE USER 2026-09-15: "Do it this
-                way, each number represents the columns from left to right.
-                1.) Name with Link below it 2.) Automation tags 3.) Trigger
-                Event 4.) Evaluation 5.) Purpose 6.) Notes."
-                The rows were a stacked block before: name on one line, all five
+                {/* ⭐⭐ THE COLUMNS AND THEIR ORDER WERE SPECIFIED BY THE USER
+                2026-09-15: "Do it this way, each number represents the columns
+                from left to right. 1.) Name with Link below it 2.) Automation
+                tags 3.) Trigger Event 4.) Evaluation 5.) Purpose 6.) Notes."
+                ⚠️ THAT LIST HAD SIX AND THE TABLE NOW HAS FIVE: **the same user
+                dropped Notes from the required set on 2026-09-21**, so its
+                column went with it. The order of what remains is untouched.
+                The rows were a stacked block before: name on one line, all the
                 chips wrapped underneath it. **Nothing lined up between one row
                 and the next**, which is what "the table structure is not good
                 enough" meant.
@@ -302,7 +313,7 @@ export function HousekeepingAlertsClient({
                 🛑 THERE IS NO `<thead>`, AND THAT IS A DECISION, NOT AN
                 OMISSION. The user was asked and picked it. Every cell already
                 prints its own column's name, so a header row would be a second
-                copy of all five words - **the same argument that removed this
+                copy of all four words - **the same argument that removed this
                 page's section headers in #534.** The chips are the labels.
                 ⚠️ SO DO NOT "FIX" THIS BY ADDING A HEADER ROW without also
                 taking the words out of the cells, and that swap was offered and
@@ -321,7 +332,7 @@ export function HousekeepingAlertsClient({
                     the columns that have widths**, so without something to
                     absorb it the 400px would silently become ~500px and the fix
                     would undo itself.
-                    📌 IT SITS LAST so the six columns stay ADJACENT, which is
+                    📌 IT SITS LAST so the five columns stay ADJACENT, which is
                     how the website tables read: there every column is fixed and
                     the table overflows, so no gaps open up between them. Here
                     the spare width collects at the right edge instead of being
@@ -329,8 +340,9 @@ export function HousekeepingAlertsClient({
                     ⚠️ It renders no cell. A `<col>` with no matching `<td>` is
                     fine - the column simply has no content in any row. */}
                     <col />
-                    {/* 🛑 THE SIX DATA COLUMNS ARE THE WHOLE LIST. There was a
-                    SEVENTH, Active / Paused. I kept it in #537 on the argument
+                    {/* 🛑 THE FIVE DATA COLUMNS ARE THE WHOLE LIST. There was a
+                    SIXTH, Notes, until it stopped being required on 2026-09-21,
+                    and a SEVENTH before that, Active / Paused. I kept it in #537 on the argument
                     that it pre-dated the restructure and sat outside the region
                     the user had marked up; **they removed it on 2026-09-15
                     ("Remove this column").**
@@ -393,7 +405,7 @@ export function HousekeepingAlertsClient({
           (`isEdit && onDelete`), not from a disabled state.
 
           ⭐⭐ `flagMissingRequired` MAKES THIS THE ONLY CALLER THAT MARKS THE
-          FIVE, 2026-09-17: "in S1 it currently highlights which section is
+          REQUIRED FIELDS, 2026-09-17: "in S1 it currently highlights which section is
           missing, but the edit popup in S2 doesn't highlight it. Make it so
           that in S2, the user can easily tell which section needs to be filled
           up."
@@ -657,7 +669,7 @@ function ListRow({
           scenario or workflow id. `min-w-0` is what lets it shrink far enough
           for the ellipsis to engage inside the fixed column.
           📌 THE WEBSITE GLYPH RIDES IN THIS CELL rather than owning a column of
-          its own. It is the row's identity, not one of the six, and it only
+          its own. It is the row's identity, not one of the five, and it only
           earns its space on the "All websites" view anyway. */}
       <td className="px-3.5 py-2.5 align-top">
         <div className="flex items-start gap-2.5">
@@ -714,7 +726,7 @@ function ListRow({
         </div>
       </td>
 
-      {/* ---- 2-6. One column per required column, in `REQUIRED_COLUMNS`
+      {/* ---- 2-5. One column per required column, in `REQUIRED_COLUMNS`
           order, which is the order the user gave and the order the website
           tables use.
           ⭐ AMBER WHEN THE COLUMN IS BLANK, plain grey when it is filled.
@@ -729,7 +741,7 @@ function ListRow({
           instruction still stands, "Keep the functionality of the Gray and red
           indicator you made, were just repositioning them."
           📌 FILLED ONES STAY VISIBLE IN GREY rather than being blanked out, so
-          the five always read as a set and a row's progress is legible. An empty
+          the four always read as a set and a row's progress is legible. An empty
           cell would be ambiguous between "done" and "not applicable".
           ⚠️ `whitespace-nowrap` MATTERS: the columns are sized to their own
           labels with very little slack, so "Automation Tags" would wrap to two
