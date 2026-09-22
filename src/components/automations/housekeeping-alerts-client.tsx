@@ -515,7 +515,10 @@ function CoveragePanel({ coverage }: { coverage: HousekeepingCoverage }) {
                       the full reasoning.
                       🛑 THE HUB'S PANEL IS THE TWIN and the user chose to move
                       both, so this file and `automations/page.tsx` agree. */}
-                  <span className="w-32 shrink-0 truncate text-sm font-medium text-zinc-700">
+                  {/* ⭐ ZINC-900 SINCE 2026-09-22, WAS ZINC-700, to match the
+                      automation names in the panel beside the hub's copy; the
+                      hub carries the full reasoning. Both panels move together. */}
+                  <span className="w-32 shrink-0 truncate text-sm font-medium text-zinc-900">
                     {col}
                   </span>
                   <div className="flex h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-zinc-100">
