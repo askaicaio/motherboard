@@ -84,27 +84,43 @@ export default async function AutomationsHousekeepingAlertsPage() {
             the required set on 2026-09-21 and became the "other supporting
             information" this sentence asks for; it printed 4 the moment
             `REQUIRED_COLUMNS` lost an entry, with no edit here. */}
-        {/* ⭐⭐ `max-w-3xl` + `text-balance`, 2026-09-22: "The description here
-            looks bad, spatially."
-            📊 MEASURED AT A 1600px WINDOW: 269 characters in a 1264px box set as
-            **one 1248px line and a 410px stub** - about 175 characters on line
-            one, against the 45-75 that reads comfortably.
-            🛑 CAPPING THE WIDTH ALONE DOES NOT FIX IT. At 827px (the table's
-            own width, which would have aligned nicely) the last line becomes a
-            57px orphan: "when possible."
-            ⭐ **`text-balance` IS THE PART THAT WORKS.** It evens the lines out
-            to ~570/558/525px whatever cap it is given between 672 and 827, so
-            the cap chooses the BLOCK's width and balance chooses the LINES'.
-            `text-pretty` was tested too and barely moved it.
-            ⚠️ THE BLOCK GROWS 40px -> 60px and the list starts 20px lower. The
-            list is viewport-fitted, so it simply gets 20px shorter.
-            📌 Browsers without `text-wrap: balance` just wrap normally. */}
+        {/* ⭐⭐ ONE SENTENCE PER LINE, 2026-09-22: "lets try each sentence being
+            in its own line, 3 sentences so 3 lines total." **The three jobs the
+            copy does now each own a row**: why the entry is listed, what to do
+            about it, what to add beyond the minimum.
+            📌 WHAT THIS REPLACED, because the numbers are worth keeping: the
+            same text as ONE paragraph ran 269 characters across a 1264px box
+            and set as a 1248px line plus a 410px stub. `max-w-3xl` +
+            `text-balance` fixed the raggedness (3 even lines of ~570/558/525)
+            but broke the sentences wherever they happened to fall, which is
+            what this replaces. **A cap sets the BLOCK's width and balance sets
+            the LINES'; neither can put a break where the MEANING changes.**
+            📊 THE THREE SENTENCES MEASURE 521, 677 and 456px, so the 768px cap
+            clears the longest by 91px and all three set on one line each. **The
+            cap no longer decides the line breaks, the full stops do**; it is
+            kept so that longer copy later gets a sane measure instead of the
+            full 1264px.
+            📌 `text-balance` STAYS for the narrow-window case: the middle
+            sentence needs 677px, so below a ~965px window it has to wrap, and
+            balance splits it evenly rather than leaving a stub. On a line that
+            fits, it does nothing.
+            ⚠️ SPANS INSIDE ONE `<p>`, NOT THREE PARAGRAPHS. It is one
+            description; `block` gives each sentence its own line at the
+            paragraph's own 20px line-height, so the block stays 60px tall and
+            the list does not move. */}
         <p className="mt-1 max-w-3xl text-sm text-balance text-zinc-500">
-          Automations that show up here are missing at least one of the{" "}
-          {REQUIRED_COLUMNS.length} required columns. Review the automation by
-          clicking the link, then fill out the required information to clear the
-          entry off the list. Please add any other supporting information to the
-          entry when possible.
+          <span className="block">
+            Automations that show up here are missing at least one of the{" "}
+            {REQUIRED_COLUMNS.length} required columns.
+          </span>
+          <span className="block">
+            Review the automation by clicking the link, then fill out the
+            required information to clear the entry off the list.
+          </span>
+          <span className="block">
+            Please add any other supporting information to the entry when
+            possible.
+          </span>
         </p>
       </div>
 
