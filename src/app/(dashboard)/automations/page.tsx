@@ -2657,7 +2657,17 @@ function CoverageByField({
                   🛑 THE HOUSEKEEPING PAGE CARRIES THE TWIN OF THIS PANEL and the
                   user chose to move both, exactly as with the colour ramp in
                   #557. **Change one, change the other.** */}
-              <span className="w-32 shrink-0 truncate text-sm font-medium text-zinc-700">
+              {/* ⭐ ZINC-900 SINCE 2026-09-22, WAS ZINC-700.
+                  The user compared this label with the automation names in
+                  "Recently Edited on Website" beside it and said they still
+                  looked different. **Probing both in the page found ONE
+                  difference: colour.** Size, weight, family, letter-spacing,
+                  line-height and smoothing were already identical, and a
+                  lighter grey at 14px reads as a lighter WEIGHT.
+                  📌 IT COSTS THE ROW ITS INTERNAL HIERARCHY, knowingly: the
+                  percentage is also zinc-900, so the label no longer sits a
+                  step behind its own number. Matching the panel beside it won. */}
+              <span className="w-32 shrink-0 truncate text-sm font-medium text-zinc-900">
                 {row.label}
               </span>
               <div className="flex h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-zinc-100">
