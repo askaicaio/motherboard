@@ -255,7 +255,31 @@ export function HousekeepingAlertsClient({
           ⚠️ `items-start` MATTERS. Without it the panels column stretches to the
           table's height and the last panel floats away from the fourth; the
           panels are meant to stack from the top and stop. */}
-      <div className="flex items-start gap-4">
+      {/* ⭐⭐ TWO COLUMNS ONLY WHEN THEY FIT, 2026-09-22: "When the Browser
+          Window gets smaller, this statistic becomes unreadable."
+          📊 WHY IT BROKE, MEASURED: the table card is FIXED at 827px and
+          `shrink-0`, so **every pixel the window loses comes out of the panel**.
+          The panel's row carries ~280px of fixed content (label 112, percent 40,
+          fraction 64, three 12px gaps, 28px padding), so the bar - the only
+          flexible thing in it - is what pays. At a 1437px window the panel was
+          258px: **bar 0px and the fraction clipped by the card's
+          `overflow-hidden`.** 1500px still worked (bar 41px), 1300px was
+          hopeless (panel 121px).
+          ⭐ THE BREAKPOINT WAS MEASURED, NOT GUESSED, AND THE FIRST GUESS WAS
+          WRONG. Everything but the panel is fixed, so **panel width = viewport
+          - 1179** on this page, and the row spends 280 of it before the bar
+          gets any. 1480 was tried first and put the two columns back with a
+          **21px bar**; `2xl` (1536) leaves ~77px, which is the smallest bar
+          worth calling a bar. Below that, stacking beats squeezing.
+          📌 THE PANEL GOES ABOVE THE TABLE when stacked, not below: the list is
+          viewport-tall, so a panel underneath it would sit below the fold and
+          the statistic would effectively disappear on exactly the windows that
+          triggered this fix. **Summary first, then the detail it summarises.**
+          ⚠️ THE HUB'S COPY OF THIS PANEL NEEDS NONE OF THIS. That page splits
+          its width fluidly instead of reserving a fixed table, so at 1437px its
+          panel is 578px with a 298px bar. **This is a layout bug of THIS page,
+          not of the panel.** */}
+      <div className="flex flex-col gap-4 2xl:flex-row 2xl:items-start">
         <div className="shrink-0" style={{ width: TABLE_CARD_WIDTH }}>
           {visible.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-2 rounded-lg py-16 text-center ring-1 ring-foreground/10">
@@ -474,7 +498,14 @@ export function HousekeepingAlertsClient({
 function CoveragePanel({ coverage }: { coverage: HousekeepingCoverage }) {
   const { total, filled } = coverage;
   return (
-    <div className="min-w-0 flex-1">
+    // ⚠️ `order-first` PUTS THIS ABOVE THE TABLE while the layout is stacked,
+    // and `2xl:order-none` hands it back to DOM order once the two columns fit.
+    // The reasoning is at the layout row in this file.
+    // 📌 STACKED, IT TAKES THE TABLE'S OWN 827px rather than the full container
+    // width: a four-row card stretched across 1100px reads as a banner, and
+    // matching the card below it keeps the page's left edge and right edge
+    // honest.
+    <div className="order-first w-full max-w-[827px] min-w-0 2xl:order-none 2xl:max-w-none 2xl:flex-1">
       {/* ⚠️ The panel sizes to its content and stops. It does NOT stretch to the
           table's height - a five-row card spread over 700px puts ~140px between
           rows, which reads worse than the whitespace below it. */}
