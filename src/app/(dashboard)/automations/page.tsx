@@ -2636,7 +2636,28 @@ function CoverageByField({
         <ul className="divide-y">
           {rows.map((row) => (
             <li key={row.key} className="flex items-center gap-3 px-3.5 py-2">
-              <span className="w-28 shrink-0 truncate text-xs font-medium text-zinc-700">
+              {/* ⭐ 14px, RAISED FROM 12 ON 2026-09-22 with the percentage
+                  below it. **The fraction, the title and the hint keep their
+                  sizes** - raising them was offered and declined - so the row
+                  reads as the content and the header stays furniture.
+                  ⚠️ `w-32` AND NOT `w-28`, AND THE 16px IS NOT COSMETIC.
+                  MEASURED at 14px/500: "Automation Tags", the longest label,
+                  needs **110.4px inside a 112px column**. It fits, with 1.6px
+                  to spare, which is not spare at all - **a font fallback would
+                  truncate it**, and this app has a standing Google Fonts build
+                  failure ([[vercel-google-fonts-build-failure]]) that makes
+                  fallback metrics a real case rather than a theoretical one.
+                  The 16px comes off the bar, which has no content to lose.
+                  ⚠️ THE PERCENTAGE COLUMN WENT `w-10` -> `w-12` FOR THE SAME
+                  REASON: "100%" measures **40.5px in a 40px column**, and
+                  Zapier really does sit at 100% on every field. That span has
+                  no `truncate`, so it would simply have spilled over the bar.
+                  📌 BOTH WIDTHS WERE MEASURED IN THE PAGE, not estimated - see
+                  [[measure-ui-behind-auth]].
+                  🛑 THE HOUSEKEEPING PAGE CARRIES THE TWIN OF THIS PANEL and the
+                  user chose to move both, exactly as with the colour ramp in
+                  #557. **Change one, change the other.** */}
+              <span className="w-32 shrink-0 truncate text-sm font-medium text-zinc-700">
                 {row.label}
               </span>
               <div className="flex h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-zinc-100">
@@ -2645,7 +2666,7 @@ function CoverageByField({
                   style={{ width: `${Math.min(100, row.pct)}%` }}
                 />
               </div>
-              <span className="w-10 shrink-0 text-right text-xs font-semibold tabular-nums text-zinc-900">
+              <span className="w-12 shrink-0 text-right text-sm font-semibold tabular-nums text-zinc-900">
                 {Math.round(row.pct)}%
               </span>
               <span className="w-16 shrink-0 text-right text-[11px] tabular-nums text-zinc-400">
