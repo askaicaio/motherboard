@@ -84,7 +84,22 @@ export default async function AutomationsHousekeepingAlertsPage() {
             the required set on 2026-09-21 and became the "other supporting
             information" this sentence asks for; it printed 4 the moment
             `REQUIRED_COLUMNS` lost an entry, with no edit here. */}
-        <p className="mt-1 text-sm text-zinc-500">
+        {/* ⭐⭐ `max-w-3xl` + `text-balance`, 2026-09-22: "The description here
+            looks bad, spatially."
+            📊 MEASURED AT A 1600px WINDOW: 269 characters in a 1264px box set as
+            **one 1248px line and a 410px stub** - about 175 characters on line
+            one, against the 45-75 that reads comfortably.
+            🛑 CAPPING THE WIDTH ALONE DOES NOT FIX IT. At 827px (the table's
+            own width, which would have aligned nicely) the last line becomes a
+            57px orphan: "when possible."
+            ⭐ **`text-balance` IS THE PART THAT WORKS.** It evens the lines out
+            to ~570/558/525px whatever cap it is given between 672 and 827, so
+            the cap chooses the BLOCK's width and balance chooses the LINES'.
+            `text-pretty` was tested too and barely moved it.
+            ⚠️ THE BLOCK GROWS 40px -> 60px and the list starts 20px lower. The
+            list is viewport-fitted, so it simply gets 20px shorter.
+            📌 Browsers without `text-wrap: balance` just wrap normally. */}
+        <p className="mt-1 max-w-3xl text-sm text-balance text-zinc-500">
           Automations that show up here are missing at least one of the{" "}
           {REQUIRED_COLUMNS.length} required columns. Review the automation by
           clicking the link, then fill out the required information to clear the
