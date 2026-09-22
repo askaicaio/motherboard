@@ -505,20 +505,17 @@ function CoveragePanel({ coverage }: { coverage: HousekeepingCoverage }) {
               const pct = (n / total) * 100;
               return (
                 <li key={col} className="flex items-center gap-3 px-3.5 py-2">
-                  {/* ⭐ 14px, RAISED FROM 12 ON 2026-09-22 with the percentage
-                      beside it, the fraction and the header left alone.
-                      ⚠️ `w-32` AND NOT `w-28`: "Automation Tags" MEASURES
-                      110.4px at this size inside a 112px column, so it fits by
-                      1.6px and a font fallback would truncate it. The
-                      percentage went `w-10` -> `w-12` the same way: "100%"
-                      measures 40.5px in a 40px column. The hub's copy carries
-                      the full reasoning.
-                      🛑 THE HUB'S PANEL IS THE TWIN and the user chose to move
-                      both, so this file and `automations/page.tsx` agree. */}
-                  {/* ⭐ ZINC-900 SINCE 2026-09-22, WAS ZINC-700, to match the
-                      automation names in the panel beside the hub's copy; the
-                      hub carries the full reasoning. Both panels move together. */}
-                  <span className="w-32 shrink-0 truncate text-sm font-medium text-zinc-900">
+                  {/* ⭐ ZINC-900, NOT ZINC-700, SINCE 2026-09-22 (#567), to
+                      match the automation names in the panel beside the hub's
+                      copy. **Do not restore the lighter grey.**
+                      🛑 12px IS RE-CHOSEN, NOT LEFT ALONE: this row was raised
+                      to 14px in `w-32`/`w-12` (#566) and **reverted the same
+                      day** (#568), colour kept. The hub's copy records what the
+                      two columns would have to become if 14px is tried again.
+                      🛑 THE HUB'S PANEL IS THE TWIN and the user has twice
+                      chosen to move both, so this file and `automations/page.tsx`
+                      have to agree. */}
+                  <span className="w-28 shrink-0 truncate text-xs font-medium text-zinc-900">
                     {col}
                   </span>
                   <div className="flex h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-zinc-100">
@@ -527,7 +524,7 @@ function CoveragePanel({ coverage }: { coverage: HousekeepingCoverage }) {
                       style={{ width: `${Math.min(100, pct)}%` }}
                     />
                   </div>
-                  <span className="w-12 shrink-0 text-right text-sm font-semibold tabular-nums text-zinc-900">
+                  <span className="w-10 shrink-0 text-right text-xs font-semibold tabular-nums text-zinc-900">
                     {Math.round(pct)}%
                   </span>
                   <span className="w-16 shrink-0 text-right text-[11px] tabular-nums text-zinc-400">
