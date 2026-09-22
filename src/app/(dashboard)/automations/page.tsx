@@ -2636,38 +2636,35 @@ function CoverageByField({
         <ul className="divide-y">
           {rows.map((row) => (
             <li key={row.key} className="flex items-center gap-3 px-3.5 py-2">
-              {/* ⭐ 14px, RAISED FROM 12 ON 2026-09-22 with the percentage
-                  below it. **The fraction, the title and the hint keep their
-                  sizes** - raising them was offered and declined - so the row
-                  reads as the content and the header stays furniture.
-                  ⚠️ `w-32` AND NOT `w-28`, AND THE 16px IS NOT COSMETIC.
-                  MEASURED at 14px/500: "Automation Tags", the longest label,
-                  needs **110.4px inside a 112px column**. It fits, with 1.6px
-                  to spare, which is not spare at all - **a font fallback would
-                  truncate it**, and this app has a standing Google Fonts build
-                  failure ([[vercel-google-fonts-build-failure]]) that makes
-                  fallback metrics a real case rather than a theoretical one.
-                  The 16px comes off the bar, which has no content to lose.
-                  ⚠️ THE PERCENTAGE COLUMN WENT `w-10` -> `w-12` FOR THE SAME
-                  REASON: "100%" measures **40.5px in a 40px column**, and
-                  Zapier really does sit at 100% on every field. That span has
-                  no `truncate`, so it would simply have spilled over the bar.
-                  📌 BOTH WIDTHS WERE MEASURED IN THE PAGE, not estimated - see
-                  [[measure-ui-behind-auth]].
-                  🛑 THE HOUSEKEEPING PAGE CARRIES THE TWIN OF THIS PANEL and the
-                  user chose to move both, exactly as with the colour ramp in
-                  #557. **Change one, change the other.** */}
-              {/* ⭐ ZINC-900 SINCE 2026-09-22, WAS ZINC-700.
-                  The user compared this label with the automation names in
-                  "Recently Edited on Website" beside it and said they still
-                  looked different. **Probing both in the page found ONE
-                  difference: colour.** Size, weight, family, letter-spacing,
-                  line-height and smoothing were already identical, and a
-                  lighter grey at 14px reads as a lighter WEIGHT.
+              {/* ⭐ ZINC-900, NOT ZINC-700, SINCE 2026-09-22 (#567). The user
+                  compared this label with the automation names in "Recently
+                  Edited on Website" beside it and said they still looked
+                  different. **Probing both in the page found ONE difference:
+                  colour**, everything else already matched - and a lighter grey
+                  at the same size reads as a lighter WEIGHT.
                   📌 IT COSTS THE ROW ITS INTERNAL HIERARCHY, knowingly: the
-                  percentage is also zinc-900, so the label no longer sits a
-                  step behind its own number. Matching the panel beside it won. */}
-              <span className="w-32 shrink-0 truncate text-sm font-medium text-zinc-900">
+                  percentage is zinc-900 too, so the label no longer sits a step
+                  behind its own number. Matching the panel beside it won, so
+                  **do not "restore" the lighter grey.**
+
+                  🛑🛑 12px IS DELIBERATE AND WAS RE-CHOSEN, NOT LEFT ALONE. The
+                  label and percentage were raised to 14px (#566) at the user's
+                  request on 2026-09-22 and **reverted the same day at the same
+                  user's request** (#568); only the colour survived. So this row
+                  is now 12px text in the ORIGINAL `w-28`/`w-10` columns.
+                  ⚠️ IF 14px IS EVER TRIED AGAIN, THE TWO COLUMNS HAVE TO GROW
+                  WITH IT, and this is the part that is easy to miss: MEASURED at
+                  14px/500, "Automation Tags" needs **110.4px in a 112px column**
+                  (fits by 1.6px, so a font fallback truncates it - and this app
+                  has a standing Google Fonts build failure,
+                  [[vercel-google-fonts-build-failure]]) and "100%" needs
+                  **40.5px in a 40px column**, which does not fit at all, on a
+                  span with no `truncate`. `w-32` and `w-12` were the sizes that
+                  worked. At 12px both fit comfortably.
+                  🛑 THE HOUSEKEEPING PAGE CARRIES THE TWIN OF THIS PANEL and the
+                  user has twice chosen to move both, as with the colour ramp in
+                  #557. **Change one, change the other.** */}
+              <span className="w-28 shrink-0 truncate text-xs font-medium text-zinc-900">
                 {row.label}
               </span>
               <div className="flex h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-zinc-100">
@@ -2676,7 +2673,7 @@ function CoverageByField({
                   style={{ width: `${Math.min(100, row.pct)}%` }}
                 />
               </div>
-              <span className="w-12 shrink-0 text-right text-sm font-semibold tabular-nums text-zinc-900">
+              <span className="w-10 shrink-0 text-right text-xs font-semibold tabular-nums text-zinc-900">
                 {Math.round(row.pct)}%
               </span>
               <span className="w-16 shrink-0 text-right text-[11px] tabular-nums text-zinc-400">
