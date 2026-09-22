@@ -62,18 +62,38 @@ export default async function AutomationsHousekeepingAlertsPage() {
   ]);
 
   return (
-    <div className="space-y-6 p-6">
-      <Link
-        href="/automations"
-        className="inline-flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-900"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back to Automations
-      </Link>
+    /* ⭐⭐ THE PAGE KEEPS ITS WIDTH AND SCROLLS SIDEWAYS, 2026-09-22: "make the
+       marked elements keep their size, add horizontal scrolling when the
+       elements start going beyond the horizontal width of the browser."
+       🛑 WHY THE SCROLLER IS HERE AND NOT ON `<main>`: the dashboard layout
+       gives `<main>` **`overflow-x-clip`**, which cuts overflow off WITHOUT
+       creating a scroll container - deliberately, so the window stays the
+       scroller and `position: sticky` keeps working for page content. That is
+       why this page simply got CUT at the window edge instead of scrolling.
+       **Changing it would change every dashboard page**, so the scroller is
+       scoped to this one.
+       ⚠️ `min-w-[875px]` IS 827 + THE 48px OF `p-6`: 827 is the table card's
+       own width (`TABLE_CARD_WIDTH`), which is also what the stacked coverage
+       panel takes. **So the floor is the widest thing on the page**, and below
+       it nothing reflows - the subtitle keeps its three sentence-lines, the
+       filter chips keep one row, the panel keeps its bars - the page just
+       scrolls.
+       📌 IF THE TABLE CARD'S WIDTH EVER CHANGES, THIS NUMBER FOLLOWS IT. */
+    <div className="overflow-x-auto">
+      <div className="min-w-[875px] space-y-6 p-6">
+        <Link
+          href="/automations"
+          className="inline-flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-900"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Automations
+        </Link>
 
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Housekeeping</h1>
-        {/* ⭐⭐ THE USER'S OWN WORDING, 2026-09-21, replacing the shorter
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Housekeeping
+          </h1>
+          {/* ⭐⭐ THE USER'S OWN WORDING, 2026-09-21, replacing the shorter
             version from three days earlier. Three sentences doing three jobs:
             why the row is here, what to DO about it (read the automation first,
             by following its link), and what to add beyond the minimum.
@@ -84,7 +104,7 @@ export default async function AutomationsHousekeepingAlertsPage() {
             the required set on 2026-09-21 and became the "other supporting
             information" this sentence asks for; it printed 4 the moment
             `REQUIRED_COLUMNS` lost an entry, with no edit here. */}
-        {/* ⭐⭐ ONE SENTENCE PER LINE, 2026-09-22: "lets try each sentence being
+          {/* ⭐⭐ ONE SENTENCE PER LINE, 2026-09-22: "lets try each sentence being
             in its own line, 3 sentences so 3 lines total." **The three jobs the
             copy does now each own a row**: why the entry is listed, what to do
             about it, what to add beyond the minimum.
@@ -108,27 +128,28 @@ export default async function AutomationsHousekeepingAlertsPage() {
             description; `block` gives each sentence its own line at the
             paragraph's own 20px line-height, so the block stays 60px tall and
             the list does not move. */}
-        <p className="mt-1 max-w-3xl text-sm text-balance text-zinc-500">
-          <span className="block">
-            Automations that show up here are missing at least one of the{" "}
-            {REQUIRED_COLUMNS.length} required columns.
-          </span>
-          <span className="block">
-            Review the automation by clicking the link, then fill out the
-            required information to clear the entry off the list.
-          </span>
-          <span className="block">
-            Please add any other supporting information to the entry when
-            possible.
-          </span>
-        </p>
-      </div>
+          <p className="mt-1 max-w-3xl text-sm text-balance text-zinc-500">
+            <span className="block">
+              Automations that show up here are missing at least one of the{" "}
+              {REQUIRED_COLUMNS.length} required columns.
+            </span>
+            <span className="block">
+              Review the automation by clicking the link, then fill out the
+              required information to clear the entry off the list.
+            </span>
+            <span className="block">
+              Please add any other supporting information to the entry when
+              possible.
+            </span>
+          </p>
+        </div>
 
-      <HousekeepingAlertsClient
-        initialRows={rows}
-        choices={choices}
-        coverage={coverage}
-      />
+        <HousekeepingAlertsClient
+          initialRows={rows}
+          choices={choices}
+          coverage={coverage}
+        />
+      </div>
     </div>
   );
 }
