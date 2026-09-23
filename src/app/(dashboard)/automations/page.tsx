@@ -2588,7 +2588,8 @@ function Panel({
  *  on the user's instruction (2026-09-17). **The two are meant to differ now.**
  *
  *  ⚠️ TWO PRESENTATION CHANGES, both to fit this panel rather than a full page:
- *    1. THE TITLE IS "Documentation by Field", where Alpha6 says just "By
+ *    1. THE TITLE IS "Documentation of Required Fields" (was "Documentation
+ *       by Field" until 2026-09-23), where Alpha6 says just "By
  *       field". (It read "Documented by field" until 2026-09-10, when the user
  *       retitled all three panel headers on the live hub.)
  *       Alpha6's page carries a heading and a caption explaining that the whole
@@ -2624,15 +2625,25 @@ function CoverageByField({
 }) {
   return (
     <div className="min-w-0 overflow-hidden rounded-lg bg-card ring-1 ring-foreground/10">
+      {/* ⚠️ THE TITLE CARRIES IT ALONE NOW, 2026-09-23: "Change this to
+          'Documentation of Required Fields' and remove the 'Required Columns'
+          subheader on the right."
+          ⭐ THE HINT HAD NOTHING LEFT TO SAY. It read "thinnest first" until the
+          sort was dropped (2026-09-17), then "required columns" - which the new
+          title says in full. **A hint that repeats its title is noise**, and the
+          Recently Edited panel's hint was rewritten the same week for the same
+          reason (#573).
+          📌 "FIELDS", NOT "COLUMNS", IS NOW THE USER-FACING WORD for this set,
+          here and in the Housekeeping subtitle. The code constant is still
+          `REQUIRED_COLUMNS` because it names the Per Website table's columns,
+          which is where the labels come from.
+          🛑 THE HOUSEKEEPING COPY KEEPS ITS HINT ("all websites"), by the user's
+          explicit instruction - that one says WHICH ESTATE it measures, which
+          its title does not. So the two headers are no longer identical, and
+          that is deliberate. */}
       <div className="flex items-center justify-between gap-2 border-b bg-muted/40 px-3.5 py-2">
         <span className="text-xs font-semibold text-zinc-800">
-          Documentation by Field
-        </span>
-        {/* ⚠️ SAYS WHAT THE ROWS ARE, NOT HOW THEY ARE ORDERED. It read
-            "thinnest first" until 2026-09-17, which stopped being true the
-            moment the sort was dropped for the table's own column order. */}
-        <span className="text-[10px] uppercase tracking-wider text-zinc-500">
-          required columns
+          Documentation of Required Fields
         </span>
       </div>
       {total === 0 ? (

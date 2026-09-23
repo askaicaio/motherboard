@@ -466,7 +466,7 @@ export function HousekeepingAlertsClient({
   );
 }
 
-/** "Documentation by Field" for the whole estate, in the space the table
+/** "Documentation of Required Fields" for the whole estate, in the space the table
  *  gave back.
  *
  *  🛑 IT WAS FIVE PANELS, ONE PER WEBSITE, FOR ONE ROUND (#554). The user
@@ -512,11 +512,15 @@ function CoveragePanel({ coverage }: { coverage: HousekeepingCoverage }) {
       <div className="min-w-0 overflow-hidden rounded-lg bg-card ring-1 ring-foreground/10">
         <div className="flex items-center justify-between gap-2 border-b bg-muted/40 px-3.5 py-2">
           <span className="text-xs font-semibold text-zinc-800">
-            Documentation by Field
+            Documentation of Required Fields
           </span>
-          {/* ⚠️ The one wording difference from the hub: that panel is scoped to
-              the selected website and says "required columns"; this one sums all
-              five, so it says which websites rather than which columns. */}
+          {/* ⚠️ THIS HINT SURVIVED AND THE HUB'S DID NOT, 2026-09-23, by the
+              user's instruction: "keep the 'All Websites' subheader".
+              ⭐ The difference is what each hint ADDS. The hub's said "required
+              columns", which the new title already says; this one says WHICH
+              ESTATE the numbers cover - every website, not the one selected -
+              and nothing else on the panel says that. **The two headers are no
+              longer identical on purpose.** */}
           <span className="text-[10px] tracking-wider text-zinc-500 uppercase">
             all websites
           </span>
