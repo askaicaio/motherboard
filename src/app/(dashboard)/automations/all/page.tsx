@@ -247,17 +247,32 @@ export default async function AllAutomationsPage() {
        creating a scroll container. Deliberate and shared by every dashboard
        page (a scroll container there would re-anchor `position: sticky`), so
        each page gets its own scroller.
-       📊 WHY THE FLOOR IS 673px. **The TOOLBAR is the binding element, NOT the
-       table.** The table is 2974px wide and scrolls inside its OWN card at
-       every width by design, so it can never drive a floor. The toolbar is a
-       `min-w-0 flex-1` search wrapper beside a `shrink-0` action group, so
-       **search width = content - 355** (the group's 347 plus the `gap-2`), and
-       the search is the only thing that pays:
-         1564 content -> 1209px search | 944 -> 589 | 688 -> 333 | 564 -> 209 |
-         364 -> **9** | 222 -> **0**, which is the state the user photographed.
-       ⭐ THE FLOOR IS "THE PLACEHOLDER STILL FITS": 270px of field, + 347 + 8 =
-       625 of content, + the 48px of `p-6` = 673. The scrollbar appears at about
-       a 961px window.
+       📊 WHY THE FLOOR IS 875px, AND WHY ALL THREE TABLE PAGES SHARE IT.
+       2026-09-24: "the table width squishes too much, make the smallest width
+       wider." **The floor is now set by HOW MUCH TABLE STAYS VISIBLE**, not by
+       the page chrome, and 827 of table is the number because **that is
+       Housekeeping's table card**, a width the user had already approved. 827 +
+       the 48px of `p-6` = 875, the same floor Housekeeping carries. All three
+       table pages were raised to it together so the tab has ONE table minimum.
+       The scrollbar appears at about a 1178px window.
+       🛑 THE FIRST FLOOR HERE WAS 673 AND IT WAS TOO TIGHT. I reasoned that the
+       table "is 2974px wide and scrolls inside its OWN card at every width by
+       design, so it can never drive a floor", set the floor from the TOOLBAR
+       instead, and shipped a 625px card showing Name + Website + Status. **The
+       user photographed exactly that and called it squished.** ⭐ THE LESSON: a
+       scrolling table cannot set a MAXIMUM, but it absolutely sets a MINIMUM -
+       "it scrolls anyway" is not a reason to let it get as narrow as the rest of
+       the page allows. HOW MUCH of it you see is a design decision, not a
+       leftover.
+       📌 WHAT 827 BUYS ON THIS PAGE, measured column by column: Name 400,
+       +Website 509, +Status 610, **+Author 770**, +Automation Tags 1010,
+       +Trigger Event 1170. So 827 clears Author with room to spare and no
+       longer clips Status.
+       📌 THE OLD TOOLBAR FLOOR STILL MATTERS AS A LOWER BOUND, so keep it:
+       the search is `min-w-0 flex-1` beside a `shrink-0` 347px action group,
+       so **search = content - 355**, and it needs 270px to show its placeholder
+       = 625 of content. **875 clears that by 202px**; if the floor is ever cut,
+       673 is the hard bottom.
        ⚠️ 270 IS ONLY RIGHT ABOVE THE `md` BREAKPOINT. The Input is
        `text-base md:text-sm`, so under a 768px window the font jumps to 16px
        and the same placeholder needs **305px**. The floor sits above 768, so
@@ -266,7 +281,7 @@ export default async function AllAutomationsPage() {
        📌 IF THE ACTION GROUP GAINS A BUTTON, THE FLOOR FOLLOWS IT. 347px is
        Columns + Filter + Edit mode as of today. */
     <div className="overflow-x-auto">
-      <div className="min-w-[673px] space-y-6 p-6">
+      <div className="min-w-[875px] space-y-6 p-6">
         <Link
           href="/automations"
           className="inline-flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-900"

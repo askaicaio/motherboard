@@ -160,15 +160,26 @@ export default async function AutomationWebsitePage({
        gives `<main>` **`overflow-x-clip`**, which cuts overflow off WITHOUT
        creating a scroll container. Deliberate and shared by every dashboard
        page (a scroll container there would re-anchor `position: sticky`).
-       📊 WHY THE FLOOR IS 840px. The client's header is
-       `flex flex-wrap items-start justify-between gap-4`, so it wraps the
-       toolbar onto its own row the moment **content < title + 16 + toolbar**.
-       The TOOLBAR is a constant 531px on every website (auto-refresh, Refresh
-       List, Export CSV, divider, Edit mode); the TITLE is what varies:
+       📊 WHY THE FLOOR IS 875px, AND WHY ALL THREE TABLE PAGES SHARE IT.
+       2026-09-24: "the table width squishes too much, make the smallest width
+       wider." **The floor is now set by HOW MUCH TABLE STAYS VISIBLE**, not by
+       the page chrome, and 827 of table is the number because **that is
+       Housekeeping's table card**, a width the user had already approved. 827 +
+       the 48px of `p-6` = 875, the same floor Housekeeping carries. All three
+       table pages were raised to it together so the tab has ONE table minimum.
+       The scrollbar appears at about a 1178px window.
+       📌 WHAT 827 BUYS HERE, measured: Name 400, +Status 510, **+Author 670**,
+       +Automation Tags 910. So 827 clears Author and reaches well into
+       Automation Tags. It was 840 before, so this page moved the least.
+       📌 THE HEADER'S OWN MINIMUM IS STILL A LOWER BOUND, so keep it: the header
+       is `flex flex-wrap items-start justify-between gap-4` and wraps when
+       **content < title + 16 + toolbar**. The toolbar is a constant 531px on
+       every website (auto-refresh, Refresh List, Export CSV, divider, Edit
+       mode); the TITLE varies:
          Zapier 131 -> needs 678 | n8n 151 -> 698 | Make 157 -> 704 |
          GHL 208 -> 755 | **GHL B2B 238 -> 785**
-       785 + the 48px of `p-6` = 833, rounded to 840 for sub-pixel margin. The
-       scrollbar appears at about a 1128px window.
+       **875 clears the worst of those by 42px.** If the floor is ever cut, 833
+       is the hard bottom or GHL B2B wraps.
        ⚠️⚠️ ONE ROUTE, FIVE WEBSITES: MEASURE ALL OF THEM. Make alone gives 704,
        which would have left GHL B2B wrapping by 81px, and Make is the one you
        naturally open first. **I quoted the user ~1040 off Make before measuring
@@ -176,7 +187,7 @@ export default async function AutomationWebsitePage({
        📌 THE TITLE IS THE SITE'S `label` + `description` FROM `sites.ts`, which
        16 surfaces share. If either is ever reworded, re-measure this floor. */
     <div className="overflow-x-auto">
-      <div className="min-w-[840px] space-y-6 p-6">
+      <div className="min-w-[875px] space-y-6 p-6">
         <Link
           href="/automations"
           className="inline-flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-900"
