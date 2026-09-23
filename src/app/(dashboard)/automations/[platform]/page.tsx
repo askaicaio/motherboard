@@ -152,35 +152,60 @@ export default async function AutomationWebsitePage({
   const autoRefresh = await getAutoRefreshFor(site.slug);
 
   return (
-    <div className="space-y-6 p-6">
-      <Link
-        href="/automations"
-        className="inline-flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-900"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back to Automations
-      </Link>
+    /* ⭐⭐ THE PAGE KEEPS ITS WIDTH AND SCROLLS SIDEWAYS, 2026-09-23. Fifth page
+       of the narrow-window pass, after Housekeeping (#572), the hub (#576),
+       Dropdown Config (#577) and View All Lists (#578). The user was shown this
+       one wrapping and chose to floor it rather than leave it.
+       🛑 WHY THE SCROLLER IS HERE AND NOT ON `<main>`: the dashboard layout
+       gives `<main>` **`overflow-x-clip`**, which cuts overflow off WITHOUT
+       creating a scroll container. Deliberate and shared by every dashboard
+       page (a scroll container there would re-anchor `position: sticky`).
+       📊 WHY THE FLOOR IS 840px. The client's header is
+       `flex flex-wrap items-start justify-between gap-4`, so it wraps the
+       toolbar onto its own row the moment **content < title + 16 + toolbar**.
+       The TOOLBAR is a constant 531px on every website (auto-refresh, Refresh
+       List, Export CSV, divider, Edit mode); the TITLE is what varies:
+         Zapier 131 -> needs 678 | n8n 151 -> 698 | Make 157 -> 704 |
+         GHL 208 -> 755 | **GHL B2B 238 -> 785**
+       785 + the 48px of `p-6` = 833, rounded to 840 for sub-pixel margin. The
+       scrollbar appears at about a 1128px window.
+       ⚠️⚠️ ONE ROUTE, FIVE WEBSITES: MEASURE ALL OF THEM. Make alone gives 704,
+       which would have left GHL B2B wrapping by 81px, and Make is the one you
+       naturally open first. **I quoted the user ~1040 off Make before measuring
+       the rest; the real answer was ~1128.**
+       📌 THE TITLE IS THE SITE'S `label` + `description` FROM `sites.ts`, which
+       16 surfaces share. If either is ever reworded, re-measure this floor. */
+    <div className="overflow-x-auto">
+      <div className="min-w-[840px] space-y-6 p-6">
+        <Link
+          href="/automations"
+          className="inline-flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-900"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Automations
+        </Link>
 
-      <AutomationsTableClient
-        platform={site.slug}
-        label={site.label}
-        description={site.description}
-        icon={site.icon}
-        iconColor={site.iconColor}
-        initialRows={rows}
-        initialQuery={initialQuery}
-        authorChoices={authorChoices}
-        triggerEventChoices={triggerEventChoices}
-        triageChoices={triageChoices}
+        <AutomationsTableClient
+          platform={site.slug}
+          label={site.label}
+          description={site.description}
+          icon={site.icon}
+          iconColor={site.iconColor}
+          initialRows={rows}
+          initialQuery={initialQuery}
+          authorChoices={authorChoices}
+          triggerEventChoices={triggerEventChoices}
+          triageChoices={triageChoices}
 
-        automationTagChoices={automationTagChoices}
-        ghlTagChoices={ghlTagChoices}
-        ghlFormChoices={ghlFormChoices}
-        webhookChoices={webhookChoices}
-        canSync={isSyncablePlatform(site.slug)}
-        hasApiKey={platformHasApiKey(site.slug)}
-        autoRefresh={autoRefresh}
-      />
+          automationTagChoices={automationTagChoices}
+          ghlTagChoices={ghlTagChoices}
+          ghlFormChoices={ghlFormChoices}
+          webhookChoices={webhookChoices}
+          canSync={isSyncablePlatform(site.slug)}
+          hasApiKey={platformHasApiKey(site.slug)}
+          autoRefresh={autoRefresh}
+        />
+      </div>
     </div>
   );
 }
