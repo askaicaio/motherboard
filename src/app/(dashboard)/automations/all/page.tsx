@@ -237,33 +237,65 @@ export default async function AllAutomationsPage() {
     ]);
 
   return (
-    <div className="space-y-6 p-6">
-      <Link
-        href="/automations"
-        className="inline-flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-900"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back to Automations
-      </Link>
+    /* ⭐⭐ THE PAGE KEEPS ITS WIDTH AND SCROLLS SIDEWAYS, 2026-09-23. Fourth page
+       to get this treatment, after Housekeeping (#572), the hub (#576) and
+       Dropdown Config (#577), during the narrow-window pass. The user showed
+       the toolbar with the SEARCH FIELD COLLAPSED TO A STUB beside the Columns
+       button and asked for this page next.
+       🛑 WHY THE SCROLLER IS HERE AND NOT ON `<main>`: the dashboard layout
+       gives `<main>` **`overflow-x-clip`**, which cuts overflow off WITHOUT
+       creating a scroll container. Deliberate and shared by every dashboard
+       page (a scroll container there would re-anchor `position: sticky`), so
+       each page gets its own scroller.
+       📊 WHY THE FLOOR IS 673px. **The TOOLBAR is the binding element, NOT the
+       table.** The table is 2974px wide and scrolls inside its OWN card at
+       every width by design, so it can never drive a floor. The toolbar is a
+       `min-w-0 flex-1` search wrapper beside a `shrink-0` action group, so
+       **search width = content - 355** (the group's 347 plus the `gap-2`), and
+       the search is the only thing that pays:
+         1564 content -> 1209px search | 944 -> 589 | 688 -> 333 | 564 -> 209 |
+         364 -> **9** | 222 -> **0**, which is the state the user photographed.
+       ⭐ THE FLOOR IS "THE PLACEHOLDER STILL FITS": 270px of field, + 347 + 8 =
+       625 of content, + the 48px of `p-6` = 673. The scrollbar appears at about
+       a 961px window.
+       ⚠️ 270 IS ONLY RIGHT ABOVE THE `md` BREAKPOINT. The Input is
+       `text-base md:text-sm`, so under a 768px window the font jumps to 16px
+       and the same placeholder needs **305px**. The floor sits above 768, so
+       270 is the number that applies; measure the placeholder at the width you
+       are flooring for, not at a narrow one.
+       📌 IF THE ACTION GROUP GAINS A BUTTON, THE FLOOR FOLLOWS IT. 347px is
+       Columns + Filter + Edit mode as of today. */
+    <div className="overflow-x-auto">
+      <div className="min-w-[673px] space-y-6 p-6">
+        <Link
+          href="/automations"
+          className="inline-flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-900"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Automations
+        </Link>
 
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">All Automations</h1>
-        <p className="mt-1 text-sm text-zinc-500">
-          Every automation from all connected websites in one table.
-        </p>
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            All Automations
+          </h1>
+          <p className="mt-1 text-sm text-zinc-500">
+            Every automation from all connected websites in one table.
+          </p>
+        </div>
+
+        <AllAutomationsTableClient
+          rows={rows}
+          authorChoices={authorChoices}
+          triggerEventChoices={triggerEventChoices}
+          triageChoices={triageChoices}
+
+          automationTagChoices={automationTagChoices}
+          ghlTagChoices={ghlTagChoices}
+          ghlFormChoices={ghlFormChoices}
+          webhookChoices={webhookChoices}
+        />
       </div>
-
-      <AllAutomationsTableClient
-        rows={rows}
-        authorChoices={authorChoices}
-        triggerEventChoices={triggerEventChoices}
-        triageChoices={triageChoices}
-
-        automationTagChoices={automationTagChoices}
-        ghlTagChoices={ghlTagChoices}
-        ghlFormChoices={ghlFormChoices}
-        webhookChoices={webhookChoices}
-      />
     </div>
   );
 }
