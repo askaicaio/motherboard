@@ -129,9 +129,15 @@ export default async function AutomationsHousekeepingAlertsPage() {
             paragraph's own 20px line-height, so the block stays 60px tall and
             the list does not move. */}
           <p className="mt-1 max-w-3xl text-sm text-balance text-zinc-500">
+            {/* ⚠️ "FIELDS", NOT "COLUMNS", SINCE 2026-09-23, at the user's
+                request and in step with the coverage panel's new title,
+                "Documentation of Required Fields". **The code constant stays
+                `REQUIRED_COLUMNS`** - it names the Per Website table's columns,
+                which is where these labels come from - so the word the reader
+                sees and the word the code uses differ here on purpose. */}
             <span className="block">
               Automations that show up here are missing at least one of the{" "}
-              {REQUIRED_COLUMNS.length} required columns.
+              {REQUIRED_COLUMNS.length} required fields.
             </span>
             <span className="block">
               Review the automation by clicking the link, then fill out the
