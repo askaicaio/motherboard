@@ -2495,10 +2495,20 @@ function Sparkline({
           quantities.
           📌 THE COUNT COMES FROM `max`, the same number the heights are scaled
           against, so the label and the tallest bar are the same fact.
-          ⚠️ AT ZERO IT FALLS BACK TO THE PLAIN LABEL rather than printing "Peak
-          0 errors": a website with a quiet month should not be handed a
-          statistic that only says nothing happened. The axis caption still has
-          to be there, which is why this is one element and not two. */}
+          ⚠️ AT ZERO IT SAYS SO IN WORDS, 2026-09-23: "this text in the
+          statistic should say 'No Errors in the last 30 days'".
+          🛑 IT USED TO FALL BACK TO THE PLAIN WINDOW LABEL, on the argument that
+          a website with a quiet month should not be handed a statistic that
+          only says nothing happened. **The user overruled that**, and they are
+          right about what the reader sees: an empty chart with only an axis
+          caption looks like something failed to load, while "no errors" is a
+          RESULT.
+          📌 IT COVERS BOTH ZEROS, and they are different: a tracked website with
+          a quiet month (Make, n8n) and one that captures nothing at all (GHL,
+          GHL B2B, Zapier - see [[automations-ghl-error-api]]). **The right-hand
+          line above already separates them** - "not tracked yet" versus a real
+          last-error date - so this label does not have to.
+          📌 It still carries the window, so the axis caption is not lost. */}
       {/* ⭐⭐ THE FOOTER IS AN AXIS NOW, 2026-09-21: ends marking where the
           window starts and finishes, peak in the middle. **The chart finally
           says WHEN as well as how much** - before this the bars were 30
@@ -2532,7 +2542,7 @@ function Sparkline({
               {max === 1 ? "error" : "errors"} in the last {dayKeys.length} days
             </>
           ) : (
-            <>Last {dayKeys.length} days</>
+            <>No errors in the last {dayKeys.length} days</>
           )}
         </span>
         <span className="justify-self-end">Today</span>
