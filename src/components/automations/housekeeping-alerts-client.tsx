@@ -21,7 +21,7 @@
 // does its own save and returns the saved row, so there is nothing to guess at
 // and nothing to roll back.
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import { ExternalLink, Inbox } from "lucide-react";
 import { toast } from "sonner";
 
@@ -125,21 +125,7 @@ export function HousekeepingAlertsClient({
   coverage: HousekeepingCoverage;
 }) {
   const [rows, setRows] = useState(initialRows);
-  const [site, setSite] = useState<string | null>(null);
   const [editing, setEditing] = useState<HousekeepingRow | null>(null);
-
-  const visible = useMemo(
-    () => (site ? rows.filter((r) => r.platform === site) : rows),
-    [rows, site],
-  );
-
-  /** Per-website counts, computed off the UNFILTERED rows so the numbers do not
-   *  change as you filter. */
-  const countsBySite = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const r of rows) m.set(r.platform, (m.get(r.platform) ?? 0) + 1);
-    return m;
-  }, [rows]);
 
   /** The scroll window's measured height. Same hook the four Automations
    *  tables use, so this list caps itself the same way they do. */
@@ -232,24 +218,17 @@ export function HousekeepingAlertsClient({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-1.5">
-        <FilterChip
-          label="All websites"
-          count={rows.length}
-          active={site === null}
-          onClick={() => setSite(null)}
-        />
-        {AUTOMATION_SITES.map((s) => (
-          <FilterChip
-            key={s.slug}
-            label={s.label}
-            count={countsBySite.get(s.slug) ?? 0}
-            active={site === s.slug}
-            onClick={() => setSite(s.slug)}
-          />
-        ))}
-      </div>
-
+      {/* 🛑 THE WEBSITE FILTER CHIPS WERE HERE AND WERE REMOVED 2026-09-24:
+          "Remove these selectors. This feature is not needed." A row of
+          `All websites 557 | Make 2 | n8n 179 | GHL 265 | GHL B2B 111 |
+          Zapier 0` that filtered the list to one website.
+          ⚠️ THE LIST IS NOW ALWAYS THE WHOLE ESTATE, which is what the
+          website-first sort already assumed: rows are ordered by canonical
+          website then name, so each website is a contiguous block you scroll
+          to. **That ordering is what makes the filter redundant**; if the sort
+          is ever changed, the case for a filter comes back.
+          📌 The per-row website glyph in the Name cell stays and is now the
+          only website marker on the page. */}
       {/* ⭐⭐ TABLE LEFT, COVERAGE PANELS RIGHT, 2026-09-17: "Shrink the table
           in S2 to remove this empty space, and put the statistic there."
           ⚠️ `items-start` MATTERS. Without it the panels column stretches to the
@@ -281,7 +260,7 @@ export function HousekeepingAlertsClient({
           not of the panel.** */}
       <div className="flex flex-col gap-4 2xl:flex-row 2xl:items-start">
         <div className="shrink-0" style={{ width: TABLE_CARD_WIDTH }}>
-          {visible.length === 0 ? (
+          {rows.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-2 rounded-lg py-16 text-center ring-1 ring-foreground/10">
               <Inbox className="h-6 w-6 text-zinc-300" />
               <p className="text-sm font-medium text-zinc-900">
@@ -386,7 +365,7 @@ export function HousekeepingAlertsClient({
                   immediately inside the card's own edge, which reads as a
                   rendering glitch rather than as a divider. */}
                   <tbody className="divide-y">
-                    {visible.map((row) => (
+                    {rows.map((row) => (
                       <ListRow
                         key={row.id}
                         row={row}
@@ -400,9 +379,12 @@ export function HousekeepingAlertsClient({
           )}
         </div>
 
-        {/* ⚠️ IT DOES NOT FOLLOW THE WEBSITE FILTER. The chips above filter the
-            TABLE; this counts the whole estate either way. It is one figure about
-            how documented the estate is, not a second view of the list. */}
+        {/* ⚠️ IT COUNTS THE WHOLE ESTATE, and always did. This used to be the
+            interesting half of a sentence - there were website filter chips
+            above and this panel deliberately ignored them - and **the chips were
+            removed 2026-09-24, so the panel and the list now agree by default**.
+            It is one figure about how documented the estate is, not a second
+            view of the list. Its "all websites" hint is what still says so. */}
         <CoveragePanel coverage={coverage} />
       </div>
 
@@ -601,42 +583,6 @@ function barClass(p: number): string {
   return "bg-emerald-600";
 }
 
-function FilterChip({
-  label,
-  count,
-  active,
-  onClick,
-}: {
-  label: string;
-  count: number;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={cn(
-        "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium transition-colors",
-        active
-          ? "bg-zinc-900 text-white"
-          : "bg-card text-zinc-600 ring-1 ring-foreground/10 hover:bg-zinc-50 hover:text-zinc-900",
-      )}
-    >
-      {label}
-      <span
-        className={cn(
-          "tabular-nums",
-          active ? "text-zinc-300" : "text-zinc-400",
-        )}
-      >
-        {count}
-      </span>
-    </button>
-  );
-}
-
 // ---------------------------------------------------------------------------
 // 📌 HOW "OPEN BOTH" ENDED UP ON THE LINK, because the route matters more than
 // the two lines it took.
@@ -714,8 +660,11 @@ function ListRow({
           scenario or workflow id. `min-w-0` is what lets it shrink far enough
           for the ellipsis to engage inside the fixed column.
           📌 THE WEBSITE GLYPH RIDES IN THIS CELL rather than owning a column of
-          its own. It is the row's identity, not one of the five, and it only
-          earns its space on the "All websites" view anyway. */}
+          its own. It is the row's identity, not one of the five. ⚠️ Its old
+          justification was that it "only earns its space on the All websites
+          view anyway"; **the website filter chips went on 2026-09-24, so every
+          view is that view** and the glyph is now the page's only website
+          marker. It earns the cell more than it did, not less. */}
       <td className="px-3.5 py-2.5 align-top">
         <div className="flex items-start gap-2.5">
           <span
