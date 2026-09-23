@@ -2174,9 +2174,19 @@ export default async function AutomationsPage({
                     Alpha3.
                     Both are PANEL_ROWS long and only fit at all because this
                     layout gives one website the whole canvas. */}
+                  {/* ⚠️ WORDING SET BY THE USER 2026-09-23: the title gained its
+                    "the" and the hint went from "on the website" to "Latest 5".
+                    📌 THE HINT NOW SAYS WHAT THE PANEL HOLDS rather than where
+                    the dates come from - which the title already says - and it
+                    reads as a pair with "Newest 5" on the Latest Errors panel
+                    beside it. Both render uppercase via the `Panel` header's
+                    own `uppercase` class; the props carry normal case.
+                    🛑 THE BENCH COPIES (alpha-a1, alpha-a2, alpha3, beta2) STILL
+                    SAY THE OLD WORDING and that is the standing rule for those
+                    pages, not an oversight. */}
                   <Panel
-                    title="Recently Edited on Website"
-                    hint="on the website"
+                    title="Recently Edited on the Website"
+                    hint="Latest 5"
                     empty={recentlyEdited.length === 0}
                     emptyLabel="No edit dates recorded for this website."
                   >
