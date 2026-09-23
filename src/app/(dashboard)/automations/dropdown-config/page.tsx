@@ -95,16 +95,51 @@ export default async function AutomationsDropdownConfigPage() {
   });
 
   return (
-    <div className="space-y-6 p-6">
-      <Link
-        href="/automations"
-        className="inline-flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-900"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back to Automations
-      </Link>
+    /* ⭐⭐ THE PAGE KEEPS ITS WIDTH AND SCROLLS SIDEWAYS, 2026-09-23. Third page
+       to get this treatment, after Housekeeping (#572) and the hub (#576),
+       during the narrow-window pass. The user saw the tab strip wrapped into
+       four ragged rows and asked for this page next; offered a scrolling tab
+       strip or moving the Edit mode toggle, **they chose the whole page
+       scrolling**, matching the other two.
+       🛑 WHY THE SCROLLER IS HERE AND NOT ON `<main>`: the dashboard layout
+       gives `<main>` **`overflow-x-clip`**, which cuts overflow off WITHOUT
+       creating a scroll container. That is deliberate and shared by every
+       dashboard page (a scroll container there would re-anchor
+       `position: sticky`), so each page gets its own scroller.
+       📊 WHY THE FLOOR IS 1132px, BISECTED RATHER THAN CALCULATED. **The TAB
+       STRIP is the binding element on this page, not the table** - the table
+       card carries `min-w-[800px]` inside its own `overflow-auto`, so it never
+       forces the page wider. The strip is `flex-wrap`, and it holds one line at
+       **1081px of content and breaks at 1079**. 1084 + the 48px of `p-6` is
+       1132, so the scrollbar appears at about a 1420px window.
+       ⚠️ ARITHMETIC SAID 1088 AND WAS 7px WRONG: summing the seven buttons'
+       measured widths accumulates sub-pixel rounding. **Bisect the real wrap
+       instead**, one pixel either side.
+       ⚠️ WHY WRAPPING LOOKED WORSE THAN IT WAS: the `border-b` is on the
+       CONTAINER while the active tab's underline is on the BUTTON, so the
+       moment the strip wraps the underline detaches from the bottom border and
+       floats a row or two above it. **A wrapped row of tabs here can never look
+       right**, which is why holding it on one line is the fix rather than
+       styling the wrap.
+       📌 THE FLOOR IS A FUNCTION OF THE SEVEN TAB LABELS AND THEIR COUNT PILLS.
+       Those counts are live (GHL Tags was 428 when measured), so **a jump to
+       four digits widens the strip a few px per tab**. Re-bisect if a tab is
+       added, renamed, or its count changes order of magnitude. */
+    <div className="overflow-x-auto">
+      <div className="min-w-[1132px] space-y-6 p-6">
+        <Link
+          href="/automations"
+          className="inline-flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-900"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Automations
+        </Link>
 
-      <DropdownConfigClient initialChoices={choices} initialWebhooks={webhooks} />
+        <DropdownConfigClient
+          initialChoices={choices}
+          initialWebhooks={webhooks}
+        />
+      </div>
     </div>
   );
 }
