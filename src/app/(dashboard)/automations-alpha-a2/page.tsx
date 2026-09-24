@@ -53,17 +53,23 @@
 // `/automations-beta2`, not this. **Still do not redesign this page**; match
 // AlphaA1 or change nothing.
 //
-// 📌 SIX DELIBERATE DIFFERENCES FROM `automations/page.tsx` NOW. The first four
+// 📌 FIVE DELIBERATE DIFFERENCES FROM `automations/page.tsx` NOW. The first four
 // are the bookkeeping every bench carries and are listed in the inherited header
 // below: this header, the function name, the version badge, and the rail's
 // self-link.
 //   5. **THE LIGHT/DARK TOGGLE** in the header cluster (2026-09-13), the twin of
 //      AlphaA1's, which navigates between the two pages.
-//   6. **THE FRAME SPACING** (2026-09-13, repainted 2026-09-24): 3px bands the
-//      live hub does not have, so this page lines up with AlphaA1 to the pixel.
-//      **The bands are invisible now** - the visible chrome is the live hub's
-//      own hairlines. See the note above.
-// **The live hub has neither and should not get either from this experiment.**
+// ✅ **THE FRAME SPACING STOPPED BEING A DIFFERENCE ON 2026-09-24**, which is why
+// the count above went from six to five. The user, looking at this page: "i like
+// whatever you did in the AlphaA2, pls implement it to the main page as well."
+// **`/automations` now carries the same `p-[3px]` + `gap-[3px]` segmentation and
+// the same `px-3 py-1.5` panel headers** (#585), so those are shared, not local.
+// 🛑 THIS BLOCK USED TO END: "The live hub has neither and should not get either
+// from this experiment." **Half of that is now wrong and the instruction behind it
+// was overruled.** The light/dark TOGGLE is still local and still should be - it
+// only makes sense where there are two routes to swap between. The FRAMES went to
+// the live page on request. ⭐ **A bench page is allowed to feed the live design;
+// that is what a bench is for.** What it must not do is arrive there unasked.
 //
 // ⭐⭐ WHY IT EXISTS AT ALL, given `/automations` and `/automations-beta2`
 // already render this exact design: **the pair is the point.** The user reads
