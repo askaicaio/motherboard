@@ -249,6 +249,25 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
     blurb: "Light mode: the same layout, paired to AlphaA1 by a toggle.",
     parked: true,
   },
+
+  // ⭐⭐ ALPHAA3 IS THE PAIR DONE THE ORDINARY WAY, added 2026-09-24. The user,
+  // about A1 and A2: "just from gut feeling, that doesnt seem like the normal way
+  // devs do night mode." It is not, so this is one route whose theme is a class
+  // on the page root. **It is the same design as the pair, not a third design.**
+  // 🛑 IT IS DELIBERATELY *NOT* `parked`, AND THE DISTINCTION IS THE FLAG'S OWN:
+  // parked means the next move belongs to the BUSINESS. This page was asked for
+  // today and the user may well iterate on it, so the next move is ours and it
+  // belongs with the active benches. **That is also why the pair's card can keep
+  // saying "Pair" - there are still exactly two pages in it.**
+  // ⚠️ IT DOES NOT SUPERSEDE THE PAIR. Those two are the thing it is evidence
+  // against, so the comparison only works while all three exist.
+  {
+    href: "/automations-alpha-a3",
+    label: "Main Page AlphaA3",
+    icon: Palette,
+    blurb:
+      "One route, both themes: the AlphaA pair as a real light/dark toggle.",
+  },
   // ⚠️⚠️ AN "OPTIONS" ENTRY IS A DIFFERENT KIND OF THING FROM EVERYTHING ABOVE
   // IT, and the label says so. Every Alpha and Beta is a redesign of the whole
   // Main Page. **AN OPTIONS PAGE IS A SHOWCASE OF ONE COMPONENT, rendered
