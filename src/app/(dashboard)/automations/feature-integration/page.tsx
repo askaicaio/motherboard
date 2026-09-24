@@ -16,7 +16,7 @@ import { getFeatureIntegrationMap } from "@/lib/automations/feature-integration"
 import { Card, CardContent } from "@/components/ui/card";
 import {
   AUTOMATION_BENCH_VERSIONS,
-  AUTOMATION_PARKED_VERSIONS,
+  AUTOMATION_LIGHT_DARK_VERSIONS,
   type AutomationVersion,
 } from "@/lib/automations/versions";
 
@@ -171,21 +171,25 @@ export default async function AutomationsFeatureIntegrationPage() {
           </CardContent>
         </Card>
 
-        {/* ⭐⭐ THE PARKED PAIR, IN ITS OWN CARD, 2026-09-13: "Lets leave the
-          AlphaA1 and AlphaA2 now. They will remain in alpha indefinitely unless
-          corpo says its something they want. In the feature integration page,
-          Put their own separate window from the rest of the test pages."
-          ⚠️⚠️ THE SPLIT IS ABOUT WHOSE MOVE IT IS, NOT ABOUT QUALITY. Everything
-          in the card above is a design still being explored, so the next move is
-          ours. These two are finished and waiting on a business decision, so the
-          next move is not. **Left in the same list they would read as two items
-          on a to-do list that never move.**
+        {/* ⭐⭐ THE LIGHT/DARK PAGES, IN THEIR OWN CARD, 2026-09-13: "Lets leave
+          the AlphaA1 and AlphaA2 now. They will remain in alpha indefinitely
+          unless corpo says its something they want. In the feature integration
+          page, Put their own separate window from the rest of the test pages."
+          🛑🛑 WHAT THE SPLIT IS ABOUT CHANGED ON 2026-09-24, so read this carefully.
+          It used to be about WHOSE MOVE IT IS: everything in the card above was
+          still being explored, and these were finished and waiting on a business
+          decision. **Then the user asked for AlphaA3 to join them** - "Move the
+          AlphaA3 access button into this section" - and AlphaA3 is NOT waiting on
+          anyone. So the card is now about SUBJECT: these are the pages about
+          light and dark mode. The list filters on `family`, and `parked` went
+          back to meaning only what it says.
+          ⚠️ DO NOT READ "in this card" AS "parked". Two of the three are; the
+          third is an active bench. See `family` in `versions.ts`.
           📌 THEY ARE STILL ORDINARY TILES, deliberately: same component, same
           new-tab behaviour, same no-prefetch. Only the section differs, because
-          the pages are not lesser, they are just not ours to advance.
-          ⚠️ THE TWO ARE ONE FEATURE and the subtitle says so. Opening either one
-          gets you the other through the toggle in its header, so listing them as
-          two unrelated tiles would undersell what they are. */}
+          the pages are not lesser.
+          ⚠️ THEY ARE ONE FEATURE IN THREE TAKES and the subtitle says so, which
+          is why they are grouped rather than listed as unrelated tiles. */}
         <Card>
           {/* ⚠️⚠️ `@container` IS LOAD-BEARING, 2026-09-23. The grid below used
             to fold on `sm:`/`lg:` VIEWPORT breakpoints, and **a page floor
@@ -198,18 +202,20 @@ export default async function AutomationsFeatureIntegrationPage() {
           <CardContent className="@container p-0">
             <div className="flex items-start justify-between gap-3 border-b bg-zinc-50 px-3 py-2">
               <div className="min-w-0">
+                {/* 📌 "Pair" UNTIL 2026-09-24, when AlphaA3 made it three. The
+                  subtitle also stopped claiming the whole card is parked,
+                  because AlphaA3 is not. */}
                 <h2 className="text-sm font-semibold text-zinc-900">
-                  Light / Dark Mode Pair
+                  Light / Dark Mode
                 </h2>
                 <p className="mt-0.5 text-xs text-zinc-500">
-                  One design in two themes, linked by a toggle in each
-                  page&rsquo;s header. Parked in alpha unless the business asks
-                  for it.
+                  One design in two themes. AlphaA1 and AlphaA2 are two routes
+                  linked by a toggle; AlphaA3 does it on a single route.
                 </p>
               </div>
               <span className="shrink-0 text-xs text-zinc-500">
-                {AUTOMATION_PARKED_VERSIONS.length} pages, each opens in a new
-                tab
+                {AUTOMATION_LIGHT_DARK_VERSIONS.length} pages, each opens in a
+                new tab
               </span>
             </div>
             {/* ⚠️ CONTAINER QUERIES, NOT VIEWPORT ONES, since 2026-09-23. The
@@ -221,7 +227,7 @@ export default async function AutomationsFeatureIntegrationPage() {
               is the whole point of flooring it. The rules stay for the day the
               floor changes or this card is reused somewhere narrower. */}
             <div className="grid gap-2 p-3 @min-[304px]:grid-cols-2 @min-[674px]:grid-cols-3">
-              {AUTOMATION_PARKED_VERSIONS.map((version) => (
+              {AUTOMATION_LIGHT_DARK_VERSIONS.map((version) => (
                 <VersionTile key={version.href} version={version} />
               ))}
             </div>
