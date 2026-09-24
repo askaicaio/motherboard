@@ -201,7 +201,12 @@ const ACCENT: Record<string, string> = {
  *  padding and border would fight the cell. That import went with them and
  *  this file no longer needs it. */
 const TOOL_SEGMENT =
-  "flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 hover:text-zinc-900";
+  // ⚠️ `bg-card` ARRIVED WITH THE 3px GUTTERS, 2026-09-24. With the cells inset
+  // inside a padded container the gutters show whatever is behind them, so each
+  // cell states its own surface rather than relying on the container's. It is
+  // belt-and-braces while the container is also `bg-card`, and it stops being so
+  // the moment that container is ever tinted. Mirrors AlphaA1/A2.
+  "flex items-center justify-center gap-2 bg-card px-4 py-3 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 hover:text-zinc-900";
 
 /** Rows each detail panel list shows before it stops.
  *
@@ -839,10 +844,27 @@ export default async function AutomationsPage({
               📌 EVERY LABEL STILL FITS ON ONE LINE at the widths this page
               runs; "Dropdown Configuration" is the longest and was the binding
               constraint before the fourth cell as well. */}
-            <div className="grid grid-cols-4 overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10">
+            {/* ⭐⭐ THE SEGMENTED STRIP CAME BACK FROM THE ALPHA PAIR, 2026-09-24:
+              "i like whatever you did in the AlphaA2, pls implement it to the
+              main page as well."
+              📌 WHAT `p-[3px]` + `gap-[3px]` DO: the four cells sit inset inside
+              the card with a 3px channel between them, so the strip reads as four
+              modules in one frame rather than one bar with rules drawn across it.
+              **The `border-l` dividers stay** - they are what keeps it reading as
+              ONE control rather than four loose buttons.
+              ⚠️ THE END CELLS NEED `rounded-l-[11px]` / `rounded-r-[11px]`
+              because the inset pulls them off the container's own corner: 14px
+              outer radius minus the 3px inset is 11. Without them the cells show
+              square corners inside a rounded card.
+              🛑 THIS ORIGINATED ON ALPHAA1 as the "chassis" idea and reached here
+              via AlphaA2. The note in AlphaA2's header still says the live hub
+              "should not get either from this experiment" - **that was written
+              while the pair was an experiment, and the user has since overruled
+              it.** The bench is allowed to feed the live page. */}
+            <div className="grid grid-cols-4 gap-[3px] overflow-hidden rounded-xl bg-card p-[3px] ring-1 ring-foreground/10">
               <Link
                 href="/automations/feature-integration"
-                className={TOOL_SEGMENT}
+                className={cn(TOOL_SEGMENT, "rounded-l-[11px]")}
               >
                 <Plug className="h-4 w-4 text-zinc-500" />
                 Feature Integration
@@ -863,7 +885,7 @@ export default async function AutomationsPage({
               </Link>
               <Link
                 href="/automations/housekeeping-alerts"
-                className={cn(TOOL_SEGMENT, "border-l")}
+                className={cn(TOOL_SEGMENT, "rounded-r-[11px] border-l")}
               >
                 <Brush className="h-4 w-4 text-zinc-500" />
                 Housekeeping
@@ -911,7 +933,12 @@ export default async function AutomationsPage({
               set by `CardNavIndicator` inside a rail card, which is a COUSIN of
               the panel, so a `group` on their common ancestor is what connects
               them. Drop this class and the panel stops dimming, with no error. */}
-            <div className="group/pane flex min-h-[640px] overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10">
+            {/* ⭐ SAME TREATMENT AS THE TOOLBAR, 2026-09-24: `p-[3px]` +
+              `gap-[3px]` puts a 3px channel between the rail and the detail
+              panel instead of butting them together. **The rail keeps its
+              `border-r`**, so the channel reads as a gutter with a rule in it
+              rather than as a gap where a divider used to be. */}
+            <div className="group/pane flex min-h-[640px] gap-[3px] overflow-hidden rounded-xl bg-card p-[3px] ring-1 ring-foreground/10">
               {/* ---- Rail. Every website, always visible, so switching costs one
                     click and you never lose your bearings. ---- */}
               {/* ⚠️ w-[460px], AND THE 60 IS NOT ROUND BY ACCIDENT. It is the
@@ -1013,7 +1040,7 @@ export default async function AutomationsPage({
                     buttons back to 32px the same day. I offered to hand that
                     64px back and they chose to keep the roomier cards. So
                     neither step is a leftover; do not "restore" w-64. */}
-              <div className="flex w-[460px] shrink-0 flex-col border-r">
+              <div className="flex w-[460px] shrink-0 flex-col rounded-l-[11px] border-r bg-card">
                 {/* ⚠️⚠️ THE RAIL'S "Sources" HEADER WAS HERE and was removed on
                   2026-09-06 ("Remove this section"). It was a title row plus a
                   one-line ESTATE AGGREGATE: "{total} automations, {n} of 5
@@ -1716,7 +1743,7 @@ export default async function AutomationsPage({
                 ⚠️ It depends on TWO things elsewhere: `group/pane` on the pane
                 above, and the `data-pending` attribute inside
                 `CardNavIndicator`. Both are silent if removed. */}
-              <div className="@container min-w-0 flex-1 transition-opacity duration-200 group-has-[[data-pending]]/pane:opacity-60">
+              <div className="@container min-w-0 flex-1 rounded-r-[11px] bg-card transition-opacity duration-200 group-has-[[data-pending]]/pane:opacity-60">
                 {/* Header, tinted with the website's own colour so the panel
                   changes character as you move down the rail. */}
                 <div
@@ -2607,12 +2634,22 @@ function Panel({
   children: React.ReactNode;
 }) {
   return (
-    <div className="overflow-hidden rounded-lg ring-1 ring-foreground/10">
-      <div className="flex items-center justify-between gap-2 border-b bg-muted/40 px-3.5 py-2">
-        <span className="text-xs font-semibold text-zinc-800">{title}</span>
-        <span className="text-[10px] uppercase tracking-wider text-zinc-500">
-          {hint}
-        </span>
+    <div className="overflow-hidden rounded-lg bg-card ring-1 ring-foreground/10">
+      {/* ⚠️ `px-3 py-1.5` AND A 2px SHELF, PORTED FROM ALPHAA2 2026-09-24. It was
+          `px-3.5 py-2` with no shelf. The header is a few px tighter and the
+          `bg-card pb-[2px]` under it sets the rule slightly off the body.
+          📌 THE 2px IS NOT ARBITRARY: on AlphaA2 it exists so that 2px + the 1px
+          `border-b` equals the 3px band AlphaA1 spends there, which is what keeps
+          that pair aligned. **Here it is inherited for the look, not for an
+          alignment constraint**, so it is the one number on this page that can be
+          changed without measuring anything against another page. */}
+      <div className="bg-card pb-[2px]">
+        <div className="flex items-center justify-between gap-2 border-b bg-muted/40 px-3 py-1.5">
+          <span className="text-xs font-semibold text-zinc-800">{title}</span>
+          <span className="text-[10px] uppercase tracking-wider text-zinc-500">
+            {hint}
+          </span>
+        </div>
       </div>
       {empty ? (
         <div className="flex flex-col items-center justify-center gap-2 px-4 py-8 text-center">
@@ -2689,10 +2726,20 @@ function CoverageByField({
           explicit instruction - that one says WHICH ESTATE it measures, which
           its title does not. So the two headers are no longer identical, and
           that is deliberate. */}
-      <div className="flex items-center justify-between gap-2 border-b bg-muted/40 px-3.5 py-2">
-        <span className="text-xs font-semibold text-zinc-800">
-          Documentation of Required Fields
-        </span>
+      {/* ⚠️ `px-3 py-1.5` AND A 2px SHELF, PORTED FROM ALPHAA2 2026-09-24. It was
+          `px-3.5 py-2` with no shelf. The header is a few px tighter and the
+          `bg-card pb-[2px]` under it sets the rule slightly off the body.
+          📌 THE 2px IS NOT ARBITRARY: on AlphaA2 it exists so that 2px + the 1px
+          `border-b` equals the 3px band AlphaA1 spends there, which is what keeps
+          that pair aligned. **Here it is inherited for the look, not for an
+          alignment constraint**, so it is the one number on this page that can be
+          changed without measuring anything against another page. */}
+      <div className="bg-card pb-[2px]">
+        <div className="flex items-center justify-between gap-2 border-b bg-muted/40 px-3 py-1.5">
+          <span className="text-xs font-semibold text-zinc-800">
+            Documentation of Required Fields
+          </span>
+        </div>
       </div>
       {total === 0 ? (
         <div className="flex flex-col items-center justify-center gap-2 px-4 py-8 text-center">
