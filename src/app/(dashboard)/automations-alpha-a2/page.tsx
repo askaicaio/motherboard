@@ -18,12 +18,31 @@
 // band top and bottom), its pane inset another 3px, so the rail and the detail
 // panel sat 9px lower than here and 3-6px to the right.
 //
-// ⭐⭐ SO THE FRAMES ARE NOW ALPHAA1'S, IN LIGHT TONES: 3px bands where the dark
-// page has 3px bands, `ring-[3px]` where it has `ring-[3px]`, and the same
-// concentric radii. **`LINE` (#A1A1AA) plays the part `--pa-line` plays
-// there**, and white plays the void. Every landmark lands on the same pixel in
-// both halves, and the frame reads as strongly against white as the chassis does
-// against black: both are 2.56:1. See `LINE` for that arithmetic.
+// ⭐⭐ SO THE SPACING IS ALPHAA1'S AND THE *LOOK* IS THE LIVE HUB'S, as of
+// 2026-09-24. **Those are two separable things, and the distinction is the whole
+// design of this page now.**
+//   SPACING (kept, load-bearing): every `p-[3px]`, `gap-[3px]`, and 3px under
+//     each panel header. These OCCUPY SPACE, so they are what makes every
+//     landmark land on the same pixel as AlphaA1.
+//   LOOK (reverted to live): 1px hairlines, `ring-1 ring-foreground/10`,
+//     `border-l` dividers in the toolbar, `border-r` on the rail, `border-b` +
+//     `bg-muted/40` on the panel headers. **The bands are still there; they are
+//     painted the same colour as what surrounds them, so they read as spacing
+//     rather than as a frame.**
+//
+// 🛑 IT WAS A #A1A1AA 3px FRAME FROM 2026-09-13 TO 2026-09-24, picked to give
+// white the same 2.56:1 contrast #4A5560 gives AlphaA1's void. The user: "we made
+// the borderlines here the same as AlphaA1, instead revert the borderlines to be
+// the same as the main page again." **They were offered the full revert - live's
+// chrome exactly, halves no longer aligned - and chose to keep the alignment.**
+//
+// ✅ VERIFIED BY MEASURING THE TWO PAGES AGAINST EACH OTHER at 1500x950: title,
+// toolbar, pane, rail and detail all match on top, left, width AND height, to
+// **0px**. ⚠⚠ TWO 2px BUGS TURNED UP DOING IT AND BOTH WERE MINE, neither
+// visible on either page alone: the Housekeeping pill (live's has a border,
+// AlphaA1's did not, and a border is 2px of height) and these panel headers
+// (`border-b` ON TOP OF the retained 3px band). **Measure the halves against
+// each other after any change here; looking at one page cannot find this.**
 //
 // ⚠️⚠️ WHY THAT IS NOT SCOPE CREEP: **a light/dark pair whose halves are laid out
 // differently is not a pair.** The toggle swaps between these two pages, so any
@@ -40,9 +59,10 @@
 // self-link.
 //   5. **THE LIGHT/DARK TOGGLE** in the header cluster (2026-09-13), the twin of
 //      AlphaA1's, which navigates between the two pages.
-//   6. **THE FRAME GEOMETRY** (2026-09-13): 3px bands and `ring-[3px]` in place
-//      of the live hub's 1px hairlines, so this page lines up with AlphaA1 to
-//      the pixel. See the note above.
+//   6. **THE FRAME SPACING** (2026-09-13, repainted 2026-09-24): 3px bands the
+//      live hub does not have, so this page lines up with AlphaA1 to the pixel.
+//      **The bands are invisible now** - the visible chrome is the live hub's
+//      own hairlines. See the note above.
 // **The live hub has neither and should not get either from this experiment.**
 //
 // ⭐⭐ WHY IT EXISTS AT ALL, given `/automations` and `/automations-beta2`
@@ -310,17 +330,34 @@ const ACCENT: Record<string, string> = {
  *  the detail header's rule, the list row dividers. **AlphaA1 does exactly the
  *  same thing with the same variable**, which is why its card borders and its
  *  chassis are one colour. Retune this and the whole page follows. */
-const LINE = "#A1A1AA";
-
-/** ⚠️ The page root carries this, the same way AlphaA1's root carries its own
- *  `PAGE_VARS`. It is ONE override, not a palette: everything else on this page
- *  is still the live hub's own `zinc-*`. */
-const PAGE_VARS = { "--border": LINE } as React.CSSProperties;
+// 🛑🛑 `LINE` AND THE `--border` OVERRIDE WERE REMOVED 2026-09-24: "we made the
+// borderlines here the same as AlphaA1, instead revert the borderlines to be the
+// same as the main page again."
+//
+// It was #A1A1AA, chosen because it gives white the same 2.56:1 contrast that
+// #4A5560 gives AlphaA1's void, and assigned to `--border` so ONE line recoloured
+// every `border`, `border-b`, `border-r` and `divide-y` on the page. Dropping the
+// override hands all of those back to the app default, which is what the live hub
+// uses. **If the heavy frame is ever wanted back, this constant plus
+// `PAGE_VARS` is the whole mechanism; it was two lines.**
+//
+// ⭐⭐ WHAT DID *NOT* CHANGE, AND WHY THAT IS THE POINT OF THIS EDIT: **every
+// `p-[3px]`, `gap-[3px]` and `pb-[3px]` STAYS.** Those occupy space, and they are
+// what makes this page line up with AlphaA1 to the pixel; deleting them would put
+// back the 9px vertical and 3-6px horizontal jump the user reported on
+// 2026-09-13. **The bands are still there, they are just the same colour as what
+// surrounds them, so they read as spacing instead of as a frame.**
+// 📌 `ring-*` WIDTHS WERE FREE TO CHANGE because a ring paints outside the border
+// box and costs no layout, which is why `ring-[3px]` -> `ring-1` moves nothing.
+// 📌 THE USER WAS OFFERED THE FULL REVERT (live's chrome exactly, halves no longer
+// aligned) AND CHOSE THIS INSTEAD: "look like live, keep the alignment."
 
 const TOOL_SEGMENT =
-  // ⚠️ `bg-card` IS LOAD-BEARING as of 2026-09-13: the strip around these cells
-  // is a `--border` band, so a cell with no background of its own puts its label
-  // on the band. Mirrors AlphaA1, where the same class sits on the void.
+  // ⚠️ `bg-card` was load-bearing while the strip around these cells was a
+  // `--border` band. Since 2026-09-24 the container is a white card like the live
+  // hub's, so the class is now merely correct rather than load-bearing. **Left in
+  // place**: AlphaA1 still needs its twin of this line, and removing it here would
+  // be one more difference between the halves for no gain.
   "flex items-center justify-center gap-2 bg-card px-4 py-3 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 hover:text-zinc-900";
 
 /** Rows each detail panel list shows before it stops.
@@ -789,7 +826,7 @@ export default async function AutomationsAlphaA2Page({
   // and `days` the error panel's "Last Error N days ago".
 
   return (
-    <div style={PAGE_VARS}>
+    <div>
       {/* ⭐⭐ THE PAGE KEEPS ITS WIDTH AND SCROLLS SIDEWAYS, ported from the live
        hub 2026-09-24 with the rest of that page's recent work.
        🛑 WHY THE SCROLLER IS A SEPARATE DIV AND NOT THIS PAGE'S ROOT: the root
@@ -958,7 +995,13 @@ export default async function AutomationsAlphaA2Page({
               {/* ⚠️ PORTED FROM THE LIVE HUB 2026-09-24: a FOURTH cell,
               Housekeeping, so `grid-cols-3` became `grid-cols-4` and the
               right-hand radius moved off Dropdown Configuration onto it. */}
-              <div className="grid grid-cols-4 gap-[3px] overflow-hidden rounded-xl bg-[var(--border)] p-[3px]">
+              {/* ⚠️ LIVE'S CONTAINER, ALPHAA1'S SPACING, 2026-09-24. `bg-card` +
+                  `ring-1 ring-foreground/10` is exactly the live hub's toolbar
+                  card; `p-[3px]` and `gap-[3px]` stay so the cells sit where
+                  AlphaA1's do. The gutters now show the card's own white, so they
+                  read as spacing, and the `border-l` dividers below are what say
+                  "one segmented control" instead. */}
+              <div className="grid grid-cols-4 gap-[3px] overflow-hidden rounded-xl bg-card p-[3px] ring-1 ring-foreground/10">
                 <Link
                   href="/automations/feature-integration"
                   className={cn(TOOL_SEGMENT, "rounded-l-[11px]")}
@@ -966,20 +1009,23 @@ export default async function AutomationsAlphaA2Page({
                   <Plug className="h-4 w-4 text-zinc-500" />
                   Feature Integration
                 </Link>
-                <Link href="/automations/all" className={TOOL_SEGMENT}>
+                <Link
+                  href="/automations/all"
+                  className={cn(TOOL_SEGMENT, "border-l")}
+                >
                   <List className="h-4 w-4 text-zinc-500" />
                   View All Lists
                 </Link>
                 <Link
                   href="/automations/dropdown-config"
-                  className={TOOL_SEGMENT}
+                  className={cn(TOOL_SEGMENT, "border-l")}
                 >
                   <ListChecks className="h-4 w-4 text-zinc-500" />
                   Dropdown Configuration
                 </Link>
                 <Link
                   href="/automations/housekeeping-alerts"
-                  className={cn(TOOL_SEGMENT, "rounded-r-[11px]")}
+                  className={cn(TOOL_SEGMENT, "rounded-r-[11px] border-l")}
                 >
                   <Brush className="h-4 w-4 text-zinc-500" />
                   Housekeeping
@@ -1020,7 +1066,11 @@ export default async function AutomationsAlphaA2Page({
               inside a 3px frame. **THE GUTTER REPLACED THE RAIL'S `border-r`**,
               and the 3px of padding is what put this page's rail and panel on
               the same pixel as the dark twin's. */}
-              <div className="group/pane flex min-h-[640px] gap-[3px] overflow-hidden rounded-xl bg-[var(--border)] p-[3px]">
+              {/* ⚠️ Same treatment as the toolbar, 2026-09-24: the live hub's
+                  card, AlphaA1's 3px spacing kept so the rail and the detail
+                  panel land on the same pixel in both halves. The rail carries
+                  `border-r` for the divider the live hub draws there. */}
+              <div className="group/pane flex min-h-[640px] gap-[3px] overflow-hidden rounded-xl bg-card p-[3px] ring-1 ring-foreground/10">
                 {/* ---- Rail. Every website, always visible, so switching costs one
                     click and you never lose your bearings. ---- */}
                 {/* ⚠️ w-[460px], AND THE 60 IS NOT ROUND BY ACCIDENT. It is the
@@ -1125,7 +1175,7 @@ export default async function AutomationsAlphaA2Page({
                 {/* ⚠️ `bg-card` because the pane behind it is now a band, and
                 `rounded-l-[11px]` because a square corner inside a 14px radius
                 eats the band at the corner. Both mirror AlphaA1. */}
-                <div className="flex w-[460px] shrink-0 flex-col rounded-l-[11px] bg-card">
+                <div className="flex w-[460px] shrink-0 flex-col rounded-l-[11px] border-r bg-card">
                   {/* ⚠️⚠️ THE RAIL'S "Sources" HEADER WAS HERE and was removed on
                   2026-09-06 ("Remove this section"). It was a title row plus a
                   one-line ESTATE AGGREGATE: "{total} automations, {n} of 5
@@ -1661,7 +1711,7 @@ export default async function AutomationsAlphaA2Page({
                                 that goal. */}
                                 <Link
                                   href={`/automations/${site.slug}`}
-                                  className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-card px-2.5 text-xs font-medium text-zinc-600 ring-1 ring-[var(--border)] transition-colors hover:bg-zinc-50 hover:text-zinc-900"
+                                  className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-card px-2.5 text-xs font-medium text-zinc-600 ring-1 ring-foreground/10 transition-colors hover:bg-zinc-50 hover:text-zinc-900"
                                 >
                                   {/* ⚠️ NO TRAILING CHEVRON, removed 2026-09-08: "For both the
                                   Official and Beta1 Page, remove these arrows." The button is
@@ -1925,7 +1975,7 @@ export default async function AutomationsAlphaA2Page({
                           <div className="flex min-w-0 items-center gap-3">
                             <span
                               aria-hidden
-                              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white ring-1 ring-[var(--border)]"
+                              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white ring-1 ring-foreground/10"
                             >
                               <SiteGlyph site={selected} className="h-7 w-7" />
                             </span>
@@ -2068,7 +2118,7 @@ export default async function AutomationsAlphaA2Page({
                           width: those trade a graceful wrap for a crushed name. */}
                           <Link
                             href={`/automations/${selected.slug}/errors`}
-                            className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-card px-2.5 text-xs font-medium text-zinc-600 ring-1 ring-[var(--border)] transition-colors hover:bg-zinc-50 hover:text-zinc-900"
+                            className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-card px-2.5 text-xs font-medium text-zinc-600 ring-1 ring-foreground/10 transition-colors hover:bg-zinc-50 hover:text-zinc-900"
                           >
                             <AlertTriangle className="h-3.5 w-3.5" />
                             Error History
@@ -2176,7 +2226,7 @@ export default async function AutomationsAlphaA2Page({
                         {/* ⚠️ `ring-[3px] ring-[var(--border)]` MATCHES ALPHAA1, and it
                         still matches `CoverageByField` beside it, which is the
                         standing rule for this block. */}
-                        <div className="flex flex-1 flex-col rounded-lg bg-card p-3 ring-[3px] ring-[var(--border)]">
+                        <div className="flex flex-1 flex-col rounded-lg bg-card p-3 ring-1 ring-foreground/10">
                           <div className="flex items-center justify-between gap-3">
                             <div className="flex items-baseline gap-1.5">
                               <span
@@ -2622,7 +2672,10 @@ function Sparkline({
               // ⚠️ THE FRAME COLOUR, NOT A LIGHTER GREY: at `zinc-200` a
               // zero-error day was invisible against the card. AlphaA1 draws
               // these in its chassis colour for the same reason.
-              v > 0 ? "bg-red-400" : "bg-[var(--border)]",
+              // ⚠️ `bg-zinc-200` is the live hub's zero-day bar. It read
+              // `var(--border)` while that was the #A1A1AA frame colour, which is
+              // gone as of 2026-09-24.
+              v > 0 ? "bg-red-400" : "bg-zinc-200",
             )}
             style={{
               // The 12% floor keeps a 1-error day from rendering as a hairline
@@ -2687,15 +2740,27 @@ function Panel({
   children: React.ReactNode;
 }) {
   return (
-    <div className="overflow-hidden rounded-lg bg-card ring-[3px] ring-[var(--border)]">
+    <div className="overflow-hidden rounded-lg bg-card ring-1 ring-foreground/10">
       {/* ⭐ ALPHAA1'S HEADER SHAPE IN LIGHT TONES: the label sits in its own
           white cell with a 3px band UNDER it only. **`pb-[3px]`, not `p-[3px]`:
           the shell's ring already frames three sides, and padding all four
           would double it to 6px there.** The dark twin's note has the full
           story. `px-3 py-1.5` rather than `px-3.5 py-2` so the label lands on
           the same pixel in both halves. */}
-      <div className="bg-[var(--border)] pb-[3px]">
-        <div className="flex items-center justify-between gap-2 bg-card px-3 py-1.5">
+      {/* ⚠️ THE 3px IS STILL HERE, NOW AS 2px + A 1px RULE, 2026-09-24. `pb-*` is
+          load-bearing for the pair's alignment, so it stays; painting it
+          `bg-card` makes it read as part of the panel body instead of as a band.
+          **The line you see is now the inner header's `border-b`, which is the
+          live hub's rule**, and `bg-muted/40` is the live hub's tint.
+          ⚠️⚠️ AND THAT IS WHY IT IS `pb-[2px]` AND NOT `pb-[3px]`: the border is
+          1px of height, so 2 + 1 = the 3px AlphaA1 spends on its solid band.
+          **Left at 3 it made each panel 1px taller, and with two panels stacked
+          the pane came out 2px taller than the dark half** - measured against
+          A1, not eyeballed. Change one of these two numbers and change the other.
+          📌 `px-3 py-1.5` RATHER THAN LIVE'S `px-3.5 py-2`, still, so the label
+          lands on the same pixel as AlphaA1's. */}
+      <div className="bg-card pb-[2px]">
+        <div className="flex items-center justify-between gap-2 border-b bg-muted/40 px-3 py-1.5">
           <span className="text-xs font-semibold text-zinc-800">{title}</span>
           <span className="text-[10px] uppercase tracking-wider text-zinc-500">
             {hint}
@@ -2756,11 +2821,23 @@ function CoverageByField({
   total: number;
 }) {
   return (
-    <div className="min-w-0 overflow-hidden rounded-lg bg-card ring-[3px] ring-[var(--border)]">
+    <div className="min-w-0 overflow-hidden rounded-lg bg-card ring-1 ring-foreground/10">
       {/* Same frame and the same label-in-a-white-cell header as `Panel`; see
           its note. These two shells are meant to look identical. */}
-      <div className="bg-[var(--border)] pb-[3px]">
-        <div className="flex items-center justify-between gap-2 bg-card px-3 py-1.5">
+      {/* ⚠️ THE 3px IS STILL HERE, NOW AS 2px + A 1px RULE, 2026-09-24. `pb-*` is
+          load-bearing for the pair's alignment, so it stays; painting it
+          `bg-card` makes it read as part of the panel body instead of as a band.
+          **The line you see is now the inner header's `border-b`, which is the
+          live hub's rule**, and `bg-muted/40` is the live hub's tint.
+          ⚠️⚠️ AND THAT IS WHY IT IS `pb-[2px]` AND NOT `pb-[3px]`: the border is
+          1px of height, so 2 + 1 = the 3px AlphaA1 spends on its solid band.
+          **Left at 3 it made each panel 1px taller, and with two panels stacked
+          the pane came out 2px taller than the dark half** - measured against
+          A1, not eyeballed. Change one of these two numbers and change the other.
+          📌 `px-3 py-1.5` RATHER THAN LIVE'S `px-3.5 py-2`, still, so the label
+          lands on the same pixel as AlphaA1's. */}
+      <div className="bg-card pb-[2px]">
+        <div className="flex items-center justify-between gap-2 border-b bg-muted/40 px-3 py-1.5">
           {/* ⚠️ PORTED FROM THE LIVE HUB 2026-09-24. The hint went with the
               rename: it read "thinnest first" until the sort was dropped, then
               "required columns", which the new title says in full. **A hint that

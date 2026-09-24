@@ -1308,9 +1308,20 @@ export default async function AutomationsAlphaA1Page({
                   📌 SO THE TWO HALVES DIVERGE ON THIS ONE MARK ON PURPOSE. A2,
                   being the light twin, keeps live's amber.
                   ⚠️ RENDERED ONLY WHEN THERE IS SOMETHING TO REPORT: a red "0"
-                  is an alert about the absence of alerts. */}
+                  is an alert about the absence of alerts.
+                  ⚠️⚠️ `border border-transparent` BELOW IS A GEOMETRY SHIM, NOT
+                  STYLING, added 2026-09-24. **A2 carries the live hub's pill, which
+                  has a visible `border-amber-300`, and a border is 2px of height.**
+                  Without this the Housekeeping cell was 46px there against 44px
+                  here, the grid row passed that to the whole strip, and the pane
+                  below it sat 2px lower on one half than the other - exactly the
+                  drift this pair exists to avoid. ⚠️ Caught by measuring the two
+                  pages AGAINST EACH OTHER, not by looking at either one.
+                  🛑 SO THE TWO PILLS ARE DELIBERATELY UNEQUAL IN CLASSES AND EQUAL
+                  IN BOX: A2 gets live's visible border, this one gets an invisible
+                  border of the same width. Remove it and the halves drift again. */}
                   {housekeeping > 0 ? (
-                    <span className="rounded-full bg-[var(--pa-inset)] px-2 py-0.5 text-xs font-semibold tabular-nums text-[var(--pa-red)]">
+                    <span className="rounded-full border border-transparent bg-[var(--pa-inset)] px-2 py-0.5 text-xs font-semibold tabular-nums text-[var(--pa-red)]">
                       {housekeeping}
                     </span>
                   ) : null}
