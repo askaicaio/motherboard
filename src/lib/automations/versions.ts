@@ -135,6 +135,21 @@ export interface AutomationVersion {
    *  nothing is blocked; do not repurpose this flag for either. If a page is
    *  ever genuinely dead, it should be deleted, not flagged. */
   parked?: boolean;
+  /** ⭐ A SET OF PAGES THAT ONLY MAKE SENSE NEXT TO EACH OTHER, rendered in
+   *  their own card on the Feature Integration page instead of among the
+   *  benches. Added 2026-09-24 when the user asked for AlphaA3 to sit with the
+   *  AlphaA pair: "Move the AlphaA3 access button into this section."
+   *
+   *  🛑🛑 THIS EXISTS BECAUSE `parked` WAS DOING TWO JOBS AND THEY CAME APART.
+   *  Until AlphaA3 the same flag meant both "waiting on a business decision"
+   *  AND "render in the separate card", which was fine while those were the
+   *  same two pages. **AlphaA3 belongs in that card and is NOT parked** - its
+   *  next move is ours. Marking it `parked` to move the tile would have made
+   *  the flag lie about whose move it is, which is the one thing it is for.
+   *  ⚠️ SO THE TWO ARE INDEPENDENT NOW: a family member may or may not be
+   *  parked, and a parked page need not be in a family. Read each for what it
+   *  says and do not infer one from the other. */
+  family?: "light-dark";
 }
 
 export const AUTOMATION_VERSIONS: AutomationVersion[] = [
@@ -228,19 +243,22 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
   // not one page with two palettes.** The selected website rides across the
   // switch on `?site=`. **So these two entries are one feature; open either and
   // you can reach the other.**
-  // 🛑 BOTH ARE `parked` AS OF 2026-09-13 and so render in their own section of
-  // the Feature Integration page rather than among the benches: "Lets leave the
-  // AlphaA1 and AlphaA2 now. They will remain in alpha indefinitely unless corpo
-  // says its something they want. In the feature integration page, Put their own
-  // separate window from the rest of the test pages."
+  // 🛑 BOTH ARE `parked` AS OF 2026-09-13: "Lets leave the AlphaA1 and AlphaA2
+  // now. They will remain in alpha indefinitely unless corpo says its something
+  // they want. In the feature integration page, Put their own separate window
+  // from the rest of the test pages."
   // ⚠️ **PARKED MEANS THE NEXT MOVE IS THE BUSINESS'S, NOT OURS.** The pair is
   // finished and works; see `parked` on the interface above.
+  // 📌 THE SEPARATE WINDOW IS NOW DRIVEN BY `family`, NOT BY `parked`. It was the
+  // same flag until 2026-09-24, when AlphaA3 joined the card without being
+  // parked; see `family` on the interface for why those had to come apart.
   {
     href: "/automations-alpha-a1",
     label: "Main Page AlphaA1",
     icon: Palette,
     blurb: "Dark mode: the live hub on an eleven-colour palette.",
     parked: true,
+    family: "light-dark",
   },
   {
     href: "/automations-alpha-a2",
@@ -248,6 +266,7 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
     icon: Palette,
     blurb: "Light mode: the same layout, paired to AlphaA1 by a toggle.",
     parked: true,
+    family: "light-dark",
   },
 
   // ⭐⭐ ALPHAA3 IS THE PAIR DONE THE ORDINARY WAY, added 2026-09-24. The user,
@@ -256,9 +275,15 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
   // on the page root. **It is the same design as the pair, not a third design.**
   // 🛑 IT IS DELIBERATELY *NOT* `parked`, AND THE DISTINCTION IS THE FLAG'S OWN:
   // parked means the next move belongs to the BUSINESS. This page was asked for
-  // today and the user may well iterate on it, so the next move is ours and it
-  // belongs with the active benches. **That is also why the pair's card can keep
-  // saying "Pair" - there are still exactly two pages in it.**
+  // on 2026-09-24 and the user may well iterate on it, so the next move is ours.
+  // ⚠️ IT IS STILL IN THE `light-dark` FAMILY, so it renders in that card rather
+  // than among the benches - the user asked for the tile to move there the same
+  // day: "Move the AlphaA3 access button into this section." **Those two facts
+  // are not in tension**; see `family` on the interface for why the one flag had
+  // to become two.
+  // 📌 THIS COMMENT USED TO ADD that the pair's card could keep the word "Pair"
+  // because it held exactly two pages. **It holds three now and the heading
+  // dropped the word.**
   // ⚠️ IT DOES NOT SUPERSEDE THE PAIR. Those two are the thing it is evidence
   // against, so the comparison only works while all three exist.
   {
@@ -267,6 +292,7 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
     icon: Palette,
     blurb:
       "One route, both themes: the AlphaA pair as a real light/dark toggle.",
+    family: "light-dark",
   },
   // ⚠️⚠️ AN "OPTIONS" ENTRY IS A DIFFERENT KIND OF THING FROM EVERYTHING ABOVE
   // IT, and the label says so. Every Alpha and Beta is a redesign of the whole
@@ -303,21 +329,27 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
   },
 ];
 
-/** The ACTIVE benches: everything except the live hub and the parked pair.
+/** The ACTIVE benches: everything except the live hub and the light/dark family.
  *  The Feature Integration page's main list.
  *
- *  ⚠️ IT NARROWED ON 2026-09-13 and anything counting it will have moved: it
- *  was every non-official version, and is now every non-official, non-parked
- *  one. **The two lists together are still the complete set of benches**, and
- *  that page renders both, so nothing became unreachable. */
+ *  ⚠️ IT HAS NARROWED TWICE and anything counting it will have moved. It was
+ *  every non-official version; on 2026-09-13 it became every non-official,
+ *  non-parked one; on 2026-09-24 the test became `family` instead, which moved
+ *  AlphaA3 out of here even though it is not parked. **The two lists together
+ *  are still the complete set of benches**, and that page renders both, so
+ *  nothing became unreachable. */
 export const AUTOMATION_BENCH_VERSIONS = AUTOMATION_VERSIONS.filter(
-  (v) => !v.official && !v.parked,
+  (v) => !v.official && !v.family,
 );
 
-/** The parked pair, listed separately on the Feature Integration page. See
- *  `parked` on `AutomationVersion` for what the flag means and does not mean. */
-export const AUTOMATION_PARKED_VERSIONS = AUTOMATION_VERSIONS.filter(
-  (v) => v.parked,
+/** The light/dark pages, in their own card on the Feature Integration page.
+ *
+ *  ⚠️ IT FILTERS ON `family`, NOT ON `parked`, since 2026-09-24. Two of the
+ *  three are also parked and one is not, so **do not use this list to answer
+ *  "what is waiting on the business"** - that is `parked`, and it is a different
+ *  question. See the interface for why they separated. */
+export const AUTOMATION_LIGHT_DARK_VERSIONS = AUTOMATION_VERSIONS.filter(
+  (v) => v.family === "light-dark",
 );
 
 /** True while `pathname` is any registered version, the live hub included.
