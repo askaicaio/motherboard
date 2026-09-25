@@ -458,15 +458,20 @@ export function DropdownConfigAlpha1Client({
 
         {/* Tab toolbar: pick which table to view (only the selected one renders),
             with the Edit mode toggle inline at the far right of the same row. */}
-        {/* ⭐⭐ THE TABS BECAME A LEFT RAIL. This is the change: the live page
-            puts seven tabs on one horizontal line, and the SECTION below is
-            unchanged from it.
-            📌 WHY: on the live page that strip is **the widest thing on the
-            page**. Seven tabs need 1081px on one line, which is what forced the
-            `min-w-[1132px]` floor in the narrow-window pass - the NAVIGATION set
-            the page's minimum width, not the data. A 260px rail cannot wrap and
-            cannot grow with the number of columns, so an eighth column costs
-            vertical space instead of horizontal.
+        {/* ✅✅ THIS LAYOUT SHIPPED TO THE LIVE PAGE ON 2026-09-25. The user,
+            after comparing the six benches: "This looks good, make the Live
+            page use this layout." **So this bench is no longer a proposal; it
+            is a record of what the live page now does**, and the paragraph
+            below is written in the past tense for that reason.
+            🛑 IT USED TO SAY the live page "puts seven tabs on one horizontal
+            line" and that the strip was "the widest thing on the page".
+            **Neither is true any more.**
+            📌 WHY THE RAIL WON: seven tabs needed 1081px on one line, which is
+            what forced the old `min-w-[1132px]` floor in the narrow-window pass
+            - the NAVIGATION set the page's minimum width, not the data. A 260px
+            rail cannot wrap and does not grow with the number of columns, so an
+            eighth column costs vertical space instead of horizontal. On live the
+            floor is now 1124 and **the table sets it**.
             ⭐ AND IT SHOWS THE SHAPE OF THE DATA. All seven counts are visible at
             once, so "Author has 1 and GHL Tags has 428" is legible without
             clicking through seven tabs to find out.
@@ -509,9 +514,16 @@ export function DropdownConfigAlpha1Client({
                 </button>
               );
             })}
-            {/* Edit mode moves to the foot of the rail. On the live page it is
-                tucked into the right edge of the tab strip, where it reads as an
-                eighth tab; here it is plainly not one of the columns. */}
+            {/* ⚠️⚠️ THE ONE PLACE THIS BENCH AND THE LIVE PAGE NOW DIFFER.
+                Edit mode sits at the foot of the rail here. **On live it went to
+                the page HEADER instead**, top right, because the user marked that
+                spot on a screenshot when asking for this layout: "move the edit
+                mode toggle to the marked spot".
+                📌 Their call is the better one: at the foot of a rail the toggle
+                reads as an eighth column, which is the same complaint that moved
+                it out of the old tab strip. **This bench keeps the rail version
+                deliberately, as the comparison** - do not "fix" it to match live
+                without being asked, or the difference stops being visible. */}
             <div className="mt-3 flex items-center gap-2 border-t pt-3 text-xs text-zinc-600">
               <Pencil className="h-3.5 w-3.5" />
               Edit mode

@@ -135,7 +135,16 @@ export default async function AutomationsDropdownConfigAlpha1Page() {
        creating a scroll container. That is deliberate and shared by every
        dashboard page (a scroll container there would re-anchor
        `position: sticky`), so each page gets its own scroller.
-       📊 WHY THE FLOOR IS 1132px, BISECTED RATHER THAN CALCULATED. **The TAB
+       🛑 THE FLOOR BELOW IS INHERITED AND IS NOW LOOSER THAN IT NEEDS TO BE.
+       This bench kept the live page's 1132px, which was set by the TAB STRIP.
+       The rail replaced that strip, so the real minimum here is the same 1124
+       the live page measured on 2026-09-25 (rail 260 + gap 16 + the table's own
+       800, plus 48 of `p-6`). **8px of slack, left alone on purpose**: this is a
+       bench, the number is harmless, and re-measuring every bench each time the
+       live page moves is not worth it. The paragraph below describes the strip
+       that no longer exists on either page; it is kept because it records HOW
+       the number was arrived at.
+       📊 WHY THE FLOOR WAS 1132px, BISECTED RATHER THAN CALCULATED. **The TAB
        STRIP is the binding element on this page, not the table** - the table
        card carries `min-w-[800px]` inside its own `overflow-auto`, so it never
        forces the page wider. The strip is `flex-wrap`, and it holds one line at
