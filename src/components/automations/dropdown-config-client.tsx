@@ -421,92 +421,137 @@ export function DropdownConfigClient({
   return (
     <TooltipProvider delay={TOOLTIP_DELAY_MS}>
       <div className="space-y-6">
-        {/* Header: title + subtitle. The Edit mode toggle now lives just below
-            the tab toolbar (above the active table's Add Option button). */}
-        <div>
-          <div className="flex items-center gap-2">
-            <ListChecks className="h-5 w-5 text-zinc-500" />
-            <h1 className="text-2xl font-semibold tracking-tight">
-              Dropdown Configuration
-            </h1>
+        {/* ⭐⭐ HEADER: title + subtitle on the left, EDIT MODE on the right.
+            The toggle moved here on 2026-09-25 at the user's request, marked on
+            a screenshot: "move the edit mode toggle to the marked spot".
+            📌 IT HAS NOW LIVED IN THREE PLACES, so the reasoning is worth keeping:
+            first below the tab toolbar, then inline at the toolbar's right edge,
+            now the page header. **Each move was away from the CONTENT and
+            towards the CHROME**, which is right: it is a page-wide mode, not a
+            property of whichever column you happen to be looking at.
+            ⚠️ AND THE RAIL IS WHY IT COULD NOT STAY. The tab strip it used to sit
+            in is gone; parking it at the foot of a 260px rail (which is what the
+            Alpha1 bench does) reads as an eighth column.
+            ⚠️ `items-start` + `pt-1`, NOT `items-center`: the left block is two
+            lines and the right is one, so centring would float the toggle
+            between the title and the subtitle instead of aligning it with the
+            title. */}
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <ListChecks className="h-5 w-5 text-zinc-500" />
+              <h1 className="text-2xl font-semibold tracking-tight">
+                Dropdown Configuration
+              </h1>
+            </div>
+            <p className="mt-1 text-sm text-zinc-500">
+              Manage the choices for the dropdown-driven table columns. Toggle
+              Edit mode to add, rename, or remove options.
+            </p>
           </div>
-          <p className="mt-1 text-sm text-zinc-500">
-            Manage the choices for the dropdown-driven table columns. Toggle
-            Edit mode to add, rename, or remove options.
-          </p>
-        </div>
-
-        {/* Tab toolbar: pick which table to view (only the selected one renders),
-            with the Edit mode toggle inline at the far right of the same row. */}
-        <div className="flex flex-wrap items-center gap-1 border-b border-zinc-200">
-          {TABLES.map((table) => {
-            const isActive = table.id === activeTab;
-            const count = itemsByTable[table.id]?.length ?? 0;
-            return (
-              <button
-                key={table.id}
-                type="button"
-                onClick={() => setActiveTab(table.id)}
-                aria-current={isActive ? "page" : undefined}
-                className={cn(
-                  "-mb-px flex items-center gap-2 border-b-2 px-3 py-2 text-sm font-medium transition",
-                  isActive
-                    ? "border-zinc-900 text-zinc-900"
-                    : "border-transparent text-zinc-500 hover:border-zinc-300 hover:text-zinc-800",
-                )}
-              >
-                {table.title}
-                <span
-                  className={cn(
-                    "rounded-full px-1.5 py-0.5 text-[10px]",
-                    isActive
-                      ? "bg-zinc-200 text-zinc-700"
-                      : "bg-zinc-100 text-zinc-400",
-                  )}
-                >
-                  {count}
-                </span>
-              </button>
-            );
-          })}
-          {/* Edit mode toggle, inline at the far right of the toolbar row and
-              still above the active table's Add Option button. */}
-          <div className="ml-auto flex items-center gap-2 pl-3 text-xs text-zinc-600">
+          <div className="flex shrink-0 items-center gap-2 pt-1 text-xs text-zinc-600">
             <Pencil className="h-3.5 w-3.5" />
             Edit mode
             <Switch checked={editMode} onCheckedChange={setEditMode} />
           </div>
         </div>
 
-        {/* Only the selected table renders. Each table's search query persists
-            in `queries`, so switching tabs and back restores its search. The
-            `key` remounts the section per tab, re-measuring the adaptive Notes
-            clamp for GHL Tags. */}
-        <ChoiceTableSection
-          key={activeDescriptor.id}
-          table={activeDescriptor}
-          items={itemsByTable[activeDescriptor.id] ?? []}
-          editMode={editMode}
-          query={queries[activeDescriptor.id] ?? ""}
-          onQueryChange={(q) =>
-            setQueries((prev) => ({ ...prev, [activeDescriptor.id]: q }))
-          }
-          onAdd={() => setDialog({ tableId: activeDescriptor.id, existing: null })}
-          onEdit={(item) =>
-            setDialog({ tableId: activeDescriptor.id, existing: item })
-          }
-          onShowNotes={(n) => setShowingNotes(n)}
-          onShowRelationships={(item) =>
-            setRelatedLookup({
-              // Which column's lookup this is, which decides BOTH the dialog's
-              // wording and which junction it reads. The webhooks table is the
-              // only non-choice one; every other table is a selections column.
-              kind: activeDescriptor.id === "webhooks" ? "webhook" : "ghlTag",
-              anchor: null,
-              items: [{ id: item.id, label: item.value }],
-            })
-          }
-        />
+        {/* ⭐⭐ A LEFT RAIL, NOT A TAB STRIP, as of 2026-09-25. Promoted from the
+            Alpha1 bench after the user compared six layouts: "This looks good,
+            make the Live page use this layout."
+            📌 WHAT IT FIXES, and it is measurable rather than a taste: the seven
+            tabs needed **1081px on one line**, and that is what forced this
+            page's `min-w-[1132px]` floor in the narrow-window pass. **The
+            NAVIGATION was setting the page's minimum width, not the data.** A
+            260px rail cannot wrap and does not grow with the number of columns,
+            so an eighth column now costs vertical space instead of horizontal.
+            ⭐ AND IT SHOWS THE SHAPE OF THE DATA. All seven counts are visible at
+            once, so "Author has 1 and GHL Tags has 428" is legible without
+            clicking through seven tabs to find out.
+            📌 SAME PATTERN AS THE AUTOMATIONS HUB: rail on the left, detail on the
+            right, the selected item LIFTED rather than underlined.
+            ⚠️ THE EDIT MODE TOGGLE IS NOT IN HERE. It used to sit at the right
+            edge of the tab strip this replaces; it is in the page header now.
+            The Alpha1 bench still parks it at the foot of the rail, which is the
+            one way that bench and this page differ. */}
+        <div className="flex gap-4">
+          <nav
+            aria-label="Dropdown columns"
+            className="w-[260px] shrink-0 space-y-1"
+          >
+            {TABLES.map((table) => {
+              const isActive = table.id === activeTab;
+              const count = itemsByTable[table.id]?.length ?? 0;
+              return (
+                <button
+                  key={table.id}
+                  type="button"
+                  onClick={() => setActiveTab(table.id)}
+                  aria-current={isActive ? "page" : undefined}
+                  className={cn(
+                    "flex w-full items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left text-sm transition",
+                    isActive
+                      ? "border-zinc-300 bg-zinc-100 font-semibold text-zinc-900"
+                      : "border-transparent text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900",
+                  )}
+                >
+                  <span className="min-w-0 truncate">{table.title}</span>
+                  {/* ⚠️ `tabular-nums` so 1, 45 and 428 line up down the column.
+                      In the old tab strip these sat inline and never aligned. */}
+                  <span
+                    className={cn(
+                      "shrink-0 rounded-full px-1.5 py-0.5 text-[10px] tabular-nums",
+                      isActive
+                        ? "bg-zinc-200 text-zinc-700"
+                        : "bg-zinc-100 text-zinc-500",
+                    )}
+                  >
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </nav>
+
+          {/* ⚠️ `min-w-0` IS LOAD-BEARING on a flex child holding a table: without
+              it the item takes its content's min-content width and the 800px
+              table pushes the rail off instead of scrolling.
+              📌 Only the selected table renders. Each table's search query persists
+              in `queries`, so switching and coming back restores its search. The
+              `key` remounts the section per table, re-measuring the adaptive
+              Notes clamp for GHL Tags. */}
+          <div className="min-w-0 flex-1">
+            <ChoiceTableSection
+              key={activeDescriptor.id}
+              table={activeDescriptor}
+              items={itemsByTable[activeDescriptor.id] ?? []}
+              editMode={editMode}
+              query={queries[activeDescriptor.id] ?? ""}
+              onQueryChange={(q) =>
+                setQueries((prev) => ({ ...prev, [activeDescriptor.id]: q }))
+              }
+              onAdd={() =>
+                setDialog({ tableId: activeDescriptor.id, existing: null })
+              }
+              onEdit={(item) =>
+                setDialog({ tableId: activeDescriptor.id, existing: item })
+              }
+              onShowNotes={(n) => setShowingNotes(n)}
+              onShowRelationships={(item) =>
+                setRelatedLookup({
+                  // Which column's lookup this is, which decides BOTH the
+                  // dialog's wording and which junction it reads. The webhooks
+                  // table is the only non-choice one; every other table is a
+                  // selections column.
+                  kind:
+                    activeDescriptor.id === "webhooks" ? "webhook" : "ghlTag",
+                  anchor: null,
+                  items: [{ id: item.id, label: item.value }],
+                })
+              }
+            />
+          </div>
+        </div>
 
         {/* `valueLocked` below: a built-in option's value IS its identity, so
             the field is read-only when editing one. Status and Notes stay

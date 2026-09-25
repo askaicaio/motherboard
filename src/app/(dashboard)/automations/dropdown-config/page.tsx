@@ -101,32 +101,40 @@ export default async function AutomationsDropdownConfigPage() {
        four ragged rows and asked for this page next; offered a scrolling tab
        strip or moving the Edit mode toggle, **they chose the whole page
        scrolling**, matching the other two.
+       📌 THAT TAB STRIP NO LONGER EXISTS (2026-09-25, replaced by the rail), so
+       the problem described above cannot recur. **The scroller stays anyway**:
+       the page still has a minimum width, it is just the table that sets it
+       now, and every other Automations page scrolls the same way.
        🛑 WHY THE SCROLLER IS HERE AND NOT ON `<main>`: the dashboard layout
        gives `<main>` **`overflow-x-clip`**, which cuts overflow off WITHOUT
        creating a scroll container. That is deliberate and shared by every
        dashboard page (a scroll container there would re-anchor
        `position: sticky`), so each page gets its own scroller.
-       📊 WHY THE FLOOR IS 1132px, BISECTED RATHER THAN CALCULATED. **The TAB
-       STRIP is the binding element on this page, not the table** - the table
-       card carries `min-w-[800px]` inside its own `overflow-auto`, so it never
-       forces the page wider. The strip is `flex-wrap`, and it holds one line at
-       **1081px of content and breaks at 1079**. 1084 + the 48px of `p-6` is
-       1132, so the scrollbar appears at about a 1420px window.
-       ⚠️ ARITHMETIC SAID 1088 AND WAS 7px WRONG: summing the seven buttons'
-       measured widths accumulates sub-pixel rounding. **Bisect the real wrap
-       instead**, one pixel either side.
-       ⚠️ WHY WRAPPING LOOKED WORSE THAN IT WAS: the `border-b` is on the
-       CONTAINER while the active tab's underline is on the BUTTON, so the
-       moment the strip wraps the underline detaches from the bottom border and
-       floats a row or two above it. **A wrapped row of tabs here can never look
-       right**, which is why holding it on one line is the fix rather than
-       styling the wrap.
-       📌 THE FLOOR IS A FUNCTION OF THE SEVEN TAB LABELS AND THEIR COUNT PILLS.
-       Those counts are live (GHL Tags was 428 when measured), so **a jump to
-       four digits widens the strip a few px per tab**. Re-bisect if a tab is
-       added, renamed, or its count changes order of magnitude. */
+       📊 WHY THE FLOOR IS 1124px, MEASURED RATHER THAN CALCULATED, 2026-09-25.
+       **The TABLE is the binding element now.** The rail is a fixed 260px and
+       the gap is 16, so the detail pane reaches the table's own `min-w-[800px]`
+       at 1076px of content; plus the 48px of `p-6` that is 1124. Measured by
+       pinning the content to a series of widths and reading the scroll
+       container: 1100 leaves the table overflowing by 24px, **1124 leaves it at
+       exactly 0**.
+       ⭐⭐ THE NUMBER BARELY MOVED (1132 -> 1124) BUT THE REASON CHANGED
+       COMPLETELY, and the reason is the part that matters. It used to be set by
+       the TAB STRIP: seven tabs held one line at 1081px of content and broke at
+       1079, so **the NAVIGATION decided how narrow this page could go**. The
+       rail replaced that on 2026-09-25 and cannot wrap, so the floor is now a
+       function of the DATA - the table's column widths - which is where it
+       belongs.
+       📌 SO WHAT TO RE-MEASURE HAS CHANGED TOO. Adding, renaming or reordering a
+       COLUMN no longer moves this number; the rail just gets one row taller.
+       **Changing a table COLUMN WIDTH does**, because the 800px is the sum of
+       the first column (400) plus the fixed ones. Re-measure then, and not
+       before.
+       🛑 THE OLD NOTE WARNED that arithmetic said 1088 and was 7px wrong because
+       summing seven buttons accumulates sub-pixel rounding. That trap is gone
+       with the strip, but **the habit it taught is not: measure the real
+       threshold, do not add up the parts.** */
     <div className="overflow-x-auto">
-      <div className="min-w-[1132px] space-y-6 p-6">
+      <div className="min-w-[1124px] space-y-6 p-6">
         <Link
           href="/automations"
           className="inline-flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-900"
