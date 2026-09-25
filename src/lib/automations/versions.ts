@@ -34,6 +34,7 @@ import {
   Dna,
   FlaskConical,
   Layers,
+  ListChecks,
   PanelTop,
   Microscope,
   Palette,
@@ -148,8 +149,14 @@ export interface AutomationVersion {
    *  the flag lie about whose move it is, which is the one thing it is for.
    *  ⚠️ SO THE TWO ARE INDEPENDENT NOW: a family member may or may not be
    *  parked, and a parked page need not be in a family. Read each for what it
-   *  says and do not infer one from the other. */
-  family?: "light-dark";
+   *  says and do not infer one from the other.
+   *
+   *  📌 THE SECOND FAMILY, `"dropdown-config"`, ARRIVED 2026-09-25 with six
+   *  layout benches for the Dropdown Configuration page, and it is what the
+   *  field was worth adding for: **six tiles for one page would have swamped
+   *  the bench list**, where every other entry is a different design of the
+   *  MAIN page. None of them is parked. */
+  family?: "light-dark" | "dropdown-config";
 }
 
 export const AUTOMATION_VERSIONS: AutomationVersion[] = [
@@ -294,6 +301,77 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
       "One route, both themes: the AlphaA pair as a real light/dark toggle.",
     family: "light-dark",
   },
+
+  // ⭐⭐ SIX LAYOUTS FOR THE *DROPDOWN CONFIGURATION* PAGE, added 2026-09-25.
+  // The user: "Can you suggest other better ways to layout the UI on this page?
+  // How many Alpha pages can you create so i can see the samples?"
+  //
+  // 🏷️🏷️ THEY ARE "Dropdown Config AlphaN", NOT "Main Page Alpha8..13", AND THE
+  // NAMING RULE BELOW IS WHY. `Main Page ...` means *a design FOR the main
+  // page*; these are designs for a different page entirely, so they take that
+  // page's name. **The same rule that made the toolbar gallery `Toolbar Options
+  // 1` rather than another Beta.**
+  //
+  // 📌 WHAT THEY ARE ANSWERING: that page runs THREE data shapes through one
+  // table. Four colour sets (1, 11, 15 and 5 options), two synced status lists
+  // (**428** and 45) and a 77-row link list. One table cannot be right for all
+  // three, and the six split that knot in different places.
+  //
+  // ⚠️ ALL SIX SHARE THE LIVE PAGE'S DATA AND BEHAVIOUR. Each forks the client
+  // and replaces only its render layer, so a behaviour bug found on one is a bug
+  // on the live page too.
+  // 🛑 NONE IS `parked`: they were asked for today and the next move is ours.
+  // They carry `family` purely so six tiles for one page do not swamp a bench
+  // list where everything else redesigns the MAIN page.
+  {
+    href: "/automations-dropdown-config-alpha1",
+    label: "Dropdown Config Alpha1",
+    icon: ListChecks,
+    blurb:
+      "The seven tabs become a left rail, so navigation stops setting the page width.",
+    family: "dropdown-config",
+  },
+  {
+    href: "/automations-dropdown-config-alpha2",
+    label: "Dropdown Config Alpha2",
+    icon: ListChecks,
+    blurb:
+      "A narrow list beside a live detail pane, which retires the dialog and Edit mode.",
+    family: "dropdown-config",
+  },
+  {
+    href: "/automations-dropdown-config-alpha3",
+    label: "Dropdown Config Alpha3",
+    icon: ListChecks,
+    blurb:
+      "Colour sets render as the badges they produce; the big lists keep the table.",
+    family: "dropdown-config",
+  },
+  {
+    href: "/automations-dropdown-config-alpha4",
+    label: "Dropdown Config Alpha4",
+    icon: ListChecks,
+    blurb:
+      "All seven columns stacked with a jump bar, each capped at ten rows.",
+    family: "dropdown-config",
+  },
+  {
+    href: "/automations-dropdown-config-alpha5",
+    label: "Dropdown Config Alpha5",
+    icon: ListChecks,
+    blurb:
+      "GHL Tags as a queue: grouped by status, multi-select, set a status in bulk.",
+    family: "dropdown-config",
+  },
+  {
+    href: "/automations-dropdown-config-alpha6",
+    label: "Dropdown Config Alpha6",
+    icon: ListChecks,
+    blurb:
+      "One box across all seven columns, because finding one tag is the real job.",
+    family: "dropdown-config",
+  },
+
   // ⚠️⚠️ AN "OPTIONS" ENTRY IS A DIFFERENT KIND OF THING FROM EVERYTHING ABOVE
   // IT, and the label says so. Every Alpha and Beta is a redesign of the whole
   // Main Page. **AN OPTIONS PAGE IS A SHOWCASE OF ONE COMPONENT, rendered
@@ -350,6 +428,15 @@ export const AUTOMATION_BENCH_VERSIONS = AUTOMATION_VERSIONS.filter(
  *  question. See the interface for why they separated. */
 export const AUTOMATION_LIGHT_DARK_VERSIONS = AUTOMATION_VERSIONS.filter(
   (v) => v.family === "light-dark",
+);
+
+/** The six Dropdown Configuration layout benches, in their own card.
+ *
+ *  ⚠️ THESE ARE NOT PARKED and the card must not imply they are. They are
+ *  grouped because they all redesign the SAME page, not because they are
+ *  waiting on anyone. */
+export const AUTOMATION_DROPDOWN_CONFIG_VERSIONS = AUTOMATION_VERSIONS.filter(
+  (v) => v.family === "dropdown-config",
 );
 
 /** True while `pathname` is any registered version, the live hub included.

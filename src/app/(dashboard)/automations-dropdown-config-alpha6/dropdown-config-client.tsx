@@ -1,0 +1,1280 @@
+"use client";
+
+// =============================================================
+// Dropdown Config Alpha6's client: **Search first**.
+// =============================================================
+// ⚠️⚠️ A FORK OF `@/components/automations/dropdown-config-client`, and the
+// STATE, HANDLERS, API CALLS AND DIALOG BELOW ARE THAT FILE'S, UNCHANGED.
+// **Only the render layer differs.** Fix a behaviour BUG in the shared one and
+// fix it here too; change a LAYOUT there and do not.
+// 📌 THE THREE `./` IMPORTS BECAME ABSOLUTE in the copy. `choice-dialog`,
+// `related-count` and `related-automations-dialog` are shared LEAVES and are
+// meant to be imported; it is the layout in this file that must stay its own.
+//
+// ⬇️ EVERYTHING BELOW IS THE SHARED CLIENT'S OWN HEADER, INHERITED.
+// =============================================================
+
+// Client for the Automations "Dropdown Configuration" page. Shows one table at a
+// time (Author, Automation Tags, GHL Tags, GHL Forms, Trigger Event, Webhook
+// Links) chosen via a tab toolbar; Author is the default. Each table keeps its
+// own search query (preserved when switching tabs). A page-level Edit mode toggle
+// reveals the active table's single "Add Option" and row-click editing.
+//
+// DELETE lives in the Add/Edit dialog (a red bin, bottom-left), NOT in a per-row
+// column. It moved there 2026-08-28 at the user's request, the same move the Per
+// Website table made in Round 58, so the tables no longer reserve a bin column.
+// A built-in option ("No Path", "No Tag", ...) simply gets no bin, because the
+// caller only passes `onDelete` when deleting is allowed.
+//
+// GHL Tags and GHL Forms are richer 3-column tables:
+// <rowLabel> | Status (per-column dropdown, default Unknown) | Notes (free text,
+// presented + edited like the Per Website Purpose column). Their status set is
+// Keep/To Remove/Unknown/Removed, and they group rows by status. Author, Trigger
+// Event, and Automation Tags are colour tables: <rowLabel> | Badge Color | Text
+// Color | Notes, with the value rendered as a coloured pill (Author's Status
+// column was removed 2026-07-29). Webhook Links is a simple single-column list.
+//
+// The four generic columns write to /api/automations/dropdown-choices; Webhook
+// Links writes to /api/automations/webhook-choices. Editing is off by default.
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { TOOLTIP_DELAY_MS } from "@/lib/automations/tooltips";
+import { ListChecks, Pencil, Plus, Search } from "lucide-react";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import {
+  DROPDOWN_COLUMNS,
+  WEBHOOK_CHOICE_META,
+  WEBHOOK_SCOPE,
+  choiceColorHex,
+  choiceColorLabel,
+  isSpecialChoice,
+  selectableStatusOptions,
+  sortSpecialFirst,
+  type DropdownChoiceRow,
+  type DropdownColumnKey,
+  type RelatedAutomation,
+  type StatusOption,
+  type WebhookChoiceRow,
+} from "@/lib/automations/dropdown-config";
+import { useFitViewportHeight } from "@/lib/automations/use-fit-viewport-height";
+import { ChoiceDialog } from "@/components/automations/choice-dialog";
+import { RelatedCount } from "@/components/automations/related-count";
+import {
+  RelatedAutomationsDialog,
+  type RelatedLookupTarget,
+} from "@/components/automations/related-automations-dialog";
+import { confirmDialog } from "@/components/ui/confirm";
+
+/** A unified row shown in any of the tables. */
+interface Item {
+  id: string;
+  value: string;
+  status?: string | null;
+  notes?: string | null;
+  badgeColor?: string | null;
+  textColor?: string | null;
+  /** Relationship-bearing tables only (Webhook Links, GHL Tags): count of
+   *  automations using this choice. */
+  relationships?: number;
+  /** Relationship-bearing tables only (Webhook Links, GHL Tags): the automations
+   *  using this choice (reverse lookup), rendered inline in the Relationships
+   *  cell and opening the browse-all lookup. */
+  relatedAutomations?: RelatedAutomation[];
+}
+
+/** Describes one table on the page. */
+interface TableDescriptor {
+  id: string;
+  title: string;
+  fieldLabel: string;
+  placeholder: string;
+  isUrl: boolean;
+  ghlOnly?: boolean;
+  hasStatus?: boolean;
+  /** This column's Status choices + tones (present iff hasStatus). */
+  statusOptions?: StatusOption[];
+  /** Default status for a new entry (present iff hasStatus). */
+  defaultStatus?: string;
+  /** Group rows by status order (GHL Tags/Forms); omit → plain alphabetical. */
+  statusGrouped?: boolean;
+  hasNotes?: boolean;
+  /** Rows carry Badge + Text colours; value renders as a pill (Trigger Event). */
+  hasColor?: boolean;
+  /** Show a "Relationships" column: the automations that use this choice, with a
+   *  browse-all lookup. Webhook Links and GHL Tags today. */
+  hasRelationships?: boolean;
+  /** First-column header for the rich table view ("Tag", "Form", "Author"). */
+  rowLabel?: string;
+}
+
+// ⚠️ THE USER-FACING FIELDS COME FROM `WEBHOOK_CHOICE_META` in the lib, not
+// from literals here. The Add/Edit Workflow dialog's "New link" button describes
+// this same table, and one copy is what keeps the two dialogs' wording
+// identical. Only the fields THIS table view needs (`rowLabel`,
+// `hasRelationships`) are local.
+const WEBHOOK_TABLE: TableDescriptor = {
+  id: WEBHOOK_SCOPE,
+  title: WEBHOOK_CHOICE_META.title,
+  fieldLabel: WEBHOOK_CHOICE_META.fieldLabel,
+  placeholder: WEBHOOK_CHOICE_META.placeholder,
+  isUrl: WEBHOOK_CHOICE_META.isUrl,
+  hasNotes: WEBHOOK_CHOICE_META.hasNotes,
+  // Rich 3-column table: Webhook Link | Relationships | Notes.
+  rowLabel: "Webhook Link",
+  hasRelationships: true,
+};
+
+const TABLES: TableDescriptor[] = [
+  ...DROPDOWN_COLUMNS.map((c) => ({
+    id: c.key,
+    title: c.title,
+    fieldLabel: c.fieldLabel,
+    placeholder: c.placeholder,
+    isUrl: false,
+    ghlOnly: c.ghlOnly,
+    hasStatus: c.hasStatus,
+    statusOptions: c.statusOptions,
+    defaultStatus: c.defaultStatus,
+    statusGrouped: c.statusGrouped,
+    hasNotes: c.hasNotes,
+    hasColor: c.hasColor,
+    rowLabel: c.rowLabel,
+    hasRelationships: c.hasRelationships,
+  })),
+  WEBHOOK_TABLE,
+];
+
+/** What ONE row of a Relationships table is, in the tooltip's own words: "…use
+ *  this link." / "…use this tag." Keyed by table id, and only the two tables
+ *  with `hasRelationships` need an entry. A table missing from here falls back
+ *  to a bare "…use this.", which reads fine and is never wrong.
+ *
+ *  ⚠️ ADD A ROW HERE if a third column ever gains a Relationships table. */
+const RELATIONSHIP_NOUN: Record<string, string> = {
+  webhooks: "link",
+  ghl_tags: "tag",
+};
+
+/** Tooltip for the amber "(N)" in a Relationships cell: how many automations
+ *  use THIS CHOICE. Deliberately different from the per-row cell counts on the
+ *  two automations tables (see cellCountTooltip), which count entries ON an
+ *  automation, the opposite direction.
+ *
+ *  ⚠️ Wording set by the user 2026-08-29 ("N automations use this link."). An
+ *  earlier version ended with "Only the lines that fit are shown."; they cut it.
+ *  Do not add it back. */
+function relationshipCountTooltip(count: number, tableId: string): string {
+  const verb = count === 1 ? "automation uses" : "automations use";
+  const noun = RELATIONSHIP_NOUN[tableId];
+  return `${count} ${verb} this${noun ? ` ${noun}` : ""}.`;
+}
+
+// Sort rank for a status-grouped table. A column's `statusOptions` already list
+// the desired top-to-bottom group order; anything unrecognized (incl. null)
+// sorts last. Null is shown as "Unknown" (see StatusBadge), so treat it as such.
+function statusRank(
+  status: string | null | undefined,
+  options: StatusOption[],
+): number {
+  const key = status || "Unknown";
+  const i = options.findIndex((o) => o.value === key);
+  return i === -1 ? options.length : i;
+}
+
+export function DropdownConfigAlpha6Client({
+  initialChoices,
+  initialWebhooks,
+}: {
+  initialChoices: DropdownChoiceRow[];
+  initialWebhooks: WebhookChoiceRow[];
+}) {
+  const router = useRouter();
+  const [choices, setChoices] = useState(initialChoices);
+  const [webhooks, setWebhooks] = useState(initialWebhooks);
+  const [editMode, setEditMode] = useState(false);
+  // Which table the toolbar is showing. Author (TABLES[0]) is the default.
+  const [activeTab, setActiveTab] = useState<string>(TABLES[0].id);
+  const [queries, setQueries] = useState<Record<string, string>>({});
+  const [dialog, setDialog] = useState<{
+    tableId: string;
+    existing: Item | null;
+  } | null>(null);
+  // The notes text shown in the read-only Notes popup (null = closed).
+  const [showingNotes, setShowingNotes] = useState<string | null>(null);
+  /** ⭐ THE CROSS-COLUMN QUERY. The live page has one search box PER table,
+   *  each filtering only the tab you are on. This one searches all seven at
+   *  once, which is the question 428 GHL tags actually pose: not "show me the
+   *  tags" but "where is the one called X". */
+  const [globalQuery, setGlobalQuery] = useState("");
+  /** Whether the visitor has dropped out of search into browsing one column.
+   *  Searching again takes precedence, so this is only read when the query is
+   *  empty. */
+  const [browsing, setBrowsing] = useState(false);
+  // The webhook browse-all lookup target (null = closed). Opened from a Webhook
+  // Links row's Relationships count; reuses the shared RelatedAutomationsDialog in
+  // "all" mode (anchor null → lists every automation using the webhook).
+  const [relatedLookup, setRelatedLookup] =
+    useState<RelatedLookupTarget | null>(null);
+
+  const itemsByTable = useMemo(() => {
+    const m: Record<string, Item[]> = {};
+    for (const t of TABLES) m[t.id] = [];
+    // ⚠️ THIS IS AN EXPLICIT FIELD-BY-FIELD COPY, SO IT SILENTLY DROPS ANYTHING
+    // YOU FORGET. Every field on DropdownChoiceRow that a table renders MUST be
+    // listed here. TypeScript will NOT catch an omission, because Item declares
+    // these fields optional, so a short object still type-checks and the cell
+    // just renders its empty state.
+    //
+    // That is exactly what happened when GHL Tags got its Relationships column
+    // (fixed 2026-08-22): the server loaded the relationships correctly, this
+    // copy dropped them, and every row read "None". Same shape as the Refresh
+    // List incident documented in lib/automations/per-website-rows.ts.
+    for (const c of choices) {
+      (m[c.columnKey] ??= []).push({
+        id: c.id,
+        value: c.value,
+        status: c.status,
+        notes: c.notes,
+        badgeColor: c.badgeColor,
+        textColor: c.textColor,
+        // Populated for GHL Tags only (see the page loader); undefined elsewhere,
+        // which renders as the "None" empty state on tables that show the column.
+        relationships: c.relatedAutomations?.length ?? 0,
+        relatedAutomations: c.relatedAutomations,
+      });
+    }
+    m.webhooks = webhooks.map((w) => ({
+      id: w.id,
+      value: w.url,
+      notes: w.notes,
+      relationships: w.relationships ?? 0,
+      relatedAutomations: w.relatedAutomations,
+    }));
+    return m;
+  }, [choices, webhooks]);
+
+  const activeTable = dialog
+    ? (TABLES.find((t) => t.id === dialog.tableId) ?? null)
+    : null;
+
+  async function submitDialog(payload: {
+    value: string;
+    status?: string;
+    notes?: string;
+    badgeColor?: string | null;
+    textColor?: string | null;
+  }): Promise<string | null> {
+    if (!dialog || !activeTable) return "No table selected";
+    const isEdit = !!dialog.existing;
+    const isWebhook = activeTable.id === "webhooks";
+    const hasStatus = !!activeTable.hasStatus;
+    const hasNotes = !!activeTable.hasNotes;
+    const hasColor = !!activeTable.hasColor;
+
+    const endpoint = isWebhook
+      ? isEdit
+        ? `/api/automations/webhook-choices/${dialog.existing!.id}`
+        : "/api/automations/webhook-choices"
+      : isEdit
+        ? `/api/automations/dropdown-choices/${dialog.existing!.id}`
+        : "/api/automations/dropdown-choices";
+    const method = isEdit ? "PATCH" : "POST";
+    const body = isWebhook
+      ? {
+          url: payload.value,
+          ...(hasNotes ? { notes: payload.notes ?? "" } : {}),
+        }
+      : {
+          ...(isEdit ? {} : { columnKey: activeTable.id }),
+          value: payload.value,
+          ...(hasStatus ? { status: payload.status } : {}),
+          ...(hasNotes ? { notes: payload.notes ?? "" } : {}),
+          ...(hasColor
+            ? {
+                badgeColor: payload.badgeColor ?? null,
+                textColor: payload.textColor ?? null,
+              }
+            : {}),
+        };
+
+    const res = await fetch(endpoint, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    let data: {
+      error?: string;
+      choice?: {
+        id: string;
+        status?: string | null;
+        notes?: string | null;
+        badgeColor?: string | null;
+        textColor?: string | null;
+      };
+      webhook?: { id: string; notes?: string | null };
+    } = {};
+    try {
+      data = await res.json();
+    } catch {
+      data = {};
+    }
+    if (!res.ok) return data.error || `Save failed (${res.status})`;
+
+    if (isWebhook) {
+      const saved = data.webhook;
+      if (!saved) return "Save failed";
+      setWebhooks((prev) =>
+        isEdit
+          ? prev.map((w) =>
+              w.id === saved.id
+                ? { ...w, url: payload.value, notes: saved.notes }
+                : w,
+            )
+          : [
+              {
+                id: saved.id,
+                url: payload.value,
+                notes: saved.notes,
+                relationships: 0,
+              },
+              ...prev,
+            ],
+      );
+    } else {
+      const saved = data.choice;
+      if (!saved) return "Save failed";
+      const columnKey = activeTable.id as DropdownColumnKey;
+      setChoices((prev) =>
+        isEdit
+          ? prev.map((c) =>
+              c.id === saved.id
+                ? {
+                    ...c,
+                    value: payload.value,
+                    status: saved.status,
+                    notes: saved.notes,
+                    badgeColor: saved.badgeColor,
+                    textColor: saved.textColor,
+                  }
+                : c,
+            )
+          : [
+              {
+                id: saved.id,
+                columnKey,
+                value: payload.value,
+                status: saved.status,
+                notes: saved.notes,
+                badgeColor: saved.badgeColor,
+                textColor: saved.textColor,
+              },
+              ...prev,
+            ],
+      );
+    }
+    toast.success(isEdit ? "Saved" : "Added");
+    router.refresh();
+    return null;
+  }
+
+  async function handleDelete(table: TableDescriptor, item: Item) {
+    const shown = table.isUrl ? item.value : `"${item.value}"`;
+    if (
+      !(await confirmDialog({
+        title: "Remove option",
+        body: `Remove ${shown} from ${table.title}?`,
+        confirmLabel: "Remove",
+        destructive: true,
+      }))
+    )
+      return;
+    const isWebhook = table.id === "webhooks";
+    const endpoint = isWebhook
+      ? `/api/automations/webhook-choices/${item.id}`
+      : `/api/automations/dropdown-choices/${item.id}`;
+    const res = await fetch(endpoint, { method: "DELETE" });
+    if (!res.ok) {
+      toast.error("Failed to remove");
+      return;
+    }
+    if (isWebhook) setWebhooks((prev) => prev.filter((w) => w.id !== item.id));
+    else setChoices((prev) => prev.filter((c) => c.id !== item.id));
+    // Close the Add/Edit dialog, which is now where delete is triggered from:
+    // the option it was editing no longer exists. (WorkflowDialog's caller does
+    // the same with setEditing(null).)
+    setDialog(null);
+    toast.success("Removed");
+    router.refresh();
+  }
+
+  const dialogNoun = activeTable
+    ? activeTable.isUrl
+      ? "webhook link"
+      : activeTable.fieldLabel.toLowerCase()
+    : "";
+
+  // Is the open dialog editing one of the built-in options? Those rows have two
+  // fields that ARE their specialness, the name and the Admin status, so both
+  // are locked. Notes stay editable, being the one part meant to be reworded.
+  const editingSpecial =
+    !!activeTable &&
+    !!dialog?.existing &&
+    isSpecialChoice(activeTable.id, dialog.existing.value);
+
+  // The table the toolbar is currently showing (falls back to Author).
+  /** Every option in every column, so the search box can say how many it is
+   *  searching. Cheap: the lists are already in memory. */
+  const totalOptions = useMemo(
+    () => TABLES.reduce((n, tbl) => n + (itemsByTable[tbl.id]?.length ?? 0), 0),
+    [itemsByTable],
+  );
+
+  /** The cross-column result set, grouped by column and kept in TABLES order
+   *  so the groups do not reshuffle as you type.
+   *
+   *  ⚠️ EMPTY GROUPS ARE DROPPED, not rendered empty: seven headings with
+   *  "no matches" under six of them is noise, and it pushes the one real
+   *  result off the screen. */
+  const searchGroups = useMemo(() => {
+    const q = globalQuery.trim().toLowerCase();
+    if (!q) return [];
+    return TABLES.map((tbl) => ({
+      table: tbl,
+      matches: (itemsByTable[tbl.id] ?? []).filter((i) =>
+        i.value.toLowerCase().includes(q),
+      ),
+    })).filter((g) => g.matches.length > 0);
+  }, [globalQuery, itemsByTable]);
+
+  const activeDescriptor = TABLES.find((t) => t.id === activeTab) ?? TABLES[0];
+
+  return (
+    <TooltipProvider delay={TOOLTIP_DELAY_MS}>
+      <div className="space-y-6">
+        {/* Header: title + subtitle. The Edit mode toggle now lives just below
+            the tab toolbar (above the active table's Add Option button). */}
+        <div>
+          <div className="flex items-center gap-2">
+            <ListChecks className="h-5 w-5 text-zinc-500" />
+            <h1 className="text-2xl font-semibold tracking-tight">
+              Dropdown Configuration
+            </h1>
+            {/* ⚠️ THE BADGE IS HOW YOU KNOW WHICH BENCH THIS IS. The live
+                page has none, and its absence is the tell. */}
+            <span className="rounded-full bg-zinc-900 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
+              Alpha6
+            </span>
+          </div>
+          <p className="mt-1 text-sm text-zinc-500">
+            Manage the choices for the dropdown-driven table columns. Toggle
+            Edit mode to add, rename, or remove options.
+          </p>
+        </div>
+
+        {/* Tab toolbar: pick which table to view (only the selected one renders),
+            with the Edit mode toggle inline at the far right of the same row. */}
+        {/* ⭐⭐ SEARCH IS THE PAGE, NOT A BOX ON IT. Browsing is the fallback.
+            📌 WHY: with 428 GHL tags, 77 webhook links and 45 forms, the real
+            task is almost never "look through the list" - it is "find the one
+            called X", and on the live page that means guessing which of seven
+            tabs it lives in FIRST and then searching inside it. **Here you do
+            not have to know which column it is in.**
+            ⚠️ THE COLUMN CARDS ARE NOT DECORATION: with an empty query they are
+            the only navigation, and they carry the counts, so the page still
+            answers "what is in here" for someone who arrived without a target. */}
+        <div className="space-y-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-zinc-400" />
+            <Input
+              autoFocus
+              placeholder={`Search all ${totalOptions} options across ${TABLES.length} columns…`}
+              value={globalQuery}
+              onChange={(e) => setGlobalQuery(e.target.value)}
+              className="h-12 pl-10 text-base"
+            />
+            {globalQuery && (
+              <button
+                type="button"
+                onClick={() => setGlobalQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-zinc-500 hover:text-zinc-900"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 text-xs text-zinc-600">
+            <Pencil className="h-3.5 w-3.5" />
+            Edit mode
+            <Switch checked={editMode} onCheckedChange={setEditMode} />
+            {(globalQuery || browsing) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setGlobalQuery("");
+                  setBrowsing(false);
+                }}
+                className="ml-auto text-xs text-zinc-500 underline-offset-2 hover:text-zinc-900 hover:underline"
+              >
+                Back to all columns
+              </button>
+            )}
+          </div>
+
+          {globalQuery.trim() ? (
+            <SearchResults
+              groups={searchGroups}
+              editMode={editMode}
+              onEdit={(tableId, item) => setDialog({ tableId, existing: item })}
+              onShowNotes={(n) => setShowingNotes(n)}
+              onBrowse={(tableId) => {
+                setActiveTab(tableId);
+                setBrowsing(true);
+                setGlobalQuery("");
+              }}
+            />
+          ) : browsing ? (
+            <ChoiceTableSection
+              key={activeDescriptor.id}
+              table={activeDescriptor}
+              items={itemsByTable[activeDescriptor.id] ?? []}
+              editMode={editMode}
+              query={queries[activeDescriptor.id] ?? ""}
+              onQueryChange={(q) =>
+                setQueries((prev) => ({ ...prev, [activeDescriptor.id]: q }))
+              }
+              onAdd={() =>
+                setDialog({ tableId: activeDescriptor.id, existing: null })
+              }
+              onEdit={(item) =>
+                setDialog({ tableId: activeDescriptor.id, existing: item })
+              }
+              onShowNotes={(n) => setShowingNotes(n)}
+              onShowRelationships={(item) =>
+                setRelatedLookup({
+                  kind:
+                    activeDescriptor.id === "webhooks" ? "webhook" : "ghlTag",
+                  anchor: null,
+                  items: [{ id: item.id, label: item.value }],
+                })
+              }
+            />
+          ) : (
+            <div className="@container">
+              <div className="grid gap-3 @min-[420px]:grid-cols-2 @min-[760px]:grid-cols-3">
+                {TABLES.map((table) => {
+                  const count = itemsByTable[table.id]?.length ?? 0;
+                  return (
+                    <button
+                      key={table.id}
+                      type="button"
+                      onClick={() => {
+                        setActiveTab(table.id);
+                        setBrowsing(true);
+                      }}
+                      className="rounded-xl border bg-card p-4 text-left transition hover:border-zinc-300 hover:bg-zinc-50"
+                    >
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="text-sm font-semibold text-zinc-900">
+                          {table.title}
+                        </span>
+                        <span className="text-lg font-semibold tabular-nums text-zinc-900">
+                          {count}
+                        </span>
+                      </div>
+                      {/* The KIND, said out loud. The live page makes you infer it
+                        from which columns happen to appear in the table. */}
+                      <p className="mt-1 text-xs text-zinc-500">
+                        {table.hasColor
+                          ? "Colour set: badge and text colour per option."
+                          : table.hasStatus
+                            ? "Synced list, triaged by status."
+                            : "Link list with automation relationships."}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* `valueLocked` below: a built-in option's value IS its identity, so
+            the field is read-only when editing one. Status and Notes stay
+            editable, since neither carries the identity. */}
+        {activeTable && dialog && (
+          <ChoiceDialog
+            open={!!dialog}
+            onOpenChange={(o) => {
+              if (!o) setDialog(null);
+            }}
+            heading={`${dialog.existing ? "Edit" : "Add"} ${dialogNoun}`}
+            description={
+              dialog.existing
+                ? `Update this ${activeTable.title} option.`
+                : `Add a new option to ${activeTable.title}.`
+            }
+            fieldLabel={activeTable.fieldLabel}
+            placeholder={activeTable.placeholder}
+            isUrl={activeTable.isUrl}
+            initialValue={dialog.existing?.value ?? ""}
+            valueLocked={editingSpecial}
+            statusLocked={editingSpecial}
+            submitLabel={dialog.existing ? "Save changes" : "Add option"}
+            showStatus={activeTable.hasStatus}
+            statusOptions={
+              // Locked rows get the FULL list, because the dialog renders their
+              // status as a read-only pill and has to find "Admin" in here to
+              // style it. Everyone else gets the pickable list, which is what
+              // keeps "Admin" out of ordinary hands.
+              editingSpecial
+                ? (activeTable.statusOptions ?? [])
+                : selectableStatusOptions(activeTable.statusOptions ?? [])
+            }
+            initialStatus={
+              dialog.existing?.status ?? activeTable.defaultStatus ?? "Unknown"
+            }
+            showNotes={activeTable.hasNotes}
+            initialNotes={dialog.existing?.notes ?? ""}
+            showColors={activeTable.hasColor}
+            initialBadgeColor={dialog.existing?.badgeColor ?? ""}
+            initialTextColor={dialog.existing?.textColor ?? ""}
+            onSubmit={submitDialog}
+            // Delete, bottom-left of the dialog. Passed ONLY when there is
+            // something to delete and deleting it is allowed: never in add mode
+            // (no row yet), and never for a built-in option, which the API
+            // refuses anyway. So the bin simply is not there in those cases,
+            // exactly how WorkflowDialog omits it in add mode.
+            onDelete={
+              dialog.existing && !editingSpecial
+                ? () => handleDelete(activeTable, dialog.existing!)
+                : undefined
+            }
+          />
+        )}
+
+        {/* Read-only Notes popup (GHL Tags), mirrors the Purpose popup exactly:
+            a flex column with a scrollable body (default light overlay, no
+            overlayClassName), so `break-words` wraps a long unbroken string
+            inside the popup instead of overflowing it. */}
+        <Dialog
+          open={showingNotes !== null}
+          onOpenChange={(o) => !o && setShowingNotes(null)}
+        >
+          <DialogContent className="flex max-h-[85vh] flex-col sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Notes</DialogTitle>
+            </DialogHeader>
+            <p className="min-h-0 flex-1 overflow-y-auto whitespace-pre-wrap break-words text-sm text-zinc-700">
+              {showingNotes}
+            </p>
+          </DialogContent>
+        </Dialog>
+
+        {/* Webhook browse-all "related automations" lookup (opened from a Webhook
+            Links row's Relationships count). Same dialog as the table lookup, in
+            "all" mode: lists every automation using the webhook. */}
+        <RelatedAutomationsDialog
+          target={relatedLookup}
+          onOpenChange={(o) => !o && setRelatedLookup(null)}
+        />
+      </div>
+    </TooltipProvider>
+  );
+}
+
+function StatusBadge({
+  status,
+  options,
+}: {
+  status?: string | null;
+  options: StatusOption[];
+}) {
+  const s = status || "Unknown";
+  const badge = options.find((o) => o.value === s)?.badge;
+  return (
+    <span
+      className={cn(
+        "inline-flex whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-medium",
+        badge ?? "bg-zinc-100 text-zinc-500",
+      )}
+    >
+      {s}
+    </span>
+  );
+}
+
+/** The value rendered as a coloured pill using the choice's badge + text colour
+ *  keys (inline hex, so it's independent of the app's pale pill classes). No
+ *  badge colour set → plain text. A faint inline border keeps white/light pills
+ *  visible on the white card. */
+function ColorPill({
+  value,
+  badgeColor,
+  textColor,
+}: {
+  value: string;
+  badgeColor?: string | null;
+  textColor?: string | null;
+}) {
+  const bg = choiceColorHex(badgeColor);
+  // [overflow-wrap:anywhere] (NOT break-words) so a long unbroken token wraps
+  // inside the column instead of stretching it — see
+  // [[long-word-overflow-wrap-anywhere]].
+  if (!bg)
+    return (
+      <span className="text-sm text-zinc-700 [overflow-wrap:anywhere]">
+        {value}
+      </span>
+    );
+  const fg = choiceColorHex(textColor) ?? "#111827";
+  return (
+    <span
+      className="inline-block max-w-full [overflow-wrap:anywhere] rounded-md px-3 py-0.5 text-xs font-medium"
+      style={{
+        backgroundColor: bg,
+        color: fg,
+        border: "1px solid rgba(0,0,0,0.08)",
+      }}
+    >
+      {value}
+    </span>
+  );
+}
+
+/** A "Badge Color" / "Text Color" cell: a swatch + the colour's name, or a
+ *  muted dash when unset. */
+function ColorCell({ colorKey }: { colorKey?: string | null }) {
+  const hex = choiceColorHex(colorKey);
+  if (!hex) return <span className="text-xs text-zinc-400">—</span>;
+  return (
+    <span className="inline-flex items-center gap-2 text-xs text-zinc-700">
+      <span
+        className="h-4 w-4 shrink-0 rounded"
+        style={{ backgroundColor: hex, border: "1px solid rgba(0,0,0,0.12)" }}
+      />
+      {choiceColorLabel(colorKey)}
+    </span>
+  );
+}
+
+function ChoiceTableSection({
+  table,
+  items,
+  editMode,
+  query,
+  onQueryChange,
+  onAdd,
+  onEdit,
+  onShowNotes,
+  onShowRelationships,
+}: {
+  table: TableDescriptor;
+  items: Item[];
+  editMode: boolean;
+  query: string;
+  onQueryChange: (q: string) => void;
+  onAdd: () => void;
+  onEdit: (item: Item) => void;
+  onShowNotes: (notes: string) => void;
+  onShowRelationships: (item: Item) => void;
+}) {
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const matched = q
+      ? items.filter((i) => i.value.toLowerCase().includes(q))
+      : items;
+    // Status-GROUPED tables (GHL Tags, GHL Forms) group by their status order,
+    // then alphabetize within each group. Every other table (incl. Author, which
+    // has a Status column but is NOT grouped) keeps the server's plain
+    // alphabetical order.
+    //
+    // Built-in options sit at the top of EVERY table. On the grouped tables that
+    // is already handled, because their "Admin" status leads the status order
+    // below. Webhook Links has no Status column at all, so it needs saying.
+    if (!table.statusGrouped) return sortSpecialFirst(table.id, matched);
+    const options = table.statusOptions ?? [];
+    return [...matched].sort(
+      (a, b) =>
+        statusRank(a.status, options) - statusRank(b.status, options) ||
+        a.value.localeCompare(b.value),
+    );
+    // table.id is read by sortSpecialFirst (it is the special-choice scope key).
+  }, [items, query, table.id, table.statusGrouped, table.statusOptions]);
+
+  // Rich (multi-column) table when a column carries Status, Notes, Colour, or
+  // Relationships; otherwise a simple single-column list.
+  const rich = !!(
+    table.hasStatus ||
+    table.hasNotes ||
+    table.hasColor ||
+    table.hasRelationships
+  );
+
+  // Adaptive Notes clamp (GHL Tags): show as many lines of Notes as fit the
+  // row's height, which is driven by the Tag cell (measured below, independent
+  // of the Notes text, so no measure->expand loop). Mirrors the Per Website
+  // Purpose column; min 2 lines.
+  const [notesClamp, setNotesClamp] = useState<Record<string, number>>({});
+  const tagCellRefs = useRef<Map<string, HTMLTableCellElement>>(new Map());
+  useEffect(() => {
+    if (!table.hasNotes) return;
+    const LINE_PX = 16; // text-xs line-height
+    const PAD_Y = 16; // py-2 top + bottom
+    const measure = () => {
+      const next: Record<string, number> = {};
+      for (const [id, el] of tagCellRefs.current) {
+        next[id] = Math.max(2, Math.floor((el.clientHeight - PAD_Y) / LINE_PX));
+      }
+      setNotesClamp((prev) => {
+        const keys = Object.keys(next);
+        const same =
+          keys.length === Object.keys(prev).length &&
+          keys.every((k) => prev[k] === next[k]);
+        return same ? prev : next;
+      });
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [filtered, table.hasNotes]);
+
+  // Fit-to-viewport height for the scroll container (shared hook).
+  const { ref: scrollRef, style: scrollStyle } = useFitViewportHeight();
+
+  return (
+    <section className="space-y-3">
+      {/* Per-table search + the single "Add Option" for the active table. The
+          Add Option button is ALWAYS shown now, independent of the page Edit
+          toggle, so an option can be added without turning edit mode on. */}
+      <div className="flex items-center gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+          <Input
+            placeholder={`Search ${table.title.toLowerCase()}…`}
+            value={query}
+            onChange={(e) => onQueryChange(e.target.value)}
+            className="pl-8"
+          />
+        </div>
+        <Button size="sm" onClick={onAdd}>
+          <Plus className="mr-2 h-3.5 w-3.5" />
+          Add Option
+        </Button>
+      </div>
+
+      <Card>
+        {/* Tall lists (e.g. GHL Tags' hundreds of rows) scroll inside the card
+            instead of stretching the page. overflow-auto gives vertical +
+            horizontal scroll. Height is fit-to-viewport (inline maxHeight,
+            measured above) so the card bottom lands near the window bottom; the
+            max-h-[75vh] class is the pre-measurement fallback. */}
+        <CardContent
+          ref={scrollRef}
+          style={scrollStyle}
+          className="max-h-[75vh] overflow-auto p-0"
+        >
+          {filtered.length === 0 ? (
+            <div className="py-10 text-center text-sm text-zinc-500">
+              {items.length === 0
+                ? "No options yet."
+                : "No options match your search."}
+            </div>
+          ) : rich ? (
+            /* table-fixed: the Tag (first) column is fixed at 400px like the
+               Name column on the Per Website + Error History tables; Notes has no
+               width, so table-fixed gives it the leftover width (it flexes).
+               Status + the delete column stay fixed, delete pinned at the right.
+               A long unbroken value wraps (break-words) inside its column. The
+               min-w keeps Notes from collapsing on a narrow viewport. */
+            <table className="w-full min-w-[800px] table-fixed text-sm">
+              {/* Sticky header: stays pinned while the card scrolls vertically
+                  (each th needs its own bg so rows don't show through). */}
+              <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500 [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-zinc-50">
+                <tr>
+                  {/* First column ("Tag" for GHL Tags, "Form" for GHL Forms):
+                      fixed 400px (mirrors the Name column on the Per Website +
+                      Error History tables). Notes below has no width, so
+                      table-fixed gives it the leftover width (it flexes). */}
+                  <th className="w-[400px] min-w-[400px] max-w-[400px] px-3 py-2 text-left">
+                    {table.rowLabel}
+                  </th>
+                  {table.hasStatus && (
+                    <th className="w-[120px] px-3 py-2 text-left">Status</th>
+                  )}
+                  {table.hasColor && (
+                    <>
+                      {/* Badge + Text Color: fixed 120px each. Rendered BEFORE
+                          Notes so on the colour tables (Trigger Event, Author)
+                          they sit right after the value and Notes is the last,
+                          flexing column (4th column). */}
+                      <th className="w-[120px] px-3 py-2 text-left">
+                        Badge Color
+                      </th>
+                      <th className="w-[120px] px-3 py-2 text-left">
+                        Text Color
+                      </th>
+                    </>
+                  )}
+                  {/* Relationships (Webhook Links): gold count + the automation
+                      links inline (mirrors the Per Website Webhook Links column).
+                      240px, header centered like that column. */}
+                  {table.hasRelationships && (
+                    <th className="w-[240px] px-3 py-2 text-center">
+                      Relationships
+                    </th>
+                  )}
+                  {table.hasNotes && (
+                    <th className="px-3 py-2 text-left">Notes</th>
+                  )}
+                  {/* Spacer: only needed when a colour block has NO Notes column
+                      to flex; a no-width col absorbs the leftover so the fixed
+                      columns hold (first column stays 400px, not stretched). */}
+                  {table.hasColor && !table.hasNotes && (
+                    <th className="px-3 py-2" />
+                  )}
+                  {/* The delete column USED to be here (fixed width, pinned
+                      right). It moved into the Add/Edit dialog 2026-08-28, the
+                      same move the Per Website table made in Round 58, so the
+                      row no longer reserves a column for it. */}
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((item) => (
+                  <tr
+                    key={item.id}
+                    onClick={editMode ? () => onEdit(item) : undefined}
+                    className={cn(
+                      "border-t",
+                      editMode && "cursor-pointer hover:bg-zinc-50",
+                    )}
+                  >
+                    {/* Fixed 400px, mirroring the Name column on the Per Website
+                        + Error History tables. break-words wraps an over-long
+                        unbroken tag inside the column. Its height still drives
+                        the row + the adaptive Notes clamp. */}
+                    <td
+                      ref={(el) => {
+                        if (el) tagCellRefs.current.set(item.id, el);
+                        else tagCellRefs.current.delete(item.id);
+                      }}
+                      className="w-[400px] min-w-[400px] max-w-[400px] break-words px-3 py-2 align-top"
+                    >
+                      {table.hasColor ? (
+                        <ColorPill
+                          value={item.value}
+                          badgeColor={item.badgeColor}
+                          textColor={item.textColor}
+                        />
+                      ) : (
+                        // Plain-text tables (GHL Tags, GHL Forms, Webhook Links):
+                        // font-medium + zinc-900 so the first-column value matches
+                        // the Per Website "Name" cell weight (was inheriting the
+                        // table's normal weight, which read as a lighter font).
+                        <span className="font-medium text-zinc-900">
+                          {item.value}
+                        </span>
+                      )}
+                    </td>
+                    {table.hasStatus && (
+                      <td className="px-3 py-2 align-top">
+                        <StatusBadge
+                          status={item.status}
+                          options={table.statusOptions ?? []}
+                        />
+                      </td>
+                    )}
+                    {table.hasColor && (
+                      <>
+                        <td className="w-[120px] px-3 py-2 align-top">
+                          <ColorCell colorKey={item.badgeColor} />
+                        </td>
+                        <td className="w-[120px] px-3 py-2 align-top">
+                          <ColorCell colorKey={item.textColor} />
+                        </td>
+                      </>
+                    )}
+                    {/* Relationships (Webhook Links): mirrors the Per Website
+                        Webhook Links cell. A gold (N) count prefix + the related
+                        automation links, one truncated blue line each, height-
+                        clamped to the row (only what fits shows). Every line opens
+                        the browse-all lookup; red "None" when nothing uses it.
+                        Disabled in edit mode so the row's edit-click falls through. */}
+                    {table.hasRelationships && (
+                      <td className="w-[240px] min-w-[240px] max-w-[240px] px-3 py-2 text-left align-top">
+                        {item.relatedAutomations &&
+                        item.relatedAutomations.length > 0 ? (
+                          <div
+                            className="overflow-hidden"
+                            style={{
+                              maxHeight: (notesClamp[item.id] ?? 2) * 16,
+                            }}
+                          >
+                            {item.relatedAutomations.map((a, i, arr) => (
+                              <button
+                                key={a.id}
+                                type="button"
+                                disabled={editMode}
+                                title={a.externalUrl}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onShowRelationships(item);
+                                }}
+                                className="block w-full cursor-pointer truncate text-left text-xs text-blue-600 hover:underline disabled:pointer-events-none disabled:cursor-default disabled:no-underline"
+                              >
+                                {i === 0 && (
+                                  // Shared with the six identical counts on the
+                                  // two tables. See related-count.tsx for why it
+                                  // must be a <Tooltip> and not a `title`.
+                                  // The wording differs here: this count is
+                                  // automations using the CHOICE, not entries on
+                                  // an automation.
+                                  <RelatedCount
+                                    count={arr.length}
+                                    tooltip={relationshipCountTooltip(
+                                      arr.length,
+                                      table.id,
+                                    )}
+                                  />
+                                )}
+                                {a.externalUrl}
+                              </button>
+                            ))}
+                          </div>
+                        ) : isSpecialChoice(table.id, item.value) ? (
+                          // Built-in options have no relationships and never
+                          // will, so the red "None" (which means "nothing uses
+                          // this YET", a thing worth noticing) would be a false
+                          // alarm. The common muted dash instead, as used for an
+                          // empty Purpose on the Per Website tables.
+                          <span className="text-xs text-zinc-400">-</span>
+                        ) : (
+                          <span className="text-xs font-medium text-red-600">
+                            None
+                          </span>
+                        )}
+                      </td>
+                    )}
+                    {table.hasNotes && (
+                      <td className="px-3 py-2 align-top">
+                        {item.notes ? (
+                          <Tooltip disableHoverablePopup>
+                            <TooltipTrigger
+                              render={
+                                <button
+                                  type="button"
+                                  disabled={editMode}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onShowNotes(item.notes ?? "");
+                                  }}
+                                  className="w-full cursor-pointer line-clamp-2 break-words text-left text-xs text-zinc-700 hover:text-zinc-900 hover:underline disabled:pointer-events-none disabled:cursor-default disabled:no-underline"
+                                  style={{
+                                    WebkitLineClamp: notesClamp[item.id] ?? 2,
+                                  }}
+                                >
+                                  {item.notes}
+                                </button>
+                              }
+                            />
+                            <TooltipContent className="max-w-xs whitespace-pre-wrap text-left normal-case">
+                              {item.notes}
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          <span className="text-xs font-medium text-red-600">
+                            None
+                          </span>
+                        )}
+                      </td>
+                    )}
+                    {/* Spacer: only when colour block has no Notes to flex. */}
+                    {table.hasColor && !table.hasNotes && (
+                      <td className="px-3 py-2" />
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <div>
+              {/* Sticky column header naming the single column (e.g. "Trigger
+                  Event"), matching the rich tables' header row. Simple lists had
+                  no header before, which read as an unnamed column.
+                  `font-bold`: the other tables' headers are <th> cells, which the
+                  browser renders bold by default (Tailwind Preflight doesn't reset
+                  th), so this <div> needs it explicitly to match their weight. */}
+              <div className="sticky top-0 z-10 border-b border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-bold uppercase tracking-wide text-zinc-500">
+                {table.rowLabel ?? table.title}
+              </div>
+              <ul className="divide-y">
+                {filtered.map((item) => (
+                  <li
+                    key={item.id}
+                    onClick={editMode ? () => onEdit(item) : undefined}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2 text-sm",
+                      editMode && "cursor-pointer hover:bg-zinc-50",
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "min-w-0 flex-1 truncate",
+                        table.isUrl && "font-mono text-xs text-zinc-600",
+                      )}
+                    >
+                      {item.value}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </section>
+  );
+}
+
+/** Cross-column results, grouped by the column each match came from.
+ *
+ *  📌 THE GROUP HEADING IS THE ANSWER TO "WHICH TAB WAS IT IN?", which is the
+ *  question the live page makes you answer yourself before you can search. */
+const RESULTS_PER_GROUP = 8;
+
+function SearchResults({
+  groups,
+  editMode,
+  onEdit,
+  onShowNotes,
+  onBrowse,
+}: {
+  groups: { table: TableDescriptor; matches: Item[] }[];
+  editMode: boolean;
+  onEdit: (tableId: string, item: Item) => void;
+  onShowNotes: (notes: string) => void;
+  onBrowse: (tableId: string) => void;
+}) {
+  if (groups.length === 0) {
+    return (
+      <Card>
+        <CardContent className="py-12 text-center text-sm text-zinc-500">
+          Nothing matches that in any column.
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const total = groups.reduce((n, g) => n + g.matches.length, 0);
+
+  return (
+    <div className="space-y-4">
+      <p className="text-xs text-zinc-500">
+        <span className="font-semibold tabular-nums text-zinc-900">
+          {total}
+        </span>{" "}
+        {total === 1 ? "match" : "matches"} in{" "}
+        <span className="font-semibold tabular-nums text-zinc-900">
+          {groups.length}
+        </span>{" "}
+        {groups.length === 1 ? "column" : "columns"}
+      </p>
+      {groups.map(({ table, matches }) => {
+        const shown = matches.slice(0, RESULTS_PER_GROUP);
+        const hidden = matches.length - shown.length;
+        return (
+          <Card key={table.id}>
+            <CardContent className="p-0">
+              <div className="flex items-center justify-between gap-2 border-b bg-zinc-50 px-3 py-1.5">
+                <span className="text-xs font-semibold text-zinc-800">
+                  {table.title}
+                </span>
+                <span className="text-[10px] uppercase tracking-wider text-zinc-500">
+                  {matches.length} {matches.length === 1 ? "match" : "matches"}
+                </span>
+              </div>
+              <ul className="divide-y">
+                {shown.map((item) => {
+                  const notes = item.notes?.trim();
+                  return (
+                    <li
+                      key={item.id}
+                      onClick={
+                        editMode ? () => onEdit(table.id, item) : undefined
+                      }
+                      className={cn(
+                        "flex items-center gap-3 px-3 py-1.5 text-sm",
+                        editMode && "cursor-pointer hover:bg-zinc-50",
+                      )}
+                    >
+                      <span className="min-w-0 flex-1 truncate">
+                        {table.hasColor ? (
+                          <ColorPill
+                            value={item.value}
+                            badgeColor={item.badgeColor}
+                            textColor={item.textColor}
+                          />
+                        ) : (
+                          <span className="font-medium text-zinc-900">
+                            {item.value}
+                          </span>
+                        )}
+                      </span>
+                      {table.hasStatus && (
+                        <StatusBadge
+                          status={item.status}
+                          options={table.statusOptions ?? []}
+                        />
+                      )}
+                      {notes ? (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onShowNotes(notes);
+                          }}
+                          title={notes}
+                          className="max-w-[40%] shrink-0 truncate text-xs text-zinc-500 hover:text-zinc-900"
+                        >
+                          {notes}
+                        </button>
+                      ) : null}
+                    </li>
+                  );
+                })}
+              </ul>
+              {hidden > 0 && (
+                <button
+                  type="button"
+                  onClick={() => onBrowse(table.id)}
+                  className="w-full border-t px-3 py-2 text-xs font-medium text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
+                >
+                  {hidden} more in {table.title}
+                  <span className="text-zinc-400">, browse the column</span>
+                </button>
+              )}
+            </CardContent>
+          </Card>
+        );
+      })}
+    </div>
+  );
+}
