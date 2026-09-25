@@ -16,6 +16,7 @@ import { getFeatureIntegrationMap } from "@/lib/automations/feature-integration"
 import { Card, CardContent } from "@/components/ui/card";
 import {
   AUTOMATION_BENCH_VERSIONS,
+  AUTOMATION_DROPDOWN_CONFIG_VERSIONS,
   AUTOMATION_LIGHT_DARK_VERSIONS,
   type AutomationVersion,
 } from "@/lib/automations/versions";
@@ -228,6 +229,42 @@ export default async function AutomationsFeatureIntegrationPage() {
               floor changes or this card is reused somewhere narrower. */}
             <div className="grid gap-2 p-3 @min-[304px]:grid-cols-2 @min-[674px]:grid-cols-3">
               {AUTOMATION_LIGHT_DARK_VERSIONS.map((version) => (
+                <VersionTile key={version.href} version={version} />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* ⭐⭐ THE DROPDOWN CONFIG LAYOUT BENCHES, 2026-09-25. Six designs for
+          ONE page, after the user asked: "Can you suggest other better ways to
+          layout the UI on this page? How many Alpha pages can you create so i can
+          see the samples?"
+          📌 WHY THEY ARE NOT IN THE CARD ABOVE THIS ONE: everything there is a
+          design for the MAIN page, and six tiles for a different page would have
+          swamped it. Grouping is the whole reason `family` exists.
+          🛑 AND WHY THIS CARD MUST NOT IMPLY "PARKED": these were asked for today
+          and the next move is ours. The light/dark card happens to hold two
+          parked pages; that is a fact about those pages, not about having a card.
+          See `family` in `versions.ts`. */}
+        <Card>
+          <CardContent className="@container p-0">
+            <div className="flex items-start justify-between gap-3 border-b bg-zinc-50 px-3 py-2">
+              <div className="min-w-0">
+                <h2 className="text-sm font-semibold text-zinc-900">
+                  Dropdown Configuration Layouts
+                </h2>
+                <p className="mt-0.5 text-xs text-zinc-500">
+                  Six ways to lay out the same page. The data and the editing
+                  behaviour are the live page&rsquo;s; only the layout differs.
+                </p>
+              </div>
+              <span className="shrink-0 text-xs text-zinc-500">
+                {AUTOMATION_DROPDOWN_CONFIG_VERSIONS.length} pages, each opens
+                in a new tab
+              </span>
+            </div>
+            <div className="grid gap-2 p-3 @min-[304px]:grid-cols-2 @min-[674px]:grid-cols-3">
+              {AUTOMATION_DROPDOWN_CONFIG_VERSIONS.map((version) => (
                 <VersionTile key={version.href} version={version} />
               ))}
             </div>
