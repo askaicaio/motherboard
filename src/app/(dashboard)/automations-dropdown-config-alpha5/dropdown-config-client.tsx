@@ -211,7 +211,20 @@ export function DropdownConfigAlpha5Client({
   const [webhooks, setWebhooks] = useState(initialWebhooks);
   const [editMode, setEditMode] = useState(false);
   // Which table the toolbar is showing. Author (TABLES[0]) is the default.
-  const [activeTab, setActiveTab] = useState<string>(TABLES[0].id);
+  // ⭐⭐ THIS BENCH OPENS ON GHL TAGS, NOT ON TABLES[0], AND THAT IS THE WHOLE
+  // DIFFERENCE BETWEEN A SAMPLE AND A PAGE. Every other version inherits the
+  // live page's default tab (Author), which is right for a real page: it is the
+  // first column and it is cheap to render.
+  // 🛑 HERE IT WAS A BUG THE USER CAUGHT: "Alpha5 looks almost exactly like the
+  // live Dropdown Config page, is that intended?" It did, because Author is not
+  // a queue, so the page fell back to the live table and **the design this bench
+  // exists to show was one click away and invisible**.
+  // ⚠️ SO A BENCH SHOULD OPEN ON THE TAB THAT DEMONSTRATES IT. If the queue is
+  // ever extended to another column, this default can move, but it must always
+  // point at a tab where  is true.
+  const QUEUE_TAB =
+    TABLES.find((t) => t.hasStatus && t.statusGrouped)?.id ?? TABLES[0].id;
+  const [activeTab, setActiveTab] = useState<string>(QUEUE_TAB);
   const [queries, setQueries] = useState<Record<string, string>>({});
   const [dialog, setDialog] = useState<{
     tableId: string;
@@ -1160,7 +1173,23 @@ interface QueueProps {
 function ChoiceTableSection(props: QueueProps) {
   if (props.table.hasStatus && props.table.statusGrouped)
     return <TriageQueue {...props} />;
-  return <ChoiceTableSectionTable {...props} />;
+  // ⚠️ THE FALLBACK SAYS SO OUT LOUD. Without the line below these tabs render
+  // the live table with no explanation, which reads as "this bench does nothing"
+  // rather than "this bench deliberately does nothing HERE". The user hit exactly
+  // that; see the note on the default tab above.
+  return (
+    <div className="space-y-2">
+      <p className="rounded-md border border-dashed border-zinc-300 bg-zinc-50 px-3 py-2 text-xs text-zinc-600">
+        <span className="font-semibold text-zinc-900">
+          This tab keeps the live table on purpose.
+        </span>{" "}
+        The queue is for the columns that are SYNCED and triaged one row at a
+        time, which is GHL Tags and GHL Forms. {props.table.title} is a curated
+        list of {props.items.length}, and nobody bulk-triages that.
+      </p>
+      <ChoiceTableSectionTable {...props} />
+    </div>
+  );
 }
 
 function TriageQueue({
