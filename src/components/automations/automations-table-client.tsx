@@ -22,7 +22,6 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -2030,17 +2029,12 @@ export function AutomationsTableClient({
             </TooltipContent>
           </Tooltip>
 
-          {/* Vertical divider between the list actions (auto-refresh + Refresh
-              List) and the editing controls (Edit mode + New Workflow). */}
-          <Separator orientation="vertical" className="h-5 self-center" />
-
-          {/* Edit mode toggle. (The "+ New Workflow" add button lives in the
-              search row below, to the right of the Filter button.) */}
-          <div className="flex items-center gap-2 text-xs text-zinc-600">
-            <Pencil className="h-3.5 w-3.5" />
-            Edit mode
-            <Switch checked={editMode} onCheckedChange={setEditMode} />
-          </div>
+          {/* 📌 EDIT MODE USED TO SIT HERE, after a vertical Separator that
+              divided the "list actions" from the "editing controls". Both moved
+              out on 2026-09-25: the toggle went down to the search row beside
+              the New Workflow button, and **the Separator went with it because
+              there was nothing left on this row to divide from** - everything
+              still here (auto-refresh, Refresh List, Export CSV) only READS. */}
         </div>
         </TooltipProvider>
       </div>
@@ -2265,6 +2259,19 @@ export function AutomationsTableClient({
               <Plus className="mr-2 h-3.5 w-3.5" />
               New Workflow
             </Button>
+
+            {/* ⭐⭐ EDIT MODE, TO THE RIGHT OF THE ADD BUTTON, 2026-09-25. The user:
+                "The Edit Mode toggle should be relocated to the right side of the
+                Add option Button for each page."
+                📌 WHY IT BELONGS HERE: the two controls are the page's only two ways
+                to CHANGE anything. Add makes a row, Edit mode lets you change one,
+                and everything else in reach is read-only (search, filter, columns,
+                export). Sitting them together makes that split visible. */}
+            <div className="flex shrink-0 items-center gap-2 text-xs text-zinc-600">
+              <Pencil className="h-3.5 w-3.5" />
+              Edit mode
+              <Switch checked={editMode} onCheckedChange={setEditMode} />
+            </div>
           </div>
         </div>
 
