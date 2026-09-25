@@ -211,7 +211,33 @@ export function DropdownConfigAlpha3Client({
   const [webhooks, setWebhooks] = useState(initialWebhooks);
   const [editMode, setEditMode] = useState(false);
   // Which table the toolbar is showing. Author (TABLES[0]) is the default.
-  const [activeTab, setActiveTab] = useState<string>(TABLES[0].id);
+  // ⭐⭐ THIS BENCH OPENS ON THE BIGGEST COLOUR SET, NOT ON TABLES[0].
+  // TABLES[0] is Author, which IS a colour set, so the swatch grid does render
+  // there - but Author has exactly ONE option, so the page opens on a single
+  // badge and the idea does not land. Trigger Event has 15, which is enough to
+  // see a palette and to notice two colours clashing, which is the only question
+  // this layout exists to answer.
+  // 📌 THE SAME PRINCIPLE AS ALPHA5, applied one notch less urgently. There the
+  // default tab made the bench look identical to the live page (the user: "Alpha5
+  // looks almost exactly like the live Dropdown Config page, is that intended?");
+  // here it was merely a weak first impression. **A sample should open on the tab
+  // that demonstrates it.**
+  // ⚠️ DERIVED, NOT HARD-CODED: the widest colour set wins, so adding options or
+  // reordering the columns cannot leave this pointing at a one-item tab. The
+  //  test is the same one the layout dispatch uses below, so the
+  // default can never land on a tab that renders the TABLE instead of the grid.
+  // ⚠️ A LAZY INITIALISER, not a plain expression. This only decides the FIRST
+  // render, so computing it on every render would count 582 rows each time and
+  // throw the answer away.
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    const counts = new Map<string, number>();
+    for (const c of initialChoices)
+      counts.set(c.columnKey, (counts.get(c.columnKey) ?? 0) + 1);
+    const widest = TABLES.filter((t) => t.hasColor).sort(
+      (x, y) => (counts.get(y.id) ?? 0) - (counts.get(x.id) ?? 0),
+    )[0];
+    return widest?.id ?? TABLES[0].id;
+  });
   const [queries, setQueries] = useState<Record<string, string>>({});
   const [dialog, setDialog] = useState<{
     tableId: string;
