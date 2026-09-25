@@ -421,39 +421,29 @@ export function DropdownConfigClient({
   return (
     <TooltipProvider delay={TOOLTIP_DELAY_MS}>
       <div className="space-y-6">
-        {/* ⭐⭐ HEADER: title + subtitle on the left, EDIT MODE on the right.
-            The toggle moved here on 2026-09-25 at the user's request, marked on
-            a screenshot: "move the edit mode toggle to the marked spot".
-            📌 IT HAS NOW LIVED IN THREE PLACES, so the reasoning is worth keeping:
-            first below the tab toolbar, then inline at the toolbar's right edge,
-            now the page header. **Each move was away from the CONTENT and
-            towards the CHROME**, which is right: it is a page-wide mode, not a
-            property of whichever column you happen to be looking at.
-            ⚠️ AND THE RAIL IS WHY IT COULD NOT STAY. The tab strip it used to sit
-            in is gone; parking it at the foot of a 260px rail (which is what the
-            Alpha1 bench does) reads as an eighth column.
-            ⚠️ `items-start` + `pt-1`, NOT `items-center`: the left block is two
-            lines and the right is one, so centring would float the toggle
-            between the title and the subtitle instead of aligning it with the
-            title. */}
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <ListChecks className="h-5 w-5 text-zinc-500" />
-              <h1 className="text-2xl font-semibold tracking-tight">
-                Dropdown Configuration
-              </h1>
-            </div>
-            <p className="mt-1 text-sm text-zinc-500">
-              Manage the choices for the dropdown-driven table columns. Toggle
-              Edit mode to add, rename, or remove options.
-            </p>
+        {/* Header: title + subtitle.
+            📌 EDIT MODE HAS NOW LIVED IN FOUR PLACES, and the trail is worth
+            keeping because each move had a reason: below the tab toolbar, then
+            inline at the toolbar's right edge, then here in the header (when the
+            rail replaced that toolbar and there was nowhere else), and now
+            **beside the Add Option button in the search row**, where the user
+            put it on 2026-09-25: "The Edit Mode toggle should be relocated to
+            the right side of the Add option Button for each page."
+            ⭐ THE HEADER WAS THE WEAKEST OF THE FOUR. It was as far from the
+            table as the toggle could get while still being on the page, so the
+            control and the thing it changes were never in view together. Next to
+            Add, the page's two ways of CHANGING something sit side by side. */}
+        <div>
+          <div className="flex items-center gap-2">
+            <ListChecks className="h-5 w-5 text-zinc-500" />
+            <h1 className="text-2xl font-semibold tracking-tight">
+              Dropdown Configuration
+            </h1>
           </div>
-          <div className="flex shrink-0 items-center gap-2 pt-1 text-xs text-zinc-600">
-            <Pencil className="h-3.5 w-3.5" />
-            Edit mode
-            <Switch checked={editMode} onCheckedChange={setEditMode} />
-          </div>
+          <p className="mt-1 text-sm text-zinc-500">
+            Manage the choices for the dropdown-driven table columns. Toggle
+            Edit mode to add, rename, or remove options.
+          </p>
         </div>
 
         {/* ⭐⭐ A LEFT RAIL, NOT A TAB STRIP, as of 2026-09-25. Promoted from the
@@ -537,6 +527,11 @@ export function DropdownConfigClient({
                 setDialog({ tableId: activeDescriptor.id, existing: item })
               }
               onShowNotes={(n) => setShowingNotes(n)}
+              // ⚠️ THE SETTER TRAVELS WITH THE TOGGLE. The section already took
+              // `editMode` to decide whether a row-click edits; now that the
+              // control itself sits beside that section's Add button, it has to
+              // be able to flip it too.
+              onEditModeChange={setEditMode}
               onShowRelationships={(item) =>
                 setRelatedLookup({
                   // Which column's lookup this is, which decides BOTH the
@@ -713,6 +708,7 @@ function ChoiceTableSection({
   onAdd,
   onEdit,
   onShowNotes,
+  onEditModeChange,
   onShowRelationships,
 }: {
   table: TableDescriptor;
@@ -723,6 +719,7 @@ function ChoiceTableSection({
   onAdd: () => void;
   onEdit: (item: Item) => void;
   onShowNotes: (notes: string) => void;
+  onEditModeChange: (on: boolean) => void;
   onShowRelationships: (item: Item) => void;
 }) {
   const filtered = useMemo(() => {
@@ -807,6 +804,19 @@ function ChoiceTableSection({
           <Plus className="mr-2 h-3.5 w-3.5" />
           Add Option
         </Button>
+
+        {/* ⭐⭐ EDIT MODE, TO THE RIGHT OF THE ADD BUTTON, 2026-09-25. The user:
+            "The Edit Mode toggle should be relocated to the right side of the
+            Add option Button for each page."
+            📌 WHY IT BELONGS HERE: these two are the page's only ways to CHANGE
+            anything. Add makes an option, Edit mode lets you alter one, and
+            everything else in reach (search, the rail, the table) only reads.
+            Sitting them together makes that split visible. */}
+        <div className="flex shrink-0 items-center gap-2 text-xs text-zinc-600">
+          <Pencil className="h-3.5 w-3.5" />
+          Edit mode
+          <Switch checked={editMode} onCheckedChange={onEditModeChange} />
+        </div>
       </div>
 
       <Card>
