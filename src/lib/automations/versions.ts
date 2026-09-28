@@ -157,6 +157,27 @@ export interface AutomationVersion {
    *  the bench list**, where every other entry is a different design of the
    *  MAIN page. None of them is parked. */
   family?: "light-dark" | "dropdown-config";
+  /** ⭐ ARCHIVED: this version did its job and is kept for the record. Added
+   *  2026-09-28: "The new page is meant to house Archived alphas that already
+   *  have served their purpose."
+   *
+   *  **IT IS ABOUT A QUESTION BEING SETTLED, not about age or quality.** An
+   *  archived page is one whose comparison is OVER: a design was picked, or the
+   *  thing it was testing shipped. The pages still work and are still reachable,
+   *  they have just stopped being a live question.
+   *
+   *  🛑🛑 INTAKE IS USER-DRIVEN. **NEVER ARCHIVE A PAGE ON YOUR OWN JUDGEMENT.**
+   *  The user says what is finished; the same rule the Impossible List runs on,
+   *  and for the same reason - "it looks done to me" is exactly the call that is
+   *  not mine to make. Ask, and ask again next time rather than carrying a
+   *  previous answer forward.
+   *  ⚠️ IT IS NOT `parked`. Parked means the next move belongs to the BUSINESS
+   *  and the page is waiting on a decision. Archived means there is no decision
+   *  left to wait for. **The AlphaA light/dark trio is parked and must not be
+   *  archived while that is true.**
+   *  📌 IT IS NOT DELETION EITHER. If a page is genuinely dead, delete it; this
+   *  flag is for pages worth keeping and worth getting out of the way. */
+  archived?: boolean;
 }
 
 export const AUTOMATION_VERSIONS: AutomationVersion[] = [
@@ -417,7 +438,7 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
  *  are still the complete set of benches**, and that page renders both, so
  *  nothing became unreachable. */
 export const AUTOMATION_BENCH_VERSIONS = AUTOMATION_VERSIONS.filter(
-  (v) => !v.official && !v.family,
+  (v) => !v.official && !v.family && !v.archived,
 );
 
 /** The light/dark pages, in their own card on the Feature Integration page.
@@ -427,7 +448,7 @@ export const AUTOMATION_BENCH_VERSIONS = AUTOMATION_VERSIONS.filter(
  *  "what is waiting on the business"** - that is `parked`, and it is a different
  *  question. See the interface for why they separated. */
 export const AUTOMATION_LIGHT_DARK_VERSIONS = AUTOMATION_VERSIONS.filter(
-  (v) => v.family === "light-dark",
+  (v) => v.family === "light-dark" && !v.archived,
 );
 
 /** The six Dropdown Configuration layout benches, in their own card.
@@ -436,7 +457,21 @@ export const AUTOMATION_LIGHT_DARK_VERSIONS = AUTOMATION_VERSIONS.filter(
  *  grouped because they all redesign the SAME page, not because they are
  *  waiting on anyone. */
 export const AUTOMATION_DROPDOWN_CONFIG_VERSIONS = AUTOMATION_VERSIONS.filter(
-  (v) => v.family === "dropdown-config",
+  (v) => v.family === "dropdown-config" && !v.archived,
+);
+
+/** The retired versions, listed on their own page at
+ *  `/automations/archived-versions`.
+ *
+ *  ⚠⚠ **EVERY OTHER LIST ABOVE EXCLUDES `archived`, WHICH IS WHAT MAKES THIS A
+ *  MOVE RATHER THAN A COPY.** Archiving a page takes it out of the bench list or
+ *  its family card and puts it here; miss one of those filters and the same
+ *  version renders in two places at once.
+ *  📌 IT IS EMPTY ON PURPOSE AS OF 2026-09-28. The mechanism shipped before any
+ *  page was retired, because choosing what is finished is the user's call, not
+ *  mine. See `archived` on the interface. */
+export const AUTOMATION_ARCHIVED_VERSIONS = AUTOMATION_VERSIONS.filter(
+  (v) => v.archived,
 );
 
 /** True while `pathname` is any registered version, the live hub included.

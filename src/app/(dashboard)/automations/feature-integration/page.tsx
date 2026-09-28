@@ -10,58 +10,29 @@
 
 import Link from "next/link";
 import { requireAuth } from "@/lib/auth/guard";
-import { ArrowLeft, ExternalLink } from "lucide-react";
+import { Archive, ArrowLeft } from "lucide-react";
 import { FeatureIntegrationTables } from "@/components/automations/feature-integration-tables";
 import { getFeatureIntegrationMap } from "@/lib/automations/feature-integration";
 import { Card, CardContent } from "@/components/ui/card";
+import { buttonVariants } from "@/components/ui/button";
+import { VersionTile } from "@/components/automations/version-tile";
+import { cn } from "@/lib/utils";
 import {
   AUTOMATION_BENCH_VERSIONS,
   AUTOMATION_DROPDOWN_CONFIG_VERSIONS,
   AUTOMATION_LIGHT_DARK_VERSIONS,
-  type AutomationVersion,
 } from "@/lib/automations/versions";
 
 export const dynamic = "force-dynamic";
 
-/** One directory tile. **Hoisted on 2026-09-13 when a second list appeared**,
- *  so the parked pair and the active benches cannot drift into looking like two
- *  different kinds of link. They are the same kind of link; only the section
- *  they sit in differs.
- *
- *  ⚠️ `target="_blank"` IS THE REQUEST, not a flourish: "Clicking each page here
- *  results in a new tab being opened that leads to that page." `rel="noreferrer"`
- *  comes with it as the usual companion.
- *  ⚠️⚠️ `prefetch={false}` IS DELIBERATE AND SHOULD STAY. Every one of these
- *  routes is `force-dynamic` and runs the hub's full query set, so a default
- *  prefetch would fire a full page render PER TILE as soon as the section
- *  entered the viewport. One prefetch = one whole render, and it is only worth
- *  paying where a click is likely. **A directory you scan is not that.** */
-function VersionTile({ version }: { version: AutomationVersion }) {
-  return (
-    <Link
-      href={version.href}
-      target="_blank"
-      rel="noreferrer"
-      prefetch={false}
-      className="group flex items-start gap-3 rounded-lg px-3 py-2.5 ring-1 ring-foreground/10 transition-colors hover:bg-zinc-50"
-    >
-      <version.icon className="mt-0.5 h-4 w-4 shrink-0 text-zinc-500" />
-      <span className="min-w-0 flex-1">
-        <span className="flex items-center gap-1.5">
-          <span className="text-sm font-medium text-zinc-900">
-            {version.label}
-          </span>
-          {/* The new-tab tell. Muted until hover so a grid of them does not
-              read as a grid of warnings. */}
-          <ExternalLink className="h-3 w-3 shrink-0 text-zinc-300 transition-colors group-hover:text-zinc-500" />
-        </span>
-        <span className="mt-0.5 block text-xs text-zinc-500">
-          {version.blurb}
-        </span>
-      </span>
-    </Link>
-  );
-}
+/* 📌 `VersionTile` MOVED OUT ON 2026-09-28, to
+ * `@/components/automations/version-tile`, when the Archived Versions page
+ * needed to render the same thing. **A tile that drifted between the two
+ * lists would make one version look like two different things depending on
+ * where you found it.**
+ * ⚠️ That is a LEAF moving to a shared folder, which the registry's own note
+ * allows. It is not the same as sharing a bench page's LAYOUT, which is still
+ * forbidden. */
 
 export default async function AutomationsFeatureIntegrationPage() {
   await requireAuth();
@@ -104,13 +75,39 @@ export default async function AutomationsFeatureIntegrationPage() {
           Back to Automations
         </Link>
 
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Automations Feature Integration
-          </h1>
-          <p className="mt-1 text-sm text-zinc-500">
-            Motherboard app features enabled by website API integrations.
-          </p>
+        {/* ⭐⭐ THE ARCHIVE LINK LIVES IN THE PAGE HEADER, 2026-09-28: "Create a
+            new button somewhere here that leads to a new page."
+            📌 WHY THE HEADER AND NOT ONE OF THE THREE CARDS: a version can be
+            archived out of ANY of them (a bench, the light/dark card, the
+            dropdown-config card), so hanging the link off one card would imply
+            it only covers that card's pages. In the header it belongs to the
+            page, which is what it actually describes.
+            ⚠️ `items-start`, not `items-center`: the left block is two lines
+            and the button is one, so centring would float it between the title
+            and the subtitle instead of aligning it with the title. Same
+            reasoning as the Edit mode toggle on the Dropdown Config page.
+            📌 IT DOES NOT OPEN IN A NEW TAB, unlike every version tile. Those
+            are experiments you compare side by side; this is another page of
+            this directory, and it has a Back link. */}
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-semibold tracking-tight">
+              Automations Feature Integration
+            </h1>
+            <p className="mt-1 text-sm text-zinc-500">
+              Motherboard app features enabled by website API integrations.
+            </p>
+          </div>
+          <Link
+            href="/automations/archived-versions"
+            className={cn(
+              buttonVariants({ variant: "outline", size: "sm" }),
+              "shrink-0",
+            )}
+          >
+            <Archive className="mr-2 h-3.5 w-3.5" />
+            Archived Versions
+          </Link>
         </div>
 
         <FeatureIntegrationTables initialState={state} />
