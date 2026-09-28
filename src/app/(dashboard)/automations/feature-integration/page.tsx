@@ -95,7 +95,8 @@ export default async function AutomationsFeatureIntegrationPage() {
               Automations Feature Integration
             </h1>
             <p className="mt-1 text-sm text-zinc-500">
-              Motherboard app features enabled by website API integrations.
+              This page is a documentation of hidden features for the
+              Automations tab.
             </p>
           </div>
           <Link
