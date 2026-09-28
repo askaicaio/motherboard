@@ -27,7 +27,7 @@ export interface ChecklistTableSpec {
 export const FEATURE_INTEGRATION_TABLES: ChecklistTableSpec[] = [
   {
     id: "refresh",
-    cornerLabel: "Refresh List",
+    cornerLabel: "Refresh List - API Integration",
     rows: [
       { key: "name-link", label: "Name and Link" },
       { key: "status", label: "Status" },
@@ -37,7 +37,7 @@ export const FEATURE_INTEGRATION_TABLES: ChecklistTableSpec[] = [
   },
   {
     id: "error",
-    cornerLabel: "Error Tracking",
+    cornerLabel: "Error Tracking - API Integration",
     rows: [
       { key: "name-link", label: "Name and Link" },
       { key: "error-date", label: "Error Date" },
