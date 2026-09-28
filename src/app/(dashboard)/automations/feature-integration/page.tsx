@@ -128,9 +128,16 @@ export default async function AutomationsFeatureIntegrationPage() {
           from each page's OWN header comment. Do not rewrite them here; fix
           them there so the page and its description cannot drift.
           ⭐ THERE ARE TWO SECTIONS AS OF 2026-09-13. This one is the active
-          benches; the parked pair has its own card below. */}
-        <Card>
-          {/* ⚠️⚠️ `@container` IS LOAD-BEARING, 2026-09-23. The grid below used
+          benches; the parked pair has its own card below.
+          🛑🛑 AND AS OF 2026-09-28 THIS CARD IS USUALLY NOT RENDERED AT ALL. The
+          user archived all eleven of its pages in one go, so the list is empty
+          and the guard below hides it. **The note above about this being the
+          only way to reach the benches is now the ARCHIVE page's job**; the
+          button in this page's header is what gets you there.
+          ⭐ IT RETURNS BY ITSELF the moment a new bench is registered. */}
+        {AUTOMATION_BENCH_VERSIONS.length > 0 && (
+          <Card>
+            {/* ⚠️⚠️ `@container` IS LOAD-BEARING, 2026-09-23. The grid below used
             to fold on `sm:`/`lg:` VIEWPORT breakpoints, and **a page floor
             cannot hold a viewport query** - it asks the window, which does not
             know this page now keeps its own width and scrolls. Without this the
@@ -138,22 +145,22 @@ export default async function AutomationsFeatureIntegrationPage() {
             content box sat at its 674px floor. Making the card a container lets
             the grid answer to ITS OWN width. Same reasoning, same pattern as the
             hub's detail panel; see its note. */}
-          <CardContent className="@container p-0">
-            <div className="flex items-center justify-between gap-3 border-b bg-zinc-50 px-3 py-2">
-              {/* ⚠️ "Experimental" was added on 2026-09-11 at the user request.
+            <CardContent className="@container p-0">
+              <div className="flex items-center justify-between gap-3 border-b bg-zinc-50 px-3 py-2">
+                {/* ⚠️ "Experimental" was added on 2026-09-11 at the user request.
                 It earns its place: this section links parallel designs of pages
                 that already exist and work, and without that word the heading
                 reads like a list of releases rather than a bench. The live hub
                 is deliberately NOT in here. */}
-              <h2 className="text-sm font-semibold text-zinc-900">
-                Experimental Design Versions
-              </h2>
-              <span className="text-xs text-zinc-500">
-                {AUTOMATION_BENCH_VERSIONS.length} pages, each opens in a new
-                tab
-              </span>
-            </div>
-            {/* ⚠️ CONTAINER QUERIES, NOT VIEWPORT ONES, since 2026-09-23. The
+                <h2 className="text-sm font-semibold text-zinc-900">
+                  Experimental Design Versions
+                </h2>
+                <span className="text-xs text-zinc-500">
+                  {AUTOMATION_BENCH_VERSIONS.length} pages, each opens in a new
+                  tab
+                </span>
+              </div>
+              {/* ⚠️ CONTAINER QUERIES, NOT VIEWPORT ONES, since 2026-09-23. The
               two numbers are the OLD breakpoints expressed as this card's width,
               so the fold happens where it always did: `sm` (640px window) put
               304px of content here, `lg` (1024px) put 674px. **With the page's
@@ -161,13 +168,14 @@ export default async function AutomationsFeatureIntegrationPage() {
               three columns at every width and the page scrolls instead** - which
               is the whole point of flooring it. The rules stay for the day the
               floor changes or this card is reused somewhere narrower. */}
-            <div className="grid gap-2 p-3 @min-[304px]:grid-cols-2 @min-[674px]:grid-cols-3">
-              {AUTOMATION_BENCH_VERSIONS.map((version) => (
-                <VersionTile key={version.href} version={version} />
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+              <div className="grid gap-2 p-3 @min-[304px]:grid-cols-2 @min-[674px]:grid-cols-3">
+                {AUTOMATION_BENCH_VERSIONS.map((version) => (
+                  <VersionTile key={version.href} version={version} />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* ⭐⭐ THE LIGHT/DARK PAGES, IN THEIR OWN CARD, 2026-09-13: "Lets leave
           the AlphaA1 and AlphaA2 now. They will remain in alpha indefinitely
@@ -242,31 +250,39 @@ export default async function AutomationsFeatureIntegrationPage() {
           🛑 AND WHY THIS CARD MUST NOT IMPLY "PARKED": these were asked for today
           and the next move is ours. The light/dark card happens to hold two
           parked pages; that is a fact about those pages, not about having a card.
-          See `family` in `versions.ts`. */}
-        <Card>
-          <CardContent className="@container p-0">
-            <div className="flex items-start justify-between gap-3 border-b bg-zinc-50 px-3 py-2">
-              <div className="min-w-0">
-                <h2 className="text-sm font-semibold text-zinc-900">
-                  Dropdown Configuration Layouts
-                </h2>
-                <p className="mt-0.5 text-xs text-zinc-500">
-                  Six ways to lay out the same page. The data and the editing
-                  behaviour are the live page&rsquo;s; only the layout differs.
-                </p>
+          See `family` in `versions.ts`.
+          🛑 AS OF 2026-09-28 ALL SIX WERE ARCHIVED TOGETHER, so this card is
+          hidden too. Same guard, same reason as the benches card above: an
+          empty card is a heading and a count describing nothing, and with two
+          of the three empty at once the page reads as broken rather than tidy.
+          The six are on the Archived Versions page. */}
+        {AUTOMATION_DROPDOWN_CONFIG_VERSIONS.length > 0 && (
+          <Card>
+            <CardContent className="@container p-0">
+              <div className="flex items-start justify-between gap-3 border-b bg-zinc-50 px-3 py-2">
+                <div className="min-w-0">
+                  <h2 className="text-sm font-semibold text-zinc-900">
+                    Dropdown Configuration Layouts
+                  </h2>
+                  <p className="mt-0.5 text-xs text-zinc-500">
+                    Six ways to lay out the same page. The data and the editing
+                    behaviour are the live page&rsquo;s; only the layout
+                    differs.
+                  </p>
+                </div>
+                <span className="shrink-0 text-xs text-zinc-500">
+                  {AUTOMATION_DROPDOWN_CONFIG_VERSIONS.length} pages, each opens
+                  in a new tab
+                </span>
               </div>
-              <span className="shrink-0 text-xs text-zinc-500">
-                {AUTOMATION_DROPDOWN_CONFIG_VERSIONS.length} pages, each opens
-                in a new tab
-              </span>
-            </div>
-            <div className="grid gap-2 p-3 @min-[304px]:grid-cols-2 @min-[674px]:grid-cols-3">
-              {AUTOMATION_DROPDOWN_CONFIG_VERSIONS.map((version) => (
-                <VersionTile key={version.href} version={version} />
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+              <div className="grid gap-2 p-3 @min-[304px]:grid-cols-2 @min-[674px]:grid-cols-3">
+                {AUTOMATION_DROPDOWN_CONFIG_VERSIONS.map((version) => (
+                  <VersionTile key={version.href} version={version} />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

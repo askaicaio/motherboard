@@ -193,6 +193,7 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
     label: "Main Page Beta1",
     icon: Layers,
     blurb: "Assembly bench, seeded from the live hub's current design.",
+    archived: true,
   },
   {
     href: "/automations-beta2",
@@ -201,54 +202,63 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
     blurb: "Assembly bench. Alpha3's master and detail, with working controls.",
     // ⚠️ The page is UNCHANGED; only its NAME moved (Beta1 -> Beta2). See the
     // renumbering note at the top of this file.
+    archived: true,
   },
   {
     href: "/automations-beta3",
     label: "Main Page Beta3",
     icon: Boxes,
     blurb: "Assembly bench, seeded from Alpha2.",
+    archived: true,
   },
   {
     href: "/automations-alpha1",
     label: "Main Page Alpha1",
     icon: FlaskConical,
     blurb: "The first redesign proposal.",
+    archived: true,
   },
   {
     href: "/automations-alpha2",
     label: "Main Page Alpha2",
     icon: Beaker,
     blurb: "Dark status hero, a comparison table and an error feed.",
+    archived: true,
   },
   {
     href: "/automations-alpha3",
     label: "Main Page Alpha3",
     icon: TestTube,
     blurb: "Master and detail.",
+    archived: true,
   },
   {
     href: "/automations-alpha4",
     label: "Main Page Alpha4",
     icon: Microscope,
     blurb: "Search first.",
+    archived: true,
   },
   {
     href: "/automations-alpha5",
     label: "Main Page Alpha5",
     icon: Atom,
     blurb: "A work queue.",
+    archived: true,
   },
   {
     href: "/automations-alpha6",
     label: "Main Page Alpha6",
     icon: Dna,
     blurb: "Inventory quality.",
+    archived: true,
   },
   {
     href: "/automations-alpha7",
     label: "Main Page Alpha7",
     icon: Telescope,
     blurb: "A changelog.",
+    archived: true,
   },
   // ⭐⭐ THE "A" FAMILY IS A LIGHT/DARK PAIR, not a series of recolours. Read
   // these two together; neither makes much sense alone.
@@ -271,6 +281,10 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
   // not one page with two palettes.** The selected website rides across the
   // switch on `?site=`. **So these two entries are one feature; open either and
   // you can reach the other.**
+  // ⭐⭐ AS OF 2026-09-28 THESE THREE ARE THE ONLY UNARCHIVED VERSIONS LEFT. The
+  // user archived both other cards in one go; this one was deliberately left
+  // out, **because parked and archived are opposites here**: archived means
+  // nothing is waiting, and these are waiting on the business.
   // 🛑 BOTH ARE `parked` AS OF 2026-09-13: "Lets leave the AlphaA1 and AlphaA2
   // now. They will remain in alpha indefinitely unless corpo says its something
   // they want. In the feature integration page, Put their own separate window
@@ -351,6 +365,7 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
     blurb:
       "The seven tabs become a left rail, so navigation stops setting the page width.",
     family: "dropdown-config",
+    archived: true,
   },
   {
     href: "/automations-dropdown-config-alpha2",
@@ -359,6 +374,7 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
     blurb:
       "A narrow list beside a live detail pane, which retires the dialog and Edit mode.",
     family: "dropdown-config",
+    archived: true,
   },
   {
     href: "/automations-dropdown-config-alpha3",
@@ -367,6 +383,7 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
     blurb:
       "Colour sets render as the badges they produce; the big lists keep the table.",
     family: "dropdown-config",
+    archived: true,
   },
   {
     href: "/automations-dropdown-config-alpha4",
@@ -375,6 +392,7 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
     blurb:
       "All seven columns stacked with a jump bar, each capped at ten rows.",
     family: "dropdown-config",
+    archived: true,
   },
   {
     href: "/automations-dropdown-config-alpha5",
@@ -383,6 +401,7 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
     blurb:
       "GHL Tags as a queue: grouped by status, multi-select, set a status in bulk.",
     family: "dropdown-config",
+    archived: true,
   },
   {
     href: "/automations-dropdown-config-alpha6",
@@ -391,6 +410,7 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
     blurb:
       "One box across all seven columns, because finding one tag is the real job.",
     family: "dropdown-config",
+    archived: true,
   },
 
   // ⚠️⚠️ AN "OPTIONS" ENTRY IS A DIFFERENT KIND OF THING FROM EVERYTHING ABOVE
@@ -425,6 +445,7 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
     label: "Toolbar Options 1",
     icon: PanelTop,
     blurb: "Nine ways to render the hub's toolbar strip, stacked to compare.",
+    archived: true,
   },
 ];
 
