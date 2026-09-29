@@ -27,6 +27,9 @@ import {
 import { TOOLTIP_DELAY_MS } from "@/lib/automations/tooltips";
 import { cn } from "@/lib/utils";
 import { AUTOMATION_SITES } from "@/lib/automations/sites";
+// ⚠️ SHARED SINCE 2026-09-29, when the Feature Integration layout benches
+// needed the same five logos. It is a leaf, not a layout; see its header.
+import { SiteIcon } from "@/components/automations/site-icon";
 import {
   FEATURE_INTEGRATION_TABLES,
   cellKey,
@@ -40,39 +43,6 @@ import {
 // else needs to change; the toggle logic below is untouched.
 // ───────────────────────────────────────────────────────────────────────────
 const TOGGLE_ENABLED = false;
-
-/** Website column header: the brand logo (sized to the label text) + the label.
- *  Monochrome SVG glyphs are tinted via CSS mask when iconColor is set (Make /
- *  n8n); full-colour icons (GHL / Zapier) render as a plain image. */
-function SiteIcon({
-  icon,
-  iconColor,
-}: {
-  icon: string;
-  iconColor?: string;
-}) {
-  if (iconColor) {
-    return (
-      <span
-        aria-hidden
-        className="h-4 w-4 shrink-0"
-        style={{
-          backgroundColor: iconColor,
-          maskImage: `url(${icon})`,
-          WebkitMaskImage: `url(${icon})`,
-          maskRepeat: "no-repeat",
-          WebkitMaskRepeat: "no-repeat",
-          maskPosition: "center",
-          WebkitMaskPosition: "center",
-          maskSize: "contain",
-          WebkitMaskSize: "contain",
-        }}
-      />
-    );
-  }
-  // eslint-disable-next-line @next/next/no-img-element
-  return <img src={icon} alt="" className="h-4 w-4 shrink-0 object-contain" />;
-}
 
 /** One two-state cell. Red square + X (false) / green square + check (true).
  *  When `interactive` (TOGGLE_ENABLED) it's a clickable button that toggles and

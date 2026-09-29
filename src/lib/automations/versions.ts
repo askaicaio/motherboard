@@ -33,13 +33,21 @@ import {
   Boxes,
   Dna,
   FlaskConical,
+  Gauge,
+  Grid2x2Check,
+  Grid3x3,
   Layers,
+  LayoutGrid,
   ListChecks,
+  PanelLeft,
   PanelTop,
   Microscope,
   Palette,
+  Rows3,
+  ScrollText,
   Telescope,
   TestTube,
+  TriangleAlert,
   Workflow,
 } from "lucide-react";
 
@@ -156,7 +164,7 @@ export interface AutomationVersion {
    *  field was worth adding for: **six tiles for one page would have swamped
    *  the bench list**, where every other entry is a different design of the
    *  MAIN page. None of them is parked. */
-  family?: "light-dark" | "dropdown-config";
+  family?: "light-dark" | "dropdown-config" | "feature-integration";
   /** ⭐ ARCHIVED: this version did its job and is kept for the record. Added
    *  2026-09-28: "The new page is meant to house Archived alphas that already
    *  have served their purpose."
@@ -413,6 +421,92 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
     archived: true,
   },
 
+  // ⭐⭐ EIGHT LAYOUTS FOR THE *FEATURE INTEGRATION* PAGE, added 2026-09-29.
+  // The user, on that page: "Got any suggestions on UI layout for this page?
+  // pls make as many Alphas as you can suggest".
+  //
+  // 🏷️ THEY ARE "Feature Integration AlphaN", by the same naming rule that made
+  // the dropdown set "Dropdown Config AlphaN": **`Main Page ...` means a design
+  // FOR the main page**, and these are designs for a different page.
+  //
+  // 📌 WHAT THEY ARE ANSWERING: the page holds FORTY BOOLEANS in two tables
+  // that share the same five columns, and since 2026-09-28 its subtitle calls
+  // it "a documentation of hidden features". **Two grids of ticks are not
+  // documentation**, and the eight split that gap in different places: merge,
+  // transpose, drop the grid, write it out, lead with the gaps, compress it,
+  // put a website in a detail panel, or lead with the headline.
+  //
+  // ⚠️ ALL EIGHT READ THE LIVE PAGE'S SAVED STATE and none of them writes, so
+  // the marks are the real ones. Only the layout differs.
+  // ⚠️ EACH CARRIES ITS OWN ICON rather than one icon for the family, unlike
+  // the dropdown six. **With eight tiles in one card a shared icon stops being
+  // a grouping cue and becomes eight identical glyphs**, and each of these has
+  // a shape that says what it does.
+  // 🛑 ALPHA4 CONTAINS UNREVIEWED COPY. It is the only one that adds sentences
+  // rather than rearranging marks; its own header says so and the page carries
+  // a draft notice. **Do not lift those strings onto the live page.**
+  // 🛑 NONE IS `parked`: they were asked for today and the next move is ours.
+  {
+    href: "/automations-feature-integration-alpha1",
+    label: "Feature Integration Alpha1",
+    icon: Grid2x2Check,
+    blurb:
+      "Both tables merged into one matrix, so a website reads as a single column.",
+    family: "feature-integration",
+  },
+  {
+    href: "/automations-feature-integration-alpha2",
+    label: "Feature Integration Alpha2",
+    icon: Rows3,
+    blurb:
+      "Transposed: one row per website, and the row has somewhere to put a score.",
+    family: "feature-integration",
+  },
+  {
+    href: "/automations-feature-integration-alpha3",
+    label: "Feature Integration Alpha3",
+    icon: LayoutGrid,
+    blurb:
+      "A card per website and no grid, so the page reflows instead of scrolling.",
+    family: "feature-integration",
+  },
+  {
+    href: "/automations-feature-integration-alpha4",
+    label: "Feature Integration Alpha4",
+    icon: ScrollText,
+    blurb: "Written documentation, with a reason under every gap. Draft copy.",
+    family: "feature-integration",
+  },
+  {
+    href: "/automations-feature-integration-alpha5",
+    label: "Feature Integration Alpha5",
+    icon: TriangleAlert,
+    blurb: "Gaps first, worst website at the top; what works is one line.",
+    family: "feature-integration",
+  },
+  {
+    href: "/automations-feature-integration-alpha6",
+    label: "Feature Integration Alpha6",
+    icon: Grid3x3,
+    blurb: "A dense dot board: all forty answers at a glance, no scrolling.",
+    family: "feature-integration",
+  },
+  {
+    href: "/automations-feature-integration-alpha7",
+    label: "Feature Integration Alpha7",
+    icon: PanelLeft,
+    blurb:
+      "A website rail beside a detail panel, the pattern Dropdown Config shipped.",
+    family: "feature-integration",
+  },
+  {
+    href: "/automations-feature-integration-alpha8",
+    label: "Feature Integration Alpha8",
+    icon: Gauge,
+    blurb: "The headline first, the grid demoted underneath it.",
+    family: "feature-integration",
+  },
+
   // ⚠️⚠️ AN "OPTIONS" ENTRY IS A DIFFERENT KIND OF THING FROM EVERYTHING ABOVE
   // IT, and the label says so. Every Alpha and Beta is a redesign of the whole
   // Main Page. **AN OPTIONS PAGE IS A SHOWCASE OF ONE COMPONENT, rendered
@@ -480,6 +574,19 @@ export const AUTOMATION_LIGHT_DARK_VERSIONS = AUTOMATION_VERSIONS.filter(
 export const AUTOMATION_DROPDOWN_CONFIG_VERSIONS = AUTOMATION_VERSIONS.filter(
   (v) => v.family === "dropdown-config" && !v.archived,
 );
+
+/** The eight Feature Integration layout benches, in their own card on the
+ *  page they redesign. **Which means this page lists benches OF ITSELF**, and
+ *  that is deliberate: the tiles are where you leave from, and each bench
+ *  carries the same strip so you can hop between them without coming back.
+ *
+ *  ⚠️ NOT PARKED and not archived; the card must not imply either. They are
+ *  grouped because eight tiles for one page would swamp a bench list where
+ *  everything else redesigns the MAIN page. */
+export const AUTOMATION_FEATURE_INTEGRATION_VERSIONS =
+  AUTOMATION_VERSIONS.filter(
+    (v) => v.family === "feature-integration" && !v.archived,
+  );
 
 /** The retired versions, listed on their own page at
  *  `/automations/archived-versions`.

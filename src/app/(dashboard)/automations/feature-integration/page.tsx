@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import {
   AUTOMATION_BENCH_VERSIONS,
   AUTOMATION_DROPDOWN_CONFIG_VERSIONS,
+  AUTOMATION_FEATURE_INTEGRATION_VERSIONS,
   AUTOMATION_LIGHT_DARK_VERSIONS,
 } from "@/lib/automations/versions";
 
@@ -278,6 +279,50 @@ export default async function AutomationsFeatureIntegrationPage() {
               </div>
               <div className="grid gap-2 p-3 @min-[304px]:grid-cols-2 @min-[674px]:grid-cols-3">
                 {AUTOMATION_DROPDOWN_CONFIG_VERSIONS.map((version) => (
+                  <VersionTile key={version.href} version={version} />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ⭐⭐ EIGHT LAYOUTS FOR *THIS* PAGE, 2026-09-29: "Got any suggestions
+          on UI layout for this page? pls make as many Alphas as you can
+          suggest."
+          🛑🛑 SO THIS PAGE NOW LISTS BENCHES OF ITSELF, and that is not a
+          mistake to tidy up. The directory of versions has always lived here;
+          a set that happens to redesign the host page is still reached the
+          same way. **Each bench carries a strip back to its seven siblings**,
+          so you can compare without returning here every time.
+          📌 WHY ITS OWN CARD RATHER THAN THE BENCH LIST ABOVE: same reason as
+          the dropdown six. Everything in that card redesigns the MAIN page,
+          and eight tiles for a different page would swamp it. Grouping is what
+          `family` is for.
+          🛑 NONE OF THEM IS PARKED, and the card must not imply it. They were
+          asked for today and the next move is ours.
+          ⚠️ ALPHA4 CARRIES UNREVIEWED COPY (a paragraph per capability and a
+          reason under every gap) and says so on the page itself. It is the
+          only one that adds sentences rather than rearranging the marks. */}
+        {AUTOMATION_FEATURE_INTEGRATION_VERSIONS.length > 0 && (
+          <Card>
+            <CardContent className="@container p-0">
+              <div className="flex items-start justify-between gap-3 border-b bg-zinc-50 px-3 py-2">
+                <div className="min-w-0">
+                  <h2 className="text-sm font-semibold text-zinc-900">
+                    Feature Integration Layouts
+                  </h2>
+                  <p className="mt-0.5 text-xs text-zinc-500">
+                    Eight ways to lay out this page. All of them read the same
+                    saved marks; only the layout differs.
+                  </p>
+                </div>
+                <span className="shrink-0 text-xs text-zinc-500">
+                  {AUTOMATION_FEATURE_INTEGRATION_VERSIONS.length} pages, each
+                  opens in a new tab
+                </span>
+              </div>
+              <div className="grid gap-2 p-3 @min-[304px]:grid-cols-2 @min-[674px]:grid-cols-3">
+                {AUTOMATION_FEATURE_INTEGRATION_VERSIONS.map((version) => (
                   <VersionTile key={version.href} version={version} />
                 ))}
               </div>
