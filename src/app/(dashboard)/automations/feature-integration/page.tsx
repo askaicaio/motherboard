@@ -53,12 +53,21 @@ export default async function AutomationsFeatureIntegrationPage() {
        `overflow-x-clip`, which cuts overflow off WITHOUT creating a scroll
        container, and changing it would re-anchor `position: sticky` on every
        dashboard page.
-       📊 WHY THE FLOOR IS 722px: it reproduces the appearance this page's OWN
-       `lg` breakpoint already defined as its desktop layout, which is 674px of
-       content (+ the 48px of `p-6`). At that width the tiles are three columns
-       of 211px and **both feature tables still fit without their own inner
-       scrollbar** - they compress down to a 510px min-content, so 674 clears
-       them by 164. The scrollbar appears at about a 1025px window.
+       📊📊 WHY THE FLOOR IS 1009px, RAISED FROM 722 ON 2026-09-30. The floor is
+       set by the ONE capability table, which is now transposed (a row per
+       website, eight capability columns) after the Alpha2 bench was promoted.
+       **961px is that table's measured min-content, + the 48px of `p-6`.**
+       ⚠️⚠️ THIS IS THE PRICE OF THE NEW LAYOUT AND IT WAS PAID DELIBERATELY. The
+       old pair of tables compressed to a 510px min-content, so 722 cleared them
+       easily; eight readable column headers do not compress that way. The
+       page-level scrollbar now appears below a **1312px window** (measured:
+       1311 overflows by 1px, 1312 by 0) instead of about 1025.
+       📌 THE PRINCIPLE BEHIND THE NUMBER IS UNCHANGED, which is why it moved at
+       all: **the floor is whatever lets the table render without an inner
+       scrollbar of its own.** Leaving it at 722 would have worked, and would
+       have put a second horizontal scrollbar inside the card.
+       ⚠️ THE TILE GRIDS ARE FINE AT THE NEW WIDTH: they fold at `@min-[674px]`,
+       which 961 clears, so they stay at three columns.
        ⚠️⚠️ THE FLOOR ALONE WOULD NOT HAVE BEEN ENOUGH HERE. The tile grids
        folded on `sm:`/`lg:`, which are VIEWPORT media queries: they ask the
        window, and the window has no idea this page now holds its own width. They
@@ -67,7 +76,7 @@ export default async function AutomationsFeatureIntegrationPage() {
        674. **Any page floored in this tab needs its responsive utilities
        audited for viewport breakpoints.** */
     <div className="overflow-x-auto">
-      <div className="min-w-[722px] space-y-6 p-6">
+      <div className="min-w-[1009px] space-y-6 p-6">
         <Link
           href="/automations"
           className="inline-flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-900"

@@ -1,13 +1,27 @@
 "use client";
 
-// The two checklist tables on the Automations Feature Integration page.
+// The capability checklist on the Automations Feature Integration page.
 //
-// Each table (spec in feature-integration-spec.ts) has the automation websites
-// as columns and features as rows. Every cell is a two-state checkbox: FALSE =
-// red square with an X, TRUE = green square with a check. Clicking toggles it
-// and persists via POST /api/automations/feature-integration (state is stored
-// app-wide in app_settings — shared, survives reload). Updates are optimistic
-// and roll back on error.
+// ✅✅ TRANSPOSED ON 2026-09-30, promoted from the Alpha2 bench. The user, after
+// comparing eight layouts: "the presentation here is good, pls implement it to
+// the actual page."
+// **IT USED TO BE TWO TABLES, websites across the top and capabilities down the
+// side.** It is now ONE table the other way round: a row per website, both
+// capability groups across the top under a two-level header, and a coverage bar
+// closing each row.
+// 📌 WHY THE OTHER WAY ROUND READS BETTER: the question people bring here is
+// "what do we get out of GHL", not "who supports Error Date", and **a ROW has
+// somewhere to put a summary while a column header does not**. The two old
+// tables also shared the same five columns, so splitting them meant a website's
+// column restarted halfway down the page.
+// ⚠️ WHAT IT COST: 1009px of width against the old 722, which is why the page's
+// floor moved in the same change. See the note on that floor.
+//
+// Each cell is a two-state checkbox: FALSE = red square with an X, TRUE = green
+// square with a check. Clicking toggles it and persists via POST
+// /api/automations/feature-integration (state is stored app-wide in
+// app_settings — shared, survives reload). Updates are optimistic and roll back
+// on error.
 //
 // ⏸️ TOGGLING TEMPORARILY DISABLED (2026-07-25): the marks are currently LOCKED
 // to their stored values (display-only) via the TOGGLE_ENABLED flag below. All
@@ -162,65 +176,141 @@ export function FeatureIntegrationTables({
     }
   };
 
+  // ⭐ ONE FLATTENED COLUMN LIST, used by the group header spans, the label
+  // row and every body cell. **Deriving all three from the same array is what
+  // makes it impossible for a span and a cell to disagree about which column is
+  // which**, which is the failure mode a two-level header invites.
+  const columns = FEATURE_INTEGRATION_TABLES.flatMap((table) =>
+    table.rows.map((row) => ({
+      tableId: table.id,
+      group: table.cornerLabel,
+      rowKey: row.key,
+      label: row.label,
+    })),
+  );
+
   return (
     // The shared TOOLTIP_DELAY_MS, so a tooltip anywhere in the
     // Automations tab waits the same beat before appearing.
     <TooltipProvider delay={TOOLTIP_DELAY_MS}>
-    <div className="space-y-6">
-      {FEATURE_INTEGRATION_TABLES.map((table) => (
-        <Card key={table.id}>
-          <CardContent className="overflow-x-auto p-0">
-            <table className="w-full text-sm">
-              <thead className="bg-zinc-50 text-zinc-600">
-                <tr>
-                  {/* Corner cell: names the table (top-left). */}
-                  <th className="border-b px-3 py-2 text-left font-semibold text-zinc-900">
+      <Card>
+        <CardContent className="overflow-x-auto p-0">
+          <table className="w-full text-sm">
+            {/* Two-level header. The group row spans its own four columns, so
+                "Name and Link" can appear in both groups without ambiguity;
+                that reuse is exactly why the group row cannot be dropped. */}
+            <thead className="bg-zinc-50 text-zinc-600">
+              <tr>
+                <th
+                  rowSpan={2}
+                  className="whitespace-nowrap border-b border-r px-3 py-2 text-left align-bottom font-semibold text-zinc-900"
+                >
+                  Website
+                </th>
+                {FEATURE_INTEGRATION_TABLES.map((table) => (
+                  <th
+                    key={table.id}
+                    colSpan={table.rows.length}
+                    className="border-b border-l px-3 pb-1 pt-2 text-center text-xs font-semibold uppercase tracking-wide text-zinc-500"
+                  >
                     {table.cornerLabel}
                   </th>
-                  {AUTOMATION_SITES.map((site) => (
+                ))}
+                <th
+                  rowSpan={2}
+                  className="whitespace-nowrap border-b border-l px-3 py-2 text-right align-bottom font-medium"
+                >
+                  Coverage
+                </th>
+              </tr>
+              <tr>
+                {columns.map((col, index) => (
+                  <th
+                    key={col.tableId + ":" + col.rowKey}
+                    className={cn(
+                      "whitespace-nowrap border-b px-3 pb-2 text-center text-xs font-medium",
+                      // A left rule only where a group starts, so the two bands
+                      // stay legible without striping every column.
+                      index > 0 && col.tableId !== columns[index - 1].tableId
+                        ? "border-l"
+                        : "",
+                    )}
+                  >
+                    {col.label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {AUTOMATION_SITES.map((site) => {
+                const hits = columns.filter(
+                  (col) => !!state[cellKey(col.tableId, col.rowKey, site.slug)],
+                ).length;
+                const pct = Math.round((hits / columns.length) * 100);
+                return (
+                  <tr key={site.slug} className="border-t">
                     <th
-                      key={site.slug}
-                      className="border-b px-3 py-2 text-center font-medium"
+                      scope="row"
+                      className="whitespace-nowrap border-r px-3 py-2 text-left font-medium text-zinc-900"
                     >
-                      <span className="inline-flex items-center justify-center gap-1.5">
-                        <SiteIcon icon={site.icon} iconColor={site.iconColor} />
+                      <span className="inline-flex items-center gap-2">
+                        <SiteIcon
+                          icon={site.icon}
+                          iconColor={site.iconColor}
+                          className="h-5 w-5"
+                        />
                         {site.label}
                       </span>
                     </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {table.rows.map((row) => (
-                  <tr key={row.key} className="border-t">
-                    <th
-                      scope="row"
-                      className="whitespace-nowrap px-3 py-2 text-left font-medium text-zinc-700"
-                    >
-                      {row.label}
-                    </th>
-                    {AUTOMATION_SITES.map((site) => {
-                      const key = cellKey(table.id, row.key, site.slug);
+                    {columns.map((col, index) => {
+                      const key = cellKey(col.tableId, col.rowKey, site.slug);
                       return (
-                        <td key={site.slug} className="px-3 py-2 text-center">
+                        <td
+                          key={col.tableId + ":" + col.rowKey}
+                          className={cn(
+                            "px-3 py-2 text-center",
+                            index > 0 &&
+                              col.tableId !== columns[index - 1].tableId
+                              ? "border-l"
+                              : "",
+                          )}
+                        >
                           <CheckboxCell
                             checked={!!state[key]}
                             pending={pending.has(key)}
                             onToggle={() => toggle(key)}
-                            label={`${row.label} for ${site.label} (${table.cornerLabel})`}
+                            label={`${col.label} for ${site.label} (${col.group})`}
                             interactive={TOGGLE_ENABLED}
                           />
                         </td>
                       );
                     })}
+                    {/* ⭐ THE ROW SUMMARY IS WHAT TRANSPOSING BUYS. The old
+                        layout had nowhere to put this: a column header cannot
+                        carry a bar and a count. */}
+                    <td className="border-l px-3 py-2 text-right">
+                      <span className="inline-flex items-center justify-end gap-2">
+                        <span className="h-1.5 w-16 overflow-hidden rounded-full bg-zinc-200">
+                          <span
+                            className={cn(
+                              "block h-full rounded-full",
+                              hits === 0 ? "bg-red-500" : "bg-green-600",
+                            )}
+                            style={{ width: pct + "%" }}
+                          />
+                        </span>
+                        <span className="whitespace-nowrap text-xs tabular-nums text-zinc-500">
+                          {hits} of {columns.length}
+                        </span>
+                      </span>
+                    </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
+                );
+              })}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
     </TooltipProvider>
   );
 }
