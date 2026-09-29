@@ -1,20 +1,32 @@
 // =============================================================
 // Feature Integration "Alpha2", route /automations-feature-integration-alpha2
 // =============================================================
+// ✅✅ THIS LAYOUT SHIPPED TO THE LIVE PAGE ON 2026-09-30. The user, after
+// comparing the eight: "the presentation here is good, pls implement it to the
+// actual page." **So this bench is no longer a proposal; it is a record of
+// what `/automations/feature-integration` now does**, and the paragraphs below
+// are written in the past tense for that reason.
+// 🛑 IT IS STILL NOT THE LIVE PAGE. The live one keeps the click-to-toggle
+// machinery (optimistic write, POST, rollback) behind its `TOGGLE_ENABLED`
+// flag; this bench never wrote and still does not. **If you are changing what
+// a save does, you are editing the wrong file.**
+// 📌 AND IT WAS NOT ARCHIVED FOR WINNING. Archiving is the user's call, and the
+// other seven only stay meaningful while the one that won is beside them.
+//
 // ⭐ A LAYOUT BENCH FOR THE FEATURE INTEGRATION PAGE: **transposed, one row
 // per website**. One of eight created together on 2026-09-29.
 //
-// 📌 WHAT IT ANSWERS. The live grid puts the five websites across the top and
-// the capabilities down the side. **That is the wrong way round for the
-// question people actually bring here**, which is "what do we get out of GHL?"
-// rather than "who supports Error Date?". Five rows is also a shorter table
-// than eight, and a ROW has somewhere to put a summary: each website leads
-// with its own coverage count and bar, which a column header cannot hold.
+// 📌 WHAT IT ANSWERED. The live grid used to put the five websites across the
+// top and the capabilities down the side. **That was the wrong way round for
+// the question people actually bring here**, which is "what do we get out of
+// GHL?" rather than "who supports Error Date?". Five rows is also a shorter
+// table than eight, and a ROW has somewhere to put a summary: each website
+// leads with its own coverage count and bar, which a column header cannot hold.
 //
-// ⚠️⚠️ THE COST IS WIDTH, AND IT IS THE FINDING. Eight capability columns with
-// readable headers need 1009px MEASURED against the live page's 722px floor, so
-// this design trades horizontal room for the better reading order. **If that
-// trade is wrong, Alpha3 is the same idea without a grid at all.**
+// ⚠️⚠️ THE COST WAS WIDTH, AND IT WAS PAID. Eight capability columns with
+// readable headers need 1009px MEASURED, against the live page's old 722px
+// floor. **The live floor moved to 1009 in the same change**, so its
+// page-level scrollbar now appears below a 1312px window rather than 1025.
 //
 // ⚠️ THE MARKS ARE THE LIVE PAGE'S, reading the same stored state. ONLY THE
 // LAYOUT DIFFERS, and nothing here writes.

@@ -436,6 +436,14 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
   // transpose, drop the grid, write it out, lead with the gaps, compress it,
   // put a website in a detail panel, or lead with the headline.
   //
+  // ✅✅ ALPHA2 WON, 2026-09-30, one day later: "the presentation here is good,
+  // pls implement it to the actual page." The live page is now transposed, one
+  // row per website, and its width floor moved 722 -> 1009 to fit.
+  // 🛑 THE OTHER SEVEN STAY, AND SO DOES ALPHA2. Archiving is the user's call,
+  // not a consequence of a winner emerging; the same thing happened with
+  // Dropdown Config Alpha1, which shipped on 2026-09-25 and was archived three
+  // days later when the user said so.
+  //
   // ⚠️ ALL EIGHT READ THE LIVE PAGE'S SAVED STATE and none of them writes, so
   // the marks are the real ones. Only the layout differs.
   // ⚠️ EACH CARRIES ITS OWN ICON rather than one icon for the family, unlike
@@ -459,7 +467,7 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
     label: "Feature Integration Alpha2",
     icon: Rows3,
     blurb:
-      "Transposed: one row per website, and the row has somewhere to put a score.",
+      "Transposed: one row per website. This is the one the live page now uses.",
     family: "feature-integration",
   },
   {
