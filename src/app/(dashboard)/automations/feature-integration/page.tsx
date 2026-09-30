@@ -14,20 +14,23 @@ import { ArrowLeft, Layers } from "lucide-react";
 import { FeatureIntegrationTables } from "@/components/automations/feature-integration-tables";
 import { getFeatureIntegrationMap } from "@/lib/automations/feature-integration";
 import { buttonVariants } from "@/components/ui/button";
-import { VersionDirectoryList } from "@/components/automations/version-directory-list";
 import { cn } from "@/lib/utils";
 
-/* 📌 THE DIRECTORY LIST MOVED OUT ON 2026-09-30, to
- * `@/components/automations/version-directory-list`, when the Design
- * Versions page started rendering the same 35 rows. **Two copies of the same
- * list would drift**, which is the same reason `VersionTile` was extracted
- * two days earlier. The status colours, the group order and the grouping
- * rule all live there now.
- * ⚠️⚠️ SO THIS PAGE AND `/automations/design-versions` SHOW THE SAME THING.
- * That duplicate is deliberate for now: this list was asked for hours before
- * the rename that gave the other page its full list, and removing either was
- * not part of that request. **They cannot drift, because there is one
- * component.** Which one should go, if either, is a product call. */
+/* 🛑🛑 THIS PAGE NO LONGER LISTS THE DESIGN VERSIONS AT ALL, as of
+ * 2026-09-30. The user, on the inline list: "seems like we wont be needing
+ * this anymore".
+ * 📌 IT WAS A THREE-STEP DAY AND THE END STATE IS THE POINT. The directory
+ * was four cards here, then one dense list here, then the same list in two
+ * places once the Design Versions page grew a full list, and **a duplicate is
+ * not a resting state.** It resolved onto its own page.
+ * ⚠️⚠️ SO THE BUTTON IN THE HEADER IS NOW THE ONLY ROUTE TO EVERY BENCH.
+ * Nothing else in the app links them: not the sidebar (its dropdown went on
+ * 2026-09-08), not the hub. **If that button goes, 34 pages become
+ * URL-only.** The registry says the same thing at the top of
+ * `versions.ts`; it is worth saying twice.
+ * ⭐ AND THE PAGE IS BACK TO ONE SUBJECT. It documents which capabilities each
+ * website's API unlocks, which is what its title and subtitle claim. A
+ * directory of unrelated design experiments was always a lodger here. */
 
 export const dynamic = "force-dynamic";
 
@@ -130,8 +133,6 @@ export default async function AutomationsFeatureIntegrationPage() {
         </div>
 
         <FeatureIntegrationTables initialState={state} />
-
-        <VersionDirectoryList />
       </div>
     </div>
   );
