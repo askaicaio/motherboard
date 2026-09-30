@@ -70,31 +70,31 @@ const STATUS: Record<
     label: "live",
     dot: "bg-zinc-900",
     text: "text-zinc-900",
-    blurb: "This row is the live page itself.",
+    blurb: "The live page.",
   },
   shipped: {
     label: "shipped",
     dot: "bg-green-600",
     text: "text-green-700",
-    blurb: "Its layout is what a live page renders.",
+    blurb: "Layout in use by a live page.",
   },
   parked: {
     label: "parked",
     dot: "bg-amber-500",
     text: "text-amber-700",
-    blurb: "Finished. The next move belongs to the business.",
+    blurb: "Complete. Awaiting a business decision.",
   },
   bench: {
     label: "bench",
     dot: "bg-blue-600",
     text: "text-blue-700",
-    blurb: "Still being compared. The next move is ours.",
+    blurb: "Open experiment. Under comparison.",
   },
   archived: {
     label: "archived",
     dot: "bg-zinc-300",
     text: "text-zinc-400",
-    blurb: "The question it was asking is settled.",
+    blurb: "Closed. Retained for reference.",
   },
 };
 
@@ -281,7 +281,15 @@ export function VersionDirectoryList({
                               <span className="text-sm">{option.label}</span>
                               {/* The one-liner is what makes these
                                   distinguishable. "parked" and "archived" are
-                                  opposites and the words do not say so. */}
+                                  opposites and the words do not say so.
+                                  ⚠️ REWRITTEN 2026-09-30 IN A SYSTEM VOICE:
+                                  "The descriptions here are made in a third
+                                  person like POV. make the descriptions more
+                                  system-like." **They were narrating ("the
+                                  next move is ours") where a status
+                                  definition should just define.** Keep them
+                                  as terse fragments with no narrator and no
+                                  "we"; they are labels, not commentary. */}
                               <span className="text-[11px] text-zinc-500">
                                 {option.blurb}
                               </span>
