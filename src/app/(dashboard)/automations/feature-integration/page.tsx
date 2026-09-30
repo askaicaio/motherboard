@@ -22,6 +22,7 @@ import {
   AUTOMATION_DROPDOWN_CONFIG_VERSIONS,
   AUTOMATION_FEATURE_INTEGRATION_VERSIONS,
   AUTOMATION_LIGHT_DARK_VERSIONS,
+  AUTOMATION_VERSION_DIRECTORY_VERSIONS,
 } from "@/lib/automations/versions";
 
 export const dynamic = "force-dynamic";
@@ -332,6 +333,47 @@ export default async function AutomationsFeatureIntegrationPage() {
               </div>
               <div className="grid gap-2 p-3 @min-[304px]:grid-cols-2 @min-[674px]:grid-cols-3">
                 {AUTOMATION_FEATURE_INTEGRATION_VERSIONS.map((version) => (
+                  <VersionTile key={version.href} version={version} />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ⭐⭐ SIX LAYOUTS FOR THIS SECTION ITSELF, 2026-09-30. The user
+          circled the card above: "Any suggestions on how to show these layouts
+          differently? pls make Alpha pages for them."
+          🛑🛑 AND THIS CARD IS THE FIFTH ONE, WHICH IS THE POINT THEY ARE
+          ANSWERING. The directory grows by CARD: one per family, plus the
+          Archived page. **Adding a family adds a card, and a card that lists
+          designs for the card list is where that stops being funny.** Every one
+          of the six proposes a shape that does not grow this way.
+          📌 THEY ARE "Version Directory AlphaN", NOT another Feature
+          Integration set: the prefix names WHAT IS BEING REDESIGNED, and the
+          eight above redesign this page's capability table, not this list.
+          ⚠️ EACH ONE LISTS EVERY VERSION, so none of them carries an "other
+          layouts" strip. They reach each other by being what they are. */}
+        {AUTOMATION_VERSION_DIRECTORY_VERSIONS.length > 0 && (
+          <Card>
+            <CardContent className="@container p-0">
+              <div className="flex items-start justify-between gap-3 border-b bg-zinc-50 px-3 py-2">
+                <div className="min-w-0">
+                  <h2 className="text-sm font-semibold text-zinc-900">
+                    Version Directory Layouts
+                  </h2>
+                  <p className="mt-0.5 text-xs text-zinc-500">
+                    Six ways to show the lists on this page, including the one
+                    you are reading. Each lists every version, archived
+                    included.
+                  </p>
+                </div>
+                <span className="shrink-0 text-xs text-zinc-500">
+                  {AUTOMATION_VERSION_DIRECTORY_VERSIONS.length} pages, each
+                  opens in a new tab
+                </span>
+              </div>
+              <div className="grid gap-2 p-3 @min-[304px]:grid-cols-2 @min-[674px]:grid-cols-3">
+                {AUTOMATION_VERSION_DIRECTORY_VERSIONS.map((version) => (
                   <VersionTile key={version.href} version={version} />
                 ))}
               </div>
