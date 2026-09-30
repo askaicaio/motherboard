@@ -135,12 +135,9 @@ function groupVersions(versions: AutomationVersion[]) {
 }
 
 export function VersionDirectoryList({
-  heading = "Design Versions",
   versions = AUTOMATION_VERSIONS,
   initialOverrides = {},
 }: {
-  /** The card's own heading. Defaults to the name the whole thing goes by. */
-  heading?: string;
   /** Defaults to every registered version. Pass a subset to filter. */
   versions?: AutomationVersion[];
   /** Stored status overrides, href -> status. An absent href means the
@@ -148,6 +145,17 @@ export function VersionDirectoryList({
   initialOverrides?: Record<string, VersionStatusKey>;
 }) {
   const groups = groupVersions(versions);
+
+  // ⭐ THE DEFAULT IS THE BIGGEST EXPERIMENT, NOT THE FIRST ROW. "Live page"
+  // is first and holds exactly one version, so landing there would make the
+  // rail look like it leads nowhere. **The rail prints every count anyway**,
+  // so nothing is hidden by opening on the fullest one.
+  const widest = groups.reduce(
+    (best, g) => (g.items.length > best.items.length ? g : best),
+    groups[0],
+  );
+  const [active, setActive] = useState<string>(widest.name);
+  const current = groups.find((g) => g.name === active) ?? groups[0];
   const [overrides, setOverrides] =
     useState<Record<string, VersionStatusKey>>(initialOverrides);
   // Hrefs with a save in flight. Their menu is disabled, so a second click
@@ -196,16 +204,70 @@ export function VersionDirectoryList({
   };
 
   return (
-    <Card>
-      <CardContent className="overflow-x-auto p-0">
-        <div className="flex items-center justify-between gap-3 border-b bg-zinc-50 px-4 py-2">
-          <h2 className="text-sm font-semibold text-zinc-900">{heading}</h2>
-          <span className="text-xs text-zinc-500">
-            {versions.length} pages, each opens in a new tab
-          </span>
-        </div>
+    /* ⭐⭐ A RAIL OF EXPERIMENTS BESIDE THE TABLE, 2026-09-30, promoted from
+       Version Directory Alpha3: "Implement these side tabs from the alpha
+       while keeping the current table layout."
+       📌 THE TABLE IS UNCHANGED. Same columns, same dense rows, same status
+       menu; **only the group strips went, because with a rail there is one
+       group on screen and the card header names it.**
+       ⭐ WHY A RAIL AT ALL: the directory used to grow DOWNWARD by card, one
+       per experiment. A rail grows by a row in a 240px column instead, so a
+       new experiment costs nothing vertical. Same argument that put a rail on
+       the Dropdown Configuration page on 2026-09-25.
+       ⚠️⚠️ WHAT IT COSTS, AND IT IS A REAL TRADE: a table sizes its columns to
+       the widest cell IT CONTAINS, so with one experiment rendered the name
+       column is as wide as that experiment's longest name. **Switching rails
+       shifts the status column a little** - Feature Integration's names are
+       ~60px longer than Main Page's. Each view is internally aligned, which
+       is what the column widths were for; a fixed width would freeze them at
+       the cost of the magic number that was just removed. */
+    <div className="flex items-start gap-4">
+      <nav aria-label="Design experiments" className="w-60 shrink-0 space-y-1">
+        {groups.map((group) => {
+          const on = group.name === current.name;
+          return (
+            <button
+              key={group.name}
+              type="button"
+              onClick={() => setActive(group.name)}
+              aria-current={on ? "true" : undefined}
+              className={cn(
+                "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left transition-colors",
+                on
+                  ? "bg-zinc-900 text-white"
+                  : "text-zinc-700 ring-1 ring-foreground/10 hover:bg-zinc-50",
+              )}
+            >
+              <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                {group.name}
+              </span>
+              {/* Every count is on screen at once, which is what lets the
+                  panel show one group without hiding the shape of the rest. */}
+              <span
+                className={cn(
+                  "shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums",
+                  on ? "bg-white/15 text-white" : "bg-zinc-200 text-zinc-700",
+                )}
+              >
+                {group.items.length}
+              </span>
+            </button>
+          );
+        })}
+      </nav>
 
-        {/* ⭐⭐ A REAL TABLE SINCE 2026-09-30, NOT FLEX ROWS. The user: "can you
+      <Card className="min-w-0 flex-1">
+        <CardContent className="overflow-x-auto p-0">
+          <div className="flex items-center justify-between gap-3 border-b bg-zinc-50 px-4 py-2">
+            <h2 className="text-sm font-semibold text-zinc-900">
+              {current.name}
+            </h2>
+            <span className="text-xs text-zinc-500">
+              {current.items.length} pages, each opens in a new tab
+            </span>
+          </div>
+
+          {/* ⭐⭐ A REAL TABLE SINCE 2026-09-30, NOT FLEX ROWS. The user: "can you
             make the width of this column flexible, since the titles don't
             fit". The name column was `w-52`, so "Feature Integration Alpha1"
             truncated to "Feature Integration Alph...".
@@ -219,28 +281,9 @@ export function VersionDirectoryList({
             row, for free. That is the actual request: flexible AND aligned.
             📌 IT ALSO RETIRED TWO MAGIC NUMBERS, the 208px name column and the
             104px status column. Nothing here sets a column width now. */}
-        <table className="w-full text-sm">
-          {groups.map((group) => (
-            <tbody key={group.name}>
-              {/* A group heading costs one 24px strip. As a card per family it
-                  cost a card header, a subtitle and the gap above it, each. */}
-              <tr>
-                <th
-                  colSpan={4}
-                  scope="colgroup"
-                  className="border-y bg-zinc-50/70 px-4 py-1"
-                >
-                  <span className="flex items-center justify-between gap-3">
-                    <span className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
-                      {group.name}
-                    </span>
-                    <span className="text-[11px] tabular-nums text-zinc-400">
-                      {group.items.length}
-                    </span>
-                  </span>
-                </th>
-              </tr>
-              {group.items.map((version) => {
+          <table className="w-full text-sm">
+            <tbody>
+              {current.items.map((version) => {
                 const derived = versionStatusKey(version);
                 const override = overrides[version.href];
                 const current = override ?? derived;
@@ -395,9 +438,9 @@ export function VersionDirectoryList({
                 );
               })}
             </tbody>
-          ))}
-        </table>
-      </CardContent>
-    </Card>
+          </table>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

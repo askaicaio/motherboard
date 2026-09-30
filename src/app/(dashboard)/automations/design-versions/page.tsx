@@ -47,8 +47,24 @@ export default async function AutomationsDesignVersionsPage() {
   const overrides = await getVersionStatusOverrides();
 
   return (
-    /* 📐📐 THE FLOOR IS 820px, LOWERED FROM 1009 ON 2026-09-30 AND MEASURED
-       THIS TIME. It had been matched to the Feature Integration page rather
+    /* 📐📐📐 THE FLOOR IS 1000px, RAISED FROM 820 WHEN THE RAIL LANDED ON
+       2026-09-30. **A 240px rail plus its 16px gap is 256px the table no
+       longer has**, and the description column is what pays for it. On the
+       WIDEST tab (Feature Integration, whose names make the name column
+       239px rather than Main Page's 185px) the description measures: 1000 ->
+       183px, 1054 -> 237px, 1100 -> 283px.
+       ⚠️⚠️ 1054 WOULD HAVE MATCHED THE ~230px THE LAST FLOOR WAS CHOSEN FOR,
+       AND IT WAS NOT TAKEN. It puts the sideways scrollbar below a 1357px
+       window, past a 1366px laptop by 9px. **1000 keeps the threshold at
+       1303 and costs the widest tab about seven characters**, which is the
+       better side of that trade. Revisit if the descriptions turn out to be
+       what people read here.
+       📌 MEASURE THE WIDEST TAB, NOT THE DEFAULT ONE. Main Page opens by
+       default and its names are 54px shorter, so measuring it would have
+       flattered the floor by exactly that much.
+
+       📐 THE PREVIOUS FLOOR, KEPT FOR THE REASONING: 820px, lowered from 1009
+       on 2026-09-30 and measured then too. It had been matched to the Feature Integration page rather
        than measured, which stopped being right when the list became a table:
        **the blurb cell is `w-full max-w-0`, so it no longer reports its whole
        text as min-content and the page's real minimum fell to 591px.**
@@ -62,17 +78,17 @@ export default async function AutomationsDesignVersionsPage() {
        ⭐ THE NAME COLUMN IS 239px AT EVERY ONE OF THOSE WIDTHS. A table column
        sizes to its widest cell and does not get squeezed, which is the whole
        reason the names stopped truncating.
-       ⚠️ IT WAS 722px WHILE THIS PAGE SHOWED TILES, then 1009 while it showed
-       flex rows. Third value, third layout; that is the floor doing its job,
-       not churn.
-       ✅ MEASURED THRESHOLD: the page-level scrollbar appears below a 1123px
-       window (1122 overflows by 1px, 1123 by 0), where it used to appear
-       below 1312.
+       ⚠️ IT WAS 722px WHILE THIS PAGE SHOWED TILES, 1009 while it showed flex
+       rows, 820 as a table and 1000 as a table with a rail. **Four values,
+       four layouts; that is the floor doing its job, not churn.**
+       ✅ MEASURED THRESHOLD: the page-level scrollbar appears below a 1288px
+       window (1287 overflows by 1px, 1288 by 0). It was 1123 without the
+       rail and 1312 before the table, so **a 1366px laptop still clears it**.
        🛑 THE SCROLLER IS ON THIS DIV, NOT ON `<main>`: the dashboard layout
        gives `<main>` `overflow-x-clip`, which cuts overflow WITHOUT making a
        scroll container, so every page carries its own. */
     <div className="overflow-x-auto">
-      <div className="min-w-[820px] space-y-6 p-6">
+      <div className="min-w-[1000px] space-y-6 p-6">
         <Link
           href="/automations/feature-integration"
           className="inline-flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-900"
@@ -89,10 +105,10 @@ export default async function AutomationsDesignVersionsPage() {
             </h1>
           </div>
           <p className="mt-1 text-sm text-zinc-500">
-            Every parallel design of a page in this tab, grouped by the
-            experiment it belongs to. {shipped} of them are what a live page now
-            renders; the rest are open, waiting on a decision, or settled. All
-            of them still work. Click any status to change it.
+            Every parallel design of a page in this tab. Pick an experiment on
+            the left; {shipped} of the {AUTOMATION_VERSIONS.length} are what a
+            live page now renders, and the rest are open, waiting on a decision,
+            or settled. All of them still work. Click any status to change it.
           </p>
         </div>
 
