@@ -14,10 +14,12 @@
 // when the sidebar's version dropdown was removed ("The dropdown for the page
 // selection when clicking the automation tab at the left sidebar is also not
 // needed anymore"). Two things now read it and neither owns it:
-//   1. the Feature Integration page, which renders the bench versions as the
-//      ONLY way to reach them. **Since 2026-09-13 it renders them as TWO lists,
-//      the active benches and the parked pair**; see `parked` below. Both are
-//      on that page, so the split changed presentation, not reachability;
+//   1. the Feature Integration page, which renders EVERY version as the ONLY
+//      way to reach them. **Since 2026-09-30 that is ONE dense list grouped by
+//      experiment, archived ones included** (promoted from Version Directory
+//      Alpha4). ⚠️ It used to be one card per family plus a separate archive
+//      page, which is why so many comments below still talk about "its own
+//      card"; where they do, read it as "its own group";
 //   2. the sidebar, which uses it for one thing only: keeping the Automations
 //      tab highlighted while you are on a bench route.
 //
@@ -572,6 +574,12 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
   // **nothing on a tile says which design actually shipped** even though three
   // of them have. The six split that knot differently.
   //
+  // ✅✅ ALPHA4 WON THE SAME DAY: "This layout is good, pls implement it". The
+  // Feature Integration page's directory is now one dense list, and the four
+  // per-family filters that fed the old cards were deleted with them.
+  // 🛑 THE OTHER FIVE STAY, AND SO DOES ALPHA4. Archiving is the user's call,
+  // not a consequence of a winner emerging.
+  //
   // ⭐ EACH ONE LISTS EVERY VERSION, so each is its own way back to the other
   // five. That is why they carry no "other layouts" strip, unlike the Feature
   // Integration eight: **a directory that could not reach its siblings would be
@@ -605,7 +613,7 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
     label: "Version Directory Alpha4",
     icon: AlignJustify,
     blurb:
-      "Dense rows instead of tiles: everything in about a third of the height.",
+      "Dense rows instead of tiles. This is the one the live directory now uses.",
     family: "version-directory",
   },
   {
@@ -659,59 +667,34 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
   },
 ];
 
-/** The ACTIVE benches: everything except the live hub and the light/dark family.
- *  The Feature Integration page's main list.
- *
- *  ⚠️ IT HAS NARROWED TWICE and anything counting it will have moved. It was
- *  every non-official version; on 2026-09-13 it became every non-official,
- *  non-parked one; on 2026-09-24 the test became `family` instead, which moved
- *  AlphaA3 out of here even though it is not parked. **The two lists together
- *  are still the complete set of benches**, and that page renders both, so
- *  nothing became unreachable. */
-export const AUTOMATION_BENCH_VERSIONS = AUTOMATION_VERSIONS.filter(
-  (v) => !v.official && !v.family && !v.archived,
-);
+/* 🛑🛑 THE CARD-PER-FAMILY FILTERS WERE DELETED ON 2026-09-30, when the
+ * Feature Integration page's directory became ONE dense list (promoted from
+ * Version Directory Alpha4). `AUTOMATION_BENCH_VERSIONS`,
+ * `AUTOMATION_LIGHT_DARK_VERSIONS`, `AUTOMATION_DROPDOWN_CONFIG_VERSIONS` and
+ * `AUTOMATION_VERSION_DIRECTORY_VERSIONS` each fed one card and had no other
+ * consumer, so they went with the cards.
+ * ⭐ THE RULE THEY CARRIED IS WORTH KEEPING EVEN THOUGH THEY ARE GONE: every
+ * one of them ended `&& !v.archived`, **because with five lists a missed
+ * filter renders the same version in two places at once.** A single list
+ * cannot have that bug, which is one of the quieter arguments for it.
+ * ⚠️ `family` IS STILL LIVE AND STILL MATTERS. It no longer picks a card; it
+ * feeds `versionGroupLabel` below, which is what groups the list.
+ * 📌 The two that survive have real consumers: the Feature Integration one is
+ * read by all eight of those benches for their sibling strip, and the archived
+ * one by `/automations/archived-versions`. */
 
-/** The light/dark pages, in their own card on the Feature Integration page.
+/** The eight Feature Integration layout benches.
  *
- *  ⚠️ IT FILTERS ON `family`, NOT ON `parked`, since 2026-09-24. Two of the
- *  three are also parked and one is not, so **do not use this list to answer
- *  "what is waiting on the business"** - that is `parked`, and it is a different
- *  question. See the interface for why they separated. */
-export const AUTOMATION_LIGHT_DARK_VERSIONS = AUTOMATION_VERSIONS.filter(
-  (v) => v.family === "light-dark" && !v.archived,
-);
-
-/** The six Dropdown Configuration layout benches, in their own card.
- *
- *  ⚠️ THESE ARE NOT PARKED and the card must not imply they are. They are
- *  grouped because they all redesign the SAME page, not because they are
- *  waiting on anyone. */
-export const AUTOMATION_DROPDOWN_CONFIG_VERSIONS = AUTOMATION_VERSIONS.filter(
-  (v) => v.family === "dropdown-config" && !v.archived,
-);
-
-/** The eight Feature Integration layout benches, in their own card on the
- *  page they redesign. **Which means this page lists benches OF ITSELF**, and
- *  that is deliberate: the tiles are where you leave from, and each bench
- *  carries the same strip so you can hop between them without coming back.
- *
- *  ⚠️ NOT PARKED and not archived; the card must not imply either. They are
- *  grouped because eight tiles for one page would swamp a bench list where
- *  everything else redesigns the MAIN page. */
+ *  ⚠️ ITS ONLY READER IS NOW THE BENCHES THEMSELVES, since 2026-09-30. It used
+ *  to feed a card on the Feature Integration page; that card is gone with the
+ *  other four, and **what is left is the "other layouts" strip each of those
+ *  eight pages carries so you can hop between them without going back.**
+ *  📌 Which is why it survived the deletion above and its siblings did not: it
+ *  has eight consumers that are not the directory. */
 export const AUTOMATION_FEATURE_INTEGRATION_VERSIONS =
   AUTOMATION_VERSIONS.filter(
     (v) => v.family === "feature-integration" && !v.archived,
   );
-
-/** The six Version Directory layout benches, in their own card.
- *
- *  ⚠️ THE CARD THEY RENDER IN IS THE THING THEY REDESIGN, which is the most
- *  recursive corner of this registry and is fine. Opening one is the only way
- *  to see the alternative to the card you opened it from. */
-export const AUTOMATION_VERSION_DIRECTORY_VERSIONS = AUTOMATION_VERSIONS.filter(
-  (v) => v.family === "version-directory" && !v.archived,
-);
 
 /** ⭐ THE ONE-WORD STATE OF A VERSION, for a directory that wants to say more
  *  than a name and a blurb. **The order is the point**: a design can be both
@@ -753,12 +736,13 @@ export function versionGroupLabel(v: AutomationVersion): string {
 /** The retired versions, listed on their own page at
  *  `/automations/archived-versions`.
  *
- *  ⚠⚠ **EVERY OTHER LIST ABOVE EXCLUDES `archived`, WHICH IS WHAT MAKES THIS A
- *  MOVE RATHER THAN A COPY.** Archiving a page takes it out of the bench list or
- *  its family card and puts it here; miss one of those filters and the same
- *  version renders in two places at once.
- *  📌 IT IS EMPTY ON PURPOSE AS OF 2026-09-28. The mechanism shipped before any
- *  page was retired, because choosing what is finished is the user's call, not
+ *  ⚠️⚠️ IT IS NO LONGER A MOVE, AS OF 2026-09-30, AND THAT CHANGED WHAT THIS
+ *  LIST IS FOR. It used to be the other half of a pair: every other list ended
+ *  `&& !v.archived`, so archiving MOVED a version off the Feature Integration
+ *  page and onto the archive page. **That page's directory now shows every
+ *  version inline, archived ones included, so nothing moves any more** and
+ *  this list feeds a filtered second view rather than the only view.
+ *  📌 17 ENTRIES AS OF 2026-09-28, and choosing them is the user's call, not
  *  mine. See `archived` on the interface. */
 export const AUTOMATION_ARCHIVED_VERSIONS = AUTOMATION_VERSIONS.filter(
   (v) => v.archived,

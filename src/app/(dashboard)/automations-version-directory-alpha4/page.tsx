@@ -1,15 +1,41 @@
 // =============================================================
 // Version Directory "Alpha4", route /automations-version-directory-alpha4
 // =============================================================
+// ✅✅ THIS LAYOUT SHIPPED TO THE FEATURE INTEGRATION PAGE ON 2026-09-30, the
+// same day it was built. The user, after comparing the six: "This layout is
+// good, pls implement it". **So this bench is a record of what that page's
+// directory now does, not a proposal.**
+// 🛑 PROMOTING IT DELETED FOUR REGISTRY EXPORTS. The old page had one card per
+// family, each fed by its own filter; one list needs none of them. See the
+// note where they used to be in `versions.ts`.
+// 📌 IT WAS NOT ARCHIVED FOR WINNING. Archiving is the user's call, and the
+// other five only stay meaningful while the one that won is beside them.
+//
 // ⭐ A LAYOUT BENCH FOR THE VERSION DIRECTORY: **dense rows, one card**. One
 // of six created together on 2026-09-30.
 //
 // 📌 WHAT IT ANSWERS. It keeps today's grouping (by experiment) and argues
-// only about SIZE. A tile is a two-line box with its own ring, 8px of gap and
-// 20px of padding; **twenty-eight of them is a page you scroll rather than a
-// list you read.** The same twenty-eight as single lines fit in roughly a
-// third of the height, with the blurb still on the line and a status pill
-// added, not removed.
+// about the SHAPE of a row: a tile is a two-line box with its own ring, and
+// a list of them tells you a name and a sentence and nothing else. A line
+// can carry a status, a group count and where a design shipped, in columns
+// that line up.
+//
+// 🛑🛑 THE "DENSER" CLAIM THIS BENCH SHIPPED WITH WAS WRONG, CORRECTED
+// 2026-09-30 BY MEASURING. It said the same versions as single lines fit in
+// "roughly a third of the height" of tiles. **They do not. The list is about
+// a third TALLER.** Measured at a 1312px window: a `VersionTile` is 74px in a
+// THREE-COLUMN grid, so 35 of them need 12 rows and about 976px of grid; 35
+// dense rows at 28px plus a 26px strip per group need about 1162px, and the
+// whole card measures 1369px.
+// ⚠️ THE ERROR WAS COMPARING AGAINST A COLUMN OF TILES INSTEAD OF THE GRID
+// THE PAGE ACTUALLY USES. A tile is taller than a row and holds one version;
+// three of them side by side hold three. **Per version a grid wins on height
+// and always will.**
+// ⭐ SO WHAT THIS LAYOUT ACTUALLY BUYS IS NOT HEIGHT: one destination instead
+// of five, a status word on every row, a count per group, the archive inline,
+// and columns that line up so you can read down a status instead of hunting
+// through prose. Those are real and they are why it was picked. **The height
+// was never the argument, it was just the sentence I wrote.**
 //
 // ⚠️⚠️ THE BLURB IS TRUNCATED TO ONE LINE AND THAT IS THE TRADE. On a tile it
 // wraps to two. **If the blurbs turn out to be the thing you actually read,

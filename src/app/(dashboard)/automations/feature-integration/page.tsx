@@ -10,20 +10,67 @@
 
 import Link from "next/link";
 import { requireAuth } from "@/lib/auth/guard";
-import { Archive, ArrowLeft } from "lucide-react";
+import { Archive, ArrowLeft, ExternalLink } from "lucide-react";
 import { FeatureIntegrationTables } from "@/components/automations/feature-integration-tables";
 import { getFeatureIntegrationMap } from "@/lib/automations/feature-integration";
 import { Card, CardContent } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
-import { VersionTile } from "@/components/automations/version-tile";
 import { cn } from "@/lib/utils";
 import {
-  AUTOMATION_BENCH_VERSIONS,
-  AUTOMATION_DROPDOWN_CONFIG_VERSIONS,
-  AUTOMATION_FEATURE_INTEGRATION_VERSIONS,
-  AUTOMATION_LIGHT_DARK_VERSIONS,
-  AUTOMATION_VERSION_DIRECTORY_VERSIONS,
+  AUTOMATION_VERSIONS,
+  versionGroupLabel,
+  versionStatusKey,
 } from "@/lib/automations/versions";
+
+/* ✅✅ THE DIRECTORY IS ONE DENSE LIST AS OF 2026-09-30, promoted from Version
+ * Directory Alpha4. The user, after comparing six: "This layout is good, pls
+ * implement it".
+ * 🛑🛑 IT REPLACED FOUR CARDS AND A VersionTile GRID. There used to be one
+ * card per family (benches, light/dark, dropdown config, feature integration,
+ * version directory), each with its own heading, its own count and its own
+ * length guard, and **every family added was another card**. This is one card
+ * with a 24px strip per group.
+ * ⭐ IT ALSO SHOWS THE ARCHIVED VERSIONS INLINE, which the cards could not: all
+ * five of those lists filtered the archived ones out precisely so a version
+ * could not render twice. One list has nowhere to render twice.
+ * 🛑🛑 IT IS NOT SHORTER THAN A GRID OF TILES AND NOBODY SHOULD CLAIM IT IS.
+ * Measured at a 1312px window: 35 tiles in the three-column grid this page
+ * used to run need about 976px; these 35 rows plus their seven group strips
+ * need about 1162px, and the card measures 1369px. **A tile holds one
+ * version and three sit side by side, so per version a grid wins on height
+ * and always will.** What the list buys is one destination instead of five,
+ * a status word per row, a count per group, the archive inline, and columns
+ * that line up. Those were the reasons; height was not one.
+ * ⚠️ THE ARCHIVED VERSIONS PAGE AND ITS BUTTON ABOVE ARE DELIBERATELY
+ * STILL HERE. They are now a second route to a subset of this list rather than
+ * the only route to it. **Retiring them is a product decision and is the
+ * user's**; nothing here depends on them going. */
+
+/** The status word on each row. **A dot and lowercase text, not a filled pill**:
+ *  at one line per row a pill on all 35 would out-shout the names it is
+ *  annotating. Colour is this page's choice; the registry only hands over a
+ *  key. */
+const STATUS: Record<string, { label: string; dot: string; text: string }> = {
+  live: { label: "live", dot: "bg-zinc-900", text: "text-zinc-900" },
+  shipped: { label: "shipped", dot: "bg-green-600", text: "text-green-700" },
+  parked: { label: "parked", dot: "bg-amber-500", text: "text-amber-700" },
+  bench: { label: "bench", dot: "bg-blue-600", text: "text-blue-700" },
+  archived: { label: "archived", dot: "bg-zinc-300", text: "text-zinc-400" },
+};
+
+/** Group order. ⚠️ **Not alphabetical and must not become so**: the live page
+ *  belongs at the top, and the rest run oldest experiment to newest, which is
+ *  the order they get reasoned about in. Any group the registry grows that is
+ *  not named here still renders, at the end. */
+const GROUP_ORDER = [
+  "Live page",
+  "Main Page",
+  "Light / Dark Mode",
+  "Dropdown Configuration",
+  "Feature Integration",
+  "Version Directory",
+  "Toolbar Options",
+];
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +89,25 @@ export default async function AutomationsFeatureIntegrationPage() {
   // Saved checklist state (shared app-wide). Seeds the tables so the checkboxes
   // render with their stored values on load.
   const state = await getFeatureIntegrationMap();
+
+  // ⚠️ GROUPED BY `versionGroupLabel`, NOT BY `family`. Several versions have
+  // no family at all (the Main Page betas and alphas, the toolbar gallery), so
+  // a `family` grouping would drop them; see that function's own note for why
+  // it is not simply a field.
+  const groups: { name: string; items: typeof AUTOMATION_VERSIONS }[] = [];
+  for (const version of AUTOMATION_VERSIONS) {
+    const name = versionGroupLabel(version);
+    const found = groups.find((g) => g.name === name);
+    if (found) found.items.push(version);
+    else groups.push({ name, items: [version] });
+  }
+  groups.sort((a, b) => {
+    const ia = GROUP_ORDER.indexOf(a.name);
+    const ib = GROUP_ORDER.indexOf(b.name);
+    return (
+      (ia < 0 ? GROUP_ORDER.length : ia) - (ib < 0 ? GROUP_ORDER.length : ib)
+    );
+  });
 
   return (
     /* ⭐⭐ THE PAGE KEEPS ITS WIDTH AND SCROLLS SIDEWAYS, 2026-09-23. The last
@@ -124,262 +190,79 @@ export default async function AutomationsFeatureIntegrationPage() {
 
         <FeatureIntegrationTables initialState={state} />
 
-        {/* ⭐⭐ DESIGN VERSIONS, 2026-09-08: "add a new section below ... This
-          section is where all the Beta and Alpha pages can be accessed."
-          Aesthetics were left to me ("I'll let you decide"), so it borrows the
-          two tables above: the same `Card`, the same `bg-zinc-50` header
-          strip, the same `border-b px-3 py-2` rhythm. It reads as a third
-          section of this page rather than a new kind of thing.
-          🛑🛑 THIS IS NOW THE ONLY WAY TO REACH THE BENCHES. The sidebar's
-          Automations dropdown was removed in the same change, so if this
-          section goes, the Alphas and Betas are unreachable except by typing
-          the URL. Nothing else links them.
-          ⚠️ The new-tab and no-prefetch rules moved to `VersionTile` above,
-          which both sections share.
-          ⚠️ The blurbs come from `@/lib/automations/versions`, which took them
-          from each page's OWN header comment. Do not rewrite them here; fix
-          them there so the page and its description cannot drift.
-          ⭐ THERE ARE TWO SECTIONS AS OF 2026-09-13. This one is the active
-          benches; the parked pair has its own card below.
-          🛑🛑 AND AS OF 2026-09-28 THIS CARD IS USUALLY NOT RENDERED AT ALL. The
-          user archived all eleven of its pages in one go, so the list is empty
-          and the guard below hides it. **The note above about this being the
-          only way to reach the benches is now the ARCHIVE page's job**; the
-          button in this page's header is what gets you there.
-          ⭐ IT RETURNS BY ITSELF the moment a new bench is registered. */}
-        {AUTOMATION_BENCH_VERSIONS.length > 0 && (
-          <Card>
-            {/* ⚠️⚠️ `@container` IS LOAD-BEARING, 2026-09-23. The grid below used
-            to fold on `sm:`/`lg:` VIEWPORT breakpoints, and **a page floor
-            cannot hold a viewport query** - it asks the window, which does not
-            know this page now keeps its own width and scrolls. Without this the
-            tiles would still drop to two columns at a 1023px window while the
-            content box sat at its 674px floor. Making the card a container lets
-            the grid answer to ITS OWN width. Same reasoning, same pattern as the
-            hub's detail panel; see its note. */}
-            <CardContent className="@container p-0">
-              <div className="flex items-center justify-between gap-3 border-b bg-zinc-50 px-3 py-2">
-                {/* ⚠️ "Experimental" was added on 2026-09-11 at the user request.
-                It earns its place: this section links parallel designs of pages
-                that already exist and work, and without that word the heading
-                reads like a list of releases rather than a bench. The live hub
-                is deliberately NOT in here. */}
-                <h2 className="text-sm font-semibold text-zinc-900">
-                  Experimental Design Versions
-                </h2>
-                <span className="text-xs text-zinc-500">
-                  {AUTOMATION_BENCH_VERSIONS.length} pages, each opens in a new
-                  tab
-                </span>
-              </div>
-              {/* ⚠️ CONTAINER QUERIES, NOT VIEWPORT ONES, since 2026-09-23. The
-              two numbers are the OLD breakpoints expressed as this card's width,
-              so the fold happens where it always did: `sm` (640px window) put
-              304px of content here, `lg` (1024px) put 674px. **With the page's
-              674px floor the card never goes below the second one, so this is
-              three columns at every width and the page scrolls instead** - which
-              is the whole point of flooring it. The rules stay for the day the
-              floor changes or this card is reused somewhere narrower. */}
-              <div className="grid gap-2 p-3 @min-[304px]:grid-cols-2 @min-[674px]:grid-cols-3">
-                {AUTOMATION_BENCH_VERSIONS.map((version) => (
-                  <VersionTile key={version.href} version={version} />
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* ⭐⭐ THE LIGHT/DARK PAGES, IN THEIR OWN CARD, 2026-09-13: "Lets leave
-          the AlphaA1 and AlphaA2 now. They will remain in alpha indefinitely
-          unless corpo says its something they want. In the feature integration
-          page, Put their own separate window from the rest of the test pages."
-          🛑🛑 WHAT THE SPLIT IS ABOUT CHANGED ON 2026-09-24, so read this carefully.
-          It used to be about WHOSE MOVE IT IS: everything in the card above was
-          still being explored, and these were finished and waiting on a business
-          decision. **Then the user asked for AlphaA3 to join them** - "Move the
-          AlphaA3 access button into this section" - and AlphaA3 is NOT waiting on
-          anyone. So the card is now about SUBJECT: these are the pages about
-          light and dark mode. The list filters on `family`, and `parked` went
-          back to meaning only what it says.
-          ⚠️ DO NOT READ "in this card" AS "parked". Two of the three are; the
-          third is an active bench. See `family` in `versions.ts`.
-          📌 THEY ARE STILL ORDINARY TILES, deliberately: same component, same
-          new-tab behaviour, same no-prefetch. Only the section differs, because
-          the pages are not lesser.
-          ⚠️ THEY ARE ONE FEATURE IN THREE TAKES and the subtitle says so, which
-          is why they are grouped rather than listed as unrelated tiles. */}
         <Card>
-          {/* ⚠️⚠️ `@container` IS LOAD-BEARING, 2026-09-23. The grid below used
-            to fold on `sm:`/`lg:` VIEWPORT breakpoints, and **a page floor
-            cannot hold a viewport query** - it asks the window, which does not
-            know this page now keeps its own width and scrolls. Without this the
-            tiles would still drop to two columns at a 1023px window while the
-            content box sat at its 674px floor. Making the card a container lets
-            the grid answer to ITS OWN width. Same reasoning, same pattern as the
-            hub's detail panel; see its note. */}
-          <CardContent className="@container p-0">
-            <div className="flex items-start justify-between gap-3 border-b bg-zinc-50 px-3 py-2">
-              <div className="min-w-0">
-                {/* 📌 "Pair" UNTIL 2026-09-24, when AlphaA3 made it three. The
-                  subtitle also stopped claiming the whole card is parked,
-                  because AlphaA3 is not. */}
-                <h2 className="text-sm font-semibold text-zinc-900">
-                  Light / Dark Mode
-                </h2>
-                <p className="mt-0.5 text-xs text-zinc-500">
-                  One design in two themes. AlphaA1 and AlphaA2 are two routes
-                  linked by a toggle; AlphaA3 does it on a single route.
-                </p>
-              </div>
-              <span className="shrink-0 text-xs text-zinc-500">
-                {AUTOMATION_LIGHT_DARK_VERSIONS.length} pages, each opens in a
-                new tab
+          <CardContent className="p-0">
+            <div className="flex items-center justify-between gap-3 border-b bg-zinc-50 px-4 py-2">
+              <h2 className="text-sm font-semibold text-zinc-900">
+                Design Versions
+              </h2>
+              <span className="text-xs text-zinc-500">
+                {AUTOMATION_VERSIONS.length} pages, each opens in a new tab
               </span>
             </div>
-            {/* ⚠️ CONTAINER QUERIES, NOT VIEWPORT ONES, since 2026-09-23. The
-              two numbers are the OLD breakpoints expressed as this card's width,
-              so the fold happens where it always did: `sm` (640px window) put
-              304px of content here, `lg` (1024px) put 674px. **With the page's
-              674px floor the card never goes below the second one, so this is
-              three columns at every width and the page scrolls instead** - which
-              is the whole point of flooring it. The rules stay for the day the
-              floor changes or this card is reused somewhere narrower. */}
-            <div className="grid gap-2 p-3 @min-[304px]:grid-cols-2 @min-[674px]:grid-cols-3">
-              {AUTOMATION_LIGHT_DARK_VERSIONS.map((version) => (
-                <VersionTile key={version.href} version={version} />
-              ))}
-            </div>
+
+            {groups.map((group) => (
+              <div key={group.name}>
+                {/* A group heading costs one 24px strip. As four cards it cost
+                    a card header, a subtitle and the gap above it, each. */}
+                <div className="flex items-center justify-between gap-3 border-y bg-zinc-50/70 px-4 py-1">
+                  <h3 className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+                    {group.name}
+                  </h3>
+                  <span className="text-[11px] tabular-nums text-zinc-400">
+                    {group.items.length}
+                  </span>
+                </div>
+                {group.items.map((version) => {
+                  const tone = STATUS[versionStatusKey(version)];
+                  return (
+                    <Link
+                      key={version.href}
+                      href={version.href}
+                      target="_blank"
+                      rel="noreferrer"
+                      prefetch={false}
+                      className="group flex items-center gap-3 px-4 py-1.5 transition-colors hover:bg-zinc-50"
+                    >
+                      <version.icon className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
+                      <span className="w-52 shrink-0 truncate text-sm font-medium text-zinc-900">
+                        {version.label}
+                      </span>
+                      <span className="inline-flex w-20 shrink-0 items-center gap-1.5">
+                        <span
+                          className={cn(
+                            "block h-1.5 w-1.5 shrink-0 rounded-full",
+                            tone.dot,
+                          )}
+                        />
+                        <span className={cn("text-[11px]", tone.text)}>
+                          {tone.label}
+                        </span>
+                      </span>
+                      {/* 🛑 `truncate`, NOT `line-clamp-1`. A clamp has to own
+                          `display`, and this is a flex child that already has
+                          one; see the line-clamp note in memory. One line
+                          either way, and truncate cannot be silently killed by
+                          a utility emitted after it.
+                          ⚠️ THIS IS ALSO WHY THE PAGE'S FLOOR IS NOT WIDER: a
+                          nowrap child reports its whole text as min-content, so
+                          this list "measures" 1017px and works at far less. */}
+                      <span className="min-w-0 flex-1 truncate text-xs text-zinc-500">
+                        {version.blurb}
+                      </span>
+                      {version.shipped ? (
+                        <span className="shrink-0 whitespace-nowrap text-[11px] text-green-700">
+                          runs {version.shipped.label}
+                        </span>
+                      ) : null}
+                      <ExternalLink className="h-3 w-3 shrink-0 text-zinc-200 transition-colors group-hover:text-zinc-500" />
+                    </Link>
+                  );
+                })}
+              </div>
+            ))}
           </CardContent>
         </Card>
-
-        {/* ⭐⭐ THE DROPDOWN CONFIG LAYOUT BENCHES, 2026-09-25. Six designs for
-          ONE page, after the user asked: "Can you suggest other better ways to
-          layout the UI on this page? How many Alpha pages can you create so i can
-          see the samples?"
-          📌 WHY THEY ARE NOT IN THE CARD ABOVE THIS ONE: everything there is a
-          design for the MAIN page, and six tiles for a different page would have
-          swamped it. Grouping is the whole reason `family` exists.
-          🛑 AND WHY THIS CARD MUST NOT IMPLY "PARKED": these were asked for today
-          and the next move is ours. The light/dark card happens to hold two
-          parked pages; that is a fact about those pages, not about having a card.
-          See `family` in `versions.ts`.
-          🛑 AS OF 2026-09-28 ALL SIX WERE ARCHIVED TOGETHER, so this card is
-          hidden too. Same guard, same reason as the benches card above: an
-          empty card is a heading and a count describing nothing, and with two
-          of the three empty at once the page reads as broken rather than tidy.
-          The six are on the Archived Versions page. */}
-        {AUTOMATION_DROPDOWN_CONFIG_VERSIONS.length > 0 && (
-          <Card>
-            <CardContent className="@container p-0">
-              <div className="flex items-start justify-between gap-3 border-b bg-zinc-50 px-3 py-2">
-                <div className="min-w-0">
-                  <h2 className="text-sm font-semibold text-zinc-900">
-                    Dropdown Configuration Layouts
-                  </h2>
-                  <p className="mt-0.5 text-xs text-zinc-500">
-                    Six ways to lay out the same page. The data and the editing
-                    behaviour are the live page&rsquo;s; only the layout
-                    differs.
-                  </p>
-                </div>
-                <span className="shrink-0 text-xs text-zinc-500">
-                  {AUTOMATION_DROPDOWN_CONFIG_VERSIONS.length} pages, each opens
-                  in a new tab
-                </span>
-              </div>
-              <div className="grid gap-2 p-3 @min-[304px]:grid-cols-2 @min-[674px]:grid-cols-3">
-                {AUTOMATION_DROPDOWN_CONFIG_VERSIONS.map((version) => (
-                  <VersionTile key={version.href} version={version} />
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* ⭐⭐ EIGHT LAYOUTS FOR *THIS* PAGE, 2026-09-29: "Got any suggestions
-          on UI layout for this page? pls make as many Alphas as you can
-          suggest."
-          🛑🛑 SO THIS PAGE NOW LISTS BENCHES OF ITSELF, and that is not a
-          mistake to tidy up. The directory of versions has always lived here;
-          a set that happens to redesign the host page is still reached the
-          same way. **Each bench carries a strip back to its seven siblings**,
-          so you can compare without returning here every time.
-          📌 WHY ITS OWN CARD RATHER THAN THE BENCH LIST ABOVE: same reason as
-          the dropdown six. Everything in that card redesigns the MAIN page,
-          and eight tiles for a different page would swamp it. Grouping is what
-          `family` is for.
-          🛑 NONE OF THEM IS PARKED, and the card must not imply it. They were
-          asked for today and the next move is ours.
-          ⚠️ ALPHA4 CARRIES UNREVIEWED COPY (a paragraph per capability and a
-          reason under every gap) and says so on the page itself. It is the
-          only one that adds sentences rather than rearranging the marks. */}
-        {AUTOMATION_FEATURE_INTEGRATION_VERSIONS.length > 0 && (
-          <Card>
-            <CardContent className="@container p-0">
-              <div className="flex items-start justify-between gap-3 border-b bg-zinc-50 px-3 py-2">
-                <div className="min-w-0">
-                  <h2 className="text-sm font-semibold text-zinc-900">
-                    Feature Integration Layouts
-                  </h2>
-                  <p className="mt-0.5 text-xs text-zinc-500">
-                    Eight ways to lay out this page. All of them read the same
-                    saved marks; only the layout differs.
-                  </p>
-                </div>
-                <span className="shrink-0 text-xs text-zinc-500">
-                  {AUTOMATION_FEATURE_INTEGRATION_VERSIONS.length} pages, each
-                  opens in a new tab
-                </span>
-              </div>
-              <div className="grid gap-2 p-3 @min-[304px]:grid-cols-2 @min-[674px]:grid-cols-3">
-                {AUTOMATION_FEATURE_INTEGRATION_VERSIONS.map((version) => (
-                  <VersionTile key={version.href} version={version} />
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* ⭐⭐ SIX LAYOUTS FOR THIS SECTION ITSELF, 2026-09-30. The user
-          circled the card above: "Any suggestions on how to show these layouts
-          differently? pls make Alpha pages for them."
-          🛑🛑 AND THIS CARD IS THE FIFTH ONE, WHICH IS THE POINT THEY ARE
-          ANSWERING. The directory grows by CARD: one per family, plus the
-          Archived page. **Adding a family adds a card, and a card that lists
-          designs for the card list is where that stops being funny.** Every one
-          of the six proposes a shape that does not grow this way.
-          📌 THEY ARE "Version Directory AlphaN", NOT another Feature
-          Integration set: the prefix names WHAT IS BEING REDESIGNED, and the
-          eight above redesign this page's capability table, not this list.
-          ⚠️ EACH ONE LISTS EVERY VERSION, so none of them carries an "other
-          layouts" strip. They reach each other by being what they are. */}
-        {AUTOMATION_VERSION_DIRECTORY_VERSIONS.length > 0 && (
-          <Card>
-            <CardContent className="@container p-0">
-              <div className="flex items-start justify-between gap-3 border-b bg-zinc-50 px-3 py-2">
-                <div className="min-w-0">
-                  <h2 className="text-sm font-semibold text-zinc-900">
-                    Version Directory Layouts
-                  </h2>
-                  <p className="mt-0.5 text-xs text-zinc-500">
-                    Six ways to show the lists on this page, including the one
-                    you are reading. Each lists every version, archived
-                    included.
-                  </p>
-                </div>
-                <span className="shrink-0 text-xs text-zinc-500">
-                  {AUTOMATION_VERSION_DIRECTORY_VERSIONS.length} pages, each
-                  opens in a new tab
-                </span>
-              </div>
-              <div className="grid gap-2 p-3 @min-[304px]:grid-cols-2 @min-[674px]:grid-cols-3">
-                {AUTOMATION_VERSION_DIRECTORY_VERSIONS.map((version) => (
-                  <VersionTile key={version.href} version={version} />
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
       </div>
     </div>
   );
