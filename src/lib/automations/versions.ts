@@ -758,9 +758,28 @@ export const AUTOMATION_FEATURE_INTEGRATION_VERSIONS =
  *  ⚠️ THIS IS A LABEL DERIVATION, NOT LAYOUT. Colour, shape and wording belong
  *  to whichever page renders it; this only says which bucket a version is in,
  *  so six benches cannot disagree about that. */
-export function versionStatusKey(
-  v: AutomationVersion,
-): "live" | "shipped" | "parked" | "archived" | "bench" {
+export type VersionStatusKey =
+  "live" | "shipped" | "parked" | "archived" | "bench";
+
+/** The states a person may pick from the directory's status menu.
+ *
+ *  🛑 `live` IS DELIBERATELY NOT ON THIS LIST. It does not mean "good" or
+ *  "current", it means **this row IS the live page**, which is a fact about
+ *  routing rather than a judgement anyone should be able to assert about a
+ *  bench. The Official row shows it by default and gets it back from "Reset to
+ *  default"; nothing else can claim it.
+ *  ⚠️ `shipped` IS on the list even though it normally comes with a target
+ *  ("runs Dropdown Configuration"). **That tail is not part of the status** -
+ *  it lives on `shipped` in the registry - so a hand-set `shipped` row shows
+ *  the word without a target, which is honest: nobody typed a target. */
+export const EDITABLE_VERSION_STATUSES = [
+  "shipped",
+  "parked",
+  "bench",
+  "archived",
+] as const satisfies readonly VersionStatusKey[];
+
+export function versionStatusKey(v: AutomationVersion): VersionStatusKey {
   if (v.official) return "live";
   if (v.shipped) return "shipped";
   if (v.parked) return "parked";
