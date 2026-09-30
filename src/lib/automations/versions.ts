@@ -33,6 +33,8 @@ import {
   Boxes,
   Dna,
   FlaskConical,
+  AlignJustify,
+  FolderTree,
   Gauge,
   Grid2x2Check,
   Grid3x3,
@@ -44,7 +46,11 @@ import {
   Microscope,
   Palette,
   Rows3,
+  Route,
   ScrollText,
+  Search,
+  Signpost,
+  Table2,
   Telescope,
   TestTube,
   TriangleAlert,
@@ -164,7 +170,11 @@ export interface AutomationVersion {
    *  field was worth adding for: **six tiles for one page would have swamped
    *  the bench list**, where every other entry is a different design of the
    *  MAIN page. None of them is parked. */
-  family?: "light-dark" | "dropdown-config" | "feature-integration";
+  family?:
+    | "light-dark"
+    | "dropdown-config"
+    | "feature-integration"
+    | "version-directory";
   /** ⭐ ARCHIVED: this version did its job and is kept for the record. Added
    *  2026-09-28: "The new page is meant to house Archived alphas that already
    *  have served their purpose."
@@ -186,6 +196,21 @@ export interface AutomationVersion {
    *  📌 IT IS NOT DELETION EITHER. If a page is genuinely dead, delete it; this
    *  flag is for pages worth keeping and worth getting out of the way. */
   archived?: boolean;
+  /** ⭐ SHIPPED: this design's LAYOUT is what a real page now renders. Added
+   *  2026-09-30 so the directory can say which experiments actually landed,
+   *  which until now existed only as prose in comments and in the Done List.
+   *
+   *  ⚠️⚠️ IT IS NOT THE OPPOSITE OF `archived`, AND NOT A SYNONYM FOR IT. All
+   *  three of these have shipped and two of them are also archived: winning is
+   *  what makes a bench finished, so the two flags go together more often than
+   *  not. **Read them separately.**
+   *  📌 IT IS A FACT ABOUT THE LAYOUT, NOT ABOUT THE FILE. The bench page is
+   *  still a bench: it has no working controls, and the live page it fed keeps
+   *  its own behaviour. See the note at the top of Feature Integration Alpha2.
+   *  🛑 ONLY THE USER'S OWN PROMOTIONS GO HERE. Each of the three below is an
+   *  explicit instruction, recorded in [[automations-done]]; do not infer a
+   *  promotion from a resemblance. */
+  shipped?: { href: string; label: string };
 }
 
 export const AUTOMATION_VERSIONS: AutomationVersion[] = [
@@ -208,6 +233,9 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
     label: "Main Page Beta2",
     icon: Blocks,
     blurb: "Assembly bench. Alpha3's master and detail, with working controls.",
+    // Promoted 2026-09-10 (#497): "We are now going to update the official
+    // page. It will now mirror the layout of the Beta2 page."
+    shipped: { href: "/automations", label: "the Automations hub" },
     // ⚠️ The page is UNCHANGED; only its NAME moved (Beta1 -> Beta2). See the
     // renumbering note at the top of this file.
     archived: true,
@@ -372,6 +400,12 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
     icon: ListChecks,
     blurb:
       "The seven tabs become a left rail, so navigation stops setting the page width.",
+    // Promoted 2026-09-25: "This looks good, make the Live page use this
+    // layout." Archived three days later, which is why both flags are set.
+    shipped: {
+      href: "/automations/dropdown-config",
+      label: "Dropdown Configuration",
+    },
     family: "dropdown-config",
     archived: true,
   },
@@ -468,6 +502,12 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
     icon: Rows3,
     blurb:
       "Transposed: one row per website. This is the one the live page now uses.",
+    // Promoted 2026-09-30: "the presentation here is good, pls implement it to
+    // the actual page."
+    shipped: {
+      href: "/automations/feature-integration",
+      label: "Feature Integration",
+    },
     family: "feature-integration",
   },
   {
@@ -513,6 +553,74 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
     icon: Gauge,
     blurb: "The headline first, the grid demoted underneath it.",
     family: "feature-integration",
+  },
+
+  // ⭐⭐ SIX LAYOUTS FOR THE VERSION DIRECTORY ITSELF, added 2026-09-30. The
+  // user circled the "Feature Integration Layouts" card: "Any suggestions on
+  // how to show these layouts differently? pls make Alpha pages for them".
+  //
+  // 🏷️🏷️ "Version Directory AlphaN", NOT "Feature Integration AlphaN". The
+  // naming rule says the prefix names WHAT IS BEING REDESIGNED, and this is the
+  // directory, which happens to be hosted on the Feature Integration page. The
+  // eight Feature Integration alphas redesign that page's capability TABLE, and
+  // reusing their prefix would make two different experiments look like one.
+  // **Same reasoning that made the toolbar gallery "Toolbar Options 1".**
+  //
+  // 📌 WHAT THEY ARE ANSWERING: the directory is **one card per family**, and
+  // there are now four families plus a separate Archived page. Every family
+  // added is another card, every tile looks identical to every other, and
+  // **nothing on a tile says which design actually shipped** even though three
+  // of them have. The six split that knot differently.
+  //
+  // ⭐ EACH ONE LISTS EVERY VERSION, so each is its own way back to the other
+  // five. That is why they carry no "other layouts" strip, unlike the Feature
+  // Integration eight: **a directory that could not reach its siblings would be
+  // failing at the job it is proposing to do.**
+  // 🛑 NONE IS `parked` and none is `archived`.
+  {
+    href: "/automations-version-directory-alpha1",
+    label: "Version Directory Alpha1",
+    icon: Table2,
+    blurb:
+      "One table for every version, archived included, instead of a card per family.",
+    family: "version-directory",
+  },
+  {
+    href: "/automations-version-directory-alpha2",
+    label: "Version Directory Alpha2",
+    icon: Signpost,
+    blurb:
+      "Grouped by status: in use, waiting on you, open questions, settled.",
+    family: "version-directory",
+  },
+  {
+    href: "/automations-version-directory-alpha3",
+    label: "Version Directory Alpha3",
+    icon: FolderTree,
+    blurb: "A family rail beside the list, so a new family costs no new card.",
+    family: "version-directory",
+  },
+  {
+    href: "/automations-version-directory-alpha4",
+    label: "Version Directory Alpha4",
+    icon: AlignJustify,
+    blurb:
+      "Dense rows instead of tiles: everything in about a third of the height.",
+    family: "version-directory",
+  },
+  {
+    href: "/automations-version-directory-alpha5",
+    label: "Version Directory Alpha5",
+    icon: Search,
+    blurb: "One box across every version, with family and status chips.",
+    family: "version-directory",
+  },
+  {
+    href: "/automations-version-directory-alpha6",
+    label: "Version Directory Alpha6",
+    icon: Route,
+    blurb: "Provenance first: which design each live page is actually running.",
+    family: "version-directory",
   },
 
   // ⚠️⚠️ AN "OPTIONS" ENTRY IS A DIFFERENT KIND OF THING FROM EVERYTHING ABOVE
@@ -595,6 +703,52 @@ export const AUTOMATION_FEATURE_INTEGRATION_VERSIONS =
   AUTOMATION_VERSIONS.filter(
     (v) => v.family === "feature-integration" && !v.archived,
   );
+
+/** The six Version Directory layout benches, in their own card.
+ *
+ *  ⚠️ THE CARD THEY RENDER IN IS THE THING THEY REDESIGN, which is the most
+ *  recursive corner of this registry and is fine. Opening one is the only way
+ *  to see the alternative to the card you opened it from. */
+export const AUTOMATION_VERSION_DIRECTORY_VERSIONS = AUTOMATION_VERSIONS.filter(
+  (v) => v.family === "version-directory" && !v.archived,
+);
+
+/** ⭐ THE ONE-WORD STATE OF A VERSION, for a directory that wants to say more
+ *  than a name and a blurb. **The order is the point**: a design can be both
+ *  shipped and archived (two of the three are), and "its layout is what the
+ *  live page runs" is the more useful of those two facts, so it wins.
+ *
+ *  ⚠️ THIS IS A LABEL DERIVATION, NOT LAYOUT. Colour, shape and wording belong
+ *  to whichever page renders it; this only says which bucket a version is in,
+ *  so six benches cannot disagree about that. */
+export function versionStatusKey(
+  v: AutomationVersion,
+): "live" | "shipped" | "parked" | "archived" | "bench" {
+  if (v.official) return "live";
+  if (v.shipped) return "shipped";
+  if (v.parked) return "parked";
+  if (v.archived) return "archived";
+  return "bench";
+}
+
+/** ⭐ WHICH EXPERIMENT A VERSION BELONGS TO, as a readable name.
+ *
+ *  ⚠️⚠️ IT IS NOT JUST `family`, AND IT DELIBERATELY DOES NOT BECOME ONE. The
+ *  unfamilied entries are Main Page designs plus one toolbar gallery, and
+ *  giving them a `family` value would quietly empty
+ *  `AUTOMATION_BENCH_VERSIONS` of any FUTURE main-page bench, because that
+ *  list is defined as "no family". **A display label was the cheap half of
+ *  that change; the filter semantics were the expensive half.** */
+export function versionGroupLabel(v: AutomationVersion): string {
+  if (v.official) return "Live page";
+  if (v.family === "light-dark") return "Light / Dark Mode";
+  if (v.family === "dropdown-config") return "Dropdown Configuration";
+  if (v.family === "feature-integration") return "Feature Integration";
+  if (v.family === "version-directory") return "Version Directory";
+  if (v.href.startsWith("/automations-toolbar-options"))
+    return "Toolbar Options";
+  return "Main Page";
+}
 
 /** The retired versions, listed on their own page at
  *  `/automations/archived-versions`.
