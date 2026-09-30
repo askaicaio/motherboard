@@ -197,7 +197,7 @@ export function VersionDirectoryList({
 
   return (
     <Card>
-      <CardContent className="p-0">
+      <CardContent className="overflow-x-auto p-0">
         <div className="flex items-center justify-between gap-3 border-b bg-zinc-50 px-4 py-2">
           <h2 className="text-sm font-semibold text-zinc-900">{heading}</h2>
           <span className="text-xs text-zinc-500">
@@ -205,149 +205,198 @@ export function VersionDirectoryList({
           </span>
         </div>
 
-        {groups.map((group) => (
-          <div key={group.name}>
-            {/* A group heading costs one 24px strip. As a card per family it
-                cost a card header, a subtitle and the gap above it, each. */}
-            <div className="flex items-center justify-between gap-3 border-y bg-zinc-50/70 px-4 py-1">
-              <h3 className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
-                {group.name}
-              </h3>
-              <span className="text-[11px] tabular-nums text-zinc-400">
-                {group.items.length}
-              </span>
-            </div>
-            {group.items.map((version) => {
-              const derived = versionStatusKey(version);
-              const override = overrides[version.href];
-              const current = override ?? derived;
-              const tone = STATUS[current];
-              return (
-                <div
-                  key={version.href}
-                  className="group flex items-center gap-3 px-4 py-1.5 transition-colors hover:bg-zinc-50"
+        {/* ⭐⭐ A REAL TABLE SINCE 2026-09-30, NOT FLEX ROWS. The user: "can you
+            make the width of this column flexible, since the titles don't
+            fit". The name column was `w-52`, so "Feature Integration Alpha1"
+            truncated to "Feature Integration Alph...".
+            🛑🛑 THE OBVIOUS FIX IS THE WRONG ONE. Letting each name size to its
+            own content (`w-auto`) makes every row a different width, and
+            **columns that line up is one of the two reasons this layout was
+            picked over tiles.** Widening the fixed number fixes today and
+            breaks again the next time a longer name is registered, which in
+            this file is roughly weekly.
+            ⭐ A TABLE SIZES A COLUMN TO THE WIDEST CELL IN IT, across every
+            row, for free. That is the actual request: flexible AND aligned.
+            📌 IT ALSO RETIRED TWO MAGIC NUMBERS, the 208px name column and the
+            104px status column. Nothing here sets a column width now. */}
+        <table className="w-full text-sm">
+          {groups.map((group) => (
+            <tbody key={group.name}>
+              {/* A group heading costs one 24px strip. As a card per family it
+                  cost a card header, a subtitle and the gap above it, each. */}
+              <tr>
+                <th
+                  colSpan={4}
+                  scope="colgroup"
+                  className="border-y bg-zinc-50/70 px-4 py-1"
                 >
-                  <Link
-                    href={version.href}
-                    target="_blank"
-                    rel="noreferrer"
-                    prefetch={false}
-                    className="inline-flex w-52 shrink-0 items-center gap-1.5"
-                  >
-                    <version.icon className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
-                    <span className="truncate text-sm font-medium text-zinc-900 underline-offset-2 hover:underline">
-                      {version.label}
+                  <span className="flex items-center justify-between gap-3">
+                    <span className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+                      {group.name}
                     </span>
-                    <ExternalLink className="h-3 w-3 shrink-0 text-zinc-200 transition-colors group-hover:text-zinc-500" />
-                  </Link>
-
-                  <DropdownMenu>
-                    <DropdownMenuTrigger
-                      disabled={pending.has(version.href)}
-                      aria-label={`Status of ${version.label}: ${tone.label}. Change it.`}
-                      className="inline-flex w-[104px] shrink-0 items-center gap-1.5 rounded px-1 py-0.5 text-left transition-colors hover:bg-zinc-200/60 disabled:opacity-50"
-                    >
-                      <span
-                        className={cn(
-                          "block h-1.5 w-1.5 shrink-0 rounded-full",
-                          tone.dot,
-                        )}
-                      />
-                      <span className={cn("text-[11px]", tone.text)}>
-                        {tone.label}
-                      </span>
-                      {/* ⚠️ THE CHEVRON IS THE ONLY THING SAYING THIS IS
-                          CLICKABLE, and it is invisible until the row is
-                          hovered. **A permanent chevron on all 35 rows would
-                          be the loudest thing on the page**, which is the
-                          opposite of what a dot-and-word status is for. */}
-                      <ChevronDown className="h-3 w-3 shrink-0 text-zinc-300 opacity-0 transition-opacity group-hover:opacity-100" />
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-72">
-                      {EDITABLE_VERSION_STATUSES.map((key) => {
-                        const option = STATUS[key];
-                        return (
-                          <DropdownMenuItem
-                            key={key}
-                            onClick={() => setStatus(version.href, key)}
-                          >
-                            <span
-                              className={cn(
-                                "block h-1.5 w-1.5 shrink-0 rounded-full",
-                                option.dot,
-                              )}
-                            />
-                            <span className="flex min-w-0 flex-1 flex-col">
-                              <span className="text-sm">{option.label}</span>
-                              {/* The one-liner is what makes these
-                                  distinguishable. "parked" and "archived" are
-                                  opposites and the words do not say so.
-                                  ⚠️ REWRITTEN 2026-09-30 IN A SYSTEM VOICE:
-                                  "The descriptions here are made in a third
-                                  person like POV. make the descriptions more
-                                  system-like." **They were narrating ("the
-                                  next move is ours") where a status
-                                  definition should just define.** Keep them
-                                  as terse fragments with no narrator and no
-                                  "we"; they are labels, not commentary. */}
-                              <span className="text-[11px] text-zinc-500">
-                                {option.blurb}
-                              </span>
-                            </span>
-                            {current === key ? (
-                              <Check className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
-                            ) : null}
-                          </DropdownMenuItem>
-                        );
-                      })}
-                      {/* Shown only when there is something to undo, so the
-                          menu does not carry a permanently dead item. */}
-                      {override ? (
-                        <>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            onClick={() => setStatus(version.href, null)}
-                          >
-                            <RotateCcw className="h-3.5 w-3.5 shrink-0" />
-                            <span className="flex min-w-0 flex-1 flex-col">
-                              <span className="text-sm">Reset to default</span>
-                              <span className="text-[11px] text-zinc-500">
-                                Back to {STATUS[derived].label}, what the code
-                                says.
-                              </span>
-                            </span>
-                          </DropdownMenuItem>
-                        </>
-                      ) : null}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-
-                  {/* 🛑 `truncate`, NOT `line-clamp-1`. A clamp has to own
-                      `display`, and this is a flex child that already has one;
-                      see the line-clamp note in memory. One line either way,
-                      and truncate cannot be silently killed by a utility
-                      emitted after it.
-                      ⚠️ IT IS ALSO WHY A HOST PAGE'S FLOOR NEED NOT BE WIDE: a
-                      nowrap child reports its whole text as min-content, so
-                      this list "measures" about 1017px and works at far less.
-                      Measured at a 1009px floor the blurb sits at 567px. */}
-                  <span className="min-w-0 flex-1 truncate text-xs text-zinc-500">
-                    {version.blurb}
+                    <span className="text-[11px] tabular-nums text-zinc-400">
+                      {group.items.length}
+                    </span>
                   </span>
-                  {/* ⚠️ THE "runs" TAIL IS NOT THE STATUS AND DOES NOT MOVE
-                      WITH IT. It comes from `shipped` in the registry, so a
-                      row hand-set to "archived" still says what it runs, which
-                      is a combination two versions are genuinely in. */}
-                  {version.shipped ? (
-                    <span className="shrink-0 whitespace-nowrap text-[11px] text-green-700">
-                      runs {version.shipped.label}
-                    </span>
-                  ) : null}
-                </div>
-              );
-            })}
-          </div>
-        ))}
+                </th>
+              </tr>
+              {group.items.map((version) => {
+                const derived = versionStatusKey(version);
+                const override = overrides[version.href];
+                const current = override ?? derived;
+                const tone = STATUS[current];
+                return (
+                  <tr
+                    key={version.href}
+                    className="group transition-colors hover:bg-zinc-50"
+                  >
+                    {/* ⚠️ `font-medium` IS LOAD-BEARING ON A `th`: the UA
+                        default is bold and Tailwind v4 does not reset it, so
+                        without this the names would come out heavier than they
+                        were as divs. Same for `text-left`, which undoes the
+                        UA centring. */}
+                    <th
+                      scope="row"
+                      className="whitespace-nowrap py-1.5 pl-4 pr-3 text-left font-medium"
+                    >
+                      <Link
+                        href={version.href}
+                        target="_blank"
+                        rel="noreferrer"
+                        prefetch={false}
+                        className="inline-flex items-center gap-1.5"
+                      >
+                        <version.icon className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
+                        <span className="text-sm font-medium text-zinc-900 underline-offset-2 hover:underline">
+                          {version.label}
+                        </span>
+                        <ExternalLink className="h-3 w-3 shrink-0 text-zinc-200 transition-colors group-hover:text-zinc-500" />
+                      </Link>
+                    </th>
+
+                    <td className="whitespace-nowrap px-3 py-1.5">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger
+                          disabled={pending.has(version.href)}
+                          aria-label={`Status of ${version.label}: ${tone.label}. Change it.`}
+                          className="inline-flex items-center gap-1.5 rounded px-1 py-0.5 text-left transition-colors hover:bg-zinc-200/60 disabled:opacity-50"
+                        >
+                          <span
+                            className={cn(
+                              "block h-1.5 w-1.5 shrink-0 rounded-full",
+                              tone.dot,
+                            )}
+                          />
+                          <span className={cn("text-[11px]", tone.text)}>
+                            {tone.label}
+                          </span>
+                          {/* ⚠️ THE CHEVRON IS THE ONLY THING SAYING THIS IS
+                              CLICKABLE, and it is invisible until the row is
+                              hovered. **A permanent chevron on all 35 rows
+                              would be the loudest thing on the page**, which
+                              is the opposite of what a dot-and-word status is
+                              for. */}
+                          <ChevronDown className="h-3 w-3 shrink-0 text-zinc-300 opacity-0 transition-opacity group-hover:opacity-100" />
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" className="w-72">
+                          {EDITABLE_VERSION_STATUSES.map((key) => {
+                            const option = STATUS[key];
+                            return (
+                              <DropdownMenuItem
+                                key={key}
+                                onClick={() => setStatus(version.href, key)}
+                              >
+                                <span
+                                  className={cn(
+                                    "block h-1.5 w-1.5 shrink-0 rounded-full",
+                                    option.dot,
+                                  )}
+                                />
+                                <span className="flex min-w-0 flex-1 flex-col">
+                                  <span className="text-sm">
+                                    {option.label}
+                                  </span>
+                                  {/* The one-liner is what makes these
+                                      distinguishable. "parked" and "archived"
+                                      are opposites and the words do not say
+                                      so.
+                                      ⚠️ WRITTEN IN A SYSTEM VOICE since
+                                      2026-09-30: "make the descriptions more
+                                      system-like". **They were narrating
+                                      ("the next move is ours") where a status
+                                      definition should just define.** Keep
+                                      them as terse fragments with no narrator
+                                      and no "we". */}
+                                  <span className="text-[11px] text-zinc-500">
+                                    {option.blurb}
+                                  </span>
+                                </span>
+                                {current === key ? (
+                                  <Check className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+                                ) : null}
+                              </DropdownMenuItem>
+                            );
+                          })}
+                          {/* Shown only when there is something to undo, so
+                              the menu does not carry a permanently dead
+                              item. */}
+                          {override ? (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => setStatus(version.href, null)}
+                              >
+                                <RotateCcw className="h-3.5 w-3.5 shrink-0" />
+                                <span className="flex min-w-0 flex-1 flex-col">
+                                  <span className="text-sm">
+                                    Reset to default
+                                  </span>
+                                  <span className="text-[11px] text-zinc-500">
+                                    Back to {STATUS[derived].label}, what the
+                                    code says.
+                                  </span>
+                                </span>
+                              </DropdownMenuItem>
+                            </>
+                          ) : null}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </td>
+
+                    {/* 🛑🛑 `w-full max-w-0` IS THE WHOLE TRICK AND IS NOT A
+                        TYPO. In an auto-layout table a cell will not shrink
+                        below its content, so a `truncate` child never
+                        truncates and the table just grows. **A zero
+                        max-width plus a full width makes this cell take
+                        whatever is left and hand a real width to the span
+                        inside**, which is what lets the ellipsis happen.
+                        ⚠️ IT IS ALSO WHY THE PAGE NO LONGER NEEDS A WIDE
+                        FLOOR: the blurb has stopped reporting its whole text
+                        as min-content. */}
+                    <td className="w-full max-w-0 px-3 py-1.5">
+                      <span className="block truncate text-xs text-zinc-500">
+                        {version.blurb}
+                      </span>
+                    </td>
+
+                    {/* ⚠️ THE "runs" TAIL IS NOT THE STATUS AND DOES NOT MOVE
+                        WITH IT. It comes from `shipped` in the registry, so a
+                        row hand-set to "archived" still says what it runs,
+                        which is a combination two versions are genuinely
+                        in. */}
+                    <td className="whitespace-nowrap py-1.5 pl-3 pr-4 text-right">
+                      {version.shipped ? (
+                        <span className="text-[11px] text-green-700">
+                          runs {version.shipped.label}
+                        </span>
+                      ) : null}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          ))}
+        </table>
       </CardContent>
     </Card>
   );
