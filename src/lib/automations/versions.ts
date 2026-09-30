@@ -472,6 +472,15 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
   // transpose, drop the grid, write it out, lead with the gaps, compress it,
   // put a website in a detail panel, or lead with the headline.
   //
+  // 🗄️🗄️ SEVEN OF THE EIGHT WERE ARCHIVED ON 2026-09-30: "These are not
+  // benched anymore, consider them archived." **Alpha2 was left out because
+  // its layout is what the live page runs**, and the user chose the twelve
+  // benches rather than both groups outright when asked.
+  // ⚠️ CONTRAST WITH THE DROPDOWN CONFIG SIX, where the winner WAS archived
+  // with the losers. **Same question, different answer, five days apart** -
+  // which is exactly why the flag's note says to ask every time rather than
+  // carry a previous answer forward.
+  //
   // ✅✅ ALPHA2 WON, 2026-09-30, one day later: "the presentation here is good,
   // pls implement it to the actual page." The live page is now transposed, one
   // row per website, and its width floor moved 722 -> 1009 to fit.
@@ -497,6 +506,7 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
     blurb:
       "Both tables merged into one matrix, so a website reads as a single column.",
     family: "feature-integration",
+    archived: true,
   },
   {
     href: "/automations-feature-integration-alpha2",
@@ -519,6 +529,7 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
     blurb:
       "A card per website and no grid, so the page reflows instead of scrolling.",
     family: "feature-integration",
+    archived: true,
   },
   {
     href: "/automations-feature-integration-alpha4",
@@ -526,6 +537,7 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
     icon: ScrollText,
     blurb: "Written documentation, with a reason under every gap. Draft copy.",
     family: "feature-integration",
+    archived: true,
   },
   {
     href: "/automations-feature-integration-alpha5",
@@ -533,6 +545,7 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
     icon: TriangleAlert,
     blurb: "Gaps first, worst website at the top; what works is one line.",
     family: "feature-integration",
+    archived: true,
   },
   {
     href: "/automations-feature-integration-alpha6",
@@ -540,6 +553,7 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
     icon: Grid3x3,
     blurb: "A dense dot board: all forty answers at a glance, no scrolling.",
     family: "feature-integration",
+    archived: true,
   },
   {
     href: "/automations-feature-integration-alpha7",
@@ -548,6 +562,7 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
     blurb:
       "A website rail beside a detail panel, the pattern Dropdown Config shipped.",
     family: "feature-integration",
+    archived: true,
   },
   {
     href: "/automations-feature-integration-alpha8",
@@ -555,6 +570,7 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
     icon: Gauge,
     blurb: "The headline first, the grid demoted underneath it.",
     family: "feature-integration",
+    archived: true,
   },
 
   // ⭐⭐ SIX LAYOUTS FOR THE VERSION DIRECTORY ITSELF, added 2026-09-30. The
@@ -574,6 +590,10 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
   // **nothing on a tile says which design actually shipped** even though three
   // of them have. The six split that knot differently.
   //
+  // 🗄️🗄️ FIVE OF THE SIX WERE ARCHIVED ON 2026-09-30, hours after they were
+  // built: "These are not benched anymore, consider them archived." **Alpha4
+  // was left out because its layout is what the live directory runs.**
+  //
   // ✅✅ ALPHA4 WON THE SAME DAY: "This layout is good, pls implement it". The
   // Feature Integration page's directory is now one dense list, and the four
   // per-family filters that fed the old cards were deleted with them.
@@ -592,6 +612,7 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
     blurb:
       "One table for every version, archived included, instead of a card per family.",
     family: "version-directory",
+    archived: true,
   },
   {
     href: "/automations-version-directory-alpha2",
@@ -600,6 +621,7 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
     blurb:
       "Grouped by status: in use, waiting on you, open questions, settled.",
     family: "version-directory",
+    archived: true,
   },
   {
     href: "/automations-version-directory-alpha3",
@@ -607,6 +629,7 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
     icon: FolderTree,
     blurb: "A family rail beside the list, so a new family costs no new card.",
     family: "version-directory",
+    archived: true,
   },
   {
     href: "/automations-version-directory-alpha4",
@@ -614,6 +637,17 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
     icon: AlignJustify,
     blurb:
       "Dense rows instead of tiles. This is the one the live directory now uses.",
+    // 🛑 THIS WAS MISSING UNTIL 2026-09-30 AND THE ROW LIED BECAUSE OF IT.
+    // Promoted the same day ("This layout is good, pls implement it"), but the
+    // `shipped` field had been added only hours earlier and this entry never
+    // got one, so the directory rendered its own winner as "bench" with no
+    // "runs" tail. ⚠️ **A NEW FIELD IS NOT DONE UNTIL EVERY CASE THAT SHOULD
+    // CARRY IT DOES**; three entries got it on the day it was added and the
+    // fourth arrived two rounds later.
+    shipped: {
+      href: "/automations/design-versions",
+      label: "Design Versions",
+    },
     family: "version-directory",
   },
   {
@@ -622,6 +656,7 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
     icon: Search,
     blurb: "One box across every version, with family and status chips.",
     family: "version-directory",
+    archived: true,
   },
   {
     href: "/automations-version-directory-alpha6",
@@ -629,6 +664,7 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
     icon: Route,
     blurb: "Provenance first: which design each live page is actually running.",
     family: "version-directory",
+    archived: true,
   },
 
   // ⚠️⚠️ AN "OPTIONS" ENTRY IS A DIFFERENT KIND OF THING FROM EVERYTHING ABOVE
@@ -682,7 +718,9 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
  * 🛑 `AUTOMATION_ARCHIVED_VERSIONS` WENT TOO, LATER THE SAME DAY, when the
  * user renamed that page to Design Versions and chose for it to show ALL
  * versions rather than the archived 17. **Nothing filters on `archived` any
- * more.** The flag itself is very much alive: it is one of the five states
+ * more** - which was not quite true when it was written: the Feature
+ * Integration list still did, and it was corrected on the same day when
+ * archiving twelve pages would have emptied it. The flag itself is very much alive: it is one of the five states
  * `versionStatusKey` reports, so an archived version now gets a grey word on
  * its row instead of a different page.
  * ⚠️ WHICH MEANS ARCHIVING IS NO LONGER A MOVE. It used to take a version off
@@ -694,16 +732,23 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
 
 /** The eight Feature Integration layout benches.
  *
- *  ⚠️ ITS ONLY READER IS NOW THE BENCHES THEMSELVES, since 2026-09-30. It used
- *  to feed a card on the Feature Integration page; that card is gone with the
+ *  ⚠️ ITS ONLY READER IS THE BENCHES THEMSELVES, since 2026-09-30. It used to
+ *  feed a card on the Feature Integration page; that card is gone with the
  *  other four, and **what is left is the "other layouts" strip each of those
  *  eight pages carries so you can hop between them without going back.**
- *  📌 Which is why it survived the deletion above and its siblings did not: it
- *  has eight consumers that are not the directory. */
+ *
+ *  🛑🛑 IT STOPPED EXCLUDING `archived` ON 2026-09-30, AND THAT WAS NOT
+ *  OPTIONAL. The user archived seven of the eight the same day. With the old
+ *  `&& !v.archived` the list would have held ONE entry, every strip filters
+ *  itself out, and **all eight strips would have rendered as nothing** - the
+ *  benches would have silently stopped linking each other.
+ *  ⭐ THE RULE BEHIND IT: **archiving is a LABEL now, not a move** (see the
+ *  note above). A label must not decide reachability. The one filter still
+ *  reading the flag was a leftover from when it did, and archiving twelve
+ *  pages is exactly the event that would have exposed it as a dead link
+ *  instead of an error. */
 export const AUTOMATION_FEATURE_INTEGRATION_VERSIONS =
-  AUTOMATION_VERSIONS.filter(
-    (v) => v.family === "feature-integration" && !v.archived,
-  );
+  AUTOMATION_VERSIONS.filter((v) => v.family === "feature-integration");
 
 /** ⭐ THE ONE-WORD STATE OF A VERSION, for a directory that wants to say more
  *  than a name and a blurb. **The order is the point**: a design can be both
