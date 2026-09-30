@@ -31,12 +31,20 @@ import Link from "next/link";
 import { requireAuth } from "@/lib/auth/guard";
 import { ArrowLeft, Layers } from "lucide-react";
 import { VersionDirectoryList } from "@/components/automations/version-directory-list";
+import { getVersionStatusOverrides } from "@/lib/automations/version-status";
 import { AUTOMATION_VERSIONS } from "@/lib/automations/versions";
+
+export const dynamic = "force-dynamic";
 
 export default async function AutomationsDesignVersionsPage() {
   await requireAuth();
 
   const shipped = AUTOMATION_VERSIONS.filter((v) => v.shipped).length;
+
+  // ⚠️ READ ON THE SERVER AND PASSED DOWN, not fetched by the list. **A
+  // directory that flashed every row as "bench" and then corrected itself
+  // would be worse than one that could not be edited at all.**
+  const overrides = await getVersionStatusOverrides();
 
   return (
     /* 📐 THE SAME FLOOR AND SCROLLER AS THE FEATURE INTEGRATION PAGE (1009px).
@@ -70,11 +78,11 @@ export default async function AutomationsDesignVersionsPage() {
             Every parallel design of a page in this tab, grouped by the
             experiment it belongs to. {shipped} of them are what a live page now
             renders; the rest are open, waiting on a decision, or settled. All
-            of them still work.
+            of them still work. Click any status to change it.
           </p>
         </div>
 
-        <VersionDirectoryList />
+        <VersionDirectoryList initialOverrides={overrides} />
       </div>
     </div>
   );
