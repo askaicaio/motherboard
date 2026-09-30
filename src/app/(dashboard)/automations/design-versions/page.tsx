@@ -47,18 +47,32 @@ export default async function AutomationsDesignVersionsPage() {
   const overrides = await getVersionStatusOverrides();
 
   return (
-    /* 📐 THE SAME FLOOR AND SCROLLER AS THE FEATURE INTEGRATION PAGE (1009px).
-       Matched rather than re-measured: this page renders the same list
-       component inside the same card at the same padding, so its content
-       cannot need more room than the page it is reached from. **Re-measure if
-       a wider element ever lands here.**
-       ⚠️ IT WAS 722px WHILE THIS PAGE SHOWED TILES. The list that replaced
-       them is wider, and the host page's floor moved for the same reason.
+    /* 📐📐 THE FLOOR IS 820px, LOWERED FROM 1009 ON 2026-09-30 AND MEASURED
+       THIS TIME. It had been matched to the Feature Integration page rather
+       than measured, which stopped being right when the list became a table:
+       **the blurb cell is `w-full max-w-0`, so it no longer reports its whole
+       text as min-content and the page's real minimum fell to 591px.**
+       📊 WHY 820 AND NOT 591. Min-content is where nothing BREAKS, not where
+       the page is usable, and at 591 the description column is 110px of
+       ellipsis. Measured the description at a range of widths: 700 -> 110px,
+       760 -> 170px, **820 -> 230px**, 900 -> 310px, 1009 -> 419px. 230px is
+       about 35 characters, which still reads as a sentence fragment rather
+       than a stub. **The floor is a judgement about acceptable abbreviation;
+       the measurement only tells you what you are buying.**
+       ⭐ THE NAME COLUMN IS 239px AT EVERY ONE OF THOSE WIDTHS. A table column
+       sizes to its widest cell and does not get squeezed, which is the whole
+       reason the names stopped truncating.
+       ⚠️ IT WAS 722px WHILE THIS PAGE SHOWED TILES, then 1009 while it showed
+       flex rows. Third value, third layout; that is the floor doing its job,
+       not churn.
+       ✅ MEASURED THRESHOLD: the page-level scrollbar appears below a 1123px
+       window (1122 overflows by 1px, 1123 by 0), where it used to appear
+       below 1312.
        🛑 THE SCROLLER IS ON THIS DIV, NOT ON `<main>`: the dashboard layout
        gives `<main>` `overflow-x-clip`, which cuts overflow WITHOUT making a
        scroll container, so every page carries its own. */
     <div className="overflow-x-auto">
-      <div className="min-w-[1009px] space-y-6 p-6">
+      <div className="min-w-[820px] space-y-6 p-6">
         <Link
           href="/automations/feature-integration"
           className="inline-flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-900"
