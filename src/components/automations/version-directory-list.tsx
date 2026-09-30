@@ -2,15 +2,13 @@
 // experiment.
 // =============================================================
 // ⚠️ EXTRACTED FROM `automations/feature-integration/page.tsx` ON 2026-09-30,
-// when the Design Versions page started rendering the same list. **Two copies
-// of a list of the same 35 things would drift**, and a version that looked
-// different depending on which page you found it on is the exact problem
-// `version-tile.tsx` was extracted to avoid.
-//
-// 📌 WHY THIS EXTRACTION IS ALLOWED when bench PAGES must never share layout:
-// this is a leaf in `src/components/automations/`, which the registry's own
-// note calls out as fine to import, and neither consumer is a bench. Same
-// precedent as `version-tile.tsx`.
+// when the Design Versions page started rendering the same list, and **left in
+// place hours later when that page became the ONLY one rendering it.**
+// 📌 IT HAS ONE CONSUMER AGAIN, AND THAT IS FINE. A component with one caller
+// is not dead code; folding it back into the page would be churn with no
+// reader served. The extraction stopped being load-bearing, not useful.
+// ⭐ ITS ONE CONSUMER IS `/automations/design-versions`, which is now the only
+// route to every bench in the tab.
 //
 // ✅✅ THE LAYOUT CAME FROM Version Directory Alpha4, promoted 2026-09-30:
 // "This layout is good, pls implement it". It replaced one card per family.
