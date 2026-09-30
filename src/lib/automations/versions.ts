@@ -679,9 +679,18 @@ export const AUTOMATION_VERSIONS: AutomationVersion[] = [
  * cannot have that bug, which is one of the quieter arguments for it.
  * ⚠️ `family` IS STILL LIVE AND STILL MATTERS. It no longer picks a card; it
  * feeds `versionGroupLabel` below, which is what groups the list.
- * 📌 The two that survive have real consumers: the Feature Integration one is
- * read by all eight of those benches for their sibling strip, and the archived
- * one by `/automations/archived-versions`. */
+ * 🛑 `AUTOMATION_ARCHIVED_VERSIONS` WENT TOO, LATER THE SAME DAY, when the
+ * user renamed that page to Design Versions and chose for it to show ALL
+ * versions rather than the archived 17. **Nothing filters on `archived` any
+ * more.** The flag itself is very much alive: it is one of the five states
+ * `versionStatusKey` reports, so an archived version now gets a grey word on
+ * its row instead of a different page.
+ * ⚠️ WHICH MEANS ARCHIVING IS NO LONGER A MOVE. It used to take a version off
+ * one list and put it on another, and that was the whole reason five filters
+ * had to agree. It is now a label. **If archiving should ever hide a version
+ * again, that is a new decision, not a restoration.**
+ * 📌 THE ONE THAT SURVIVES HAS A REAL CONSUMER: the Feature Integration list is
+ * read by all eight of those benches for their sibling strip. */
 
 /** The eight Feature Integration layout benches.
  *
@@ -732,21 +741,6 @@ export function versionGroupLabel(v: AutomationVersion): string {
     return "Toolbar Options";
   return "Main Page";
 }
-
-/** The retired versions, listed on their own page at
- *  `/automations/archived-versions`.
- *
- *  ⚠️⚠️ IT IS NO LONGER A MOVE, AS OF 2026-09-30, AND THAT CHANGED WHAT THIS
- *  LIST IS FOR. It used to be the other half of a pair: every other list ended
- *  `&& !v.archived`, so archiving MOVED a version off the Feature Integration
- *  page and onto the archive page. **That page's directory now shows every
- *  version inline, archived ones included, so nothing moves any more** and
- *  this list feeds a filtered second view rather than the only view.
- *  📌 17 ENTRIES AS OF 2026-09-28, and choosing them is the user's call, not
- *  mine. See `archived` on the interface. */
-export const AUTOMATION_ARCHIVED_VERSIONS = AUTOMATION_VERSIONS.filter(
-  (v) => v.archived,
-);
 
 /** True while `pathname` is any registered version, the live hub included.
  *  The sidebar's ONLY use of this registry: it keeps the Automations tab
