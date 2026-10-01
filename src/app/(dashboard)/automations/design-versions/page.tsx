@@ -47,21 +47,28 @@ export default async function AutomationsDesignVersionsPage() {
   const overrides = await getVersionStatusOverrides();
 
   return (
-    /* 📐📐📐 THE FLOOR IS 1000px, RAISED FROM 820 WHEN THE RAIL LANDED ON
-       2026-09-30. **A 240px rail plus its 16px gap is 256px the table no
-       longer has**, and the description column is what pays for it. On the
-       WIDEST tab (Feature Integration, whose names make the name column
-       239px rather than Main Page's 185px) the description measures: 1000 ->
-       183px, 1054 -> 237px, 1100 -> 283px.
-       ⚠️⚠️ 1054 WOULD HAVE MATCHED THE ~230px THE LAST FLOOR WAS CHOSEN FOR,
-       AND IT WAS NOT TAKEN. It puts the sideways scrollbar below a 1357px
-       window, past a 1366px laptop by 9px. **1000 keeps the threshold at
-       1303 and costs the widest tab about seven characters**, which is the
-       better side of that trade. Revisit if the descriptions turn out to be
-       what people read here.
+    /* 📐📐📐 THE FLOOR IS 1000px, AND SINCE 2026-10-01 IT NO LONGER DECIDES
+       WHETHER THE DESCRIPTIONS ARE READABLE. **They wrap now**, so nothing is
+       ever hidden at any width; see the note on that cell in
+       `version-directory-list.tsx`. What the floor buys is how TALL the rows
+       get, measured on the widest tab (Feature Integration, whose names make
+       the name column 239px rather than Main Page's 185px):
+         900 -> 84px of description, up to 7 lines  (silly)
+         1000 -> 183px, up to 3 lines               (the floor)
+         1100 -> 283px, up to 2 lines
+         1300 -> 483px, 1 line
+       ⚠️ SO ROWS ARE ONE LINE ON A BIG MONITOR AND TWO OR THREE ON A LAPTOP.
+       That is the deliberate trade for never hiding a description, and it is
+       the one the user asked for: "This page has a bug with narrowing where
+       the text can't be read due to being constrained."
+       🛑 1100 WOULD CAP IT AT TWO LINES AND WAS NOT TAKEN: it puts the
+       sideways scrollbar below a 1388px window, past a 1366px laptop. **A
+       real device width outranks a tidier row height.**
        📌 MEASURE THE WIDEST TAB, NOT THE DEFAULT ONE. Main Page opens by
        default and its names are 54px shorter, so measuring it would have
-       flattered the floor by exactly that much.
+       flattered every number here by exactly that much.
+       📌 THE RAIL IS WHY THE FLOOR IS THIS HIGH AT ALL: 240px plus a 16px gap
+       is 256px the table no longer has.
 
        📐 THE PREVIOUS FLOOR, KEPT FOR THE REASONING: 820px, lowered from 1009
        on 2026-09-30 and measured then too. It had been matched to the Feature Integration page rather
@@ -82,8 +89,10 @@ export default async function AutomationsDesignVersionsPage() {
        rows, 820 as a table and 1000 as a table with a rail. **Four values,
        four layouts; that is the floor doing its job, not churn.**
        ✅ MEASURED THRESHOLD: the page-level scrollbar appears below a 1288px
-       window (1287 overflows by 1px, 1288 by 0). It was 1123 without the
-       rail and 1312 before the table, so **a 1366px laptop still clears it**.
+       window (1287 overflows by 1px, 1288 by 0), so **a 1366px laptop still
+       clears it**. ⚠️ Below that the page scrolls sideways AND the rows grow
+       taller, which is two kinds of give at once; it is still better than
+       cutting the text.
        🛑 THE SCROLLER IS ON THIS DIV, NOT ON `<main>`: the dashboard layout
        gives `<main>` `overflow-x-clip`, which cuts overflow WITHOUT making a
        scroll container, so every page carries its own. */

@@ -406,18 +406,41 @@ export function VersionDirectoryList({
                       </DropdownMenu>
                     </td>
 
-                    {/* 🛑🛑 `w-full max-w-0` IS THE WHOLE TRICK AND IS NOT A
-                        TYPO. In an auto-layout table a cell will not shrink
-                        below its content, so a `truncate` child never
-                        truncates and the table just grows. **A zero
-                        max-width plus a full width makes this cell take
-                        whatever is left and hand a real width to the span
-                        inside**, which is what lets the ellipsis happen.
-                        ⚠️ IT IS ALSO WHY THE PAGE NO LONGER NEEDS A WIDE
-                        FLOOR: the blurb has stopped reporting its whole text
-                        as min-content. */}
-                    <td className="w-full max-w-0 px-3 py-1.5">
-                      <span className="block truncate text-xs text-zinc-500">
+                    {/* 🛑🛑 THIS DESCRIPTION WRAPS AND MUST NOT GO BACK TO
+                        `truncate`, 2026-10-01. The user, on a narrow window:
+                        "This page has a bug with narrowing where the text
+                        can't be read due to being constrained." It was
+                        `w-full max-w-0` + `truncate`, which cut the
+                        description to about twenty characters once the rail
+                        took its 256px.
+                        ⚠️⚠️ I HAD CALLED THAT TRADE THE RIGHT WAY ROUND AND IT
+                        WAS NOT. The floor note on the page said "revisit if
+                        the descriptions turn out to be what people read
+                        here"; they are. **A column that holds the only
+                        sentence explaining what a version IS cannot be the
+                        one that gives way.**
+                        ⭐ WRAPPING COSTS NOTHING AT FULL WIDTH, where every
+                        blurb still sits on one line, and at a narrow window a
+                        row grows to two lines instead of hiding its content.
+                        **A taller row is readable; a shorter one is not.**
+                        📌 `w-full` WITHOUT `max-w-0` NOW. The zero max-width
+                        existed only to give `truncate` something to ellipsis
+                        against; wrapping text shrinks on its own, so the cell
+                        still takes what is left and the table can still get
+                        narrow.
+                        🛑🛑 `[overflow-wrap:anywhere]` WAS TRIED HERE AND
+                        REMOVED, WHICH IS THE OPPOSITE OF THE HOUSE RULE. It
+                        is normally the right fix for a long token stretching
+                        a column. **In a table cell it does the reverse
+                        damage: it lets the column shrink to ONE CHARACTER,
+                        because the longest word stops being a floor.**
+                        Measured at an 800px box: the description went to 11px
+                        wide and 45 lines tall, in a 732px row. Without it the
+                        longest word is the minimum and the column cannot
+                        collapse. ⚠️ If a blurb ever does carry a long token,
+                        the card scrolls, which is the better failure. */}
+                    <td className="w-full px-3 py-1.5">
+                      <span className="block text-xs text-zinc-500">
                         {version.blurb}
                       </span>
                     </td>
