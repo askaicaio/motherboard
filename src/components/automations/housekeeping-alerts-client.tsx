@@ -164,31 +164,30 @@ export function HousekeepingAlertsClient({
   const [recent, setRecent] = useState(initialRecentlyEdited);
   const [editing, setEditing] = useState<HousekeepingRow | null>(null);
 
-  /** The recently edited panel, so the hook below can refuse to let it shrink
-   *  the table. See `discountRef` at the call. */
+  /** The recently edited panel. Feeds the hook's `discountRef`, which is
+   *  currently inert; the note at the call explains why it is still here. */
   const recentPanelRef = useRef<HTMLDivElement>(null);
 
   /** The scroll window's measured height. Same hook the four Automations
    *  tables use, so this list caps itself the same way they do.
    *
-   *  🛑🛑 `discountRef` IS THE ONE DEVIATION AND IT IS THE USER'S CALL,
-   *  2026-10-08: "Not ideal, the main table shrunk, it should be the same size
-   *  as before." Stacking the recently edited panel above the table pushed the
-   *  table's top down by its own height, and this hook sizes a container from
-   *  its top to the bottom of the WINDOW, so the list paid for the panel twice:
-   *  once in position, once in height.
-   *  📊 IT WAS WORSE THAN IT LOOKED, measured at 1400x950: the computed fit
-   *  came out at **125px**, below the hook's own 240px floor, so the table was
-   *  CLAMPED. It was not merely small, it had bottomed out, and any further
-   *  content above it would have changed nothing at all. Discounting the panel
-   *  puts it back to **468px, the height it had before the panel existed.**
-   *  ⚠️ THE PRICE IS THAT THIS PAGE NOW SCROLLS when stacked, by roughly the
-   *  panel's height. **That is the deal the user asked for** - the panel
-   *  visible AND the table full size will not both fit in a short window, and
-   *  they chose both over neither. The hook's header documents the exception.
-   *  📌 IT IS INERT IN THE TWO-COLUMN LAYOUT. The panel sits to the RIGHT
-   *  there, not above, so the hook's own above-or-beside test declines to
-   *  discount it and nothing changes at 1536px and up. */
+   *  🛑🛑 `discountRef` FIRES ONLY WHEN THE PANEL SITS ABOVE THE TABLE, AND
+   *  SINCE 2026-10-08 IT DOES NOT, in either layout. **The prop is wired and
+   *  doing nothing**, which the hook decides for itself by comparing the
+   *  element's bottom to this container's top. Nothing here needs changing if
+   *  the panels move back above the table; it simply starts working again.
+   *
+   *  📌 WHY IT EXISTS, because it is worth keeping and worth understanding:
+   *  while the panels were above the table they pushed its top down, and this
+   *  hook sizes a container from its top to the bottom of the WINDOW, so **the
+   *  list paid for them twice, once in position and once in height.**
+   *  📊 IT WAS WORSE THAN IT LOOKED, measured at 1400x950: the space available
+   *  came to **125px against the hook's own 240px floor**, so the table was
+   *  CLAMPED. It was not merely small, it had bottomed out, and further content
+   *  above it would have changed nothing at all. **Check for the clamp before
+   *  theorising about a layout.**
+   *  ⚠️ KEPT RATHER THAN DELETED because this order changed four times in one
+   *  day. The ref's own note says what to remove if it settles. */
   const { ref: scrollRef, style: scrollStyle } = useFitViewportHeight({
     discountRef: recentPanelRef,
   });
@@ -367,24 +366,41 @@ export function HousekeepingAlertsClient({
           moved the PAIR and nothing could be placed between them. **The three
           cards are siblings now**, and each mode places them with the system
           that suits it:
-            stacked (`flex-col` + `order-*`)  coverage, RECENTLY EDITED, table
+            stacked (`flex-col` + `order-*`)  TABLE, coverage, recently edited
             wide (`grid` + explicit cells)    table on the left spanning both
                                               rows, the two panels stacked on
                                               the right
-          🛑🛑 THE STACKED ORDER IS THE USER'S, SET 2026-10-08 FROM A MARKED-UP
-          SCREENSHOT: "During a window shrink, this element should be above the
-          main table, below the statistic element." **It was shipped the other
-          way round for one round (#612) and they reversed it the same day.**
-          ⚠️ SO DO NOT MOVE IT BACK ON THE ARGUMENT THAT LOST, which is written
-          here because it sounded good and was still wrong: the worklist is read
-          constantly and the panel is reached for occasionally, so the panel
-          "should" be the one that pays for a narrow window. 📊 It costs the
-          list window 240px, measured at 1400x950: **468px down to 240px, six
-          visible rows down to three.** The user has seen that number and wants
-          the panel on screen anyway, which is the answer that counts: a tool
-          you cannot see is a tool you do not remember you have.
-          📌 BOTH PANELS NOW AGREE: coverage first, recently edited second, the
-          table under them. **Summary, then the way back, then the work.**
+          🛑🛑 THE STACKED ORDER IS THE USER'S AND IT TOOK FOUR GOES TO SETTLE,
+          all on 2026-10-08. Read this before moving anything:
+            #611  both panels above the table      (the pair was one flex child)
+            #612  recently edited below the table  (to protect the list height)
+            #613  recently edited above the table  ("above the main table, below
+                                                     the statistic element")
+            #617  BOTH PANELS BELOW THE TABLE      ("Change the order of
+                                                     presentation for these
+                                                     elements when the window
+                                                     narrows. These should be
+                                                     below the main table.")
+          ⚠️ THE CURRENT ORDER IS THE LAST LINE OF THAT LIST. **The work comes
+          first and everything about the work comes after it.** The arguments
+          that lost are kept below rather than deleted, because this order has
+          been argued in both directions and a file that records only the
+          winning side invites the next reader to rediscover the losing one.
+          📌 THE CASE FOR PANELS-FIRST, WHICH HELD FOR TWO ROUNDS: the coverage
+          panel is a summary of the list beneath it, and the recently edited
+          panel is how you get back to an entry that finishing has just removed
+          from the list, so "a tool you cannot see is a tool you do not remember
+          you have". 📊 THE COST THAT DECIDED IT, measured at 1400x950: with
+          both panels above, the list window is **240px**, its clamped floor;
+          with the table first it is **633px**. Nothing was discovered that
+          changed the arguments; the user weighed them again with the numbers
+          on screen.
+          ⚠️ 633 IS MEASURED AND MY PREDICTION WAS 666. The difference is the
+          table's own 33px header, which I forgot to subtract. **Third derived
+          layout number in one day that the measurement disagreed with**; read
+          these off the page rather than computing them. Row counts are not
+          quoted here at all, because a row is 59px with a one-line name and
+          79px with two.
           ⚠️ `order-*` IS IGNORED IN GRID MODE and that is fine, not a conflict:
           the grid children carry `col-start`/`row-start`, and explicit placement
           beats auto-placement, which is the only thing `order` feeds.
@@ -401,7 +417,7 @@ export function HousekeepingAlertsClient({
           wide one, and un-picking it would be churn for no behaviour. */}
       <div className="flex flex-col gap-4 2xl:grid 2xl:grid-cols-[827px_minmax(0,1fr)] 2xl:grid-rows-[auto_1fr] 2xl:items-start">
         <div
-          className="order-3 shrink-0 2xl:col-start-1 2xl:row-span-2 2xl:row-start-1"
+          className="order-1 shrink-0 2xl:col-start-1 2xl:row-span-2 2xl:row-start-1"
           style={{ width: TABLE_CARD_WIDTH }}
         >
           {rows.length === 0 ? (
@@ -589,13 +605,16 @@ export function HousekeepingAlertsClient({
             removed 2026-09-24, so the panel and the list now agree by default**.
             It is one figure about how documented the estate is, not a second
             view of the list. Its "all websites" hint is what still says so.
-            ⚠️ `order-1` KEEPS IT FIRST WHEN STACKED: **summary first, then the
-            detail it summarises.** It is also the short one, 166px against the
-            other panel's 327px. Wide, it is the top cell of the right column.
+            ⚠️ `order-2` PUTS IT UNDER THE TABLE WHEN STACKED, ahead of the
+            recently edited panel. Both panels moved below the work on
+            2026-10-08; the container's note has the whole sequence. It stays
+            the FIRST of the two because it is the summary of the list and the
+            short one, 166px against the other panel's 327px. Wide, it is the
+            top cell of the right column, unchanged.
             📌 THE 827px CAP IS FOR THE STACKED CASE ONLY: a four-row card
             stretched across 1100px reads as a banner, and matching the table
             card below it keeps the page's two edges honest. */}
-        <div className="order-1 w-full max-w-[827px] min-w-0 2xl:col-start-2 2xl:row-start-1 2xl:max-w-none">
+        <div className="order-2 w-full max-w-[827px] min-w-0 2xl:col-start-2 2xl:row-start-1 2xl:max-w-none">
           <CoveragePanel coverage={coverage} />
         </div>
 
@@ -612,19 +631,27 @@ export function HousekeepingAlertsClient({
             is the COVERAGE PANEL'S instead (`px-3.5 py-2`, no 2px shelf),
             because that is the card this one sits directly underneath and the
             two have to read as a pair.
-            🛑 `order-2` PUTS IT BETWEEN THE COVERAGE PANEL AND THE TABLE WHEN
-            STACKED, BY THE USER'S INSTRUCTION, 2026-10-08: "During a window
-            shrink, this element should be above the main table, below the
-            statistic element." **It spent one round below the table (#612) and
-            was reversed the same day.** The container's note carries the
-            argument that lost and the 240px it costs; do not reopen it. */}
-        {/* ⚠️ THE `ref` IS NOT DECORATION. `useFitViewportHeight` reads this
-            element's height so the table can be sized as if it were not above
-            it; without the ref the table silently drops back to its 240px
-            floor on a shrunk window. See the hook call near the top. */}
+            🛑 `order-3` PUTS IT LAST WHEN STACKED, below the table and below
+            the coverage panel, by the user's instruction 2026-10-08: "Change
+            the order of presentation for these elements when the window
+            narrows. These should be below the main table." The container's
+            note has the full four-round sequence and both arguments. */}
+        {/* 🛑🛑 THE `ref` IS CURRENTLY INERT, AND THAT IS NOT A BUG. It feeds
+            `useFitViewportHeight`'s `discountRef`, which only fires when this
+            element sits ABOVE the table. Since this round it sits below it in
+            both layouts, so the hook's own above-or-beside test declines to
+            discount and the table is simply sized from its own top.
+            ⚠️ IT IS KEPT ON PURPOSE rather than ripped out: this order has
+            changed FOUR times in one day, and the discount is the only thing
+            that makes the panels-above arrangement survivable (without it the
+            table clamps at its 240px floor). **Removing it is a one-line
+            change; rediscovering why it was needed is not.**
+            📌 IF THE PANELS ARE STILL BELOW THE TABLE IN A MONTH, delete this
+            ref, the `discountRef` prop on the hook call, and the hook's own
+            `discountRef` branch, which would then have no callers at all. */}
         <div
           ref={recentPanelRef}
-          className="order-2 w-full max-w-[827px] min-w-0 2xl:col-start-2 2xl:row-start-2 2xl:max-w-none"
+          className="order-3 w-full max-w-[827px] min-w-0 2xl:col-start-2 2xl:row-start-2 2xl:max-w-none"
         >
           <RecentlyEditedPanel rows={recent} onOpen={setEditing} />
         </div>
