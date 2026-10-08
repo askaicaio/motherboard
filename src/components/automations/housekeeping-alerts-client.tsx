@@ -115,16 +115,40 @@ const NAME_WIDTH = "400px";
  *  silently absorbs it and the panels never notice. */
 const TABLE_CARD_WIDTH = 827;
 
+/** How many rows the "Recently Edited in Motherboard" panel holds.
+ *
+ *  🛑 A LOCAL COPY OF `RECENTLY_EDITED_LIMIT` in `@/lib/automations/housekeeping`,
+ *  AND IT HAS TO BE. That module imports `@/lib/db`, so a VALUE import from it
+ *  would drag the database client into this client bundle; the existing imports
+ *  from it are all `import type`, which erase. **Same reason `agoLabel`,
+ *  `SiteGlyph` and `barClass` are local copies in this file.**
+ *  ⚠️ IF THE SERVER CONSTANT CHANGES, CHANGE THIS ONE. The server decides how
+ *  many rows arrive; this decides the hint's wording and the cap applied when a
+ *  save pushes a row onto the front of the list. Drift shows up as a panel
+ *  labelled "latest 5" holding six rows, which nobody reports. */
+const RECENT_PANEL_ROWS = 5;
+
 export function HousekeepingAlertsClient({
   initialRows,
+  initialRecentlyEdited,
   choices,
   coverage,
 }: {
   initialRows: HousekeepingRow[];
+  initialRecentlyEdited: HousekeepingRow[];
   choices: HousekeepingChoices;
   coverage: HousekeepingCoverage;
 }) {
   const [rows, setRows] = useState(initialRows);
+  /** The "Recently Edited in Motherboard" panel's rows.
+   *
+   *  ⭐⭐ IT IS STATE, NOT A PROP READ STRAIGHT THROUGH, and that is the half of
+   *  this feature that actually solves the problem. The user's complaint is
+   *  about **the entry that just left the list**, so the panel has to show it
+   *  the instant it leaves - not after a reload, which is the one thing the
+   *  person would have no reason to do. A save pushes the row onto the front
+   *  here at the same moment it is dropped from `rows`. */
+  const [recent, setRecent] = useState(initialRecentlyEdited);
   const [editing, setEditing] = useState<HousekeepingRow | null>(null);
 
   /** The scroll window's measured height. Same hook the four Automations
@@ -140,32 +164,69 @@ export function HousekeepingAlertsClient({
    *  one into the other widens the type and TypeScript rejects it. Naming the
    *  fields also documents exactly what the list re-renders from, which is the
    *  rule inputs plus what a row displays. */
-  const handleSaved = useCallback((saved: AutomationRow) => {
-    setRows((rs) => {
+  const handleSaved = useCallback(
+    (saved: AutomationRow) => {
       const missing = missingRequired(saved) as RequiredColumn[];
-      if (missing.length === 0) return rs.filter((r) => r.id !== saved.id);
-      return rs.map((r) =>
-        r.id === saved.id
-          ? {
-              ...r,
-              name: saved.name,
-              status: saved.status,
-              purpose: saved.purpose ?? null,
-              notes: saved.notes ?? null,
-              triggerEventChoiceId: saved.triggerEventChoiceId ?? null,
-              triggerEvent: saved.triggerEvent ?? null,
-              triageChoiceId: saved.triageChoiceId ?? null,
-              triage: saved.triage ?? null,
-              triageBadgeColor: saved.triageBadgeColor ?? null,
-              triageTextColor: saved.triageTextColor ?? null,
-              automationTags: saved.automationTags ?? [],
-              missing,
-            }
-          : r,
-      );
-    });
-    setEditing(null);
-  }, []);
+
+      /** The saved fields written back onto a row this page already holds.
+       *
+       *  📌 IT IS A FUNCTION NOW BECAUSE TWO LISTS NEED IT. It was written
+       *  inline inside `setRows` until the recently-edited panel arrived; the
+       *  body is unchanged apart from `rowUpdatedAt`.
+       *
+       *  ⚠️ `rowUpdatedAt` IS THE ONE FIELD NOT COMING FROM THE SAVE. The
+       *  dialog builds its `AutomationRow` by hand and does not carry it, so
+       *  this stamps the clock the same way the PATCH route just did. **The two
+       *  differ by the round trip and nothing reads it to the second** - it
+       *  drives an "Nm ago" label and the panel's ordering.
+       *
+       *  ⚠️ `externalUrl` IS DELIBERATELY NOT COPIED, matching the behaviour
+       *  this list has always had: editing an automation's LINK in the dialog
+       *  leaves the old URL on screen until the page is reloaded. The panel
+       *  inherits that rather than fixing it here, so the two surfaces cannot
+       *  disagree with each other. Worth fixing, but as its own change. */
+      const apply = (r: HousekeepingRow): HousekeepingRow => ({
+        ...r,
+        name: saved.name,
+        status: saved.status,
+        purpose: saved.purpose ?? null,
+        notes: saved.notes ?? null,
+        triggerEventChoiceId: saved.triggerEventChoiceId ?? null,
+        triggerEvent: saved.triggerEvent ?? null,
+        triageChoiceId: saved.triageChoiceId ?? null,
+        triage: saved.triage ?? null,
+        triageBadgeColor: saved.triageBadgeColor ?? null,
+        triageTextColor: saved.triageTextColor ?? null,
+        automationTags: saved.automationTags ?? [],
+        missing,
+        rowUpdatedAt: new Date(),
+      });
+
+      setRows((rs) => {
+        if (missing.length === 0) return rs.filter((r) => r.id !== saved.id);
+        return rs.map((r) => (r.id === saved.id ? apply(r) : r));
+      });
+
+      // ⭐⭐ THE ROW GOES TO THE FRONT OF THE PANEL WHETHER OR NOT IT LEFT THE
+      // LIST. A save that fills three of four columns keeps the row in both
+      // places, which is right: it is still unfinished AND it is the last thing
+      // the person touched.
+      // ⚠️ THE SOURCE ROW CAN COME FROM EITHER LIST. `editing` is whichever row
+      // opened the dialog, and it is the only one guaranteed to exist - a row
+      // opened FROM the panel is not in `rows` at all. The `rs.find` first is
+      // not redundant: it keeps any state the panel's own copy already carries.
+      setRecent((rs) => {
+        const source = rs.find((r) => r.id === saved.id) ?? editing;
+        if (!source) return rs;
+        return [apply(source), ...rs.filter((r) => r.id !== saved.id)].slice(
+          0,
+          RECENT_PANEL_ROWS,
+        );
+      });
+      setEditing(null);
+    },
+    [editing],
+  );
 
   /** Delete the row the dialog is open on. **Lifted from the website table's
    *  `handleDelete`**, deliberately down to the wording.
@@ -212,6 +273,11 @@ export function HousekeepingAlertsClient({
       return;
     }
     setRows((prev) => prev.filter((r) => r.id !== row.id));
+    // ⚠️ BOTH LISTS, OR THE PANEL OUTLIVES THE ROW. A deleted automation that
+    // was among the five most recently edited would otherwise sit there looking
+    // clickable, and opening it would put the dialog on a row the database no
+    // longer has. **Any future list on this page needs the same line.**
+    setRecent((prev) => prev.filter((r) => r.id !== row.id));
     setEditing(null);
     toast.success("Deleted");
   }, []);
@@ -379,13 +445,54 @@ export function HousekeepingAlertsClient({
           )}
         </div>
 
-        {/* ⚠️ IT COUNTS THE WHOLE ESTATE, and always did. This used to be the
-            interesting half of a sentence - there were website filter chips
-            above and this panel deliberately ignored them - and **the chips were
-            removed 2026-09-24, so the panel and the list now agree by default**.
-            It is one figure about how documented the estate is, not a second
-            view of the list. Its "all websites" hint is what still says so. */}
-        <CoveragePanel coverage={coverage} />
+        {/* ⭐⭐ THE RIGHT-HAND COLUMN, WHICH HOLDS TWO PANELS SINCE 2026-10-08.
+            The wrapper used to live inside `CoveragePanel` and was lifted out
+            when the recently-edited panel joined it, so both get the same width
+            and the same stacking behaviour from one place rather than each
+            carrying a copy of these classes.
+            ⚠️ THE ORDER IS SUMMARY THEN HISTORY: coverage says how documented
+            the estate is, the panel below says what was touched last. Reversing
+            them puts a five-row list above the one figure the page exists to
+            move.
+            🛑 CONSEQUENCE OF `order-first` BELOW 1536px, MEASURED AND ACCEPTED,
+            NOT OVERLOOKED: when the layout stacks, BOTH panels sit above the
+            table, the list's scroll window starts that much further down and
+            `useFitViewportHeight` shrinks it to match.
+            📊 AT 1400x950 THE PANEL IS 327px TALL AND THE LIST WINDOW GOES FROM
+            583px TO 240px - **from about seven rows to three** at 79px a row.
+            Above 1536px it costs the table nothing at all, because the panels
+            are beside it rather than above it, and 1919px is the window this
+            page is actually worked in.
+            ⚠️ THE FIX, IF THAT EVER MATTERS, IS NOT A TWEAK HERE: the pair has
+            to split above and below the table when stacked, which this flex row
+            cannot express (both panels are one child of it). **It needs a grid**
+            - `2xl:grid-cols-[827px_1fr]` with the table spanning two rows in
+            column one - and that rewrites the layout the long note above this
+            one describes. It was offered to the user rather than done quietly. */}
+        <div className="order-first flex w-full max-w-[827px] min-w-0 flex-col gap-4 2xl:order-none 2xl:max-w-none 2xl:flex-1">
+          {/* ⚠️ IT COUNTS THE WHOLE ESTATE, and always did. This used to be the
+              interesting half of a sentence - there were website filter chips
+              above and this panel deliberately ignored them - and **the chips were
+              removed 2026-09-24, so the panel and the list now agree by default**.
+              It is one figure about how documented the estate is, not a second
+              view of the list. Its "all websites" hint is what still says so. */}
+          <CoveragePanel coverage={coverage} />
+
+          {/* ⭐⭐ THE WAY BACK TO THE ENTRY YOU JUST FINISHED, user 2026-10-08:
+              "the guy doing the housekeeping tasks sometimes miss adding some
+              information, and requires to go back to a previous entry, but its
+              difficult to do that at the moment."
+              🛑 THE PAGE'S CENTRAL MECHANIC IS WHAT CREATES THE PROBLEM:
+              **filling an entry in is exactly what removes it from the list.**
+              See the loader's note for the measurement that settled it (all
+              nine entries edited on the day this shipped had just vanished).
+              📌 THE REFERENCE WAS THE LIVE HUB'S "Recently Edited on the
+              Website" panel, which the user pointed at by name. The chrome here
+              is the COVERAGE PANEL'S instead (`px-3.5 py-2`, no 2px shelf),
+              because that is the card this one sits directly underneath and the
+              two have to read as a pair. */}
+          <RecentlyEditedPanel rows={recent} onOpen={setEditing} />
+        </div>
       </div>
 
       {/* ⚠️ ONE DIALOG FOR THE WHOLE PAGE, keyed by the row's id so it remounts
@@ -480,49 +587,50 @@ export function HousekeepingAlertsClient({
 function CoveragePanel({ coverage }: { coverage: HousekeepingCoverage }) {
   const { total, filled } = coverage;
   return (
-    // ⚠️ `order-first` PUTS THIS ABOVE THE TABLE while the layout is stacked,
-    // and `2xl:order-none` hands it back to DOM order once the two columns fit.
-    // The reasoning is at the layout row in this file.
-    // 📌 STACKED, IT TAKES THE TABLE'S OWN 827px rather than the full container
-    // width: a four-row card stretched across 1100px reads as a banner, and
-    // matching the card below it keeps the page's left edge and right edge
-    // honest.
-    <div className="order-first w-full max-w-[827px] min-w-0 2xl:order-none 2xl:max-w-none 2xl:flex-1">
-      {/* ⚠️ The panel sizes to its content and stops. It does NOT stretch to the
-          table's height - a five-row card spread over 700px puts ~140px between
-          rows, which reads worse than the whitespace below it. */}
-      <div className="min-w-0 overflow-hidden rounded-lg bg-card ring-1 ring-foreground/10">
-        <div className="flex items-center justify-between gap-2 border-b bg-muted/40 px-3.5 py-2">
-          <span className="text-xs font-semibold text-zinc-800">
-            Documentation of Required Fields
-          </span>
-          {/* ⚠️ THIS HINT SURVIVED AND THE HUB'S DID NOT, 2026-09-23, by the
+    // ⚠️ THE POSITIONING CLASSES MOVED OUT ON 2026-10-08, to the column wrapper
+    // that now holds this panel and the recently-edited one. `order-first`,
+    // the 827px cap and `2xl:flex-1` live there; they are unchanged, they just
+    // apply to the pair. The reasoning is at the layout row in this file.
+    // 📌 STACKED, THE COLUMN TAKES THE TABLE'S OWN 827px rather than the full
+    // container width: a four-row card stretched across 1100px reads as a
+    // banner, and matching the card below it keeps the page's left edge and
+    // right edge honest.
+    // ⚠️ The panel sizes to its content and stops. It does NOT stretch to the
+    // table's height - a five-row card spread over 700px puts ~140px between
+    // rows, which reads worse than the whitespace below it. The column wrapper
+    // is `flex-col` with no `flex-1` on either child, so both keep that.
+    <div className="min-w-0 overflow-hidden rounded-lg bg-card ring-1 ring-foreground/10">
+      <div className="flex items-center justify-between gap-2 border-b bg-muted/40 px-3.5 py-2">
+        <span className="text-xs font-semibold text-zinc-800">
+          Documentation of Required Fields
+        </span>
+        {/* ⚠️ THIS HINT SURVIVED AND THE HUB'S DID NOT, 2026-09-23, by the
               user's instruction: "keep the 'All Websites' subheader".
               ⭐ The difference is what each hint ADDS. The hub's said "required
               columns", which the new title already says; this one says WHICH
               ESTATE the numbers cover - every website, not the one selected -
               and nothing else on the panel says that. **The two headers are no
               longer identical on purpose.** */}
-          <span className="text-[10px] tracking-wider text-zinc-500 uppercase">
-            all websites
-          </span>
+        <span className="text-[10px] tracking-wider text-zinc-500 uppercase">
+          all websites
+        </span>
+      </div>
+      {total === 0 ? (
+        // ⚠️ Handled rather than dividing by zero into five 0% bars, which
+        // would read as a real measurement of an empty estate. Same shape as
+        // the hub's empty state, icon included.
+        <div className="flex flex-col items-center justify-center gap-2 px-4 py-8 text-center">
+          <Inbox className="h-5 w-5 text-zinc-300" />
+          <p className="text-xs text-zinc-500">No automations recorded.</p>
         </div>
-        {total === 0 ? (
-          // ⚠️ Handled rather than dividing by zero into five 0% bars, which
-          // would read as a real measurement of an empty estate. Same shape as
-          // the hub's empty state, icon included.
-          <div className="flex flex-col items-center justify-center gap-2 px-4 py-8 text-center">
-            <Inbox className="h-5 w-5 text-zinc-300" />
-            <p className="text-xs text-zinc-500">No automations recorded.</p>
-          </div>
-        ) : (
-          <ul className="divide-y">
-            {REQUIRED_COLUMNS.map((col) => {
-              const n = filled[col] ?? 0;
-              const pct = (n / total) * 100;
-              return (
-                <li key={col} className="flex items-center gap-3 px-3.5 py-2">
-                  {/* ⭐ ZINC-900, NOT ZINC-700, SINCE 2026-09-22 (#567), to
+      ) : (
+        <ul className="divide-y">
+          {REQUIRED_COLUMNS.map((col) => {
+            const n = filled[col] ?? 0;
+            const pct = (n / total) * 100;
+            return (
+              <li key={col} className="flex items-center gap-3 px-3.5 py-2">
+                {/* ⭐ ZINC-900, NOT ZINC-700, SINCE 2026-09-22 (#567), to
                       match the automation names in the panel beside the hub's
                       copy. **Do not restore the lighter grey.**
                       🛑 12px IS RE-CHOSEN, NOT LEFT ALONE: this row was raised
@@ -532,27 +640,26 @@ function CoveragePanel({ coverage }: { coverage: HousekeepingCoverage }) {
                       🛑 THE HUB'S PANEL IS THE TWIN and the user has twice
                       chosen to move both, so this file and `automations/page.tsx`
                       have to agree. */}
-                  <span className="w-28 shrink-0 truncate text-xs font-medium text-zinc-900">
-                    {col}
-                  </span>
-                  <div className="flex h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-zinc-100">
-                    <span
-                      className={cn("rounded-full", barClass(pct))}
-                      style={{ width: `${Math.min(100, pct)}%` }}
-                    />
-                  </div>
-                  <span className="w-10 shrink-0 text-right text-xs font-semibold tabular-nums text-zinc-900">
-                    {Math.round(pct)}%
-                  </span>
-                  <span className="w-16 shrink-0 text-right text-[11px] tabular-nums text-zinc-400">
-                    {n}/{total}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
+                <span className="w-28 shrink-0 truncate text-xs font-medium text-zinc-900">
+                  {col}
+                </span>
+                <div className="flex h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-zinc-100">
+                  <span
+                    className={cn("rounded-full", barClass(pct))}
+                    style={{ width: `${Math.min(100, pct)}%` }}
+                  />
+                </div>
+                <span className="w-10 shrink-0 text-right text-xs font-semibold tabular-nums text-zinc-900">
+                  {Math.round(pct)}%
+                </span>
+                <span className="w-16 shrink-0 text-right text-[11px] tabular-nums text-zinc-400">
+                  {n}/{total}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </div>
   );
 }
@@ -581,6 +688,201 @@ function barClass(p: number): string {
   if (p < 30) return "bg-red-400";
   if (p < 70) return "bg-amber-400";
   return "bg-emerald-600";
+}
+
+/** "Recently Edited in Motherboard": the five entries a person last edited in
+ *  this app, newest first, each one a way straight back into its dialog.
+ *
+ *  ⭐⭐ WHY IT IS HERE, user 2026-10-08: finishing an entry is what removes it
+ *  from the list, so the entry you most need to revisit is the one you can no
+ *  longer see. The loader's note carries the measurement.
+ *
+ *  ⚠️ "IN MOTHERBOARD", NOT "IN HOUSEKEEPING", AND THE TITLE IS DOING REAL
+ *  WORK. The rows come from `row_updated_at`, which records an edit made
+ *  ANYWHERE in the app, so an entry edited from a Per Website page lands here
+ *  too. **The user chose that over a new column that would have recorded the
+ *  page** (asked 2026-10-08: it needed a migration, and in practice the two
+ *  answers are the same rows). A title claiming this page would be a small lie
+ *  that nobody could check.
+ *  📌 IT ALSO PAIRS WITH THE HUB'S PANEL RATHER THAN COPYING IT. There,
+ *  "Recently Edited on the Website" means the SOURCE PLATFORM's own edit date,
+ *  written by the sync. The two titles differ exactly where the two columns
+ *  differ, which is the same distinction the tables draw as "Last Edited" vs
+ *  "Row Update".
+ *
+ *  ⚠️ NO FIELD CHIPS, AND THAT WAS ASKED. The user was offered the four
+ *  amber/grey chips here so a finished entry could be told from an unfinished
+ *  one at a glance, and chose name, link and time only (2026-10-08) - the
+ *  reference panel's own shape. **Do not add them back as an improvement.** */
+function RecentlyEditedPanel({
+  rows,
+  onOpen,
+}: {
+  rows: HousekeepingRow[];
+  onOpen: (row: HousekeepingRow) => void;
+}) {
+  return (
+    <div className="min-w-0 overflow-hidden rounded-lg bg-card ring-1 ring-foreground/10">
+      {/* ⚠️ THE COVERAGE PANEL'S HEADER, CLASS FOR CLASS (`px-3.5 py-2`, the
+          same two type sizes). The hub's equivalent uses `px-3 py-1.5` and a 2px
+          shelf; **this one sits directly below the coverage card, so it matches
+          its neighbour rather than its ancestor.** */}
+      <div className="flex items-center justify-between gap-2 border-b bg-muted/40 px-3.5 py-2">
+        <span className="text-xs font-semibold text-zinc-800">
+          Recently Edited in Motherboard
+        </span>
+        <span className="text-[10px] tracking-wider text-zinc-500 uppercase">
+          latest {RECENT_PANEL_ROWS}
+        </span>
+      </div>
+      {rows.length === 0 ? (
+        // ⚠️ IT IS A REAL STATE, NOT A THEORETICAL ONE. `row_updated_at` is NULL
+        // on 886 of 964 rows, because the estate was imported by script and only
+        // an edit THROUGH THE APP sets it. An empty panel means nobody has
+        // edited anything here yet, which is worth saying in those words rather
+        // than showing five blank rows.
+        <div className="flex flex-col items-center justify-center gap-2 px-4 py-8 text-center">
+          <Inbox className="h-5 w-5 text-zinc-300" />
+          <p className="text-xs text-zinc-500">
+            No entries have been edited in Motherboard yet.
+          </p>
+        </div>
+      ) : (
+        <ul className="divide-y">
+          {rows.map((row) => (
+            <RecentRow key={row.id} row={row} onOpen={() => onOpen(row)} />
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/** One row of that panel. **The list row's interaction, in the panel's shape.**
+ *
+ *  ⭐⭐ IT BEHAVES EXACTLY LIKE A HOUSEKEEPING ENTRY, which is what was asked:
+ *  "Clicking the entries or the link in the entries will work the same way as
+ *  the regular housekeeping entries."
+ *      the URL LINK          -> new tab **and** dialog
+ *      the ROW anywhere else -> dialog only
+ *  📌 AND IT IS THE SAME MECHANISM, NOT A COPY OF THE EFFECT: the anchor's own
+ *  default action opens the tab and its click BUBBLES to the row's handler,
+ *  which opens the dialog. **There is no `onClick` on the anchor and adding one
+ *  would break it.** The long note above `ListRow` explains how that landed
+ *  after a button version was built and parked; it applies here unchanged.
+ *
+ *  🛑 THE ROW IS AN `<li>` WITH A HANDLER, NOT A `<Link>` WRAPPING EVERYTHING,
+ *  which is where this departs from the hub's panel. **The hub's rows contain
+ *  no interactive element, so it can wrap the whole row in one anchor; this one
+ *  contains the automation's own link, and an `<a>` may not contain another
+ *  `<a>`.** That is the same rule the hub's own note warns about for the day a
+ *  control is added to its rows.
+ *  ⚠️ SO `tabIndex` AND THE KEY HANDLER ARE REQUIRED, not decoration - without
+ *  them the panel is unreachable from the keyboard, exactly as on `ListRow`.
+ *
+ *  ⚠️ THE WEBSITE GLYPH IS NOT OPTIONAL HERE even though the hub's panel has
+ *  none. The hub's panel is scoped to ONE website; this list spans all five, so
+ *  without the mark two identically named workflows on n8n and GHL are the same
+ *  row. It rides in the name block exactly as it does in the table. */
+function RecentRow({
+  row,
+  onOpen,
+}: {
+  row: HousekeepingRow;
+  onOpen: () => void;
+}) {
+  const site = AUTOMATION_SITES.find((s) => s.slug === row.platform);
+
+  return (
+    <li
+      onClick={onOpen}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onOpen();
+        }
+      }}
+      tabIndex={0}
+      role="button"
+      className="cursor-pointer px-3.5 py-2.5 transition-colors hover:bg-zinc-50 focus-visible:bg-zinc-50 focus-visible:outline-none"
+    >
+      <div className="flex items-start gap-2.5">
+        <span
+          className="mt-0.5 w-4 shrink-0"
+          title={site?.label ?? row.platform}
+        >
+          {site ? <SiteGlyph site={site} className="h-4 w-4" /> : null}
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-baseline justify-between gap-2">
+            {/* ⚠️ `truncate` HERE, WHERE THE TABLE WRAPS. The table's Name cell
+                uses `[overflow-wrap:anywhere]` and is allowed to grow taller;
+                this row has a timestamp pinned to its right, so a wrapping name
+                would run under it. **The reference panel truncates for the same
+                reason.**
+                📌 NO `min-w-0` NEEDED: `truncate` carries `overflow: hidden`,
+                which already drops a flex item's automatic minimum size to
+                zero. The hub's panel relies on the same thing. */}
+            <span className="truncate text-sm font-medium text-zinc-900">
+              {row.name}
+            </span>
+            {/* ⚠️ `suppressHydrationWarning` IS THE POINT OF THIS ATTRIBUTE, not
+                a workaround. The label is computed from `Date.now()`, so a
+                render on the server and the hydration a moment later can land
+                either side of a minute boundary and disagree on the text.
+                **It suppresses exactly this one span's text mismatch** and
+                nothing else on the page. */}
+            <span
+              suppressHydrationWarning
+              className="shrink-0 text-[11px] tabular-nums text-zinc-400"
+            >
+              {agoLabel(row.rowUpdatedAt)}
+            </span>
+          </div>
+          {row.externalUrl ? (
+            <a
+              href={row.externalUrl}
+              target="_blank"
+              rel="noreferrer"
+              title={row.externalUrl}
+              className="mt-0.5 flex items-center gap-1 text-xs text-blue-600 hover:underline"
+            >
+              <ExternalLink className="h-3 w-3 shrink-0" />
+              {/* The table's own URL treatment: ellipsis on the LEFT so the END
+                  of the link stays readable, which is the half carrying the
+                  scenario or workflow id. */}
+              <span className="min-w-0 truncate [direction:rtl] text-left">
+                {row.externalUrl}
+              </span>
+            </a>
+          ) : null}
+        </div>
+      </div>
+    </li>
+  );
+}
+
+/** "3d ago". **A local copy of the live hub's `agoLabel`**, character for
+ *  character, so the two panels phrase the same gap the same way.
+ *
+ *  📌 THE HOUSE PATTERN FOR THESE HELPERS IS A LOCAL COPY, not a shared module:
+ *  `formatDateCell` exists three times over and `agoLabel` six. ⚠️ The reason it
+ *  cannot simply be imported from the hub is that the hub's page is a SERVER
+ *  component and this file is `"use client"`.
+ *
+ *  ⚠️ IT GOES STALE WHILE THE PAGE IS OPEN and that is deliberate: no timer, no
+ *  interval, no re-render on a clock. A row saved thirty minutes ago still reads
+ *  "just now" until something else re-renders the panel. **The hub's copy
+ *  behaves identically**, and a ticking clock in the corner of a work queue is
+ *  movement with nothing behind it. */
+function agoLabel(date: Date | null): string {
+  if (!date) return "never";
+  const mins = Math.floor((Date.now() - date.getTime()) / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
 }
 
 // ---------------------------------------------------------------------------

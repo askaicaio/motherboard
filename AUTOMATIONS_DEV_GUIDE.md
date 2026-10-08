@@ -244,6 +244,34 @@ specific feature proves otherwise.
 - **Transient inline error text fades after 5 seconds.** That is the default; do
   not make anyone re-specify it.
 
+### Three date columns, and picking the wrong one is silent
+
+An automation carries three timestamps that all sound like "when it changed".
+They are not interchangeable, and nothing fails loudly when you reach for the
+wrong one.
+
+| Column           | Shown as     | Written by                                              |
+| ---------------- | ------------ | ------------------------------------------------------- |
+| `last_run_at`    | Last Runtime | the sync only. When it last RAN on its platform.        |
+| `last_edited_at` | Last Edited  | the sync only. When it was last edited ON ITS PLATFORM. |
+| `row_updated_at` | Row Update   | the app only. When a PERSON last edited this row here.  |
+
+> 🛑 **`row_updated_at` is the only one that means "a human did something", and
+> `updated_at` is NOT a substitute.** Every sync writes `updated_at`, so a
+> background refresh moves it for hundreds of rows at once. Only
+> `POST /api/automations` and `PATCH /api/automations/[id]` may touch
+> `row_updated_at`; no `*-sync.ts` file may mention it.
+
+It is NULL on every row nobody has opened in the app, which is most of them
+(886 of 964 as of 2026-10-08), and it is deliberately not backfilled. So any
+feature reading it needs a real empty state rather than a theoretical one.
+
+**Who depends on this today:** the Row Update column on the Per Website tables
+and `/automations/all`, and the "Recently Edited in Motherboard" panel on the
+Housekeeping page, which exists because filling an entry in is exactly what
+removes it from that page's list. Swap in `updated_at` there and the panel
+quietly becomes a list of whatever the last sync touched.
+
 ### Adding or removing a table column: the touch-list
 
 The column data flows through several files and it is easy to miss one. Verify

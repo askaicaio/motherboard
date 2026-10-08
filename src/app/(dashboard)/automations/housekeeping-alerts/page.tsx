@@ -40,7 +40,7 @@ import { HousekeepingAlertsClient } from "@/components/automations/housekeeping-
 import {
   getHousekeepingChoices,
   getHousekeepingCoverage,
-  getHousekeepingRows,
+  getHousekeepingLists,
 } from "@/lib/automations/housekeeping";
 import { REQUIRED_COLUMNS } from "@/lib/automations/housekeeping-rule";
 
@@ -55,8 +55,12 @@ export default async function AutomationsHousekeepingAlertsPage() {
   // 📌 `getHousekeepingCoverage` is ONE query precisely so it can join this wave
   // without pushing the peak higher; it folds its junction count into an
   // `exists` rather than taking a second read. Its own note explains why.
-  const [rows, choices, coverage] = await Promise.all([
-    getHousekeepingRows(),
+  // ⭐ THE SECOND LIST CAME FREE. `getHousekeepingLists` returns the
+  // recently-edited five alongside the housekeeping rows out of the SAME base
+  // query, so this wave is still three calls and still four concurrent reads.
+  // **Do not split it back into two loaders**; its own note explains why.
+  const [{ rows, recentlyEdited }, choices, coverage] = await Promise.all([
+    getHousekeepingLists(),
     getHousekeepingChoices(),
     getHousekeepingCoverage(),
   ]);
@@ -152,6 +156,7 @@ export default async function AutomationsHousekeepingAlertsPage() {
 
         <HousekeepingAlertsClient
           initialRows={rows}
+          initialRecentlyEdited={recentlyEdited}
           choices={choices}
           coverage={coverage}
         />
