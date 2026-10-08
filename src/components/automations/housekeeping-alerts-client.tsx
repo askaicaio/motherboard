@@ -21,7 +21,7 @@
 // does its own save and returns the saved row, so there is nothing to guess at
 // and nothing to roll back.
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { ExternalLink, Inbox } from "lucide-react";
 import { toast } from "sonner";
 
@@ -164,9 +164,34 @@ export function HousekeepingAlertsClient({
   const [recent, setRecent] = useState(initialRecentlyEdited);
   const [editing, setEditing] = useState<HousekeepingRow | null>(null);
 
+  /** The recently edited panel, so the hook below can refuse to let it shrink
+   *  the table. See `discountRef` at the call. */
+  const recentPanelRef = useRef<HTMLDivElement>(null);
+
   /** The scroll window's measured height. Same hook the four Automations
-   *  tables use, so this list caps itself the same way they do. */
-  const { ref: scrollRef, style: scrollStyle } = useFitViewportHeight();
+   *  tables use, so this list caps itself the same way they do.
+   *
+   *  🛑🛑 `discountRef` IS THE ONE DEVIATION AND IT IS THE USER'S CALL,
+   *  2026-10-08: "Not ideal, the main table shrunk, it should be the same size
+   *  as before." Stacking the recently edited panel above the table pushed the
+   *  table's top down by its own height, and this hook sizes a container from
+   *  its top to the bottom of the WINDOW, so the list paid for the panel twice:
+   *  once in position, once in height.
+   *  📊 IT WAS WORSE THAN IT LOOKED, measured at 1400x950: the computed fit
+   *  came out at **125px**, below the hook's own 240px floor, so the table was
+   *  CLAMPED. It was not merely small, it had bottomed out, and any further
+   *  content above it would have changed nothing at all. Discounting the panel
+   *  puts it back to **468px, the height it had before the panel existed.**
+   *  ⚠️ THE PRICE IS THAT THIS PAGE NOW SCROLLS when stacked, by roughly the
+   *  panel's height. **That is the deal the user asked for** - the panel
+   *  visible AND the table full size will not both fit in a short window, and
+   *  they chose both over neither. The hook's header documents the exception.
+   *  📌 IT IS INERT IN THE TWO-COLUMN LAYOUT. The panel sits to the RIGHT
+   *  there, not above, so the hook's own above-or-beside test declines to
+   *  discount it and nothing changes at 1536px and up. */
+  const { ref: scrollRef, style: scrollStyle } = useFitViewportHeight({
+    discountRef: recentPanelRef,
+  });
 
   /** Re-run the shared rule against the row the dialog saved, and either drop
    *  it, or keep it with its chips updated.
@@ -533,7 +558,14 @@ export function HousekeepingAlertsClient({
             statistic element." **It spent one round below the table (#612) and
             was reversed the same day.** The container's note carries the
             argument that lost and the 240px it costs; do not reopen it. */}
-        <div className="order-2 w-full max-w-[827px] min-w-0 2xl:col-start-2 2xl:row-start-2 2xl:max-w-none">
+        {/* ⚠️ THE `ref` IS NOT DECORATION. `useFitViewportHeight` reads this
+            element's height so the table can be sized as if it were not above
+            it; without the ref the table silently drops back to its 240px
+            floor on a shrunk window. See the hook call near the top. */}
+        <div
+          ref={recentPanelRef}
+          className="order-2 w-full max-w-[827px] min-w-0 2xl:col-start-2 2xl:row-start-2 2xl:max-w-none"
+        >
           <RecentlyEditedPanel rows={recent} onOpen={setEditing} />
         </div>
       </div>
