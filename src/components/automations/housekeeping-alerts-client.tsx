@@ -112,7 +112,20 @@ const NAME_WIDTH = "400px";
  *  was not to widen a column** - it was to stop the table taking space it had no
  *  content for, and give that space to the coverage panels.
  *  ⚠️ SO A NEW COLUMN MEANS UPDATING THIS NUMBER TOO, or the slack column
- *  silently absorbs it and the panels never notice. */
+ *  silently absorbs it and the panels never notice.
+ *
+ *  🛑🛑 827 NOW APPEARS IN THREE PLACES AND TAILWIND CANNOT READ THIS CONSTANT.
+ *  Change it here and you must change all three, or the page quietly goes
+ *  crooked in a different way at each breakpoint:
+ *    1. here, the inline width on the table card
+ *    2. `2xl:grid-cols-[827px_...]` on the layout row, which reserves the
+ *       column the card sits in. Too small and the card overflows its cell;
+ *       too large and a gap opens between the card and the panels.
+ *    3. `max-w-[827px]` on each panel's wrapper, which is what stops a stacked
+ *       panel from running wider than the table beneath it.
+ *  📌 AND A FOURTH, OUTSIDE THIS FILE: `min-w-[875px]` on the page shell
+ *  (827 + the 48px of `p-6`), which is the floor the horizontal scroller uses.
+ *  Its own comment says so. */
 const TABLE_CARD_WIDTH = 827;
 
 /** How many rows the "Recently Edited in Motherboard" panel holds.
@@ -324,8 +337,49 @@ export function HousekeepingAlertsClient({
           its width fluidly instead of reserving a fixed table, so at 1437px its
           panel is 578px with a 298px bar. **This is a layout bug of THIS page,
           not of the panel.** */}
-      <div className="flex flex-col gap-4 2xl:flex-row 2xl:items-start">
-        <div className="shrink-0" style={{ width: TABLE_CARD_WIDTH }}>
+      {/* ⭐⭐ FLEX WHEN STACKED, GRID WHEN WIDE, SINCE 2026-10-08, and the switch
+          is the whole fix. The two panels used to be ONE child of a flex row, so
+          `order-first` could only move the PAIR, and stacking put both of them
+          above the table: the list window fell to 240px, about three rows.
+          **A flex row cannot put one panel above the table and the other below
+          it**, because they are siblings in a column that has to sit on one side.
+          📌 SO THE THREE CARDS ARE NOW SIBLINGS and each mode places them with
+          the system that suits it:
+            stacked (`flex-col` + `order-*`)  coverage, TABLE, recently edited
+            wide (`grid` + explicit cells)    table on the left spanning both
+                                              rows, the two panels stacked on
+                                              the right, exactly as before
+          ⚠️ `order-*` IS IGNORED IN GRID MODE and that is fine, not a conflict:
+          the grid children carry `col-start`/`row-start`, and explicit placement
+          beats auto-placement, which is the only thing `order` feeds.
+          ⚠️ `grid-rows-[auto_1fr]` IS NOT DECORATION. Without it both rows share
+          the height of the table that spans them, so row one stretches and a
+          ~200px hole opens between the two panels. `auto` pins row one to the
+          coverage card's own height and `1fr` lets the leftover fall into row
+          two, where `items-start` keeps the second panel at the top.
+          ⚠️ `minmax(0,1fr)` AND NOT `1fr` for the right column: a bare `1fr` is
+          `minmax(auto,1fr)`, which refuses to shrink below its content, and the
+          long URLs inside the panel would push the column wider than the window.
+          📊 WHAT IT BUYS, MEASURED AT 1400x950: the list window goes from 240px
+          back to **468px, three rows to six**, which is exactly what it was
+          before the panel existed. (⚠️ 468 is MEASURED. Adding the panel's
+          327px and the 16px gap back onto 240 gives 583, and that arithmetic is
+          WRONG: `useFitViewportHeight` caps the window against the VIEWPORT,
+          not against the sum of what sits above it, so the height it gives back
+          is bounded by the screen. Measure this one, do not derive it.)
+          The cost is that the recently edited panel now sits BELOW the fold on
+          those windows and you scroll to it. **That is the right way round**:
+          the worklist is read constantly and the panel is reached for
+          occasionally.
+          🛑 THE OPPOSITE CALL WAS MADE FOR THE COVERAGE PANEL and still stands.
+          It is `order-1`, above the table, because it is a SUMMARY of the list
+          underneath it; see the long note above. Do not "tidy" the two panels
+          into agreeing. */}
+      <div className="flex flex-col gap-4 2xl:grid 2xl:grid-cols-[827px_minmax(0,1fr)] 2xl:grid-rows-[auto_1fr] 2xl:items-start">
+        <div
+          className="order-2 shrink-0 2xl:col-start-1 2xl:row-span-2 2xl:row-start-1"
+          style={{ width: TABLE_CARD_WIDTH }}
+        >
           {rows.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-2 rounded-lg py-16 text-center ring-1 ring-foreground/10">
               <Inbox className="h-6 w-6 text-zinc-300" />
@@ -445,52 +499,45 @@ export function HousekeepingAlertsClient({
           )}
         </div>
 
-        {/* ⭐⭐ THE RIGHT-HAND COLUMN, WHICH HOLDS TWO PANELS SINCE 2026-10-08.
-            The wrapper used to live inside `CoveragePanel` and was lifted out
-            when the recently-edited panel joined it, so both get the same width
-            and the same stacking behaviour from one place rather than each
-            carrying a copy of these classes.
-            ⚠️ THE ORDER IS SUMMARY THEN HISTORY: coverage says how documented
-            the estate is, the panel below says what was touched last. Reversing
-            them puts a five-row list above the one figure the page exists to
-            move.
-            🛑 CONSEQUENCE OF `order-first` BELOW 1536px, MEASURED AND ACCEPTED,
-            NOT OVERLOOKED: when the layout stacks, BOTH panels sit above the
-            table, the list's scroll window starts that much further down and
-            `useFitViewportHeight` shrinks it to match.
-            📊 AT 1400x950 THE PANEL IS 327px TALL AND THE LIST WINDOW GOES FROM
-            583px TO 240px - **from about seven rows to three** at 79px a row.
-            Above 1536px it costs the table nothing at all, because the panels
-            are beside it rather than above it, and 1919px is the window this
-            page is actually worked in.
-            ⚠️ THE FIX, IF THAT EVER MATTERS, IS NOT A TWEAK HERE: the pair has
-            to split above and below the table when stacked, which this flex row
-            cannot express (both panels are one child of it). **It needs a grid**
-            - `2xl:grid-cols-[827px_1fr]` with the table spanning two rows in
-            column one - and that rewrites the layout the long note above this
-            one describes. It was offered to the user rather than done quietly. */}
-        <div className="order-first flex w-full max-w-[827px] min-w-0 flex-col gap-4 2xl:order-none 2xl:max-w-none 2xl:flex-1">
-          {/* ⚠️ IT COUNTS THE WHOLE ESTATE, and always did. This used to be the
-              interesting half of a sentence - there were website filter chips
-              above and this panel deliberately ignored them - and **the chips were
-              removed 2026-09-24, so the panel and the list now agree by default**.
-              It is one figure about how documented the estate is, not a second
-              view of the list. Its "all websites" hint is what still says so. */}
+        {/* ⚠️ IT COUNTS THE WHOLE ESTATE, and always did. This used to be the
+            interesting half of a sentence - there were website filter chips
+            above and this panel deliberately ignored them - and **the chips were
+            removed 2026-09-24, so the panel and the list now agree by default**.
+            It is one figure about how documented the estate is, not a second
+            view of the list. Its "all websites" hint is what still says so.
+            ⚠️ `order-1` KEEPS IT ABOVE THE TABLE WHEN STACKED, which is the
+            call the long note on the container describes: **summary first, then
+            the detail it summarises.** 📊 It is also the cheap one: 166px plus
+            the 16px gap, against the other panel's 327px plus 16. Wide, it is
+            the top cell of the right column.
+            📌 THE 827px CAP IS FOR THE STACKED CASE ONLY: a four-row card
+            stretched across 1100px reads as a banner, and matching the table
+            card below it keeps the page's two edges honest. */}
+        <div className="order-1 w-full max-w-[827px] min-w-0 2xl:col-start-2 2xl:row-start-1 2xl:max-w-none">
           <CoveragePanel coverage={coverage} />
+        </div>
 
-          {/* ⭐⭐ THE WAY BACK TO THE ENTRY YOU JUST FINISHED, user 2026-10-08:
-              "the guy doing the housekeeping tasks sometimes miss adding some
-              information, and requires to go back to a previous entry, but its
-              difficult to do that at the moment."
-              🛑 THE PAGE'S CENTRAL MECHANIC IS WHAT CREATES THE PROBLEM:
-              **filling an entry in is exactly what removes it from the list.**
-              See the loader's note for the measurement that settled it (all
-              nine entries edited on the day this shipped had just vanished).
-              📌 THE REFERENCE WAS THE LIVE HUB'S "Recently Edited on the
-              Website" panel, which the user pointed at by name. The chrome here
-              is the COVERAGE PANEL'S instead (`px-3.5 py-2`, no 2px shelf),
-              because that is the card this one sits directly underneath and the
-              two have to read as a pair. */}
+        {/* ⭐⭐ THE WAY BACK TO THE ENTRY YOU JUST FINISHED, user 2026-10-08:
+            "the guy doing the housekeeping tasks sometimes miss adding some
+            information, and requires to go back to a previous entry, but its
+            difficult to do that at the moment."
+            🛑 THE PAGE'S CENTRAL MECHANIC IS WHAT CREATES THE PROBLEM:
+            **filling an entry in is exactly what removes it from the list.**
+            See the loader's note for the measurement that settled it (all
+            nine entries edited on the day this shipped had just vanished).
+            📌 THE REFERENCE WAS THE LIVE HUB'S "Recently Edited on the
+            Website" panel, which the user pointed at by name. The chrome here
+            is the COVERAGE PANEL'S instead (`px-3.5 py-2`, no 2px shelf),
+            because that is the card this one sits directly underneath and the
+            two have to read as a pair.
+            ⭐ `order-3` PUTS IT BELOW THE TABLE WHEN STACKED, unlike its
+            neighbour, and that asymmetry is the point rather than an
+            inconsistency. **It is a tool, not a summary**: it is reached for
+            when something was missed, while the worklist is read continuously,
+            so it is the one that should pay for a narrow window. Shipped above
+            the table first (#611), measured at three visible rows, and moved
+            here on the user's call the same day. */}
+        <div className="order-3 w-full max-w-[827px] min-w-0 2xl:col-start-2 2xl:row-start-2 2xl:max-w-none">
           <RecentlyEditedPanel rows={recent} onOpen={setEditing} />
         </div>
       </div>
@@ -587,18 +634,15 @@ export function HousekeepingAlertsClient({
 function CoveragePanel({ coverage }: { coverage: HousekeepingCoverage }) {
   const { total, filled } = coverage;
   return (
-    // ⚠️ THE POSITIONING CLASSES MOVED OUT ON 2026-10-08, to the column wrapper
-    // that now holds this panel and the recently-edited one. `order-first`,
-    // the 827px cap and `2xl:flex-1` live there; they are unchanged, they just
-    // apply to the pair. The reasoning is at the layout row in this file.
-    // 📌 STACKED, THE COLUMN TAKES THE TABLE'S OWN 827px rather than the full
-    // container width: a four-row card stretched across 1100px reads as a
-    // banner, and matching the card below it keeps the page's left edge and
-    // right edge honest.
+    // ⚠️ THE POSITIONING CLASSES MOVED OUT ON 2026-10-08, onto this panel's own
+    // wrapper in the layout row: the ordering, the 827px cap and the grid cell
+    // live there, beside the recently-edited panel's matching set. **The
+    // reasoning for all of it is at the layout row**, so this component is now
+    // only the card.
     // ⚠️ The panel sizes to its content and stops. It does NOT stretch to the
     // table's height - a five-row card spread over 700px puts ~140px between
-    // rows, which reads worse than the whitespace below it. The column wrapper
-    // is `flex-col` with no `flex-1` on either child, so both keep that.
+    // rows, which reads worse than the whitespace below it. `items-start` on
+    // the grid is what keeps that true now that the table spans both rows.
     <div className="min-w-0 overflow-hidden rounded-lg bg-card ring-1 ring-foreground/10">
       <div className="flex items-center justify-between gap-2 border-b bg-muted/40 px-3.5 py-2">
         <span className="text-xs font-semibold text-zinc-800">
