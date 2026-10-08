@@ -268,14 +268,20 @@ rows on the left; the two panels stack on the right.
 
 | width       | order                                          |
 | ----------- | ---------------------------------------------- |
-| below 1536  | coverage, recently edited, table               |
+| below 1536  | **table**, coverage, recently edited           |
 | 1536 and up | table on the left, the two panels on the right |
 
-> ⚠️ **The stacked order is the user's and it was reversed once.** The panel
-> shipped below the table to protect the worklist's height, and they moved it
-> above the same day: "a tool you cannot see is a tool you do not remember you
-> have." It costs the visible worklist a few rows on a narrow window, which they
-> have seen measured. Do not re-derive the other answer.
+> 🛑 **The stacked order is the user's, and it took four goes to settle. Do not
+> re-derive it.** Both panels above the table (#611), the recently edited panel
+> below it (#612), above it again (#613), then **both panels below the table**
+> (#617). The work comes first; everything about the work comes after it.
+
+Both sides of that argument are worth keeping, because it was decided twice in
+each direction. **For panels first:** the coverage panel summarises the list
+beneath it, and the recently edited panel is how you get back to an entry that
+finishing has just removed, so a tool you cannot see is a tool you forget you
+have. **For the table first:** measured at 1400x950, two panels above put the
+list window on its clamped 240px floor; table first gives it **633px**.
 
 ---
 
@@ -564,6 +570,14 @@ element.top`, because the space between them also holds chrome that does not
 > with no breakpoint constant. It **deliberately breaks the hook's "the page no
 > longer scrolls" promise** for the caller that opts in. Default is unchanged:
 > of the eleven call sites, ten pass no arguments at all.
+>
+> ⚠️ **Its one caller currently passes a ref that never fires**, because the
+> Housekeeping panels moved below the table in #617 and the hook's own
+> above-or-beside test then declines to discount. That is wired deliberately,
+> not left behind: the stacked order changed four times in a day, and this is
+> what makes the panels-above arrangement survivable. If the panels are still
+> below the table in a month, delete the ref, the prop and this branch, which
+> would then have no callers at all.
 
 **Width floors are measured, not guessed, and they are a judgement.** Strip the
 floor, set `width: min-content`, read the box. Two traps: min-content lies when
