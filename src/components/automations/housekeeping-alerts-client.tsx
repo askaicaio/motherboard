@@ -439,7 +439,67 @@ export function HousekeepingAlertsClient({
             // **Nothing is hidden now, so that dependency is gone** - the ordering
             // is still there, but it is a convenience rather than a correctness
             // requirement.
-            <Card>
+            //
+            // ⚠️ `pt-0 gap-0` IS WHAT MAKES THE HEADER PART OF THE CARD RATHER
+            // THAN A BLOCK FLOATING INSIDE IT. `Card` is a flex column with
+            // `py-4` and `gap-4`, which is right when its only child is
+            // content and wrong the moment the first child is a header bar: it
+            // would sit 16px below the card's top edge with another 16px of
+            // air under it, reading as a stray strip.
+            // 📌 `pb-4` STAYS. That bottom padding is the card chrome the
+            // hook's 72px `bottomGap` is tuned around; removing it would pull
+            // the table's bottom edge down into the reserve.
+            // ⚠️ A `//` COMMENT, NOT `{/* */}`, BECAUSE THIS IS A TERNARY ARM.
+            // A JSX comment here would be a SECOND expression in a branch that
+            // may only hold one, and the file stops parsing.
+            <Card className="gap-0 pt-0">
+              {/* ⭐⭐ A HEADER ON THE TABLE TOO, user 2026-10-08: "Add a header
+                  here as well so people don't mix the tables up." Until the
+                  recently edited panel landed, this card was the only list on
+                  the page and needed no label; **now there are two lists of
+                  automations stacked on top of each other**, both with a
+                  website glyph, a name and a blue link, and the only thing
+                  telling them apart was that one of them had chips.
+                  ⚠️ IT IS THE PANELS' HEADER, CLASS FOR CLASS (`px-3.5 py-2`,
+                  `bg-muted/40`, the same two type sizes), because the job is to
+                  make this card read as a THIRD member of the same set rather
+                  than as a different kind of object.
+                  📌 THE TITLE IS THE USER'S PICK from three, 2026-10-08. It
+                  deliberately shares NO WORDS with "Documentation of Required
+                  Fields" above it: "Automations Missing Required Fields" was
+                  the accurate option and was rejected for echoing the panel it
+                  has to be told apart from.
+                  🛑 IT SITS OUTSIDE `CardContent`, SO IT DOES NOT SCROLL AWAY.
+                  Inside the scroll area it would vanish on the first wheel
+                  click, which is exactly when you need to know which table you
+                  are in.
+                  📌 THE ROUNDED TOP CORNERS SURVIVE because `Card` already
+                  carries `overflow-hidden` in its own base classes, so this
+                  square-cornered tinted bar is clipped to them. Do not remove
+                  that if the base card is ever restyled.
+                  📊 IT COSTS THE LIST A LITTLE SCROLL AREA AND NOT ONE PIXEL OF
+                  CARD. `useFitViewportHeight` measures `CardContent`, which the
+                  header pushes down, so the cap shrinks by what the header
+                  takes and the card's bottom edge lands where it always did.
+                  **The header is paid for out of the scroll area, not out of
+                  the page**, so nothing below the card moves. */}
+              <div className="flex items-center justify-between gap-2 border-b bg-muted/40 px-3.5 py-2">
+                <span className="text-xs font-semibold text-zinc-800">
+                  Housekeeping List
+                </span>
+                {/* ⚠️ `rows.length`, NOT a server-rendered total. It drops the
+                    moment a row is completed and leaves the list, which is the
+                    behaviour the two counts beside it already have (the chips
+                    and the panel both come from client state). **The red pill
+                    on the main Automations page does NOT**: it is read per
+                    render, so it stays one high until you navigate back. That
+                    difference is pre-existing and documented at `handleDelete`.
+                    📌 SINGULAR IS HANDLED because one row left to fill in is a
+                    real and rather satisfying state to reach. */}
+                <span className="text-[10px] tracking-wider text-zinc-500 uppercase">
+                  {rows.length} {rows.length === 1 ? "entry" : "entries"}
+                </span>
+              </div>
               <CardContent
                 ref={scrollRef}
                 style={scrollStyle}
