@@ -43,7 +43,14 @@ the sync code:
 | `/automations/dropdown-config`     | manages the choice lists behind the dropdown columns    |
 | `/automations/feature-integration` | documents which capabilities each website's API unlocks |
 | `/automations/design-versions`     | the directory of parallel design experiments            |
-| `/automations/housekeeping-alerts` | rule-driven alerts about the inventory                  |
+| `/automations/housekeeping-alerts` | Housekeeping: the worklist of under-documented rows     |
+
+> ⚠️ **The Housekeeping page's route and its label disagree, on purpose.** The
+> page is called **Housekeeping**; the route is still `housekeeping-alerts` and
+> every `getHousekeeping*` identifier keeps the old spelling. Only the label
+> changed (2026-09-18): nothing on that page alerts, and the tab already uses
+> "alerts" for Error History and Latest Errors, which are about automations
+> that genuinely broke. Do not rename the route to match without a redirect.
 
 `feature-integration`, `all`, `dropdown-config`, `design-versions` and
 `housekeeping-alerts` are **literal route segments that shadow the sibling
@@ -187,6 +194,88 @@ interchangeable:
 > finished. Ask every time; do not carry a previous answer forward. The same
 > question got opposite answers five days apart (a shipped winner was archived
 > with its losers once, and deliberately kept out the next time).
+
+### The Housekeeping page, and the two lists it loads from one query
+
+`/automations/housekeeping-alerts` is the documentation worklist: **every
+automation missing at least one of the four required fields** (Automation Tags,
+Trigger Event, Evaluation, Purpose). 499 rows of 964 as of 2026-10-08. Clicking
+a row opens the same `WorkflowDialog` the website tables use; clicking the
+automation's own link opens it in a new tab **and** the dialog.
+
+> 🛑 **The rule is written twice and the two copies must agree.**
+> `missingRequired()` in `housekeeping-rule.ts` is the JS half (no database
+> import, so the client shares it) and decides which chips a row shows.
+> `flaggedRows()` in `housekeeping.ts` is the SQL half and decides whether a row
+> is returned at all. Nothing derives one from the other, so a field joining or
+> leaving the required set is an edit to both.
+
+The page renders three cards, and **two of them are lists of automations**:
+
+| card                             | what it holds                                        |
+| -------------------------------- | ---------------------------------------------------- |
+| Documentation of Required Fields | coverage of the four fields across all five websites |
+| Recently Edited in Motherboard   | the five automations a person last edited in the app |
+| Housekeeping List                | the worklist itself, with a live entry count         |
+
+**Why the second list exists.** Filling an entry in is exactly what removes it
+from the worklist, so the entry you most need to revisit is the one you can no
+longer see. Measured before it was built, on 2026-10-08: 78 of 964 automations
+had ever been edited in the app, and the nine edited that day were all complete,
+meaning all nine had just vanished off the list. (That counter moves as the work
+happens: it read 79 a few hours later.)
+
+> ⚠️ **"Recently edited" means `row_updated_at`, which is app-wide, not
+> page-scoped.** An entry edited from a Per Website page appears there too. That
+> was the user's choice over a new column recording the source page. See the
+> three date columns in section 4 for why `updated_at` would have been wrong.
+
+**All three cards carry a header bar**, same classes, because two of them are
+lists of automations that look alike: website glyph, name, blue link. Before the
+second list arrived the worklist needed no label; afterwards the only thing
+telling them apart was that one had chips. **Adding a second instance of a thing
+can make the first one ambiguous, and the first one was never built to say what
+it is.**
+
+#### The second list rides along on the first list's query
+
+`getHousekeepingLists()` returns `{ rows, recentlyEdited }` from **one base
+query**. The five recently-edited ids arrive as a **subquery inside that query's
+`where`**, so the four selection reads below it cover both lists for free.
+
+> 🛑 **Do not split this into a second loader.** The obvious build is its own
+> base query plus its own four selection reads, which puts **eight reads in
+> flight at once** against a `max: 10` pool. That fan-out is what took the hub
+> down once; see section 8.
+
+Two details that keep it honest:
+
+- **The slice is correct by construction.** `rows` holds the flagged rows plus
+  the global five, so sorting by `row_updated_at` and taking five cannot return
+  anything else: any flagged row recent enough to outrank fifth place would
+  already be one of the five. The `limit` in the subquery is what makes that
+  true.
+- **`isFlagged` is selected from SQL**, so a row's membership of the worklist is
+  the predicate's own verdict. Splitting the two lists in JS on
+  `missing.length > 0` would work until the two halves of the rule drifted, and
+  would then **silently drop a row from the worklist** rather than merely
+  mis-drawing its chips.
+
+#### Layout: three cards, one grid
+
+Flex column when stacked, CSS grid at `2xl` and above. The table spans both grid
+rows on the left; the two panels stack on the right.
+
+| width       | order                                          |
+| ----------- | ---------------------------------------------- |
+| below 1536  | coverage, recently edited, table               |
+| 1536 and up | table on the left, the two panels on the right |
+
+> ⚠️ **The stacked order is the user's and it was reversed once.** The panel
+> shipped below the table to protect the worklist's height, and they moved it
+> above the same day: "a tool you cannot see is a tool you do not remember you
+> have." It costs the visible worklist a few rows on a narrow window, which they
+> have seen measured. Do not re-derive the other answer.
 
 ---
 
@@ -448,6 +537,34 @@ PR once.
 width and scrolling. Use `@container` with `@min-[Npx]:`. Any page you add a
 floor to needs its responsive utilities audited for this.
 
+**A `Card` whose first child is a header bar needs `pt-0 gap-0`.** `Card` is a
+flex column with `py-4` and `gap-4`, which is right when its only child is
+content and wrong the moment you put a tinted header strip at the top: it floats
+16px below the card's edge with another 16px of air under it. Keep `pb-4`, which
+is the chrome `useFitViewportHeight`'s `bottomGap` is tuned around, and put the
+header **outside `CardContent`** so it does not scroll away.
+
+**A scroll container sized by `useFitViewportHeight` can be clamped, and a
+clamped container stops responding to its own cause.** The hook sizes an element
+from its top to the bottom of the window, with a `minHeight` floor of 240px.
+Anything you stack above it is paid for twice, in position and in height, and
+once the computed fit drops under the floor the element is pinned there. It
+happened once on Housekeeping: the element rendered at exactly 240px while the
+space available to it came to 125px, so it was not "a bit tight", it had
+bottomed out and further changes above it would have done nothing at all.
+**Check for the clamp before theorising about the layout.**
+
+> 📌 **The escape hatch is `discountRef`.** Pass a ref to a sibling that is
+> allowed to stack above the container without shrinking it, and its height plus
+> one row gap is subtracted from the measured offset. Two things to know if you
+> use it: the discount is **height plus row gap**, not `container.top -
+element.top`, because the space between them also holds chrome that does not
+> disappear with the element; and it tests "above, not beside" by comparing the
+> element's bottom to the container's top, so it is inert in a two-column layout
+> with no breakpoint constant. It **deliberately breaks the hook's "the page no
+> longer scrolls" promise** for the caller that opts in. Default is unchanged:
+> of the eleven call sites, ten pass no arguments at all.
+
 **Width floors are measured, not guessed, and they are a judgement.** Strip the
 floor, set `width: min-content`, read the box. Two traps: min-content lies when
 a child carries `min-w-0` (it reports the squash limit, not the need), and for a
@@ -587,4 +704,5 @@ in edit mode, the add dialog and click-row-to-edit.
 | the parallel design experiments      | `/automations/design-versions` in the app     |
 | how an external provider is wired    | `src/lib/providers/INTEGRATION_GUIDE.md`      |
 | why row loading has exactly one path | `docs/per-website-row-loading.md`             |
+| what is under-documented right now   | `/automations/housekeeping-alerts` in the app |
 | the Next.js version's own docs       | `node_modules/next/dist/docs/`                |
