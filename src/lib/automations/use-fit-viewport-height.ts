@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import type { RefObject } from "react";
 
 // Shared "fit-to-viewport" height for a scrollable table/list container.
 //
@@ -24,22 +23,22 @@ import type { RefObject } from "react";
 // equals the true chrome. The fixed reserve is the reliable choice for this
 // layout. `bottomGap` is the single knob if it ever needs adjusting.
 //
-// `discountRef` (optional, added 2026-10-08 for the Housekeeping page) names a
-// SIBLING THAT IS ALLOWED TO STACK ABOVE THE CONTAINER WITHOUT SHRINKING IT.
-// When that element sits fully above, its height plus one row gap is subtracted
-// from the measured offset, so the container is sized as if it were not there.
+// ⚠️⚠️ ANYTHING STACKED ABOVE THE CONTAINER IS PAID FOR TWICE, once in position
+// and once in height, because the cap is measured from the container's own top.
+// A panel added above a table on a narrow window therefore shortens the table by
+// its full height, and **once the remainder falls under `minHeight` the
+// container is CLAMPED and stops responding to the thing causing it** (measured
+// once at 125px available against the 240px floor, so the table had bottomed
+// out). Check for the clamp before theorising about the layout.
 //
-// ⚠️ THIS DELIBERATELY BREAKS THE "the page no longer scrolls" PROMISE ABOVE,
-// for the one caller that asks for it. The page gains roughly the discounted
-// element's height in scroll. That is the trade the Housekeeping page's user
-// chose, knowingly: see the call site.
-// 📌 IT IS OPT-IN AND THE DEFAULT IS UNCHANGED. The other nine callers pass no
-// arguments at all and behave exactly as before.
-// ⚠️ THE DISCOUNT IS NOT `container.top - element.top`, THOUGH THAT LOOKS
-// RIGHT. The space between them is the row gap PLUS whatever chrome sits
-// between the element and the measured container (on Housekeeping the `Card`
-// adds 16px above its `CardContent`), and that chrome does not go away when the
-// element does. **Height + row gap is what the element actually costs.**
+// 🛑 A `discountRef` OPTION FOR EXACTLY THAT CASE LIVED HERE FOR PART OF
+// 2026-10-08 (added #614, removed #618) and is in the git history if it is ever
+// wanted again. It let one named sibling stack above the container without
+// shrinking it, by subtracting **its height plus one row gap** (NOT
+// `container.top - element.top`, which also contains chrome that does not go
+// away with the element). It was removed because the Housekeeping panels moved
+// below their table in #617, leaving it with no caller that it fired for, and
+// **a wired mechanism that quietly does nothing is worse than no mechanism.**
 //
 // Usage:
 //   const { ref, style } = useFitViewportHeight();
@@ -50,12 +49,7 @@ import type { RefObject } from "react";
 export function useFitViewportHeight<T extends HTMLElement = HTMLDivElement>({
   bottomGap = 72,
   minHeight = 240,
-  discountRef,
-}: {
-  bottomGap?: number;
-  minHeight?: number;
-  discountRef?: RefObject<HTMLElement | null>;
-} = {}) {
+}: { bottomGap?: number; minHeight?: number } = {}) {
   const ref = useRef<T>(null);
   const [maxHeight, setMaxHeight] = useState<number>();
 
@@ -63,50 +57,17 @@ export function useFitViewportHeight<T extends HTMLElement = HTMLDivElement>({
     const measure = () => {
       const el = ref.current;
       if (!el) return;
-      const rect = el.getBoundingClientRect();
       // Document offset (robust to page scroll), so the height is stable
       // regardless of how far the page is scrolled when we measure.
-      let offsetTop = rect.top + window.scrollY;
-
-      const discount = discountRef?.current;
-      if (discount) {
-        const dRect = discount.getBoundingClientRect();
-        // "Above", not "beside": in the two-column layout this same element
-        // sits to the RIGHT and must not be discounted. Comparing its BOTTOM
-        // against the container's TOP is what tells the two cases apart, and it
-        // needs no breakpoint constant to do it.
-        if (dRect.bottom <= rect.top) {
-          const gap =
-            parseFloat(
-              getComputedStyle(discount.parentElement ?? discount).rowGap,
-            ) || 0;
-          offsetTop -= dRect.height + gap;
-        }
-      }
-
+      const offsetTop = el.getBoundingClientRect().top + window.scrollY;
       setMaxHeight(
         Math.max(minHeight, window.innerHeight - offsetTop - bottomGap),
       );
     };
     measure();
     window.addEventListener("resize", measure);
-
-    // ⚠️ A RESIZE LISTENER IS NOT ENOUGH FOR THE DISCOUNTED ELEMENT. It can
-    // change height without the window changing at all (its list goes from an
-    // empty state to five rows when the first row is saved), and the container
-    // would keep a stale cap until the next resize.
-    const discount = discountRef?.current;
-    const ro =
-      discount && typeof ResizeObserver !== "undefined"
-        ? new ResizeObserver(measure)
-        : null;
-    if (ro && discount) ro.observe(discount);
-
-    return () => {
-      window.removeEventListener("resize", measure);
-      ro?.disconnect();
-    };
-  }, [bottomGap, minHeight, discountRef]);
+    return () => window.removeEventListener("resize", measure);
+  }, [bottomGap, minHeight]);
 
   const style = maxHeight ? { maxHeight } : undefined;
   return { ref, style } as const;

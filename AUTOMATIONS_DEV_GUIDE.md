@@ -560,24 +560,20 @@ space available to it came to 125px, so it was not "a bit tight", it had
 bottomed out and further changes above it would have done nothing at all.
 **Check for the clamp before theorising about the layout.**
 
-> 📌 **The escape hatch is `discountRef`.** Pass a ref to a sibling that is
-> allowed to stack above the container without shrinking it, and its height plus
-> one row gap is subtracted from the measured offset. Two things to know if you
-> use it: the discount is **height plus row gap**, not `container.top -
-element.top`, because the space between them also holds chrome that does not
-> disappear with the element; and it tests "above, not beside" by comparing the
-> element's bottom to the container's top, so it is inert in a two-column layout
-> with no breakpoint constant. It **deliberately breaks the hook's "the page no
-> longer scrolls" promise** for the caller that opts in. Default is unchanged:
-> of the eleven call sites, ten pass no arguments at all.
+> 📌 **There is no option for this, and that is deliberate.** A `discountRef`
+> was added for exactly this case (#614) and removed hours later (#618), once
+> the panels it existed for moved below their table and it stopped firing. It
+> is in the git history of `use-fit-viewport-height.ts` if the situation comes
+> back. What it did, if it ever needs rebuilding: subtract one named sibling's
+> **height plus one row gap** from the measured offset when that sibling sits
+> above the container. Not the distance between the two elements, which looks
+> right and is wrong, because that space also holds chrome which does not
+> disappear along with the element.
 >
-> ⚠️ **Its one caller currently passes a ref that never fires**, because the
-> Housekeeping panels moved below the table in #617 and the hook's own
-> above-or-beside test then declines to discount. That is wired deliberately,
-> not left behind: the stacked order changed four times in a day, and this is
-> what makes the panels-above arrangement survivable. If the panels are still
-> below the table in a month, delete the ref, the prop and this branch, which
-> would then have no callers at all.
+> 🛑 **The lesson is the removal, not the mechanism.** All eleven call sites
+> pass no arguments again. A wired mechanism that quietly does nothing is worse
+> than no mechanism, because the next reader has to prove it is inert before
+> they are allowed to ignore it.
 
 **Width floors are measured, not guessed, and they are a judgement.** Strip the
 floor, set `width: min-content`, read the box. Two traps: min-content lies when
