@@ -337,18 +337,29 @@ export function HousekeepingAlertsClient({
           its width fluidly instead of reserving a fixed table, so at 1437px its
           panel is 578px with a 298px bar. **This is a layout bug of THIS page,
           not of the panel.** */}
-      {/* ⭐⭐ FLEX WHEN STACKED, GRID WHEN WIDE, SINCE 2026-10-08, and the switch
-          is the whole fix. The two panels used to be ONE child of a flex row, so
-          `order-first` could only move the PAIR, and stacking put both of them
-          above the table: the list window fell to 240px, about three rows.
-          **A flex row cannot put one panel above the table and the other below
-          it**, because they are siblings in a column that has to sit on one side.
-          📌 SO THE THREE CARDS ARE NOW SIBLINGS and each mode places them with
-          the system that suits it:
-            stacked (`flex-col` + `order-*`)  coverage, TABLE, recently edited
+      {/* ⭐⭐ FLEX WHEN STACKED, GRID WHEN WIDE, SINCE 2026-10-08. The two
+          panels used to be ONE child of a flex row, so a single `order-first`
+          moved the PAIR and nothing could be placed between them. **The three
+          cards are siblings now**, and each mode places them with the system
+          that suits it:
+            stacked (`flex-col` + `order-*`)  coverage, RECENTLY EDITED, table
             wide (`grid` + explicit cells)    table on the left spanning both
                                               rows, the two panels stacked on
-                                              the right, exactly as before
+                                              the right
+          🛑🛑 THE STACKED ORDER IS THE USER'S, SET 2026-10-08 FROM A MARKED-UP
+          SCREENSHOT: "During a window shrink, this element should be above the
+          main table, below the statistic element." **It was shipped the other
+          way round for one round (#612) and they reversed it the same day.**
+          ⚠️ SO DO NOT MOVE IT BACK ON THE ARGUMENT THAT LOST, which is written
+          here because it sounded good and was still wrong: the worklist is read
+          constantly and the panel is reached for occasionally, so the panel
+          "should" be the one that pays for a narrow window. 📊 It costs the
+          list window 240px, measured at 1400x950: **468px down to 240px, six
+          visible rows down to three.** The user has seen that number and wants
+          the panel on screen anyway, which is the answer that counts: a tool
+          you cannot see is a tool you do not remember you have.
+          📌 BOTH PANELS NOW AGREE: coverage first, recently edited second, the
+          table under them. **Summary, then the way back, then the work.**
           ⚠️ `order-*` IS IGNORED IN GRID MODE and that is fine, not a conflict:
           the grid children carry `col-start`/`row-start`, and explicit placement
           beats auto-placement, which is the only thing `order` feeds.
@@ -360,24 +371,12 @@ export function HousekeepingAlertsClient({
           ⚠️ `minmax(0,1fr)` AND NOT `1fr` for the right column: a bare `1fr` is
           `minmax(auto,1fr)`, which refuses to shrink below its content, and the
           long URLs inside the panel would push the column wider than the window.
-          📊 WHAT IT BUYS, MEASURED AT 1400x950: the list window goes from 240px
-          back to **468px, three rows to six**, which is exactly what it was
-          before the panel existed. (⚠️ 468 is MEASURED. Adding the panel's
-          327px and the 16px gap back onto 240 gives 583, and that arithmetic is
-          WRONG: `useFitViewportHeight` caps the window against the VIEWPORT,
-          not against the sum of what sits above it, so the height it gives back
-          is bounded by the screen. Measure this one, do not derive it.)
-          The cost is that the recently edited panel now sits BELOW the fold on
-          those windows and you scroll to it. **That is the right way round**:
-          the worklist is read constantly and the panel is reached for
-          occasionally.
-          🛑 THE OPPOSITE CALL WAS MADE FOR THE COVERAGE PANEL and still stands.
-          It is `order-1`, above the table, because it is a SUMMARY of the list
-          underneath it; see the long note above. Do not "tidy" the two panels
-          into agreeing. */}
+          📌 THE GRID STAYED EVEN THOUGH THE FLEX COLUMN COULD EXPRESS THIS
+          AGAIN. It is equivalent for the stacked case and more explicit for the
+          wide one, and un-picking it would be churn for no behaviour. */}
       <div className="flex flex-col gap-4 2xl:grid 2xl:grid-cols-[827px_minmax(0,1fr)] 2xl:grid-rows-[auto_1fr] 2xl:items-start">
         <div
-          className="order-2 shrink-0 2xl:col-start-1 2xl:row-span-2 2xl:row-start-1"
+          className="order-3 shrink-0 2xl:col-start-1 2xl:row-span-2 2xl:row-start-1"
           style={{ width: TABLE_CARD_WIDTH }}
         >
           {rows.length === 0 ? (
@@ -505,11 +504,9 @@ export function HousekeepingAlertsClient({
             removed 2026-09-24, so the panel and the list now agree by default**.
             It is one figure about how documented the estate is, not a second
             view of the list. Its "all websites" hint is what still says so.
-            ⚠️ `order-1` KEEPS IT ABOVE THE TABLE WHEN STACKED, which is the
-            call the long note on the container describes: **summary first, then
-            the detail it summarises.** 📊 It is also the cheap one: 166px plus
-            the 16px gap, against the other panel's 327px plus 16. Wide, it is
-            the top cell of the right column.
+            ⚠️ `order-1` KEEPS IT FIRST WHEN STACKED: **summary first, then the
+            detail it summarises.** It is also the short one, 166px against the
+            other panel's 327px. Wide, it is the top cell of the right column.
             📌 THE 827px CAP IS FOR THE STACKED CASE ONLY: a four-row card
             stretched across 1100px reads as a banner, and matching the table
             card below it keeps the page's two edges honest. */}
@@ -530,14 +527,13 @@ export function HousekeepingAlertsClient({
             is the COVERAGE PANEL'S instead (`px-3.5 py-2`, no 2px shelf),
             because that is the card this one sits directly underneath and the
             two have to read as a pair.
-            ⭐ `order-3` PUTS IT BELOW THE TABLE WHEN STACKED, unlike its
-            neighbour, and that asymmetry is the point rather than an
-            inconsistency. **It is a tool, not a summary**: it is reached for
-            when something was missed, while the worklist is read continuously,
-            so it is the one that should pay for a narrow window. Shipped above
-            the table first (#611), measured at three visible rows, and moved
-            here on the user's call the same day. */}
-        <div className="order-3 w-full max-w-[827px] min-w-0 2xl:col-start-2 2xl:row-start-2 2xl:max-w-none">
+            🛑 `order-2` PUTS IT BETWEEN THE COVERAGE PANEL AND THE TABLE WHEN
+            STACKED, BY THE USER'S INSTRUCTION, 2026-10-08: "During a window
+            shrink, this element should be above the main table, below the
+            statistic element." **It spent one round below the table (#612) and
+            was reversed the same day.** The container's note carries the
+            argument that lost and the 240px it costs; do not reopen it. */}
+        <div className="order-2 w-full max-w-[827px] min-w-0 2xl:col-start-2 2xl:row-start-2 2xl:max-w-none">
           <RecentlyEditedPanel rows={recent} onOpen={setEditing} />
         </div>
       </div>
