@@ -21,7 +21,7 @@
 // does its own save and returns the saved row, so there is nothing to guess at
 // and nothing to roll back.
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { ExternalLink, Inbox } from "lucide-react";
 import { toast } from "sonner";
 
@@ -164,33 +164,25 @@ export function HousekeepingAlertsClient({
   const [recent, setRecent] = useState(initialRecentlyEdited);
   const [editing, setEditing] = useState<HousekeepingRow | null>(null);
 
-  /** The recently edited panel. Feeds the hook's `discountRef`, which is
-   *  currently inert; the note at the call explains why it is still here. */
-  const recentPanelRef = useRef<HTMLDivElement>(null);
-
   /** The scroll window's measured height. Same hook the four Automations
-   *  tables use, so this list caps itself the same way they do.
+   *  tables use, so this list caps itself the same way they do, and with the
+   *  same no-argument call they all make.
    *
-   *  🛑🛑 `discountRef` FIRES ONLY WHEN THE PANEL SITS ABOVE THE TABLE, AND
-   *  SINCE 2026-10-08 IT DOES NOT, in either layout. **The prop is wired and
-   *  doing nothing**, which the hook decides for itself by comparing the
-   *  element's bottom to this container's top. Nothing here needs changing if
-   *  the panels move back above the table; it simply starts working again.
-   *
-   *  📌 WHY IT EXISTS, because it is worth keeping and worth understanding:
-   *  while the panels were above the table they pushed its top down, and this
-   *  hook sizes a container from its top to the bottom of the WINDOW, so **the
-   *  list paid for them twice, once in position and once in height.**
-   *  📊 IT WAS WORSE THAN IT LOOKED, measured at 1400x950: the space available
-   *  came to **125px against the hook's own 240px floor**, so the table was
-   *  CLAMPED. It was not merely small, it had bottomed out, and further content
-   *  above it would have changed nothing at all. **Check for the clamp before
-   *  theorising about a layout.**
-   *  ⚠️ KEPT RATHER THAN DELETED because this order changed four times in one
-   *  day. The ref's own note says what to remove if it settles. */
-  const { ref: scrollRef, style: scrollStyle } = useFitViewportHeight({
-    discountRef: recentPanelRef,
-  });
+   *  🛑 IT TAKES NO ARGUMENTS AGAIN, AS OF 2026-10-08. For part of one day it
+   *  passed a `discountRef` so the table could be sized as if the recently
+   *  edited panel were not stacked above it (#614). **The panels moved below
+   *  the table (#617), so nothing is above this container any more and the
+   *  discount never fired**; the user chose to remove it rather than leave a
+   *  wired mechanism doing nothing. The hook's own option went with it.
+   *  ⚠️ IF A PANEL IS EVER STACKED ABOVE THIS TABLE AGAIN, read this first.
+   *  **This hook sizes a container from its own top to the bottom of the
+   *  WINDOW**, so anything above the table is paid for twice, once in position
+   *  and once in height. 📊 It went badly once, measured at 1400x950: the space
+   *  available came to **125px against the hook's 240px floor**, so the table
+   *  was CLAMPED. It had bottomed out, and further content above it would have
+   *  changed nothing at all. **Check for the clamp before theorising about a
+   *  layout.** The fix is in the history of `use-fit-viewport-height.ts`. */
+  const { ref: scrollRef, style: scrollStyle } = useFitViewportHeight();
 
   /** Re-run the shared rule against the row the dialog saved, and either drop
    *  it, or keep it with its chips updated.
@@ -636,23 +628,7 @@ export function HousekeepingAlertsClient({
             the order of presentation for these elements when the window
             narrows. These should be below the main table." The container's
             note has the full four-round sequence and both arguments. */}
-        {/* 🛑🛑 THE `ref` IS CURRENTLY INERT, AND THAT IS NOT A BUG. It feeds
-            `useFitViewportHeight`'s `discountRef`, which only fires when this
-            element sits ABOVE the table. Since this round it sits below it in
-            both layouts, so the hook's own above-or-beside test declines to
-            discount and the table is simply sized from its own top.
-            ⚠️ IT IS KEPT ON PURPOSE rather than ripped out: this order has
-            changed FOUR times in one day, and the discount is the only thing
-            that makes the panels-above arrangement survivable (without it the
-            table clamps at its 240px floor). **Removing it is a one-line
-            change; rediscovering why it was needed is not.**
-            📌 IF THE PANELS ARE STILL BELOW THE TABLE IN A MONTH, delete this
-            ref, the `discountRef` prop on the hook call, and the hook's own
-            `discountRef` branch, which would then have no callers at all. */}
-        <div
-          ref={recentPanelRef}
-          className="order-3 w-full max-w-[827px] min-w-0 2xl:col-start-2 2xl:row-start-2 2xl:max-w-none"
-        >
+        <div className="order-3 w-full max-w-[827px] min-w-0 2xl:col-start-2 2xl:row-start-2 2xl:max-w-none">
           <RecentlyEditedPanel rows={recent} onOpen={setEditing} />
         </div>
       </div>
