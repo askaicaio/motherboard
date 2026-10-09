@@ -975,12 +975,37 @@ function RecentRow({
             </span>
           </div>
           {row.externalUrl ? (
+            // 🛑🛑 `w-fit` IS A BUG FIX, NOT TIDYING, 2026-10-10. The user:
+            // "the links are clickable far to the right even if the link text
+            // does not reach there."
+            // ⚠️ **`flex` MAKES AN `<a>` A BLOCK-LEVEL BOX, SO IT FILLS THE
+            // ROW** whatever its text measures. 📊 Measured in this panel at
+            // 1920: the anchor ran 687px wide against 353px of text, leaving
+            // **318px of invisible hit area** to the right of the URL, and
+            // `elementFromPoint` 60px past the text returned the anchor.
+            // 📌 `w-fit` (`width: fit-content`) shrinks it to its content.
+            // ⚠️ NOT `inline-flex`, which also fixes the width but puts the
+            // box on a text baseline and adds descender space under it. This
+            // stays block-level and only changes the width.
+            //
+            // 🛑🛑 `max-w-full` IS NOT BELT AND BRACES, IT IS LOAD-BEARING, and
+            // I shipped this comment claiming the opposite before measuring.
+            // **`fit-content` is `min(max-content, max(min-content, available))`
+            // and a URL is ONE UNBREAKABLE TOKEN, so min-content is the whole
+            // URL** and the `max()` hands back more than the container has.
+            // 📊 Measured without it: the anchor ran 359px inside a 346px box,
+            // **overflowing by 13px with the text no longer truncating at all.**
+            // ⚠️ `min-w-0` ON THE SPAN DOES NOT PREVENT THIS. It lets the flex
+            // algorithm SHRINK the span once the width is definite; it does not
+            // reduce the span's min-content SIZE, which is what intrinsic
+            // sizing asks for. Same family as the `max-w-full` that long-token
+            // pills need.
             <a
               href={row.externalUrl}
               target="_blank"
               rel="noreferrer"
               title={row.externalUrl}
-              className="mt-0.5 flex items-center gap-1 text-xs text-blue-600 hover:underline"
+              className="mt-0.5 flex w-fit max-w-full items-center gap-1 text-xs text-blue-600 hover:underline"
             >
               <ExternalLink className="h-3 w-3 shrink-0" />
               {/* The table's own URL treatment: ellipsis on the LEFT so the END
@@ -1140,12 +1165,23 @@ function ListRow({
               // because browsers fire `auxclick` for it and React's `onClick`
               // never sees that; ctrl/cmd + click opens a BACKGROUND tab and the
               // dialog, which is the only way to get the tab off-focus at all.
+              // ⚠️ `w-fit max-w-full` FOR THE SAME REASON AS THE PANEL'S LINK,
+              // 2026-10-10 (read its note; the `max-w-full` half is the part
+              // that is easy to get wrong), though the bug does not SHOW here:
+              // this cell is a fixed 400px and the URLs fill or overflow it,
+              // so the dead zone measured 0 on every visible row. **It is the
+              // identical markup with the identical defect**, latent until a
+              // short URL lands in it, and leaving one of a matched pair wrong
+              // is how it comes back.
+              // 🛑 THE STAKES ARE HIGHER HERE than in the panel: this link is
+              // the dual action, so a stray click in the dead zone would open
+              // a browser tab as well as the dialog. See the note above.
               <a
                 href={row.externalUrl}
                 target="_blank"
                 rel="noreferrer"
                 title={row.externalUrl}
-                className="mt-0.5 flex items-center gap-1 text-xs text-blue-600 hover:underline"
+                className="mt-0.5 flex w-fit max-w-full items-center gap-1 text-xs text-blue-600 hover:underline"
               >
                 <ExternalLink className="h-3 w-3 shrink-0" />
                 <span className="min-w-0 truncate [direction:rtl] text-left">

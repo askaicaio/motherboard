@@ -529,6 +529,33 @@ on an inline element, so a CSS-masked glyph silently measures 0 by 0. It only
 breaks where the span is not a flex child, so the symptom looks like "some rows
 have no logo".
 
+**`flex` on an `<a>` makes its whole row clickable.** A flex container is
+block-level, so the anchor fills its parent whatever its text measures, and
+every pixel of that box is a hit target. The symptom is a link that "works"
+when you click empty space to the right of it. Reported on the Housekeeping
+panel on 2026-10-10 and measured at **318px of invisible hit area** past the
+end of the URL.
+
+> 🛑 **The fix is `w-fit max-w-full`, and `w-fit` alone is not enough.**
+> `fit-content` resolves to `min(max-content, max(min-content, available))`, and
+> a URL is **one unbreakable token**, so its min-content is the whole string and
+> that `max()` hands back more than the container has: measured at 359px inside
+> a 346px box, overflowing and no longer truncating. ⚠️ `min-w-0` on the inner
+> span does not prevent it. That lets the flex algorithm _shrink_ the span once
+> the width is definite; it does not reduce the span's min-content _size_, which
+> is what intrinsic sizing asks for.
+>
+> 📌 Prefer `w-fit` over `inline-flex`, which also fixes the width but puts the
+> box on a text baseline and adds descender space beneath it.
+
+⚠️ **This markup is copied across five places** (`housekeeping-alerts-client`
+twice, `automations-table-client`, `all-automations-table-client`,
+`error-history-table`). Only the two in Housekeeping are fixed. Measured
+2026-10-10 at 1920: View All Lists has a dead zone on **349 of its 964 links**
+(worst 139px), Error History on **all 37** (worst 74px), the Per Website tables
+on most rows (worst 74px). The user chose to fix Housekeeping only for now, so
+**the other three are known, measured and deliberately outstanding.**
+
 **Table headers are bold by default.** The `<th>` UA style, which Tailwind v4
 does not reset. A header rendered as a `<div>` needs `font-bold` to match; a
 `<th>` that should _not_ be bold needs an explicit `font-medium`.
