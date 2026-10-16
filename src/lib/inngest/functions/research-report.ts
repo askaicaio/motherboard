@@ -3,9 +3,15 @@
 // =============================================================
 // Each Anthropic call is a separate step.run(), which means:
 //   - If Stage 1 succeeds and Stage 2 fails, only Stage 2 retries
-//   - Each step can run for up to 2 hours (no Vercel limit)
 //   - Auto-retries with exponential backoff
 //   - Visible in Inngest dashboard with full step history
+//
+// IMPORTANT: a step is NOT unbounded. Inngest invokes each step.run() as its
+// own HTTP call to /api/inngest, so every step is capped by that route's
+// maxDuration like any other request. Stage 1 in deep mode runs 8-12 minutes,
+// which is why it goes through the Message Batches API (submit → poll → fetch)
+// instead of one long call — see "Batched Stage 1" below. Quick mode is short
+// enough to run synchronously.
 // =============================================================
 
 import { inngest } from "../client";
@@ -112,7 +118,7 @@ function estimateCost(
   return input + output + cacheRead + cacheWrite + search;
 }
 
-async function callAnthropicStage(params: {
+interface StageParams {
   systemPrompt: string;
   userMessage: string;
   enableWebSearch: boolean;
@@ -120,9 +126,27 @@ async function callAnthropicStage(params: {
   /** Override model + effort for the call */
   modelOverride?: string;
   effortOverride?: string;
-}): Promise<CallStageResult> {
+}
+
+function anthropicApiKey(): string {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error("ANTHROPIC_API_KEY not set");
+  return apiKey;
+}
+
+const ANTHROPIC_HEADERS = {
+  "Content-Type": "application/json",
+  "anthropic-version": "2023-06-01",
+  "anthropic-beta": "prompt-caching-2024-07-31",
+} as const;
+
+/**
+ * Build the Messages-API request body for a stage. Shared by the synchronous
+ * path (callAnthropicStage) and the batched path (submitStageBatch) so the two
+ * can never drift — a batched request must be byte-identical in intent to the
+ * synchronous one, or deep and quick mode would quietly produce different work.
+ */
+function buildStageRequestBody(params: StageParams): Record<string, unknown> {
   const model =
     params.modelOverride ||
     process.env.ANTHROPIC_MODEL ||
@@ -159,18 +183,21 @@ async function callAnthropicStage(params: {
     output_config: { effort },
   };
   if (tools.length > 0) requestBody.tools = tools;
+  return requestBody;
+}
+
+async function callAnthropicStage(
+  params: StageParams,
+): Promise<CallStageResult> {
+  const apiKey = anthropicApiKey();
+  const requestBody = buildStageRequestBody(params);
 
   // Use longFetch (custom undici dispatcher) to allow the connection
   // to stay open longer than Node's default 5-minute headers timeout.
   // Anthropic with web search + adaptive thinking can take 8-12+ min.
   const response = await longFetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-      "anthropic-beta": "prompt-caching-2024-07-31",
-    },
+    headers: { ...ANTHROPIC_HEADERS, "x-api-key": apiKey },
     body: JSON.stringify(requestBody),
   });
 
@@ -187,7 +214,11 @@ async function callAnthropicStage(params: {
     throw new Error(msg);
   }
 
-  const data = JSON.parse(responseText) as AnthropicResponse;
+  return parseStageResponse(JSON.parse(responseText) as AnthropicResponse);
+}
+
+/** Turn a raw Messages-API response into our CallStageResult. */
+function parseStageResponse(data: AnthropicResponse): CallStageResult {
 
   // Text
   const text = data.content
@@ -248,6 +279,162 @@ async function callAnthropicStage(params: {
     },
     thinking: thinkingBlocks.join("\n---\n") || undefined,
   };
+}
+
+// =============================================================
+// Batched Stage 1 (Message Batches API)
+// =============================================================
+// Deep research is a single Anthropic call that routinely runs 8-12 minutes.
+// Run synchronously it needs a function that can stay alive that long, which
+// pins the whole app to a plan with an 800s ceiling. The Batches API turns the
+// same work into three SHORT HTTP calls — submit, poll, fetch — so no single
+// invocation lasts more than a few seconds and the ceiling stops mattering.
+//
+// Two further wins: batches are billed at 50% of standard rates, and the
+// result survives for 29 days, so a crashed run can be recovered by batch id
+// instead of paying for the research twice.
+//
+// Server tools work unchanged in batches — Anthropic runs the same server-side
+// agentic loop — so web_search behaves exactly as it does synchronously. The
+// one documented difference is that web_search is throttled per organization
+// across concurrent batches, which can make a batch take longer (we allow up
+// to BATCH_MAX_POLLS minutes) but does not change the result.
+// Docs: https://platform.claude.com/docs/en/build-with-claude/batch-processing
+// =============================================================
+
+const BATCH_API_URL = "https://api.anthropic.com/v1/messages/batches";
+/** Our single request inside the batch — we submit exactly one. */
+const BATCH_CUSTOM_ID = "stage-1";
+/** Gap between polls. Each poll is its own Inngest step, so this is wall-clock
+ *  waiting, not function time. */
+const BATCH_POLL_INTERVAL = "60s";
+/** How many polls before we give up. Anthropic says most batches finish within
+ *  an hour (hard expiry is 24h); 90 minutes covers the typical case with room
+ *  to spare, and giving up here does not destroy the batch. */
+const BATCH_MAX_POLLS = 90;
+
+interface BatchStatus {
+  ended: boolean;
+  succeeded: number;
+  errored: number;
+  canceled: number;
+  expired: number;
+}
+
+/** One line of the batch results JSONL. */
+interface BatchResultLine {
+  custom_id?: string;
+  result?: {
+    type?: string;
+    message?: AnthropicResponse;
+    error?: { type?: string; message?: string };
+  };
+}
+
+/** Submit Stage 1 as a one-request batch. Returns the batch id. Fast. */
+async function submitStageBatch(params: StageParams): Promise<string> {
+  const apiKey = anthropicApiKey();
+  const response = await fetch(BATCH_API_URL, {
+    method: "POST",
+    headers: { ...ANTHROPIC_HEADERS, "x-api-key": apiKey },
+    body: JSON.stringify({
+      requests: [
+        { custom_id: BATCH_CUSTOM_ID, params: buildStageRequestBody(params) },
+      ],
+    }),
+  });
+
+  const text = await response.text();
+  if (!response.ok) {
+    throw new Error(
+      `Anthropic Batches create ${response.status}: ${text.slice(0, 500)}`,
+    );
+  }
+
+  const batch = JSON.parse(text) as { id?: string };
+  if (!batch.id) {
+    throw new Error(`Anthropic Batches create returned no id: ${text.slice(0, 300)}`);
+  }
+  return batch.id;
+}
+
+/** Check whether the batch has finished processing. Fast. */
+async function pollStageBatch(batchId: string): Promise<BatchStatus> {
+  const apiKey = anthropicApiKey();
+  const response = await fetch(`${BATCH_API_URL}/${batchId}`, {
+    headers: { ...ANTHROPIC_HEADERS, "x-api-key": apiKey },
+  });
+
+  const text = await response.text();
+  if (!response.ok) {
+    throw new Error(
+      `Anthropic Batches retrieve ${response.status}: ${text.slice(0, 500)}`,
+    );
+  }
+
+  const batch = JSON.parse(text) as {
+    processing_status?: string;
+    request_counts?: Record<string, number>;
+  };
+  const counts = batch.request_counts || {};
+  return {
+    ended: batch.processing_status === "ended",
+    succeeded: counts.succeeded ?? 0,
+    errored: counts.errored ?? 0,
+    canceled: counts.canceled ?? 0,
+    expired: counts.expired ?? 0,
+  };
+}
+
+/**
+ * Download the finished batch's results (JSONL, one line per request) and
+ * parse our single result into the same CallStageResult the synchronous path
+ * returns — so everything downstream is identical either way.
+ */
+async function fetchStageBatchResult(
+  batchId: string,
+): Promise<CallStageResult> {
+  const apiKey = anthropicApiKey();
+  const response = await fetch(`${BATCH_API_URL}/${batchId}/results`, {
+    headers: { ...ANTHROPIC_HEADERS, "x-api-key": apiKey },
+  });
+
+  const text = await response.text();
+  if (!response.ok) {
+    throw new Error(
+      `Anthropic Batches results ${response.status}: ${text.slice(0, 500)}`,
+    );
+  }
+
+  const lines = text.split("\n").filter((l) => l.trim());
+  if (lines.length === 0) {
+    throw new Error(`Batch ${batchId} returned no results`);
+  }
+
+  // We submit exactly one request, but match on custom_id rather than taking
+  // lines[0] so this stays correct if the batch ever carries more than one.
+  let entry: BatchResultLine | null = null;
+  for (const line of lines) {
+    const parsed = JSON.parse(line) as BatchResultLine;
+    if (parsed.custom_id === BATCH_CUSTOM_ID) {
+      entry = parsed;
+      break;
+    }
+  }
+  if (!entry) {
+    throw new Error(
+      `Batch ${batchId} has no result for custom_id "${BATCH_CUSTOM_ID}"`,
+    );
+  }
+
+  const result = entry.result;
+  if (result?.type !== "succeeded" || !result.message) {
+    const detail =
+      result?.error?.message || result?.type || "unknown batch result type";
+    throw new Error(`Batch ${batchId} request did not succeed: ${detail}`);
+  }
+
+  return parseStageResponse(result.message);
 }
 
 // =============================================================
@@ -366,14 +553,62 @@ export const researchReportFn = inngest.createFunction(
         "Manual mode requires a dossier to be uploaded before research can run. Upload the dossier first.",
       );
     } else {
-      const stage1 = await step.run("stage-1-deep-research", async () => {
-        return await callAnthropicStage({
-          systemPrompt: buildResearchPrompt(promptOptions),
-          userMessage: buildUserMessage(promptOptions),
-          enableWebSearch: true,
-          ...stage1Params,
+      const stage1Call: StageParams = {
+        systemPrompt: buildResearchPrompt(promptOptions),
+        userMessage: buildUserMessage(promptOptions),
+        enableWebSearch: true,
+        ...stage1Params,
+      };
+
+      let stage1: CallStageResult;
+
+      if (mode === "quick") {
+        // Quick mode is Sonnet + 6 searches (~2-3 min) — comfortably inside any
+        // function ceiling, and batching would only add latency for no gain.
+        stage1 = await step.run("stage-1-deep-research", async () => {
+          return await callAnthropicStage(stage1Call);
         });
-      });
+      } else {
+        // Deep mode runs 8-12 minutes, which no single serverless invocation
+        // should have to stay alive for. Submit it as a batch, then poll in
+        // short steps — each one is a few seconds, so the function duration
+        // ceiling stops being the thing that decides whether this works.
+        const batchId = await step.run("stage-1-submit-batch", async () => {
+          return await submitStageBatch(stage1Call);
+        });
+
+        console.log(
+          `[research-report] Stage 1 submitted as batch ${batchId} (report ${reportId})`,
+        );
+
+        let ended = false;
+        for (let attempt = 0; attempt < BATCH_MAX_POLLS; attempt++) {
+          await step.sleep(`stage-1-wait-${attempt}`, BATCH_POLL_INTERVAL);
+          const status = await step.run(
+            `stage-1-poll-${attempt}`,
+            async () => await pollStageBatch(batchId),
+          );
+          if (status.ended) {
+            ended = true;
+            break;
+          }
+        }
+
+        if (!ended) {
+          // The batch itself is still valid for 29 days, so surface the id —
+          // the research is paid for and recoverable rather than lost.
+          throw new Error(
+            `Deep research batch ${batchId} did not finish within ` +
+              `${BATCH_MAX_POLLS} minutes. Results stay available for 29 days — ` +
+              `recover them with this batch id rather than re-running the research.`,
+          );
+        }
+
+        stage1 = await step.run(
+          "stage-1-fetch-batch",
+          async () => await fetchStageBatchResult(batchId),
+        );
+      }
 
       // Sanity-check the output: if Claude returned a meta-summary instead
       // of the actual dossier (e.g. because it tried to write files via

@@ -37,7 +37,11 @@ export type GammaOutcome = GammaResult | GammaError;
 
 const MOCK_DELAY_MS = 3000;
 const POLL_INTERVAL_MS = 5000; // Gamma recommends every 5 seconds
-const MAX_POLL_ATTEMPTS = 48; // 4 minutes total — generations typically take 1-3 min
+// 40 attempts x 5s = 200s of polling. This whole loop runs inside ONE
+// step.run(), so it is bounded by /api/inngest's maxDuration of 300s — 48
+// attempts (240s) plus submit and network overhead left almost no margin.
+// Generations typically take 1-3 min, so 200s still covers the normal case.
+const MAX_POLL_ATTEMPTS = 40;
 
 function isMockMode(): boolean {
   return (

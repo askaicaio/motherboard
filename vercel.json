@@ -13,39 +13,5 @@
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
       ]
     }
-  ],
-  "crons": [
-    {
-      "path": "/api/cron/sync-ghl-campaigns",
-      "schedule": "*/5 * * * *"
-    },
-    {
-      "path": "/api/cron/sync-automations",
-      "schedule": "*/5 * * * *"
-    },
-    {
-      "path": "/api/cron/promote-pending-to-earned",
-      "schedule": "0 * * * *"
-    },
-    {
-      "path": "/api/cron/sync-customers-index",
-      "schedule": "0 6 * * *"
-    },
-    {
-      "path": "/api/cron/auto-generate-payouts",
-      "schedule": "0 8 * * *"
-    },
-    {
-      "path": "/api/cron/sync-ghl-affiliates",
-      "schedule": "0 6 * * *"
-    },
-    {
-      "path": "/api/cron/test-product-refunds",
-      "schedule": "0 * * * *"
-    },
-    {
-      "path": "/api/cron/affiliate-report-monthly",
-      "schedule": "0 13 1 * *"
-    }
   ]
 }
